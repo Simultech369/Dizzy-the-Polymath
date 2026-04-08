@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-08T00:10:55.012Z",
+  "canonical_source": "DESIGN.md",
+  "docs": {
+    "primary": "DESIGN.md",
+    "derived_state": "state.json",
+    "open_queue": "NEXT.md"
+  },
+  "governance": {
+    "anchors": [
+      "Benkler",
+      "Waldron"
+    ],
+    "runtime_constitution": {
+      "default_prompt_pack_files": [
+        "IDENTITY.md",
+        "SOUL.md",
+        "HEARTBEAT.md",
+        "TOOLS.md",
+        "USER.md",
+        "PROMPT_CORE.md",
+        "PROMPT_MODES.md"
+      ],
+      "rule": "Principles that govern live runtime behavior must exist in compact form in the default prompt pack. Longer docs may elaborate but should not claim independent constitutional force if absent from the default pack."
+    },
+    "transparency": {
+      "structural_transparency": true,
+      "operational_confidentiality": true,
+      "public_docs": [
+        "GOVERNANCE.md"
+      ],
+      "internal_docs": [
+        "SOUL.md",
+        "PROTOCOL.md",
+        "HEARTBEAT.md",
+        "TOOLS.md"
+      ]
+    },
+    "principles": {
+      "benkler": [
+        "local_first",
+        "portability",
+        "non_extractive_defaults",
+        "modular_artifacts"
+      ],
+      "waldron": [
+        "reason_codes",
+        "stable_rules",
+        "contestability",
+        "legible_enforcement"
+      ]
+    }
+  },
+  "queue": {
+    "max_retries": 3,
+    "backoff_seconds": [
+      1,
+      4,
+      16
+    ],
+    "retry_policy": {
+      "only_effects": [
+        "READ"
+      ],
+      "attempts_field": "attempts",
+      "retries_field": "retry_count"
+    },
+    "dead_letter": {
+      "dir": "runtime/dlq",
+      "format": "jsonl"
+    }
+  },
+  "runtime": {
+    "bind_host_default": "127.0.0.1",
+    "auth": {
+      "optional": true,
+      "env": "DIZZY_AUTH_TOKEN",
+      "scheme": "bearer",
+      "health_public_on_loopback": true
+    },
+    "trust_zones": {
+      "private_self": {
+        "chat_history": "retained",
+        "durable_memory": true,
+        "auto_retrieval": "trusted_only"
+      },
+      "trusted_collaborator": {
+        "chat_history": "retained",
+        "durable_memory": true,
+        "auto_retrieval": "trusted_only"
+      },
+      "outside_contact": {
+        "chat_history": "minimal",
+        "durable_memory": false,
+        "auto_retrieval": "off"
+      },
+      "paid_public": {
+        "chat_history": "ephemeral_default",
+        "durable_memory": false,
+        "auto_retrieval": "off",
+        "continuity_requires_explicit_enable": true
+      }
+    },
+    "retrieval": {
+      "markdown_scope_default": [
+        "trusted_root_docs",
+        "MEMORY.md",
+        "memory/"
+      ],
+      "markdown_scope_denied_default": [
+        "_ext/",
+        "_external/"
+      ],
+      "untrusted_docs_auto_injection": false
+    },
+    "prompt_modes": {
+      "brevity_env": "DIZZY_BREVITY_MODE",
+      "affect_env": "DIZZY_AFFECT_MODE",
+      "reinforcement_env": "DIZZY_REINFORCEMENT_MODE",
+      "defaults": {
+        "brevity": "lite",
+        "affect": "attuned",
+        "reinforcement": "gold_star"
+      }
+    },
+    "transparency": {
+      "governance_endpoint": "/governance"
+    }
+  },
+  "interfaces": {
+    "telegram": {
+      "primary": true,
+      "relay_script": "scripts/telegram_relay.mjs",
+      "notify_drain_script": "scripts/telegram_notify_drain.mjs"
+    }
+  },
+  "derived_from": {
+    "design_md_sha256": "1346acbbaa6ef35c2374dcefa90576851060a32fb01f2e3ae82651e44fd81703"
+  }
+}

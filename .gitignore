@@ -1,0 +1,17 @@
+node_modules/
+runtime/
+_ext/
+_external/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+patch_body.txt
+patch_headers.txt
+result.png
+coverage/
+dist/
+__pycache__/
+*.pyc
