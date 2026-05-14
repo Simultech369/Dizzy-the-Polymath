@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 import { connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
-import { handleIncomingMessage } from "./lib/dispatch.mjs";
+import { getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -396,27 +396,36 @@ export async function createRuntime(opts = {}) {
     const { brief, service_id, client_id } = req.body ?? {};
     const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";
+    const conversationKey = buildExecuteConversationKey(req.body ?? {});
+    const runtimeContext = {
+      trust_zone: "paid_public",
+      continuity_mode: continuityAllowed ? "client" : "ephemeral",
+      conversation_key: conversationKey,
+    };
     try {
+      const message = buildIncomingMessage(
+        { text: brief, meta: { service_id, client_id } },
+        req,
+        {
+          channel: "execute",
+          from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
+          runtime_context: runtimeContext,
+        },
+      );
+      const capabilities = getTrustZoneCapabilities(message, "paid_public");
       const out = await handleIncomingMessage({
-        message: buildIncomingMessage(
-          { text: brief, meta: { service_id, client_id } },
-          req,
-          {
-            channel: "execute",
-            from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
-            runtime_context: {
-              trust_zone: "paid_public",
-              continuity_mode: continuityAllowed ? "client" : "ephemeral",
-              conversation_key: buildExecuteConversationKey(req.body ?? {}),
-            },
-          },
-        ),
+        message,
         enqueue: enqueueTool,
       });
       res.json({
         ok: true,
         service_id: service_id ?? null,
-        continuity_mode: continuityAllowed ? "client" : "ephemeral",
+        continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
+        retention_scope: capabilities.retention_scope,
+        expiry_policy: capabilities.expiry_policy,
+        repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
+        durable_memory_allowed: capabilities.durable_memory_allowed,
+        conversation_key: conversationKey,
         ...out,
       });
     } catch (e) {

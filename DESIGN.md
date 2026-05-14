@@ -250,6 +250,28 @@ Consequences:
 
 ---
 
+### D-0015: Paid/client continuity is conversation-only unless a stronger lifecycle exists
+
+Decision:
+- `paid_public` remains ephemeral by default.
+- `continuity_mode=client` means scoped conversation history only.
+- Client continuity does not enable durable memory writes, repo/private retrieval, private memory access, or cross-client carryover.
+- The runtime should expose continuity status plainly enough that the operator can see what is retained and why.
+
+Rationale:
+- The runtime already supports `continuity_mode=client`; without lifecycle semantics, that switch can be misread as broader client memory.
+- Paid/public continuity is useful only if it stays scoped, legible, and easy to revoke.
+- Commercial surfaces must not import private-assistant continuity by implication.
+
+Consequences:
+- `/agent/execute` should report `continuity_mode`, `retention_scope`, `expiry_policy`, `repo_retrieval_allowed`, `durable_memory_allowed`, and a safe conversation reference when applicable.
+- Default retention scope is `ephemeral`.
+- Client continuity retention scope is `conversation_only`.
+- Default client continuity expiry policy is `7_days_inactivity_operator_deletable` until a stronger authenticated client lifecycle exists.
+- Deletion/expiry mechanics should be implemented before richer client continuity is offered.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -291,8 +313,10 @@ Consequences:
   - disclosure posture: fresh-context reasoning first
 - `paid_public`
   - chat history: ephemeral by default; continuity only when explicitly enabled per client/task
+  - client continuity: scoped conversation history only
   - durable memory writes: disabled
   - auto-retrieval: disabled
+  - expiry policy: `7_days_inactivity_operator_deletable` until stronger lifecycle exists
   - disclosure posture: no hidden private carryover, no cross-client residue
 
 ### 3.4 Retrieval Surfaces
@@ -411,9 +435,11 @@ Edit this block when you want to change what agents read.
       },
       "paid_public": {
         "chat_history": "ephemeral_default",
+        "client_continuity": "conversation_only",
         "durable_memory": false,
         "auto_retrieval": "off",
-        "continuity_requires_explicit_enable": true
+        "continuity_requires_explicit_enable": true,
+        "expiry_policy": "7_days_inactivity_operator_deletable"
       }
     },
     "retrieval": {

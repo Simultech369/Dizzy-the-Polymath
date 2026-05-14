@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 
+import { startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, getContinuityMode, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
@@ -132,6 +133,22 @@ function testContinuityModes() {
     trustZoneUsesEphemeralChatHistory({ runtime_context: { trust_zone: "private_self" } }, "private_self"),
     false,
   );
+
+  const paidEphemeral = getTrustZoneCapabilities({ runtime_context: { trust_zone: "paid_public", continuity_mode: "ephemeral" } });
+  assert.equal(paidEphemeral.retention_scope, "ephemeral");
+  assert.equal(paidEphemeral.repo_retrieval_allowed, false);
+  assert.equal(paidEphemeral.durable_memory_allowed, false);
+
+  const paidClient = getTrustZoneCapabilities({ runtime_context: { trust_zone: "paid_public", continuity_mode: "client" } });
+  assert.equal(paidClient.retention_scope, "conversation_only");
+  assert.equal(paidClient.ephemeral_history, false);
+  assert.equal(paidClient.repo_retrieval_allowed, false);
+  assert.equal(paidClient.durable_memory_allowed, false);
+  assert.equal(paidClient.expiry_policy, "7_days_inactivity_operator_deletable");
+
+  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trust_zone: "private_self" } });
+  assert.equal(privateSelf.repo_retrieval_allowed, true);
+  assert.equal(privateSelf.durable_memory_allowed, true);
 }
 
 function testQueueChannelSanitization() {
@@ -369,6 +386,42 @@ function testMarkdownRetrieverSignals() {
   assert.equal(snippets.length > 0, true);
   assert.equal(snippets.some((s) => Array.isArray(s.reasons) && s.reasons.includes("autonomy_structure_signal")), true);
   assert.equal(snippets.some((s) => typeof s.signals?.autonomy === "number"), true);
+  assert.equal(snippets.every((s) => s.source_path === s.path), true);
+  assert.equal(snippets.every((s) => /^[a-f0-9]{64}$/.test(String(s.source_hash || ""))), true);
+  assert.equal(snippets.every((s) => s.semantic_status === "unchecked"), true);
+  assert.equal(snippets.every((s) => Number.isFinite(Date.parse(s.retrieved_at))), true);
+}
+
+async function testAgentExecuteContinuityLifecycleResponse() {
+  const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+  delete process.env.DIZZY_CHAT_BACKEND;
+
+  const rt = await startServer({ port: 0, bindHost: "127.0.0.1" });
+  try {
+    const url = `http://127.0.0.1:${rt.boundPort}/agent/execute`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Hello",
+        client_id: "Client A",
+        service_id: "Review",
+        continuity_mode: "client",
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.continuity_mode, "client");
+    assert.equal(body.retention_scope, "conversation_only");
+    assert.equal(body.expiry_policy, "7_days_inactivity_operator_deletable");
+    assert.equal(body.repo_retrieval_allowed, false);
+    assert.equal(body.durable_memory_allowed, false);
+    assert.match(body.conversation_key, /^execute_client_client_a_review$/);
+  } finally {
+    await rt.stop();
+    if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+    else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+  }
 }
 
 function testMarkdownRetrieverExcludesUntrustedRoots() {
@@ -481,4 +534,5 @@ testAutoRememberHeuristics();
 testPromptBundleDefaults();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
+await testAgentExecuteContinuityLifecycleResponse();
 console.log("SAFETY_CHECKS_OK");
