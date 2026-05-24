@@ -1,11 +1,25 @@
 # RUNBOOK.md
-How to run Dizzy locally with Telegram as the primary interface.
+How to run Dizzy locally.
 
 Goal: simplest setup first, with optional failure-isolated add-ons.
 
 ---
 
-## Quick start (2 terminals)
+## Quick start: local runtime only
+
+Terminal A:
+- `node .\agent_server.mjs`
+
+Terminal B:
+- `Invoke-RestMethod http://127.0.0.1:3000/health`
+- `Invoke-RestMethod http://127.0.0.1:3000/prompt`
+- `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`
+
+This starts the local API, exposes governance/prompt/memory inspection endpoints, and does not require Telegram, Redis, or a model backend.
+
+---
+
+## Quick start: Telegram interface (2 terminals)
 
 Terminal A:
 - `node .\agent_server.mjs`

@@ -1,10 +1,42 @@
 # Dizzy
 
-Local-first continuity-and-judgment runtime.
+A local-first assistant runtime for bounded memory, trust zones, and accountable continuity.
 
-Dizzy is a bounded assistant system designed to help a human preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency. The center of the repo is not companionship, not a generic chatbot, and not a marketplace persona. It is continuity, trust-zone discipline, memory restraint, and legible governance.
+Dizzy helps a human preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency. The center is not companionship, not a generic chatbot, and not a marketplace persona. It is disciplined continuity across time, risk, and trust zones.
 
-The repo is meant to be transparent without turning every working note into doctrine. Read it as a working instrument with a visible workshop attached: the runtime is small and bounded; the surrounding notes show how its judgment is being refined.
+The repo is transparent without turning every working note into doctrine. Read it as a working instrument with a visible workshop attached: the runtime is small and bounded; the surrounding notes show how its judgment is being refined.
+
+## Quick Start
+
+Install dependencies:
+
+```powershell
+npm install
+```
+
+Run the server:
+
+```powershell
+node .\agent_server.mjs
+```
+
+In another terminal, inspect the local runtime:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3000/health
+Invoke-RestMethod http://127.0.0.1:3000/prompt
+Invoke-RestMethod http://127.0.0.1:3000/memory/graph
+```
+
+Run verification:
+
+```powershell
+node .\scripts\safety_checks.mjs
+node .\smoke_test.mjs
+node .\scripts\sync_state.mjs --check
+```
+
+For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 
 ## What This Is
 
@@ -41,43 +73,6 @@ The public or paid layer is currently a constrained projection of the core syste
 - [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md): optional lightweight outward-facing surface
 - [`upgrades/`](upgrades/): planning lane, review trail, and candidate improvements; not runtime doctrine
 
-## Status Vocabulary
-
-- `runtime-enforced`: implemented in code, tests, or machine-facing behavior
-- `constitutional`: live prompt-pack or governing doctrine that shapes default behavior
-- `operator overlay`: operational practice or manual boundary, not fully automated
-- `planning candidate`: proposal under review in `upgrades/`
-- `historical provenance`: retained context for audit, not an active recommendation
-- `deprecated`: kept only to explain what should not guide future work
-
-## Quick Start
-
-Install dependencies:
-
-```powershell
-npm install
-```
-
-Run the server:
-
-```powershell
-node .\agent_server.mjs
-```
-
-Run safety checks:
-
-```powershell
-node .\scripts\safety_checks.mjs
-```
-
-Run the smoke test:
-
-```powershell
-node .\smoke_test.mjs
-```
-
-For Telegram and optional worker setup, see [`RUNBOOK.md`](RUNBOOK.md).
-
 ## Trust Zones And Retention
 
 Dizzy uses trust zones as real runtime boundaries:
@@ -101,6 +96,15 @@ Retention is intentional and local-first, not ambient.
 ## Political-Economic Direction
 
 The repo carries a political-economic direction centered on anti-extraction, capability, and bounded governance. That direction should be read as orientation for construction, not as a claim that current conditions have already achieved it.
+
+## Status Vocabulary
+
+- `runtime-enforced`: implemented in code, tests, or machine-facing behavior
+- `constitutional`: live prompt-pack or governing doctrine that shapes default behavior
+- `operator overlay`: operational practice or manual boundary, not fully automated
+- `planning candidate`: proposal under review in `upgrades/`
+- `historical provenance`: retained context for audit, not an active recommendation
+- `deprecated`: kept only to explain what should not guide future work
 
 ## Verification
 

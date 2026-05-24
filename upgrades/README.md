@@ -1,6 +1,6 @@
 # Upgrades
 
-Purpose: synthesized upgrade proposals, roadmaps, schemas, and migration notes.
+Synthesized upgrade proposals, roadmaps, schemas, and migration notes.
 
 This directory is a planning lane, not runtime doctrine. Nothing here governs Dizzy until it is deliberately moved into live docs, prompt-pack files, tests, or code.
 
@@ -8,18 +8,22 @@ The aesthetic here should be workshop clarity: enough provenance to understand w
 
 ## Start here
 
-For the next OpenClaude review pass, start with:
+For current direction, start with:
+
+- [active/selection-pressure.md](active/selection-pressure.md)
+- [active/memory-metadata.md](active/memory-metadata.md)
+- [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md)
+
+For cross-model review history, start with:
 
 - [council/2026-05-06-openclaude-front-door.md](council/2026-05-06-openclaude-front-door.md)
 
-That note is the current front door for OpenClaude as a next-team-member reviewer. It explains:
+That note was the front door for OpenClaude as a next-team-member reviewer. It explains:
 
 - why the live local repo matters more than GitHub alone right now
 - which local recommendation notes should be read first
 - what constraints are fixed for the review
 - what output shape is wanted from OpenClaude
-
-Use `upgrades/README.md` only as the directory map. Use the front-door note as the review entry point.
 
 This folder is for:
 
