@@ -157,6 +157,8 @@ Notes on memory:
 - Memory quality rule of thumb: prefer delta over duplicate recap. A good memory captures what changed, why it matters, and what should be reused later.
 - Auto-memory is enabled by default when chat is enabled. It writes only on higher-signal turns, with cooldown and dedupe gates to avoid summarizing every exchange.
 - Trust-zone note: `/agent/execute` paid/public requests are ephemeral by default. Enable continuity explicitly per client/task with `continuity_mode=client` if you intentionally want retained client-specific chat history.
+- Client continuity requires `client_id` and `service_id`; `/agent/execute` derives the conversation key from those fields and ignores caller-provided keys.
+- Ephemeral `/agent/execute` requests do not write execution-history entries.
 - Markdown auto-retrieval is scoped to trusted root doctrine docs plus `memory/` by default. Imported markdown under `_ext/` and `_external/` is excluded unless you explicitly widen the allowlist.
 
 Optional: automatic chat fallback (keep Gemini as primary)
@@ -176,6 +178,20 @@ Helper script (sets User env vars + current session):
 
 Helper script (sets User env vars + current session):
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\set_user_env_gemini.ps1`
+
+Minimal routing roles:
+- `chat`: normal replies and final judgment use `DIZZY_CHAT_BACKEND`.
+- `utility`: janitorial work (`/remember`, auto-remember, `/memory_review`, `/improve`) uses `DIZZY_UTILITY_BACKEND` when set, otherwise the chat backend.
+- `fallback`: transient primary failures can use `DIZZY_CHAT_FALLBACK_BACKEND=openai_compat`.
+
+Keep this small. Start with one primary chat backend, one utility backend, and one fallback. Add providers only when a real task cannot be served through Gemini or an OpenAI-compatible endpoint.
+
+Utility override examples:
+- `DIZZY_UTILITY_BACKEND=openai_compat`
+- `DIZZY_UTILITY_OPENAI_COMPAT_MODEL=<cheap-or-local-model-id>`
+- `DIZZY_UTILITY_OPENAI_COMPAT_MAX_TOKENS=500`
+
+Routing choices are recorded in conversation JSONL entries as `model_route` for later review.
 
 Groq helper (lists available model IDs using your Groq API key):
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\groq_list_models.ps1`

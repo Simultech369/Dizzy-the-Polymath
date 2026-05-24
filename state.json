@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-04-08T00:10:55.012Z",
+  "updated_at": "2026-05-24T09:49:48.690Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -97,9 +97,11 @@
       },
       "paid_public": {
         "chat_history": "ephemeral_default",
+        "client_continuity": "conversation_only",
         "durable_memory": false,
         "auto_retrieval": "off",
-        "continuity_requires_explicit_enable": true
+        "continuity_requires_explicit_enable": true,
+        "expiry_policy": "7_days_inactivity_operator_deletable"
       }
     },
     "retrieval": {
@@ -136,6 +138,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "1346acbbaa6ef35c2374dcefa90576851060a32fb01f2e3ae82651e44fd81703"
+    "design_md_sha256": "5f6d183ef60fa4d0cb2f2d4a63e1fae1d39f69551eb40df69280221ca0bf60a5"
   }
 }

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 import { connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
-import { handleIncomingMessage } from "./lib/dispatch.mjs";
+import { getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -54,18 +54,25 @@ function normalizeMeta(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
+function appendJsonl(filePath, obj) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.appendFileSync(filePath, `${JSON.stringify(obj)}\n`, "utf8");
+}
+
+function executionHistoryPath() {
+  return path.resolve(process.cwd(), String(process.env.DIZZY_EXECUTION_HISTORY_PATH || "runtime/execution_history.jsonl"));
+}
+
 function normalizeConversationKeyPart(value, fallback = "") {
   return normalizeIdentifier(value, fallback).slice(0, 40);
 }
 
 function buildExecuteConversationKey(body = {}) {
   const continuityMode = String(body?.continuity_mode ?? "").trim().toLowerCase();
-  const explicit = normalizeConversationKeyPart(body?.conversation_key, "");
-  if (explicit) return `execute_${explicit}`;
 
   if (continuityMode === "client") {
     const clientId = normalizeConversationKeyPart(body?.client_id, "");
-    const serviceId = normalizeConversationKeyPart(body?.service_id, "general");
+    const serviceId = normalizeConversationKeyPart(body?.service_id, "");
     if (clientId) return `execute_client_${clientId}_${serviceId}`;
   }
 
@@ -396,27 +403,57 @@ export async function createRuntime(opts = {}) {
     const { brief, service_id, client_id } = req.body ?? {};
     const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";
+    if (continuityAllowed && (!String(client_id ?? "").trim() || !String(service_id ?? "").trim())) {
+      return res.status(400).json({
+        ok: false,
+        error: "continuity_mode=client requires client_id and service_id",
+      });
+    }
+    const conversationKey = buildExecuteConversationKey(req.body ?? {});
+    const runtimeContext = {
+      trust_zone: "paid_public",
+      continuity_mode: continuityAllowed ? "client" : "ephemeral",
+      conversation_key: conversationKey,
+    };
     try {
+      const message = buildIncomingMessage(
+        { text: brief, meta: { service_id, client_id } },
+        req,
+        {
+          channel: "execute",
+          from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
+          runtime_context: runtimeContext,
+        },
+      );
+      const capabilities = getTrustZoneCapabilities(message, "paid_public");
       const out = await handleIncomingMessage({
-        message: buildIncomingMessage(
-          { text: brief, meta: { service_id, client_id } },
-          req,
-          {
-            channel: "execute",
-            from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
-            runtime_context: {
-              trust_zone: "paid_public",
-              continuity_mode: continuityAllowed ? "client" : "ephemeral",
-              conversation_key: buildExecuteConversationKey(req.body ?? {}),
-            },
-          },
-        ),
+        message,
         enqueue: enqueueTool,
       });
+      if (capabilities.retention_scope !== "ephemeral") {
+        appendJsonl(executionHistoryPath(), {
+          t: new Date().toISOString(),
+          route: "/agent/execute",
+          trust_zone: "paid_public",
+          service_id: service_id == null ? null : normalizeIdentifier(service_id, "service"),
+          client_id: client_id == null ? null : normalizeIdentifier(client_id, "client"),
+          continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
+          retention_scope: capabilities.retention_scope,
+          repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
+          durable_memory_allowed: capabilities.durable_memory_allowed,
+          conversation_key: conversationKey,
+          result_kind: out?.kind || "",
+        });
+      }
       res.json({
         ok: true,
         service_id: service_id ?? null,
-        continuity_mode: continuityAllowed ? "client" : "ephemeral",
+        continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
+        retention_scope: capabilities.retention_scope,
+        expiry_policy: capabilities.expiry_policy,
+        repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
+        durable_memory_allowed: capabilities.durable_memory_allowed,
+        conversation_key: conversationKey,
         ...out,
       });
     } catch (e) {

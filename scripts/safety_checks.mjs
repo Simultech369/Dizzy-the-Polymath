@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 
+import { startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, getContinuityMode, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
+import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
+import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
@@ -132,6 +135,22 @@ function testContinuityModes() {
     trustZoneUsesEphemeralChatHistory({ runtime_context: { trust_zone: "private_self" } }, "private_self"),
     false,
   );
+
+  const paidEphemeral = getTrustZoneCapabilities({ runtime_context: { trust_zone: "paid_public", continuity_mode: "ephemeral" } });
+  assert.equal(paidEphemeral.retention_scope, "ephemeral");
+  assert.equal(paidEphemeral.repo_retrieval_allowed, false);
+  assert.equal(paidEphemeral.durable_memory_allowed, false);
+
+  const paidClient = getTrustZoneCapabilities({ runtime_context: { trust_zone: "paid_public", continuity_mode: "client" } });
+  assert.equal(paidClient.retention_scope, "conversation_only");
+  assert.equal(paidClient.ephemeral_history, false);
+  assert.equal(paidClient.repo_retrieval_allowed, false);
+  assert.equal(paidClient.durable_memory_allowed, false);
+  assert.equal(paidClient.expiry_policy, "7_days_inactivity_operator_deletable");
+
+  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trust_zone: "private_self" } });
+  assert.equal(privateSelf.repo_retrieval_allowed, true);
+  assert.equal(privateSelf.durable_memory_allowed, true);
 }
 
 function testQueueChannelSanitization() {
@@ -348,6 +367,33 @@ function testRuntimeConfigValidation() {
   });
 }
 
+function testModelRoutingRoles() {
+  const oldChat = process.env.DIZZY_CHAT_BACKEND;
+  const oldUtility = process.env.DIZZY_UTILITY_BACKEND;
+
+  process.env.DIZZY_CHAT_BACKEND = "gemini";
+  delete process.env.DIZZY_UTILITY_BACKEND;
+  assert.equal(getModelRoute("chat").backend, "gemini");
+  assert.equal(getModelRoute("utility").backend, "gemini");
+  assert.equal(getModelRoute("utility").reason, "utility_uses_chat_backend");
+
+  process.env.DIZZY_UTILITY_BACKEND = "openrouter";
+  assert.equal(getModelRoute("utility").backend, "openai_compat");
+  assert.equal(getModelRoute("utility").reason, "utility_backend_override");
+
+  if (oldChat === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+  else process.env.DIZZY_CHAT_BACKEND = oldChat;
+  if (oldUtility === undefined) delete process.env.DIZZY_UTILITY_BACKEND;
+  else process.env.DIZZY_UTILITY_BACKEND = oldUtility;
+}
+
+function testFrontmatterStrip() {
+  const raw = "---\nstrength: 7\nfrontmatter_only_token: yes\n---\n# Body\n\nbody_only_token";
+  const stripped = stripFrontmatter(raw);
+  assert.doesNotMatch(stripped, /frontmatter_only_token/);
+  assert.match(stripped, /body_only_token/);
+}
+
 function testMemoryGraph() {
   const graph = getMemoryGraph();
   assert.equal(graph.counts.docs > 0, true);
@@ -369,6 +415,80 @@ function testMarkdownRetrieverSignals() {
   assert.equal(snippets.length > 0, true);
   assert.equal(snippets.some((s) => Array.isArray(s.reasons) && s.reasons.includes("autonomy_structure_signal")), true);
   assert.equal(snippets.some((s) => typeof s.signals?.autonomy === "number"), true);
+  assert.equal(snippets.every((s) => s.source_path === s.path), true);
+  assert.equal(snippets.every((s) => /^[a-f0-9]{64}$/.test(String(s.source_hash || ""))), true);
+  assert.equal(snippets.every((s) => s.semantic_status === "unchecked"), true);
+  assert.equal(snippets.every((s) => Number.isFinite(Date.parse(s.retrieved_at))), true);
+}
+
+async function testAgentExecuteContinuityLifecycleResponse() {
+  const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+  const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
+  delete process.env.DIZZY_CHAT_BACKEND;
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-execution-history.jsonl");
+  fs.rmSync(historyPath, { force: true });
+  process.env.DIZZY_EXECUTION_HISTORY_PATH = "runtime/test-execution-history.jsonl";
+
+  const rt = await startServer({ port: 0, bindHost: "127.0.0.1" });
+  try {
+    const url = `http://127.0.0.1:${rt.boundPort}/agent/execute`;
+    const ephemeralRes = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Ephemeral hello",
+        client_id: "Client A",
+        service_id: "Review",
+      }),
+    });
+    assert.equal(ephemeralRes.status, 200);
+    const ephemeralBody = await ephemeralRes.json();
+    assert.equal(ephemeralBody.retention_scope, "ephemeral");
+    assert.equal(fs.existsSync(historyPath), false);
+
+    const invalidRes = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Missing service",
+        client_id: "Client A",
+        continuity_mode: "client",
+      }),
+    });
+    assert.equal(invalidRes.status, 400);
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Hello",
+        client_id: "Client A",
+        service_id: "Review",
+        continuity_mode: "client",
+        conversation_key: "caller-chosen-shared-key",
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.continuity_mode, "client");
+    assert.equal(body.retention_scope, "conversation_only");
+    assert.equal(body.expiry_policy, "7_days_inactivity_operator_deletable");
+    assert.equal(body.repo_retrieval_allowed, false);
+    assert.equal(body.durable_memory_allowed, false);
+    assert.match(body.conversation_key, /^execute_client_client_a_review$/);
+    assert.doesNotMatch(body.conversation_key, /caller|shared/);
+    assert.equal(fs.existsSync(historyPath), true);
+    const history = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+    assert.equal(history.length, 1);
+    assert.equal(history[0].retention_scope, "conversation_only");
+  } finally {
+    await rt.stop();
+    fs.rmSync(historyPath, { force: true });
+    if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+    else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+    if (oldHistoryPath === undefined) delete process.env.DIZZY_EXECUTION_HISTORY_PATH;
+    else process.env.DIZZY_EXECUTION_HISTORY_PATH = oldHistoryPath;
+  }
 }
 
 function testMarkdownRetrieverExcludesUntrustedRoots() {
@@ -390,6 +510,14 @@ function testMarkdownRetrieverExcludesUntrustedRoots() {
   else process.env.DIZZY_RAG_CACHE_MS = oldCache;
   if (oldTopK === undefined) delete process.env.DIZZY_RAG_TOP_K;
   else process.env.DIZZY_RAG_TOP_K = oldTopK;
+}
+
+function testRetrieverDoesNotCreateMatchesFromTopicBias() {
+  const snippets = getRelevantMarkdownSnippets("needlethatdoesnotexistindizzymemory", { k: 8 });
+  assert.equal(snippets.length, 0);
+
+  const graphCtx = getRelevantMemoryGraphContext("needlethatdoesnotexistindizzymemory", { k: 8 });
+  assert.equal(graphCtx.docs.length, 0);
 }
 
 function testAutoRememberHeuristics() {
@@ -474,11 +602,15 @@ await testQueueMoveDueDelayed();
 await testQueueMoveDueDelayedFallback();
 await testWorkerCycleRetryAndDeath();
 testRuntimeConfigValidation();
+testModelRoutingRoles();
+testFrontmatterStrip();
 testMemoryGraph();
 testMarkdownRetrieverSignals();
 testMarkdownRetrieverExcludesUntrustedRoots();
+testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
+await testAgentExecuteContinuityLifecycleResponse();
 console.log("SAFETY_CHECKS_OK");

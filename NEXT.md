@@ -16,6 +16,8 @@ Rules:
 
 ## Work Queue
 
+(none)
+
 ---
 
 ## Completed
@@ -33,3 +35,4 @@ Rules:
 - O-0001: Inbound Telegram relay (poll getUpdates -> forward to `/dispatch/incoming` -> send reply), implemented as `scripts/telegram_relay.mjs`.
 - W-0003: Added `RUNBOOK.md` for the recommended multi-process run setup.
 - N-0009: Runtime-governing doctrine must live in the default prompt pack; supplementary docs are explanatory unless compressed into the live core (D-0007).
+- W-0004: Defined paid/client continuity lifecycle for `paid_public` with `continuity_mode=client`: conversation-only retention, explicit expiry policy, no durable memory by default, no private repo retrieval by default, and visible `/agent/execute` lifecycle fields.

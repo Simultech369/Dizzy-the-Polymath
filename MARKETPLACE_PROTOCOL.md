@@ -8,6 +8,8 @@ Marketplace mode is a constrained public projection of Dizzy's underlying capabi
 It must not quietly rewrite the private assistant core.
 For now it is operator-mediated and intentionally informal.
 
+Public usefulness depends on restraint: clear scope, honest status, and no borrowed intimacy from the private system.
+
 ---
 
 ## Operational Mode: Delivery Overlay
@@ -41,6 +43,35 @@ Marketplace mode should not preserve:
 - identity spillover from Simul-only context
 - hidden reuse of one client's material for another client
 - ambient continuity just because a client returns later
+
+## Paid/Client Continuity Lifecycle
+
+Default paid/public mode is ephemeral.
+
+If `continuity_mode=client` is explicitly enabled:
+
+- retained scope is conversation history only
+- durable memory writes remain disabled
+- repo/private retrieval remains disabled
+- private self memory remains unavailable
+- continuity requires `client_id` + `service_id` and is scoped by a server-derived conversation key
+- caller-provided conversation keys are not honored by `/agent/execute`
+- default expiry policy is `7_days_inactivity_operator_deletable` until a stronger authenticated client lifecycle exists
+
+The runtime should expose continuity status in machine-facing responses so the operator can see:
+
+- active continuity mode
+- retention scope
+- expiry policy
+- whether repo retrieval is allowed
+- whether durable memory is allowed
+- conversation reference used for scoped history
+
+Server-derived conversation-key reuse is continuity reuse. Do not treat it as a fresh session.
+
+Ephemeral paid/public requests should not create persistent execution-history entries.
+
+Deletion/expiry mechanics should exist before offering richer client continuity.
 
 ---
 
