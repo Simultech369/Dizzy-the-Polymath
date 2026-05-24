@@ -38,6 +38,8 @@ node .\scripts\sync_state.mjs --check
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 
+For a guided map of the repo, see [`REPO_GUIDE.md`](REPO_GUIDE.md).
+
 ## What This Is
 
 - A local-first runtime for a continuity-aware assistant
@@ -69,6 +71,7 @@ The public or paid layer is currently a constrained projection of the core syste
 - [`PROMPT_CORE.md`](PROMPT_CORE.md): live behavioral core
 - [`PROMPT_PACKS.md`](PROMPT_PACKS.md): prompt-pack model
 - [`RUNBOOK.md`](RUNBOOK.md): local setup and operational notes
+- [`REPO_GUIDE.md`](REPO_GUIDE.md): guided map for first-time readers and maintainers
 - [`OPERATIONS.md`](OPERATIONS.md): runtime execution overlay
 - [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md): optional lightweight outward-facing surface
 - [`upgrades/`](upgrades/): planning lane, review trail, and candidate improvements; not runtime doctrine
