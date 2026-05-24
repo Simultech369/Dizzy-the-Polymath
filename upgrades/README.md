@@ -67,6 +67,7 @@ That separation keeps:
 - [active/civic-sieve.md](active/civic-sieve.md) - boundary/privacy guard before durable writes and risky paid/public outputs.
 - [active/privilege-split.md](active/privilege-split.md) - future quarantined-input and privileged-core split.
 - [active/anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md) - candidate review lens for recurring local failure pressures.
+- [active/selection-pressure.md](active/selection-pressure.md) - subtraction questions for keeping Dizzy and PBMRebate/PFC from metabolizing complexity instead of reducing it.
 
 ## Near-Term Implementation Sequence
 
@@ -78,6 +79,8 @@ That separation keeps:
 6. Add sparse self-learning memory for known-good trajectories.
 7. Extend drift scanning with surprise detection only as a hypothesis generator.
 8. Improve persistent execution history in line with W-0004 retention rules.
+
+Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 
 ## Compression Rule
 
