@@ -52,7 +52,8 @@ If `continuity_mode=client` is explicitly enabled:
 - durable memory writes remain disabled
 - repo/private retrieval remains disabled
 - private self memory remains unavailable
-- continuity is scoped by `client_id` + `service_id` or an explicit operator-provided conversation key
+- continuity requires `client_id` + `service_id` and is scoped by a server-derived conversation key
+- caller-provided conversation keys are not honored by `/agent/execute`
 - default expiry policy is `7_days_inactivity_operator_deletable` until a stronger authenticated client lifecycle exists
 
 The runtime should expose continuity status in machine-facing responses so the operator can see:
@@ -64,7 +65,9 @@ The runtime should expose continuity status in machine-facing responses so the o
 - whether durable memory is allowed
 - conversation reference used for scoped history
 
-Explicit conversation-key reuse is continuity reuse. Do not treat it as a fresh session.
+Server-derived conversation-key reuse is continuity reuse. Do not treat it as a fresh session.
+
+Ephemeral paid/public requests should not create persistent execution-history entries.
 
 Deletion/expiry mechanics should exist before offering richer client continuity.
 

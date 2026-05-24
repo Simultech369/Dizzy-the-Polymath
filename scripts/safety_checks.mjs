@@ -423,11 +423,40 @@ function testMarkdownRetrieverSignals() {
 
 async function testAgentExecuteContinuityLifecycleResponse() {
   const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+  const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
   delete process.env.DIZZY_CHAT_BACKEND;
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-execution-history.jsonl");
+  fs.rmSync(historyPath, { force: true });
+  process.env.DIZZY_EXECUTION_HISTORY_PATH = "runtime/test-execution-history.jsonl";
 
   const rt = await startServer({ port: 0, bindHost: "127.0.0.1" });
   try {
     const url = `http://127.0.0.1:${rt.boundPort}/agent/execute`;
+    const ephemeralRes = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Ephemeral hello",
+        client_id: "Client A",
+        service_id: "Review",
+      }),
+    });
+    assert.equal(ephemeralRes.status, 200);
+    const ephemeralBody = await ephemeralRes.json();
+    assert.equal(ephemeralBody.retention_scope, "ephemeral");
+    assert.equal(fs.existsSync(historyPath), false);
+
+    const invalidRes = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Missing service",
+        client_id: "Client A",
+        continuity_mode: "client",
+      }),
+    });
+    assert.equal(invalidRes.status, 400);
+
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -436,6 +465,7 @@ async function testAgentExecuteContinuityLifecycleResponse() {
         client_id: "Client A",
         service_id: "Review",
         continuity_mode: "client",
+        conversation_key: "caller-chosen-shared-key",
       }),
     });
     assert.equal(res.status, 200);
@@ -446,10 +476,18 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(body.repo_retrieval_allowed, false);
     assert.equal(body.durable_memory_allowed, false);
     assert.match(body.conversation_key, /^execute_client_client_a_review$/);
+    assert.doesNotMatch(body.conversation_key, /caller|shared/);
+    assert.equal(fs.existsSync(historyPath), true);
+    const history = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+    assert.equal(history.length, 1);
+    assert.equal(history[0].retention_scope, "conversation_only");
   } finally {
     await rt.stop();
+    fs.rmSync(historyPath, { force: true });
     if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
     else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+    if (oldHistoryPath === undefined) delete process.env.DIZZY_EXECUTION_HISTORY_PATH;
+    else process.env.DIZZY_EXECUTION_HISTORY_PATH = oldHistoryPath;
   }
 }
 

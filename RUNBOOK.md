@@ -157,6 +157,8 @@ Notes on memory:
 - Memory quality rule of thumb: prefer delta over duplicate recap. A good memory captures what changed, why it matters, and what should be reused later.
 - Auto-memory is enabled by default when chat is enabled. It writes only on higher-signal turns, with cooldown and dedupe gates to avoid summarizing every exchange.
 - Trust-zone note: `/agent/execute` paid/public requests are ephemeral by default. Enable continuity explicitly per client/task with `continuity_mode=client` if you intentionally want retained client-specific chat history.
+- Client continuity requires `client_id` and `service_id`; `/agent/execute` derives the conversation key from those fields and ignores caller-provided keys.
+- Ephemeral `/agent/execute` requests do not write execution-history entries.
 - Markdown auto-retrieval is scoped to trusted root doctrine docs plus `memory/` by default. Imported markdown under `_ext/` and `_external/` is excluded unless you explicitly widen the allowlist.
 
 Optional: automatic chat fallback (keep Gemini as primary)

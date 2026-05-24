@@ -256,6 +256,7 @@ Decision:
 - `paid_public` remains ephemeral by default.
 - `continuity_mode=client` means scoped conversation history only.
 - Client continuity does not enable durable memory writes, repo/private retrieval, private memory access, or cross-client carryover.
+- Client continuity requires both `client_id` and `service_id`; `/agent/execute` derives the continuity key from those fields and does not honor caller-provided conversation keys.
 - The runtime should expose continuity status plainly enough that the operator can see what is retained and why.
 
 Rationale:
@@ -266,6 +267,7 @@ Rationale:
 Consequences:
 - `/agent/execute` should report `continuity_mode`, `retention_scope`, `expiry_policy`, `repo_retrieval_allowed`, `durable_memory_allowed`, and a safe conversation reference when applicable.
 - Default retention scope is `ephemeral`.
+- Ephemeral paid/public requests should not create persistent execution-history entries.
 - Client continuity retention scope is `conversation_only`.
 - Default client continuity expiry policy is `7_days_inactivity_operator_deletable` until a stronger authenticated client lifecycle exists.
 - Deletion/expiry mechanics should be implemented before richer client continuity is offered.
@@ -313,7 +315,7 @@ Consequences:
   - disclosure posture: fresh-context reasoning first
 - `paid_public`
   - chat history: ephemeral by default; continuity only when explicitly enabled per client/task
-  - client continuity: scoped conversation history only
+  - client continuity: scoped conversation history only, keyed by server-derived `client_id` + `service_id`
   - durable memory writes: disabled
   - auto-retrieval: disabled
   - expiry policy: `7_days_inactivity_operator_deletable` until stronger lifecycle exists
