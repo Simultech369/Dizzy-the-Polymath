@@ -54,6 +54,11 @@ function normalizeMeta(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
+function appendJsonl(filePath, obj) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.appendFileSync(filePath, `${JSON.stringify(obj)}\n`, "utf8");
+}
+
 function normalizeConversationKeyPart(value, fallback = "") {
   return normalizeIdentifier(value, fallback).slice(0, 40);
 }
@@ -416,6 +421,19 @@ export async function createRuntime(opts = {}) {
       const out = await handleIncomingMessage({
         message,
         enqueue: enqueueTool,
+      });
+      appendJsonl(path.resolve(process.cwd(), "runtime", "execution_history.jsonl"), {
+        t: new Date().toISOString(),
+        route: "/agent/execute",
+        trust_zone: "paid_public",
+        service_id: service_id == null ? null : normalizeIdentifier(service_id, "service"),
+        client_id: client_id == null ? null : normalizeIdentifier(client_id, "client"),
+        continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
+        retention_scope: capabilities.retention_scope,
+        repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
+        durable_memory_allowed: capabilities.durable_memory_allowed,
+        conversation_key: conversationKey,
+        result_kind: out?.kind || "",
       });
       res.json({
         ok: true,

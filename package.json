@@ -6,7 +6,8 @@
     "scripts":  {
                     "test":  "node ./scripts/safety_checks.mjs",
                     "smoke":  "node ./smoke_test.mjs",
-                    "check:safety":  "node ./scripts/safety_checks.mjs"
+                    "check:safety":  "node ./scripts/safety_checks.mjs",
+                    "drift:scan":  "node ./scripts/drift_scan.mjs"
                 },
     "keywords":  [
                      "assistant",

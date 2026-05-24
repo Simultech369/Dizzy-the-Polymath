@@ -7,6 +7,8 @@ import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/or
 import { autoRememberSignalScore, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
+import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
+import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
@@ -365,6 +367,33 @@ function testRuntimeConfigValidation() {
   });
 }
 
+function testModelRoutingRoles() {
+  const oldChat = process.env.DIZZY_CHAT_BACKEND;
+  const oldUtility = process.env.DIZZY_UTILITY_BACKEND;
+
+  process.env.DIZZY_CHAT_BACKEND = "gemini";
+  delete process.env.DIZZY_UTILITY_BACKEND;
+  assert.equal(getModelRoute("chat").backend, "gemini");
+  assert.equal(getModelRoute("utility").backend, "gemini");
+  assert.equal(getModelRoute("utility").reason, "utility_uses_chat_backend");
+
+  process.env.DIZZY_UTILITY_BACKEND = "openrouter";
+  assert.equal(getModelRoute("utility").backend, "openai_compat");
+  assert.equal(getModelRoute("utility").reason, "utility_backend_override");
+
+  if (oldChat === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+  else process.env.DIZZY_CHAT_BACKEND = oldChat;
+  if (oldUtility === undefined) delete process.env.DIZZY_UTILITY_BACKEND;
+  else process.env.DIZZY_UTILITY_BACKEND = oldUtility;
+}
+
+function testFrontmatterStrip() {
+  const raw = "---\nstrength: 7\nfrontmatter_only_token: yes\n---\n# Body\n\nbody_only_token";
+  const stripped = stripFrontmatter(raw);
+  assert.doesNotMatch(stripped, /frontmatter_only_token/);
+  assert.match(stripped, /body_only_token/);
+}
+
 function testMemoryGraph() {
   const graph = getMemoryGraph();
   assert.equal(graph.counts.docs > 0, true);
@@ -441,6 +470,38 @@ function testMarkdownRetrieverExcludesUntrustedRoots() {
   fs.rmSync(probePath, { force: true });
   if (oldCache === undefined) delete process.env.DIZZY_RAG_CACHE_MS;
   else process.env.DIZZY_RAG_CACHE_MS = oldCache;
+  if (oldTopK === undefined) delete process.env.DIZZY_RAG_TOP_K;
+  else process.env.DIZZY_RAG_TOP_K = oldTopK;
+}
+
+async function testFrontmatterDoesNotPolluteRetrieval() {
+  const topicDir = path.resolve(process.cwd(), "memory", "topics");
+  const probePath = path.resolve(topicDir, "frontmatter-probe.md");
+  const oldCache = process.env.DIZZY_RAG_CACHE_MS;
+  const oldGraphCache = process.env.DIZZY_MEMORY_GRAPH_CACHE_MS;
+  const oldTopK = process.env.DIZZY_RAG_TOP_K;
+
+  fs.mkdirSync(topicDir, { recursive: true });
+  fs.writeFileSync(probePath, "---\nfrontmattertoken: yes\n---\n# Frontmatter Probe\n\nbodyprobe\n", "utf8");
+  process.env.DIZZY_RAG_CACHE_MS = "0";
+  process.env.DIZZY_MEMORY_GRAPH_CACHE_MS = "0";
+  process.env.DIZZY_RAG_TOP_K = "8";
+  await new Promise((resolve) => setTimeout(resolve, 650));
+
+  const frontmatterSnippets = getRelevantMarkdownSnippets("frontmattertoken", { k: 8 });
+  assert.equal(frontmatterSnippets.some((s) => /frontmatter-probe\.md$/i.test(String(s.path))), false);
+
+  const bodySnippets = getRelevantMarkdownSnippets("bodyprobe", { k: 8 });
+  assert.equal(bodySnippets.some((s) => /frontmatter-probe\.md$/i.test(String(s.path))), true);
+
+  const graphCtx = getRelevantMemoryGraphContext("frontmattertoken", { k: 8 });
+  assert.equal(graphCtx.docs.some((d) => /frontmatter-probe\.md$/i.test(String(d.path))), false);
+
+  fs.rmSync(probePath, { force: true });
+  if (oldCache === undefined) delete process.env.DIZZY_RAG_CACHE_MS;
+  else process.env.DIZZY_RAG_CACHE_MS = oldCache;
+  if (oldGraphCache === undefined) delete process.env.DIZZY_MEMORY_GRAPH_CACHE_MS;
+  else process.env.DIZZY_MEMORY_GRAPH_CACHE_MS = oldGraphCache;
   if (oldTopK === undefined) delete process.env.DIZZY_RAG_TOP_K;
   else process.env.DIZZY_RAG_TOP_K = oldTopK;
 }
@@ -527,9 +588,12 @@ await testQueueMoveDueDelayed();
 await testQueueMoveDueDelayedFallback();
 await testWorkerCycleRetryAndDeath();
 testRuntimeConfigValidation();
+testModelRoutingRoles();
+testFrontmatterStrip();
 testMemoryGraph();
 testMarkdownRetrieverSignals();
 testMarkdownRetrieverExcludesUntrustedRoots();
+await testFrontmatterDoesNotPolluteRetrieval();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
 await testCommandAvailabilityWithoutChatBackend();
