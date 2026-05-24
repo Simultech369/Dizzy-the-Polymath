@@ -8,6 +8,8 @@ Marketplace mode is a constrained public projection of Dizzy's underlying capabi
 It must not quietly rewrite the private assistant core.
 For now it is operator-mediated and intentionally informal.
 
+Public usefulness depends on restraint: clear scope, honest status, and no borrowed intimacy from the private system.
+
 ---
 
 ## Operational Mode: Delivery Overlay

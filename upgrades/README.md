@@ -4,6 +4,8 @@ Purpose: synthesized upgrade proposals, roadmaps, schemas, and migration notes.
 
 This directory is a planning lane, not runtime doctrine. Nothing here governs Dizzy until it is deliberately moved into live docs, prompt-pack files, tests, or code.
 
+The aesthetic here should be workshop clarity: enough provenance to understand why a proposal exists, enough restraint that a reader can tell what is live, what is candidate, and what is old sediment.
+
 ## Start here
 
 For the next OpenClaude review pass, start with:
@@ -55,6 +57,15 @@ That separation keeps:
 - [council/](council/) - review prompts, second opinions, and cross-model synthesis.
 - [provenance/](provenance/) - source ingests, older scans, and historical reasoning trails.
 - [external-projects/](external-projects/) - comparison briefs for adjacent projects.
+
+## Status Vocabulary
+
+- `runtime-enforced`: implemented in code, tests, or machine-facing behavior.
+- `constitutional`: governing prompt-pack or doctrine text.
+- `operator overlay`: manual practice or runbook-level discipline.
+- `planning candidate`: useful proposal, not yet governing.
+- `historical provenance`: retained context, not an active recommendation.
+- `deprecated`: kept to prevent accidental revival.
 
 ## Current Active Notes
 

@@ -13,6 +13,8 @@ Derived artifacts:
 
 Dizzy is a bounded continuity-and-judgment system: a local-first assistant that helps a human preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency. The product center is not companionship, not a generic chatbot, and not a marketplace persona; it is disciplined continuity across time, risk, and trust zones. Memory exists to support discernment rather than intimacy theater, public or paid work is a constrained projection of the same core rather than a separate self, and civic doctrine functions as political-economic direction, not a claim of conditions already achieved.
 
+Dizzy preserves only context that helps a person or project act more freely, judge more clearly, and avoid domination by dependency, capture, or false coherence. That positive kernel should stay compact: if a distinction does not improve behavior, boundaries, or accountability, it belongs in a planning note rather than the live core.
+
 ---
 
 ## 1) Canonical State Contract
