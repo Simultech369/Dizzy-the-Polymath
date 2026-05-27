@@ -13,6 +13,7 @@ import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { validateExternalUrl } from "../lib/tools.mjs";
+import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -240,6 +241,33 @@ async function testSpoofedLocalChannelDoesNotBypassMutationGuards() {
   else process.env.DIZZY_ALLOW_SELF_MODIFY = oldSelfModify;
   if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
   else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+}
+
+async function testPaidPublicCannotCaptureTrajectories() {
+  const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+  const oldTrajectoryPath = process.env.DIZZY_TRAJECTORY_PATH;
+  delete process.env.DIZZY_CHAT_BACKEND;
+  process.env.DIZZY_TRAJECTORY_PATH = "runtime/test-paid-public-trajectories.jsonl";
+  fs.rmSync(path.resolve(process.cwd(), process.env.DIZZY_TRAJECTORY_PATH), { force: true });
+
+  const out = await handleIncomingMessage({
+    message: {
+      channel: "execute",
+      text: '/trajectory add {"goal":"Should not save","reusable_pattern":"Boundary failed","reuse_tags":["bad"],"strength":7}',
+      runtime_context: { trusted_local: true, trust_zone: "paid_public" },
+    },
+    enqueue: async () => { throw new Error("enqueue should not run"); },
+  });
+
+  assert.equal(out.kind, "reply");
+  assert.match(String(out.text), /only available in trust zones that allow durable memory/i);
+  assert.equal(fs.existsSync(path.resolve(process.cwd(), process.env.DIZZY_TRAJECTORY_PATH)), false);
+
+  fs.rmSync(path.resolve(process.cwd(), process.env.DIZZY_TRAJECTORY_PATH), { force: true });
+  if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+  else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+  if (oldTrajectoryPath === undefined) delete process.env.DIZZY_TRAJECTORY_PATH;
+  else process.env.DIZZY_TRAJECTORY_PATH = oldTrajectoryPath;
 }
 
 function makeFakeRedisForQueue(jobMap, queueIds = []) {
@@ -593,6 +621,39 @@ function testPromptBundleDefaults() {
   else process.env.DIZZY_PROMPT_PACK = oldPack;
 }
 
+function testTrajectoryDistilleryManualPath() {
+  const testPath = "runtime/test-trajectories.jsonl";
+  fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
+
+  const parsed = parseTrajectoryInput(JSON.stringify({
+    goal: "Reduce operator burden with a maintenance command",
+    constraints: "No new dependencies; preserve safety checks",
+    success_criteria: "One command reports green/yellow/red status",
+    actions_taken: ["added maintain command", "added prompt drift check"],
+    outcome: "success",
+    reusable_pattern: "Build a boring maintenance floor before adding learning loops",
+    reuse_tags: ["operator-burden", "maintenance", "sprint"],
+    strength: 8,
+  }));
+
+  const saved = appendTrajectory(parsed, { filePath: testPath, now: new Date("2026-05-26T12:00:00.000Z") });
+  assert.equal(saved.trajectory.outcome, "success");
+  assert.equal(saved.trajectory.reuse_tags.includes("maintenance"), true);
+
+  const rows = readTrajectories({ filePath: testPath });
+  assert.equal(rows.length, 1);
+
+  const matches = getRelevantTrajectories("maintenance command operator burden", { filePath: testPath, k: 2 });
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].id, saved.trajectory.id);
+
+  const block = formatTrajectoryContext("maintenance command operator burden", { filePath: testPath, k: 2 });
+  assert.match(block, /KNOWN-GOOD TRAJECTORIES/);
+  assert.match(block, /boring maintenance floor/i);
+
+  fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
+}
+
 await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
@@ -610,7 +671,9 @@ testMarkdownRetrieverExcludesUntrustedRoots();
 testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
+testTrajectoryDistilleryManualPath();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
+await testPaidPublicCannotCaptureTrajectories();
 await testAgentExecuteContinuityLifecycleResponse();
 console.log("SAFETY_CHECKS_OK");

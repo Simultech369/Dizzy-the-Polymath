@@ -78,7 +78,7 @@ That separation keeps:
 - [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md) - prioritized upgrade intake and sequencing after review.
 - [active/W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md) - implemented first pass; deletion/expiry mechanics remain before richer client continuity.
 - [active/tension-map.md](active/tension-map.md) - live contradiction map for experiments and failure modes.
-- [active/trajectory-distillery.md](active/trajectory-distillery.md) - design note for sparse known-good trajectory capture; not implemented yet.
+- [active/trajectory-distillery.md](active/trajectory-distillery.md) - manual sparse known-good trajectory path and proposal-only distillation implemented; confirmation flow remains future work.
 - [active/friction-ledger.md](active/friction-ledger.md) - design note for converting repeated operator stuck-points into product signal; not implemented yet.
 - [active/memory-metadata.md](active/memory-metadata.md) - narrow metadata proposal for `memory/topics/`, blocked on frontmatter-safe parsing.
 - [active/per-zone-capability-lists.md](active/per-zone-capability-lists.md) - code-enforced capability surfaces by trust zone.
@@ -91,8 +91,8 @@ That separation keeps:
 
 ## Near-Term Implementation Sequence
 
-1. Add sparse self-learning memory for known-good trajectories.
-2. Extend drift scanning with surprise detection only as a hypothesis generator.
+1. Review real `/trajectory distill` outputs and decide whether to add a two-step confirmation flow or keep copy/paste saving.
+2. Review `runtime/reports/connections.md` after real use and decide whether connection hypotheses deserve a periodic operator review slot.
 3. Add model/provider routing with trust-zone, risk, cost, privacy, and provider-health awareness.
 4. Add deterministic experiential compression for retrieved snippets and tool outputs.
 5. Add frontmatter-safe parsing before memory metadata if metadata work resumes.

@@ -11,6 +11,7 @@
                     "check:memory":  "node ./scripts/memory_validate.mjs",
                     "check:prompt":  "node ./scripts/prompt_drift_check.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
+                    "connection:scan":  "node ./scripts/connection_scan.mjs",
                     "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [

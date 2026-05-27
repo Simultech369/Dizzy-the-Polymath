@@ -41,6 +41,12 @@ const CHECKS = [
     command: ["node", "scripts/drift_scan.mjs"],
     severity: "yellow",
   },
+  {
+    id: "connections",
+    label: "Connection hypothesis scan",
+    command: ["node", "scripts/connection_scan.mjs"],
+    severity: "yellow",
+  },
 ];
 
 function runCheck(check) {
@@ -84,6 +90,39 @@ function listStaleUpgradeSignals() {
   return findings;
 }
 
+function trajectoryStatus() {
+  const filePath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
+  if (!fs.existsSync(filePath)) {
+    return { ok: true, status: "green", message: "No trajectory ledger yet." };
+  }
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/).filter(Boolean);
+  let malformed = 0;
+  let weak = 0;
+  for (const line of lines) {
+    try {
+      const row = JSON.parse(line);
+      if (Number(row?.strength || 0) < 6) weak += 1;
+    } catch {
+      malformed += 1;
+    }
+  }
+
+  if (malformed > 0) {
+    return {
+      ok: false,
+      status: "yellow",
+      message: `${lines.length} trajectories, ${malformed} malformed row(s).`,
+    };
+  }
+
+  return {
+    ok: true,
+    status: weak > 0 ? "yellow" : "green",
+    message: `${lines.length} trajectories${weak > 0 ? `, ${weak} below retrieval strength` : ""}.`,
+  };
+}
+
 function color(status) {
   if (status === "green") return "[green]";
   if (status === "yellow") return "[yellow]";
@@ -93,11 +132,12 @@ function color(status) {
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
+  const trajectories = trajectoryStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
 
   let overall = "green";
-  if (softFailures.length || staleFindings.length) overall = "yellow";
+  if (softFailures.length || staleFindings.length || trajectories.status === "yellow") overall = "yellow";
   if (hardFailures.length) overall = "red";
 
   console.log(`${color(overall)} Dizzy maintenance status`);
@@ -119,6 +159,10 @@ function main() {
   }
 
   console.log("");
+  console.log(`${color(trajectories.status)} Trajectory ledger`);
+  console.log(`  ${trajectories.message}`);
+
+  console.log("");
   console.log("Actionable next steps:");
   if (overall === "green") {
     console.log("- No immediate maintenance action required.");
@@ -126,6 +170,7 @@ function main() {
     for (const failure of hardFailures) console.log(`- Fix ${failure.id}: ${failure.label}.`);
     for (const failure of softFailures) console.log(`- Review ${failure.id}: ${failure.label}.`);
     for (const finding of staleFindings) console.log(`- Clean stale status: ${finding}`);
+    if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
   }
 
   process.exit(hardFailures.length ? 1 : 0);

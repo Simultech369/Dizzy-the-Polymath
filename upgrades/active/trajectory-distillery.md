@@ -2,7 +2,15 @@
 
 Capture reusable intelligence from successful executions without creating memory sludge.
 
-Status: design note only. Not implemented.
+Status: first manual path implemented.
+
+Implemented first pass:
+- `lib/trajectories.mjs` stores sparse known-good trajectories in `runtime/trajectories/known_good.jsonl` by default.
+- `/trajectory add {json}` captures an operator-provided distilled pattern in durable-memory trust zones only.
+- `/trajectory list` shows recent entries.
+- `/trajectory distill` proposes a trajectory from recent conversation history, but does not save it.
+- Private/trusted chat retrieval can surface relevant trajectories as supporting context.
+- Safety checks cover normalization, storage, retrieval, and context formatting.
 
 ## Purpose
 
@@ -65,6 +73,10 @@ Only surface a trajectory if:
 - Vague praise or mood notes.
 - Full tool output instead of the operational insight.
 
-## Smallest Experiment
+## Completed Smallest Experiment
 
 Add manual-only trajectory capture first. Let the operator invoke it after a successful task, then review whether retrieval actually improves a later similar task.
+
+## Next Experiment
+
+Review real `/trajectory distill` outputs and decide whether they are clean enough to support a two-step confirmation flow or should remain copy/paste proposals.

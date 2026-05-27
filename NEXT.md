@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0008: Design and implement the first manual Trajectory Distillery path: sparse known-good trajectory capture, schema, and retrieval hook.
+- W-0011: Review `runtime/reports/connections.md` output after real usage and decide whether connection hypotheses deserve a periodic operator review slot.
 
 ---
 
@@ -39,3 +39,6 @@ Rules:
 - W-0005: Added `scripts/maintain.mjs` as the single operator maintenance command.
 - W-0006: Added prompt-pack / `DESIGN.md` drift validation with `scripts/prompt_drift_check.mjs`.
 - W-0007: Added Product Kernel section to `DESIGN.md` and synced `state.json`.
+- W-0008: Added first manual Trajectory Distillery path: sparse known-good trajectory capture, schema, tests, and private/trusted retrieval hook.
+- W-0009: Added proposal-only `/trajectory distill` command. It can draft a known-good trajectory from recent history but still requires operator review and `/trajectory add` to save.
+- W-0010: Added report-only `scripts/connection_scan.mjs` to surface surprising document/memory connections as hypotheses, not retrieval authority.

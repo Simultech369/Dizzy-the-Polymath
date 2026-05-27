@@ -1,4 +1,5 @@
 import { startServer } from "./agent_server.mjs";
+import fs from "fs";
 
 async function must(ok, msg) {
   if (!ok) throw new Error(msg);
@@ -12,6 +13,7 @@ delete process.env.DIZZY_CHAT_FALLBACK_BACKEND;
 delete process.env.OPENAI_COMPAT_BASE_URL;
 delete process.env.OPENAI_COMPAT_API_KEY;
 delete process.env.OPENAI_COMPAT_MODEL;
+process.env.DIZZY_TRAJECTORY_PATH = "runtime/test-smoke-trajectories.jsonl";
 
 const started = await startServer({ port: 0, redisUrl: "" });
 
@@ -62,9 +64,21 @@ try {
   // With redisUrl unset, tool requests run inline by default.
   await must(r2.ok === true && (r2.kind === "reply" || r2.kind === "ack"), `unexpected tool result: ${JSON.stringify(r2)}`);
 
+  const trajectory = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      channel: "local",
+      text: '/trajectory add {"goal":"Smoke test manual trajectory capture","success_criteria":"Runtime accepts sparse known-good pattern","actions_taken":["sent command"],"outcome":"success","reusable_pattern":"Keep manual learning capture explicit before automating it","reuse_tags":["smoke","trajectory"],"strength":7}',
+    }),
+  }).then((r) => r.json());
+
+  await must(trajectory.ok === true && trajectory.text.includes("Saved trajectory"), `unexpected trajectory result: ${JSON.stringify(trajectory)}`);
+
   console.log("SMOKE_OK");
 } finally {
   await started.stop();
+  await fs.promises.rm("runtime/test-smoke-trajectories.jsonl", { force: true });
 }
 
 const authed = await startServer({ port: 0, redisUrl: "", authToken: "test-token" });
