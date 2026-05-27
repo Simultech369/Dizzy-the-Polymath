@@ -22,8 +22,9 @@ Read in this order:
 2. [DESIGN.md](DESIGN.md) - canonical decisions and rationale.
 3. [GOVERNANCE.md](GOVERNANCE.md) - plain-language governance summary.
 4. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
-5. [RUNBOOK.md](RUNBOOK.md) - practical operation.
-6. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
+5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
+6. [RUNBOOK.md](RUNBOOK.md) - practical operation.
+7. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
 
 That path is enough to understand the current system. The rest is detail.
 
@@ -44,6 +45,7 @@ That path is enough to understand the current system. The rest is detail.
 - [state.json](state.json): derived machine-readable snapshot of `DESIGN.md`.
 - [PROMPT_PACKS.md](PROMPT_PACKS.md): explains what files enter the live prompt.
 - [PROMPT_CORE.md](PROMPT_CORE.md): compact runtime behavioral core.
+- [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md): operational worksheet for anti-extractive and commons-friendly proposals.
 - [IDENTITY.md](IDENTITY.md), [SOUL.md](SOUL.md), [HEARTBEAT.md](HEARTBEAT.md), [TOOLS.md](TOOLS.md), [USER.md](USER.md), [PROMPT_MODES.md](PROMPT_MODES.md): default prompt-pack files.
 - [MARKETPLACE_PROTOCOL.md](MARKETPLACE_PROTOCOL.md): paid/public trust-zone overlay.
 
@@ -95,4 +97,3 @@ node .\scripts\sync_state.mjs
 - `runtime/` is local operational residue and is ignored by Git.
 - Metaphor is allowed, but metaphor is not authority.
 - Marketplace/public surfaces are projections of the core, not the core itself.
-

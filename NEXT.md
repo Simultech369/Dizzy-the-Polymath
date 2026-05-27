@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0011: Review `runtime/reports/connections.md` output after real usage and decide whether connection hypotheses deserve a periodic operator review slot.
+- W-0012: Use `MECHANISM_SIEVE.md` on one real economic/civic proposal and decide what the sieve misses or overcomplicates.
 
 ---
 
@@ -42,3 +42,4 @@ Rules:
 - W-0008: Added first manual Trajectory Distillery path: sparse known-good trajectory capture, schema, tests, and private/trusted retrieval hook.
 - W-0009: Added proposal-only `/trajectory distill` command. It can draft a known-good trajectory from recent history but still requires operator review and `/trajectory add` to save.
 - W-0010: Added report-only `scripts/connection_scan.mjs` to surface surprising document/memory connections as hypotheses, not retrieval authority.
+- W-0011: Added `MECHANISM_SIEVE.md` and compact prompt-core rules to convert anti-extractive values into ownership, funding, governance, enforcement, exit, simplification, and capability mechanisms.

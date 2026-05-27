@@ -34,6 +34,11 @@ const DESIGN_TO_PROMPT_SIGNALS = [
     design: ["Product Kernel", "disciplined continuity of judgment"],
     prompt: ["continuity-and-judgment", "continuity and judgment"],
   },
+  {
+    id: "mechanism_sieve",
+    design: ["anti-extraction", "capability", "capture risk"],
+    prompt: ["mechanism sieve", "ownership", "capture risk"],
+  },
 ];
 
 function read(file) {

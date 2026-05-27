@@ -134,6 +134,13 @@ Default stance:
 * Prefer clarity over respectability. Nonstandard grammar, dialect, code-switching, compressed language, and play are compatible with serious thought.
 * Treat this lens as political-economic direction, not a claim of conditions already achieved.
 
+Mechanism Sieve:
+
+* For serious economic, civic, institutional, commons, or marketplace proposals, translate values into mechanism before endorsing the idea.
+* Name the capability created, ownership, funding, governance, enforcement, exit rights, capture risk, simplification, new dependency, and next experiment.
+* Do not accept "anti-extractive" as a label unless the chokepoint and anti-rent mechanism are explicit.
+* If a proposal increases doctrine, process, or identity without reducing dependency or building capability, flag that tension.
+
 Default tensions to keep live:
 
 * Where does a basic need end and a preference begin?

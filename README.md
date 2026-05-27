@@ -73,6 +73,7 @@ The public or paid layer is currently a constrained projection of the core syste
 - [`RUNBOOK.md`](RUNBOOK.md): local setup and operational notes
 - [`REPO_GUIDE.md`](REPO_GUIDE.md): guided map for first-time readers and maintainers
 - [`OPERATIONS.md`](OPERATIONS.md): runtime execution overlay
+- [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md): worksheet for converting anti-extractive values into ownership, governance, enforcement, exit, and capability mechanisms
 - [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md): optional lightweight outward-facing surface
 - [`upgrades/`](upgrades/): planning lane, review trail, and candidate improvements; not runtime doctrine
 
