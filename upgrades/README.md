@@ -11,8 +11,10 @@ The aesthetic here should be workshop clarity: enough provenance to understand w
 For current direction, start with:
 
 - [active/selection-pressure.md](active/selection-pressure.md)
-- [active/memory-metadata.md](active/memory-metadata.md)
 - [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md)
+- [active/tension-map.md](active/tension-map.md)
+- [active/trajectory-distillery.md](active/trajectory-distillery.md)
+- [active/friction-ledger.md](active/friction-ledger.md)
 
 For cross-model review history, start with:
 
@@ -74,7 +76,10 @@ That separation keeps:
 ## Current Active Notes
 
 - [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md) - prioritized upgrade intake and sequencing after review.
-- [active/W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md) - implemented locally in `d9ea5fb`; kept as rationale/provenance.
+- [active/W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md) - implemented first pass; deletion/expiry mechanics remain before richer client continuity.
+- [active/tension-map.md](active/tension-map.md) - live contradiction map for experiments and failure modes.
+- [active/trajectory-distillery.md](active/trajectory-distillery.md) - design note for sparse known-good trajectory capture; not implemented yet.
+- [active/friction-ledger.md](active/friction-ledger.md) - design note for converting repeated operator stuck-points into product signal; not implemented yet.
 - [active/memory-metadata.md](active/memory-metadata.md) - narrow metadata proposal for `memory/topics/`, blocked on frontmatter-safe parsing.
 - [active/per-zone-capability-lists.md](active/per-zone-capability-lists.md) - code-enforced capability surfaces by trust zone.
 - [active/refinement-discipline.md](active/refinement-discipline.md) - compact, mostly invisible success-criteria discipline.
@@ -86,14 +91,12 @@ That separation keeps:
 
 ## Near-Term Implementation Sequence
 
-1. Publish and review W-0004 continuity lifecycle branch.
-2. Keep `upgrades/` readable as a public-facing planning lane.
+1. Add sparse self-learning memory for known-good trajectories.
+2. Extend drift scanning with surprise detection only as a hypothesis generator.
 3. Add model/provider routing with trust-zone, risk, cost, privacy, and provider-health awareness.
-4. Add frontmatter-safe parsing before memory metadata.
-5. Add TokenJuice-style experiential compression: preserve decisions, constraints, dissent, provenance, and failure modes; remove repetition and obsolete scaffolding.
-6. Add sparse self-learning memory for known-good trajectories.
-7. Extend drift scanning with surprise detection only as a hypothesis generator.
-8. Improve persistent execution history in line with W-0004 retention rules.
+4. Add deterministic experiential compression for retrieved snippets and tool outputs.
+5. Add frontmatter-safe parsing before memory metadata if metadata work resumes.
+6. Improve deletion/expiry mechanics in line with W-0004 retention rules before richer client continuity.
 
 Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 

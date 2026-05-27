@@ -7,7 +7,11 @@
                     "test":  "node ./scripts/safety_checks.mjs",
                     "smoke":  "node ./smoke_test.mjs",
                     "check:safety":  "node ./scripts/safety_checks.mjs",
-                    "drift:scan":  "node ./scripts/drift_scan.mjs"
+                    "check:state":  "node ./scripts/sync_state.mjs --check",
+                    "check:memory":  "node ./scripts/memory_validate.mjs",
+                    "check:prompt":  "node ./scripts/prompt_drift_check.mjs",
+                    "drift:scan":  "node ./scripts/drift_scan.mjs",
+                    "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [
                      "assistant",

@@ -1,10 +1,17 @@
 # W-0004: Paid/Client Continuity Lifecycle
 
-Status: Accepted - implement next.
+Status: Implemented first pass; retained as rationale/provenance.
 
 ## Goal
 
 Define clear, safe semantics for `continuity_mode=client` in the `paid_public` trust zone.
+
+Implementation status:
+- `DESIGN.md` defines the lifecycle semantics.
+- `/agent/execute` derives conversation keys from `client_id + service_id` rather than trusting caller-provided keys.
+- `/agent/execute` returns continuity, retention, retrieval, durable-memory, expiry, and conversation-key fields.
+- Safety checks verify that `paid_public` client continuity still blocks durable memory and repo/private retrieval by default.
+- Deletion/expiry mechanics are not implemented yet and remain required before richer client continuity is offered.
 
 ## Rules
 
@@ -20,11 +27,11 @@ Define clear, safe semantics for `continuity_mode=client` in the `paid_public` t
 
 ## Response Surface
 
-`/agent/execute` should eventually return:
+`/agent/execute` returns:
 
 - `continuity_mode`
 - `retention_scope`: `ephemeral` | `conversation_only` | `extended`
-- `expires_at` or `expiry_policy`
+- `expiry_policy`
 - `repo_retrieval_allowed`: boolean
 - `durable_memory_allowed`: boolean
 - `conversation_key` or a redacted/safe reference when useful for operator debugging
@@ -35,7 +42,7 @@ Define clear, safe semantics for `continuity_mode=client` in the `paid_public` t
 - Cross-zone leakage requires explicit operator approval.
 - Explicit `conversation_key` reuse is continuity reuse and should be documented as such.
 
-## Candidate Insertion Points
+## Implemented In
 
 - `DESIGN.md`
 - `MARKETPLACE_PROTOCOL.md`
@@ -43,10 +50,8 @@ Define clear, safe semantics for `continuity_mode=client` in the `paid_public` t
 - `lib/dispatch.mjs`
 - tests in `scripts/safety_checks.mjs`
 
-## Next Actions
+## Remaining Work
 
-1. Document lifecycle semantics in `DESIGN.md` and `MARKETPLACE_PROTOCOL.md`.
-2. Add lifecycle fields to `/agent/execute` responses.
-3. Add delete/expiry mechanics for scoped paid/client conversation history.
-4. Add safety tests proving `paid_public` client continuity still blocks durable memory and repo/private retrieval by default.
-
+1. Add delete/expiry mechanics for scoped paid/client conversation history.
+2. Add operator-facing cleanup command once real client continuity is used.
+3. Revisit client self-deletion only after authentication and client identity become real.

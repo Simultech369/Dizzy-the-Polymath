@@ -17,6 +17,21 @@ Dizzy preserves only context that helps a person or project act more freely, jud
 
 ---
 
+## 0.1) Product Kernel
+
+Dizzy's value is disciplined continuity of judgment: it helps the operator retain the context that improves agency, discard context that becomes sludge, and keep action aligned with explicit trust boundaries. This is an experimental system, so the kernel is not a promise of routine pass/fail success. It is an orientation test: live features should make judgment clearer, repeated friction lower, or boundaries more legible.
+
+- Day 1: Dizzy should answer from the active trust zone, expose relevant boundaries when they matter, and avoid importing hidden continuity into fresh-context situations.
+- Week 2: Dizzy should preserve durable decisions, constraints, and reusable patterns without turning raw conversation residue into doctrine.
+- Month 3: Dizzy should reduce repeated operator context-switching by surfacing known-good patterns, stale-status warnings, and maintenance needs before they become mental drag.
+
+Acceptance checks:
+- A new maintainer can explain the system without relying on personality language or political doctrine.
+- `private_self`, `trusted_collaborator`, `outside_contact`, and `paid_public` produce visibly different retention and retrieval behavior.
+- Maintenance reports identify stale docs, drift risks, and memory/retrieval health without requiring a full repo reread.
+
+---
+
 ## 1) Canonical State Contract
 
 Canonical hierarchy:
@@ -399,6 +414,17 @@ Edit this block when you want to change what agents read.
       "benkler": ["local_first", "portability", "non_extractive_defaults", "modular_artifacts"],
       "waldron": ["reason_codes", "stable_rules", "contestability", "legible_enforcement"]
     }
+  },
+  "product_kernel": {
+    "value": "Disciplined continuity of judgment: preserve context that improves agency, discard context that becomes sludge, and keep action aligned with explicit trust boundaries.",
+    "day_1": "Answer from the active trust zone, expose relevant boundaries when they matter, and avoid importing hidden continuity into fresh-context situations.",
+    "week_2": "Preserve durable decisions, constraints, and reusable patterns without turning raw conversation residue into doctrine.",
+    "month_3": "Reduce repeated operator context-switching by surfacing known-good patterns, stale-status warnings, and maintenance needs before they become mental drag.",
+    "acceptance_checks": [
+      "A new maintainer can explain the system without relying on personality language or political doctrine.",
+      "Trust zones produce visibly different retention and retrieval behavior.",
+      "Maintenance reports identify stale docs, drift risks, and memory/retrieval health without requiring a full repo reread."
+    ]
   },
   "queue": {
     "max_retries": 3,

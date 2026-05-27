@@ -1,0 +1,70 @@
+# Trajectory Distillery
+
+Capture reusable intelligence from successful executions without creating memory sludge.
+
+Status: design note only. Not implemented.
+
+## Purpose
+
+Auto-memory preserves durable context. Trajectory Distillery should preserve reusable moves: what worked, under what constraints, and how it can be reused later.
+
+## Minimal Schema
+
+Target location: `runtime/trajectories/*.jsonl`.
+
+```json
+{
+  "id": "traj_20260526_1432_xxx",
+  "timestamp": "2026-05-26T14:32:00Z",
+  "goal": "Short clear goal statement",
+  "constraints": "Key constraints or hard stops",
+  "success_criteria": "What counted as success in this task",
+  "actions_taken": ["brief list of key moves"],
+  "outcome": "success | partial | failure",
+  "reusable_pattern": "One-sentence tactic or insight that worked",
+  "reuse_tags": ["refinement", "tooling", "compression"],
+  "source_hash": "short hash of originating transcript or artifact",
+  "strength": 7
+}
+```
+
+## Capture Triggers
+
+- Successful refinement where the result satisfies explicit or implicit success criteria.
+- Complex reasoning tasks where the operator accepts the framing or implementation.
+- Tooling sequences that worked cleanly after friction.
+- Manual `/distill` command from the operator.
+
+## Retrieval Logic
+
+On similar tasks, surface the top two or three trajectories by goal similarity and tag overlap. Retrieval should prefer recent high-strength trajectories, but old high-signal patterns can remain available when their mechanism still applies.
+
+Only surface a trajectory if:
+
+- `strength >= 6`
+- it has a concrete `reusable_pattern`
+- it does not require private context forbidden by the active trust zone
+
+## Anti-Sludge Rules
+
+- Maximum one automatic trajectory per session unless the operator explicitly asks for more.
+- Never store raw conversation; store the distilled pattern.
+- Do not capture "the user liked it" as evidence. Capture what worked.
+- Keep fewer than 200 active trajectories before compaction or pruning.
+- Fail closed in `paid_public` unless an operator explicitly enables scoped client learning later.
+
+## Good Entry
+
+`reusable_pattern`: Use explicit success criteria plus one targeted refinement question before complex tool chains.
+
+`reuse_tags`: `["refinement", "tooling", "operator-burden"]`
+
+## Bad Entry
+
+- Long narrative summary of the chat.
+- Vague praise or mood notes.
+- Full tool output instead of the operational insight.
+
+## Smallest Experiment
+
+Add manual-only trajectory capture first. Let the operator invoke it after a successful task, then review whether retrieval actually improves a later similar task.

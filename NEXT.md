@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-(none)
+- W-0008: Design and implement the first manual Trajectory Distillery path: sparse known-good trajectory capture, schema, and retrieval hook.
 
 ---
 
@@ -35,4 +35,7 @@ Rules:
 - O-0001: Inbound Telegram relay (poll getUpdates -> forward to `/dispatch/incoming` -> send reply), implemented as `scripts/telegram_relay.mjs`.
 - W-0003: Added `RUNBOOK.md` for the recommended multi-process run setup.
 - N-0009: Runtime-governing doctrine must live in the default prompt pack; supplementary docs are explanatory unless compressed into the live core (D-0007).
-- W-0004: Defined paid/client continuity lifecycle for `paid_public` with `continuity_mode=client`: conversation-only retention, explicit expiry policy, no durable memory by default, no private repo retrieval by default, and visible `/agent/execute` lifecycle fields.
+- W-0004: Defined and implemented the first paid/client continuity lifecycle for `paid_public` with `continuity_mode=client`: conversation-only retention, explicit expiry policy, no durable memory by default, no private repo retrieval by default, visible `/agent/execute` lifecycle fields, and safety checks. Deletion/expiry mechanics remain future work before richer client continuity.
+- W-0005: Added `scripts/maintain.mjs` as the single operator maintenance command.
+- W-0006: Added prompt-pack / `DESIGN.md` drift validation with `scripts/prompt_drift_check.mjs`.
+- W-0007: Added Product Kernel section to `DESIGN.md` and synced `state.json`.
