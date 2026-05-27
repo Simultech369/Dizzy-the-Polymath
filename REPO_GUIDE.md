@@ -24,8 +24,9 @@ Read in this order:
 4. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
 5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
 6. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms, with files and failure modes.
-7. [RUNBOOK.md](RUNBOOK.md) - practical operation.
-8. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
+7. [FILE_ROLES.md](FILE_ROLES.md) - root-file authority and role map.
+8. [RUNBOOK.md](RUNBOOK.md) - practical operation.
+9. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
 
 That path is enough to understand the current system. The rest is detail.
 
@@ -44,6 +45,7 @@ That path is enough to understand the current system. The rest is detail.
 
 - [DESIGN.md](DESIGN.md): canonical human source of truth.
 - [state.json](state.json): derived machine-readable snapshot of `DESIGN.md`.
+- [FILE_ROLES.md](FILE_ROLES.md): classifies root files so proximity does not imply authority.
 - [MECHANISMS.md](MECHANISMS.md): reusable mechanisms extracted from the system design.
 - [PROMPT_PACKS.md](PROMPT_PACKS.md): explains what files enter the live prompt.
 - [PROMPT_CORE.md](PROMPT_CORE.md): compact runtime behavioral core.
@@ -97,5 +99,6 @@ node .\scripts\sync_state.mjs
 - `upgrades/` is not doctrine.
 - `memory/` is not doctrine.
 - `runtime/` is local operational residue and is ignored by Git.
+- Root presence is not authority; see [FILE_ROLES.md](FILE_ROLES.md).
 - Metaphor is allowed, but metaphor is not authority.
 - Marketplace/public surfaces are projections of the core, not the core itself.

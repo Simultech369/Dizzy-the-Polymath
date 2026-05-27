@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0014: Review `MECHANISMS.md` after the next integration and prune any mechanism that feels like vocabulary rather than useful mechanism.
+- W-0015: Use `FILE_ROLES.md` to decide whether root flavor files should stay in place, move to a subfolder, or be explicitly marked historical/optional.
 
 ---
 
@@ -45,3 +45,4 @@ Rules:
 - W-0011: Added `MECHANISM_SIEVE.md` and compact prompt-core rules to convert anti-extractive values into ownership, funding, governance, enforcement, exit, simplification, and capability mechanisms.
 - W-0012: Added first manual Friction Ledger path: sparse stuck-point capture, listing, summary weighting, maintain visibility, and tests.
 - W-0013: Added `MECHANISMS.md` as a map of reusable design mechanisms without outreach or borrowing language.
+- W-0014: Added `FILE_ROLES.md` to classify root-file authority without moving files prematurely.

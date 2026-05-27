@@ -72,6 +72,7 @@ The public or paid layer is currently a constrained projection of the core syste
 - [`PROMPT_PACKS.md`](PROMPT_PACKS.md): prompt-pack model
 - [`RUNBOOK.md`](RUNBOOK.md): local setup and operational notes
 - [`REPO_GUIDE.md`](REPO_GUIDE.md): guided map for first-time readers and maintainers
+- [`FILE_ROLES.md`](FILE_ROLES.md): root-file authority and role map
 - [`MECHANISMS.md`](MECHANISMS.md): reusable design mechanisms in the repo
 - [`OPERATIONS.md`](OPERATIONS.md): runtime execution overlay
 - [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md): worksheet for converting anti-extractive values into ownership, governance, enforcement, exit, and capability mechanisms

@@ -29,6 +29,7 @@ Mechanism: keep live governing rules in a compact default prompt pack; let longe
 Useful files:
 - `PROMPT_CORE.md`
 - `PROMPT_PACKS.md`
+- `FILE_ROLES.md`
 - `lib/prompt_bundle.mjs`
 - `scripts/prompt_drift_check.mjs`
 
@@ -116,3 +117,5 @@ Failure mode: "continuity" becomes a vague permission to reuse context.
 ## Mechanism Rule
 
 Mechanisms are useful only when they reduce burden, clarify judgment, or create capability. If a mechanism mainly adds vocabulary, status, or ceremony, compress it or retire it.
+
+Root presence is not authority. `FILE_ROLES.md` names which files are constitutional, operational, optional, or archival.
