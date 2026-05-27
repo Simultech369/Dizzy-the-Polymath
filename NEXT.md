@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0015: Use `FILE_ROLES.md` to decide whether root flavor files should stay in place, move to a subfolder, or be explicitly marked historical/optional.
+- W-0016: Use `FILE_ROLES.md` to decide whether root flavor files should stay in place, move to a subfolder, or be explicitly marked historical/optional.
 
 ---
 
@@ -46,3 +46,4 @@ Rules:
 - W-0012: Added first manual Friction Ledger path: sparse stuck-point capture, listing, summary weighting, maintain visibility, and tests.
 - W-0013: Added `MECHANISMS.md` as a map of reusable design mechanisms without outreach or borrowing language.
 - W-0014: Added `FILE_ROLES.md` to classify root-file authority without moving files prematurely.
+- W-0015: Added `dizzy maintain` validation that flags root files missing from `FILE_ROLES.md`.

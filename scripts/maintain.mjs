@@ -92,6 +92,38 @@ function listStaleUpgradeSignals() {
   return findings;
 }
 
+function rootFileRoleStatus() {
+  const roleMapPath = path.resolve(ROOT, "FILE_ROLES.md");
+  if (!fs.existsSync(roleMapPath)) {
+    return {
+      status: "yellow",
+      message: "FILE_ROLES.md is missing.",
+      unclassified: [],
+    };
+  }
+
+  const roleMap = fs.readFileSync(roleMapPath, "utf8");
+  const classified = new Set(
+    Array.from(roleMap.matchAll(/`([^`/\\]+)`/g), (match) => match[1]),
+  );
+
+  const rootFiles = fs
+    .readdirSync(ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .filter((name) => name !== "FILE_ROLES.md");
+
+  const unclassified = rootFiles.filter((name) => !classified.has(name)).sort();
+
+  return {
+    status: unclassified.length ? "yellow" : "green",
+    message: unclassified.length
+      ? `${unclassified.length} root file(s) missing from FILE_ROLES.md: ${unclassified.join(", ")}.`
+      : "All root files are classified.",
+    unclassified,
+  };
+}
+
 function trajectoryStatus() {
   const filePath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
   if (!fs.existsSync(filePath)) {
@@ -145,13 +177,20 @@ function color(status) {
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
+  const rootRoles = rootFileRoleStatus();
   const trajectories = trajectoryStatus();
   const friction = frictionStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
 
   let overall = "green";
-  if (softFailures.length || staleFindings.length || trajectories.status === "yellow" || friction.status === "yellow") overall = "yellow";
+  if (
+    softFailures.length ||
+    staleFindings.length ||
+    rootRoles.status === "yellow" ||
+    trajectories.status === "yellow" ||
+    friction.status === "yellow"
+  ) overall = "yellow";
   if (hardFailures.length) overall = "red";
 
   console.log(`${color(overall)} Dizzy maintenance status`);
@@ -173,6 +212,10 @@ function main() {
   }
 
   console.log("");
+  console.log(`${color(rootRoles.status)} Root file roles`);
+  console.log(`  ${rootRoles.message}`);
+
+  console.log("");
   console.log(`${color(trajectories.status)} Trajectory ledger`);
   console.log(`  ${trajectories.message}`);
 
@@ -188,6 +231,7 @@ function main() {
     for (const failure of hardFailures) console.log(`- Fix ${failure.id}: ${failure.label}.`);
     for (const failure of softFailures) console.log(`- Review ${failure.id}: ${failure.label}.`);
     for (const finding of staleFindings) console.log(`- Clean stale status: ${finding}`);
+    if (rootRoles.status === "yellow") console.log("- Classify new root files in FILE_ROLES.md or move/archive them.");
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
     if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
   }

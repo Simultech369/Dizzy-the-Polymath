@@ -24,6 +24,15 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `package.json`
 - `package-lock.json`
 
+## Workspace Protocol And Repo Config
+
+- `AGENTS.md`
+- `BOOTSTRAP.md`
+- `.editorconfig`
+- `.env.example`
+- `.gitattributes`
+- `.gitignore`
+
 ## Canonical Design And State
 
 - `DESIGN.md`
@@ -41,6 +50,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `USER.md`
 - `PROMPT_CORE.md`
 - `PROMPT_MODES.md`
+- `PROMPT_PACKS.md`
 
 ## Governance And Mechanisms
 
