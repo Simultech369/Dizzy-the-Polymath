@@ -23,8 +23,9 @@ Read in this order:
 3. [GOVERNANCE.md](GOVERNANCE.md) - plain-language governance summary.
 4. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
 5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
-6. [RUNBOOK.md](RUNBOOK.md) - practical operation.
-7. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
+6. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms, with files and failure modes.
+7. [RUNBOOK.md](RUNBOOK.md) - practical operation.
+8. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
 
 That path is enough to understand the current system. The rest is detail.
 
@@ -43,6 +44,7 @@ That path is enough to understand the current system. The rest is detail.
 
 - [DESIGN.md](DESIGN.md): canonical human source of truth.
 - [state.json](state.json): derived machine-readable snapshot of `DESIGN.md`.
+- [MECHANISMS.md](MECHANISMS.md): reusable mechanisms extracted from the system design.
 - [PROMPT_PACKS.md](PROMPT_PACKS.md): explains what files enter the live prompt.
 - [PROMPT_CORE.md](PROMPT_CORE.md): compact runtime behavioral core.
 - [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md): operational worksheet for anti-extractive and commons-friendly proposals.

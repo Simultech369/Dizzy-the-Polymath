@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0013: Use the friction ledger on one real disruption and decide whether the schema captures enough signal without becoming extra clerical work.
+- W-0014: Review `MECHANISMS.md` after the next integration and prune any mechanism that feels like vocabulary rather than useful mechanism.
 
 ---
 
@@ -44,3 +44,4 @@ Rules:
 - W-0010: Added report-only `scripts/connection_scan.mjs` to surface surprising document/memory connections as hypotheses, not retrieval authority.
 - W-0011: Added `MECHANISM_SIEVE.md` and compact prompt-core rules to convert anti-extractive values into ownership, funding, governance, enforcement, exit, simplification, and capability mechanisms.
 - W-0012: Added first manual Friction Ledger path: sparse stuck-point capture, listing, summary weighting, maintain visibility, and tests.
+- W-0013: Added `MECHANISMS.md` as a map of reusable design mechanisms without outreach or borrowing language.
