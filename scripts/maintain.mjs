@@ -2,6 +2,8 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
+import { summarizeFriction } from "../lib/friction_ledger.mjs";
+
 const ROOT = process.cwd();
 
 const CHECKS = [
@@ -123,6 +125,17 @@ function trajectoryStatus() {
   };
 }
 
+function frictionStatus() {
+  const summary = summarizeFriction();
+  if (summary.total === 0) return { status: "green", message: "No friction ledger yet." };
+  if (summary.unresolved === 0) return { status: "green", message: `${summary.total} entries, all resolved.` };
+  const top = summary.top.map((x) => `${x.friction_type}:${x.weight}`).join(", ");
+  return {
+    status: summary.unresolved >= 5 ? "yellow" : "green",
+    message: `${summary.total} entries, ${summary.unresolved} unresolved${top ? `; top=${top}` : ""}.`,
+  };
+}
+
 function color(status) {
   if (status === "green") return "[green]";
   if (status === "yellow") return "[yellow]";
@@ -133,11 +146,12 @@ function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
   const trajectories = trajectoryStatus();
+  const friction = frictionStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
 
   let overall = "green";
-  if (softFailures.length || staleFindings.length || trajectories.status === "yellow") overall = "yellow";
+  if (softFailures.length || staleFindings.length || trajectories.status === "yellow" || friction.status === "yellow") overall = "yellow";
   if (hardFailures.length) overall = "red";
 
   console.log(`${color(overall)} Dizzy maintenance status`);
@@ -163,6 +177,10 @@ function main() {
   console.log(`  ${trajectories.message}`);
 
   console.log("");
+  console.log(`${color(friction.status)} Friction ledger`);
+  console.log(`  ${friction.message}`);
+
+  console.log("");
   console.log("Actionable next steps:");
   if (overall === "green") {
     console.log("- No immediate maintenance action required.");
@@ -171,6 +189,7 @@ function main() {
     for (const failure of softFailures) console.log(`- Review ${failure.id}: ${failure.label}.`);
     for (const finding of staleFindings) console.log(`- Clean stale status: ${finding}`);
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
+    if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
   }
 
   process.exit(hardFailures.length ? 1 : 0);

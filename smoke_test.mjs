@@ -14,6 +14,7 @@ delete process.env.OPENAI_COMPAT_BASE_URL;
 delete process.env.OPENAI_COMPAT_API_KEY;
 delete process.env.OPENAI_COMPAT_MODEL;
 process.env.DIZZY_TRAJECTORY_PATH = "runtime/test-smoke-trajectories.jsonl";
+process.env.DIZZY_FRICTION_PATH = "runtime/test-smoke-friction.jsonl";
 
 const started = await startServer({ port: 0, redisUrl: "" });
 
@@ -75,10 +76,22 @@ try {
 
   await must(trajectory.ok === true && trajectory.text.includes("Saved trajectory"), `unexpected trajectory result: ${JSON.stringify(trajectory)}`);
 
+  const friction = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      channel: "local",
+      text: '/friction add {"friction_type":"disruption","description":"Smoke test logged a recoverable disruption","task_context":"runtime smoke","severity":3,"frequency":"first"}',
+    }),
+  }).then((r) => r.json());
+
+  await must(friction.ok === true && friction.text.includes("Saved friction"), `unexpected friction result: ${JSON.stringify(friction)}`);
+
   console.log("SMOKE_OK");
 } finally {
   await started.stop();
   await fs.promises.rm("runtime/test-smoke-trajectories.jsonl", { force: true });
+  await fs.promises.rm("runtime/test-smoke-friction.jsonl", { force: true });
 }
 
 const authed = await startServer({ port: 0, redisUrl: "", authToken: "test-token" });

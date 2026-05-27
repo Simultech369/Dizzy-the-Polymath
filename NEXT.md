@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0012: Use `MECHANISM_SIEVE.md` on one real economic/civic proposal and decide what the sieve misses or overcomplicates.
+- W-0013: Use the friction ledger on one real disruption and decide whether the schema captures enough signal without becoming extra clerical work.
 
 ---
 
@@ -43,3 +43,4 @@ Rules:
 - W-0009: Added proposal-only `/trajectory distill` command. It can draft a known-good trajectory from recent history but still requires operator review and `/trajectory add` to save.
 - W-0010: Added report-only `scripts/connection_scan.mjs` to surface surprising document/memory connections as hypotheses, not retrieval authority.
 - W-0011: Added `MECHANISM_SIEVE.md` and compact prompt-core rules to convert anti-extractive values into ownership, funding, governance, enforcement, exit, simplification, and capability mechanisms.
+- W-0012: Added first manual Friction Ledger path: sparse stuck-point capture, listing, summary weighting, maintain visibility, and tests.

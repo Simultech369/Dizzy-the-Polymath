@@ -13,6 +13,7 @@ import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { validateExternalUrl } from "../lib/tools.mjs";
+import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 
 async function expectReject(fn, pattern) {
@@ -654,6 +655,33 @@ function testTrajectoryDistilleryManualPath() {
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
 }
 
+function testFrictionLedgerManualPath() {
+  const testPath = "runtime/test-friction-ledger.jsonl";
+  fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
+
+  const parsed = parseFrictionInput(JSON.stringify({
+    friction_type: "auth",
+    description: "External tool login completed but runtime did not recognize it",
+    task_context: "free-code setup",
+    severity: 7,
+    frequency: "repeated",
+    suggested_fix: "capture auth failure as friction before debugging deeper",
+  }));
+  const saved = appendFriction(parsed, { filePath: testPath, now: new Date("2026-05-27T12:00:00.000Z") });
+  assert.equal(saved.entry.friction_type, "auth");
+  assert.equal(saved.entry.severity, 7);
+
+  const rows = readFrictionEntries({ filePath: testPath });
+  assert.equal(rows.length, 1);
+
+  const summary = summarizeFriction({ filePath: testPath });
+  assert.equal(summary.total, 1);
+  assert.equal(summary.unresolved, 1);
+  assert.equal(summary.top[0].friction_type, "auth");
+
+  fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
+}
+
 await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
@@ -672,6 +700,7 @@ testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
 testTrajectoryDistilleryManualPath();
+testFrictionLedgerManualPath();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
 await testPaidPublicCannotCaptureTrajectories();

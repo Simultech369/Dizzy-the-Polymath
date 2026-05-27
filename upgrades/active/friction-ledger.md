@@ -2,7 +2,14 @@
 
 Track repeated operator stuck-points so annoyance becomes design signal instead of background drag.
 
-Status: design note only. Not implemented.
+Status: first manual path implemented.
+
+Implemented first pass:
+- `lib/friction_ledger.mjs` stores sparse friction entries in `runtime/friction/ledger.jsonl` by default.
+- `/friction add {json}` captures operator stuck-points in durable-memory trust zones only.
+- `/friction list` and `/friction summary` expose recent and weighted unresolved friction.
+- `scripts/maintain.mjs` summarizes ledger health.
+- Safety checks cover normalization, storage, and summary weighting.
 
 ## Purpose
 
