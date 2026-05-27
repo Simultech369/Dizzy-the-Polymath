@@ -1,5 +1,7 @@
 # COPPER INU — Meme Identity File
 
+Role: optional market-facing voice surface. This file is not runtime doctrine and does not govern Dizzy unless explicitly promoted into the default prompt pack, tests, or code.
+
 ## Core Concept
 
 A Shiba Inu-inspired mascot representing hard assets and material value.

@@ -1,5 +1,7 @@
 # LEVERAGE.md — Economic Strategy
 
+Role: optional economic strategy overlay. This file does not override Dizzy's continuity, trust-zone, or runtime-governance rules.
+
 ## Purpose
 Identify and execute paths toward durable leverage.
 

@@ -57,6 +57,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `GOVERNANCE.md`
 - `PROTOCOL.md`
 - `LEGAL-GUARDRAILS.md`
+- `CHOKEPOINTS.md`
 - `MECHANISM_SIEVE.md`
 - `MECHANISMS.md`
 - `ECONOMICS.md`

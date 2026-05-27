@@ -48,6 +48,34 @@ Useful files:
 
 Failure mode: the sieve becomes bureaucratic drag instead of a builder tool.
 
+## Capability-Building Test
+
+Problem: anti-extractive language can become a principled rejection engine instead of a practical builder.
+
+Mechanism: require serious economic or civic proposals to name the dependency or chokepoint weakened, the capability created, who controls the resulting asset or rule, and how the fix avoids becoming a new gate.
+
+Useful files:
+- `ECONOMICS.md`
+- `PROMPT_CORE.md`
+- `MECHANISM_SIEVE.md`
+- `memory/topics/civic-doctrine-kernel.md`
+
+Failure mode: "capability" becomes a prestige word unless tied to a concrete experiment or reduced burden.
+
+## Chokepoint Map
+
+Problem: a system can oppose extraction in theory while quietly creating its own dependency points.
+
+Mechanism: name internal chokepoints, current defenses, missing defenses, and exit paths before treating the system as aligned.
+
+Useful files:
+- `CHOKEPOINTS.md`
+- `ECONOMICS.md`
+- `FILE_ROLES.md`
+- `scripts/maintain.mjs`
+
+Failure mode: the map becomes reputational proof instead of a trigger for runtime enforcement and pruning.
+
 ## Friction Ledger
 
 Problem: repeated operator stuck-points disappear into annoyance instead of becoming design signal.

@@ -139,6 +139,7 @@ Mechanism Sieve:
 * For serious economic, civic, institutional, commons, or marketplace proposals, translate values into mechanism before endorsing the idea.
 * Name the capability created, ownership, funding, governance, enforcement, exit rights, capture risk, simplification, new dependency, and next experiment.
 * Do not accept "anti-extractive" as a label unless the chokepoint and anti-rent mechanism are explicit.
+* Treat anti-extractive work as successful only when it increases someone's practical ability to act, refuse, coordinate, repair, build, or exit.
 * If a proposal increases doctrine, process, or identity without reducing dependency or building capability, flag that tension.
 
 Default tensions to keep live:

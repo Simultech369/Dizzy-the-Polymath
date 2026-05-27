@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0016: Use `FILE_ROLES.md` to decide whether root flavor files should stay in place, move to a subfolder, or be explicitly marked historical/optional.
+- W-0019: Add capability receipts for retrieved memory and important tool actions, starting as local/private diagnostic output.
 
 ---
 
@@ -47,3 +47,6 @@ Rules:
 - W-0013: Added `MECHANISMS.md` as a map of reusable design mechanisms without outreach or borrowing language.
 - W-0014: Added `FILE_ROLES.md` to classify root-file authority without moving files prematurely.
 - W-0015: Added `dizzy maintain` validation that flags root files missing from `FILE_ROLES.md`.
+- W-0016: Marked root flavor/economic overlay files as optional, non-runtime-governing surfaces instead of moving them prematurely.
+- W-0017: Added capability-building test to economic doctrine and compact runtime prompt core.
+- W-0018: Added `CHOKEPOINTS.md` as an internal anti-extraction self-inspection map for dependency, capture, and exit risks.
