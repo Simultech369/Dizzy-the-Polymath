@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0020: Implement real deletion/expiry mechanics for paid/client continuity history.
+- W-0021: Add fuller retrieval audit logs for model-backed answers.
 
 ---
 
@@ -51,3 +51,4 @@ Rules:
 - W-0017: Added capability-building test to economic doctrine and compact runtime prompt core.
 - W-0018: Added `CHOKEPOINTS.md` as an internal anti-extraction self-inspection map for dependency, capture, and exit risks.
 - W-0019: Added first-pass capability receipts to dispatch and `/agent/execute`, with safety tests for paid/public blocked context.
+- W-0020: Added local deletion and inactivity expiry pruning for scoped paid/client continuity history.

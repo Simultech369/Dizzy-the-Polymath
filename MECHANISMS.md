@@ -156,6 +156,20 @@ Useful files:
 
 Failure mode: receipts become decorative unless tests prove forbidden context stays blocked.
 
+## Client Continuity Expiry
+
+Problem: paid/client continuity can become undeletable residue if expiry is only a policy label.
+
+Mechanism: scoped client/service conversation keys can be deleted by the local operator, and expired client continuity entries are pruned before new `/agent/execute` work.
+
+Useful files:
+- `lib/client_continuity.mjs`
+- `agent_server.mjs`
+- `scripts/safety_checks.mjs`
+- `MARKETPLACE_PROTOCOL.md`
+
+Failure mode: local deletion is mistaken for a full authenticated client account lifecycle.
+
 ## Mechanism Rule
 
 Mechanisms are useful only when they reduce burden, clarify judgment, or create capability. If a mechanism mainly adds vocabulary, status, or ceremony, compress it or retire it.

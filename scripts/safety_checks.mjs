@@ -15,6 +15,7 @@ import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/r
 import { validateExternalUrl } from "../lib/tools.mjs";
 import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
+import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -484,10 +485,18 @@ function testMarkdownRetrieverSignals() {
 async function testAgentExecuteContinuityLifecycleResponse() {
   const oldBackend = process.env.DIZZY_CHAT_BACKEND;
   const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
+  const oldConversationDir = process.env.DIZZY_CONVERSATION_DIR;
+  const oldDeletionLog = process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG;
   delete process.env.DIZZY_CHAT_BACKEND;
   const historyPath = path.resolve(process.cwd(), "runtime", "test-execution-history.jsonl");
+  const conversationDir = path.resolve(process.cwd(), "runtime", "test-execute-conversations");
+  const deletionLog = path.resolve(process.cwd(), "runtime", "test-client-continuity-deletions.jsonl");
   fs.rmSync(historyPath, { force: true });
+  fs.rmSync(conversationDir, { recursive: true, force: true });
+  fs.rmSync(deletionLog, { force: true });
   process.env.DIZZY_EXECUTION_HISTORY_PATH = "runtime/test-execution-history.jsonl";
+  process.env.DIZZY_CONVERSATION_DIR = "runtime/test-execute-conversations";
+  process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG = "runtime/test-client-continuity-deletions.jsonl";
 
   const rt = await startServer({ port: 0, bindHost: "127.0.0.1" });
   try {
@@ -555,14 +564,106 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(history.length, 1);
     assert.equal(history[0].retention_scope, "conversation_only");
     assert.equal(history[0].capability_receipt.private_memory_access, false);
+
+    const conversationKey = buildClientConversationKey({ client_id: "Client A", service_id: "Review" });
+    const conversationPath = conversationPathForKey(conversationKey, conversationDir);
+    fs.mkdirSync(path.dirname(conversationPath), { recursive: true });
+    fs.writeFileSync(conversationPath, "{\"role\":\"user\",\"text\":\"client-scoped\"}\n", "utf8");
+
+    const deleteRes = await fetch(`http://127.0.0.1:${rt.boundPort}/agent/continuity`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ client_id: "Client A", service_id: "Review" }),
+    });
+    assert.equal(deleteRes.status, 200);
+    const deleteBody = await deleteRes.json();
+    assert.equal(deleteBody.deleted, true);
+    assert.equal(deleteBody.conversation_key, conversationKey);
+    assert.equal(fs.existsSync(conversationPath), false);
+    assert.equal(fs.existsSync(historyPath), true);
+    assert.equal(fs.readFileSync(historyPath, "utf8").trim(), "");
+    assert.equal(fs.existsSync(deletionLog), true);
   } finally {
     await rt.stop();
     fs.rmSync(historyPath, { force: true });
+    fs.rmSync(conversationDir, { recursive: true, force: true });
+    fs.rmSync(deletionLog, { force: true });
     if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
     else process.env.DIZZY_CHAT_BACKEND = oldBackend;
     if (oldHistoryPath === undefined) delete process.env.DIZZY_EXECUTION_HISTORY_PATH;
     else process.env.DIZZY_EXECUTION_HISTORY_PATH = oldHistoryPath;
+    if (oldConversationDir === undefined) delete process.env.DIZZY_CONVERSATION_DIR;
+    else process.env.DIZZY_CONVERSATION_DIR = oldConversationDir;
+    if (oldDeletionLog === undefined) delete process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG;
+    else process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG = oldDeletionLog;
   }
+}
+
+function testClientContinuityExpiryPrune() {
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-prune-execution-history.jsonl");
+  const conversationsDir = path.resolve(process.cwd(), "runtime", "test-prune-conversations");
+  const deletionPath = path.resolve(process.cwd(), "runtime", "test-prune-deletions.jsonl");
+  fs.rmSync(historyPath, { force: true });
+  fs.rmSync(conversationsDir, { recursive: true, force: true });
+  fs.rmSync(deletionPath, { force: true });
+
+  const expiredKey = buildClientConversationKey({ client_id: "Old Client", service_id: "Review" });
+  const freshKey = buildClientConversationKey({ client_id: "Fresh Client", service_id: "Review" });
+  const expiredPath = conversationPathForKey(expiredKey, conversationsDir);
+  const freshPath = conversationPathForKey(freshKey, conversationsDir);
+  fs.mkdirSync(conversationsDir, { recursive: true });
+  fs.writeFileSync(expiredPath, "{\"role\":\"user\",\"text\":\"old\"}\n", "utf8");
+  fs.writeFileSync(freshPath, "{\"role\":\"user\",\"text\":\"fresh\"}\n", "utf8");
+
+  const rows = [
+    {
+      t: "2026-05-01T00:00:00.000Z",
+      route: "/agent/execute",
+      trust_zone: "paid_public",
+      retention_scope: "conversation_only",
+      conversation_key: expiredKey,
+    },
+    {
+      t: "2026-05-30T00:00:00.000Z",
+      route: "/agent/execute",
+      trust_zone: "paid_public",
+      retention_scope: "conversation_only",
+      conversation_key: freshKey,
+    },
+  ];
+  fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+  fs.writeFileSync(historyPath, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`, "utf8");
+
+  const result = pruneExpiredClientContinuity({
+    nowMs: Date.parse("2026-05-31T00:00:00.000Z"),
+    historyPath,
+    conversationsDir,
+    deletionPath,
+    expiryMs: 7 * 24 * 60 * 60 * 1000,
+  });
+  assert.equal(result.deleted, 1);
+  assert.deepEqual(result.deleted_conversation_keys, [expiredKey]);
+  assert.equal(fs.existsSync(expiredPath), false);
+  assert.equal(fs.existsSync(freshPath), true);
+  const remaining = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.equal(remaining.length, 1);
+  assert.equal(remaining[0].conversation_key, freshKey);
+  assert.equal(fs.existsSync(deletionPath), true);
+
+  const deleteResult = deleteClientContinuity({
+    conversation_key: freshKey,
+    historyPath,
+    conversationsDir,
+    deletionPath,
+    reason: "test_delete",
+    now: new Date("2026-05-31T00:00:00.000Z"),
+  });
+  assert.equal(deleteResult.deleted, true);
+  assert.equal(fs.existsSync(freshPath), false);
+
+  fs.rmSync(historyPath, { force: true });
+  fs.rmSync(conversationsDir, { recursive: true, force: true });
+  fs.rmSync(deletionPath, { force: true });
 }
 
 function testMarkdownRetrieverExcludesUntrustedRoots() {
@@ -747,6 +848,7 @@ testAutoRememberHeuristics();
 testPromptBundleDefaults();
 testTrajectoryDistilleryManualPath();
 testFrictionLedgerManualPath();
+testClientContinuityExpiryPrune();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
 await testPaidPublicCannotCaptureTrajectories();

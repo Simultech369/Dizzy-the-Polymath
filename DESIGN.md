@@ -287,7 +287,7 @@ Consequences:
 - Ephemeral paid/public requests should not create persistent execution-history entries.
 - Client continuity retention scope is `conversation_only`.
 - Default client continuity expiry policy is `7_days_inactivity_operator_deletable` until a stronger authenticated client lifecycle exists.
-- Deletion/expiry mechanics should be implemented before richer client continuity is offered.
+- Local operator deletion and inactivity expiry are implemented for scoped paid/client continuity history. This is not yet a full authenticated client account lifecycle.
 
 ---
 

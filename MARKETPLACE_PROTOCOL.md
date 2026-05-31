@@ -71,7 +71,13 @@ Server-derived conversation-key reuse is continuity reuse. Do not treat it as a 
 
 Ephemeral paid/public requests should not create persistent execution-history entries.
 
-Deletion/expiry mechanics should exist before offering richer client continuity.
+Local operator deletion and inactivity expiry are implemented for scoped client continuity history:
+
+- `DELETE /agent/continuity` deletes a scoped client/service conversation and removes matching execution-history rows.
+- `POST /agent/continuity/prune` removes expired client continuity entries.
+- `/agent/execute` prunes expired client continuity before handling a new request.
+
+This is still not a full authenticated client account lifecycle.
 
 ---
 

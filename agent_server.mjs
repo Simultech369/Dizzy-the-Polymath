@@ -4,6 +4,7 @@ import path from "path";
 
 import { connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
+import { buildClientConversationKey, deleteClientContinuity, executionHistoryPath, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -59,21 +60,12 @@ function appendJsonl(filePath, obj) {
   fs.appendFileSync(filePath, `${JSON.stringify(obj)}\n`, "utf8");
 }
 
-function executionHistoryPath() {
-  return path.resolve(process.cwd(), String(process.env.DIZZY_EXECUTION_HISTORY_PATH || "runtime/execution_history.jsonl"));
-}
-
-function normalizeConversationKeyPart(value, fallback = "") {
-  return normalizeIdentifier(value, fallback).slice(0, 40);
-}
-
 function buildExecuteConversationKey(body = {}) {
   const continuityMode = String(body?.continuity_mode ?? "").trim().toLowerCase();
 
   if (continuityMode === "client") {
-    const clientId = normalizeConversationKeyPart(body?.client_id, "");
-    const serviceId = normalizeConversationKeyPart(body?.service_id, "");
-    if (clientId) return `execute_client_${clientId}_${serviceId}`;
+    const key = buildClientConversationKey({ client_id: body?.client_id, service_id: body?.service_id });
+    if (key) return key;
   }
 
   return `execute_req_${Date.now()}_${randomSuffix()}`;
@@ -416,6 +408,7 @@ export async function createRuntime(opts = {}) {
       conversation_key: conversationKey,
     };
     try {
+      pruneExpiredClientContinuity();
       const message = buildIncomingMessage(
         { text: brief, meta: { service_id, client_id } },
         req,
@@ -461,6 +454,30 @@ export async function createRuntime(opts = {}) {
       });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+    }
+  });
+
+  app.delete("/agent/continuity", async (req, res) => {
+    try {
+      const result = deleteClientContinuity({
+        client_id: req.body?.client_id,
+        service_id: req.body?.service_id,
+        conversation_key: req.body?.conversation_key,
+        reason: "operator_delete",
+      });
+      if (!result.ok) return res.status(400).json(result);
+      return res.json(result);
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+    }
+  });
+
+  app.post("/agent/continuity/prune", async (req, res) => {
+    try {
+      const result = pruneExpiredClientContinuity();
+      return res.json(result);
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: String(e?.message ?? e) });
     }
   });
 

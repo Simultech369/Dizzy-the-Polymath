@@ -51,11 +51,12 @@ Current defense:
 - curated `MEMORY.md`
 - memory validation
 - capability receipts on dispatch and `/agent/execute`
+- local operator deletion and inactivity expiry for client continuity
 
 Needed:
 - fuller retrieval audit logs for model-backed answers
 - freshness and authority metadata on memory snippets
-- clearer deletion/expiry behavior for client continuity
+- authenticated client lifecycle if continuity becomes externally user-facing
 
 ### Marketplace And Public Surfaces
 
@@ -66,9 +67,9 @@ Current defense:
 - public surfaces are projections, not the core
 - optional market/culture files are marked non-runtime-governing
 - `/agent/execute` returns capability receipts with blocked context categories
+- `DELETE /agent/continuity` and `POST /agent/continuity/prune` enforce local deletion/expiry
 
 Needed:
-- hard expiry/deletion mechanics for client history
 - explicit client-visible status beyond first-pass continuity receipts
 - refusal path when marketplace incentives conflict with private trust boundaries
 
