@@ -51,10 +51,10 @@ Current defense:
 - curated `MEMORY.md`
 - memory validation
 - capability receipts on dispatch and `/agent/execute`
+- retrieval audit details inside capability receipts
 - local operator deletion and inactivity expiry for client continuity
 
 Needed:
-- fuller retrieval audit logs for model-backed answers
 - freshness and authority metadata on memory snippets
 - authenticated client lifecycle if continuity becomes externally user-facing
 

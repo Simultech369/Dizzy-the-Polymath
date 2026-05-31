@@ -168,12 +168,24 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.private_memory_access, false);
   assert.deepEqual(paidReceipt.retrieved_files, []);
   assert.equal(paidReceipt.retrieved_count, 0);
+  assert.equal(paidReceipt.retrieval_audit.allowed, false);
+  assert.equal(paidReceipt.retrieval_audit.blocked_reason, "trust_zone_blocks_repo_retrieval");
+  assert.equal(paidReceipt.retrieval_audit.rag.attempted, false);
+  assert.equal(paidReceipt.retrieval_audit.memory_graph.attempted, false);
+  assert.equal(paidReceipt.retrieval_audit.trajectories.attempted, false);
   assert.equal(paidReceipt.blocked_context.includes("private_memory"), true);
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
   const privateReceipt = buildCapabilityReceipt(
     { channel: "local", runtime_context: { trust_zone: "private_self" } },
-    { retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"] },
+    {
+      retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"],
+      retrieval_audit: {
+        rag: { count: 1, files: ["MEMORY.md"] },
+        memory_graph: { count: 1, files: ["memory/topics/civic-doctrine-kernel.md"] },
+        trajectories: { count: 0, ids: [] },
+      },
+    },
   );
   assert.equal(privateReceipt.trust_zone, "private_self");
   assert.equal(privateReceipt.repo_retrieval_allowed, true);
@@ -181,6 +193,10 @@ function testCapabilityReceipts() {
   assert.equal(privateReceipt.private_memory_access, true);
   assert.deepEqual(privateReceipt.blocked_context, []);
   assert.equal(privateReceipt.retrieved_count, 2);
+  assert.equal(privateReceipt.retrieval_audit.allowed, true);
+  assert.equal(privateReceipt.retrieval_audit.blocked_reason, "");
+  assert.equal(privateReceipt.retrieval_audit.rag.count, 1);
+  assert.equal(privateReceipt.retrieval_audit.memory_graph.count, 1);
 }
 
 function testQueueChannelSanitization() {
@@ -517,6 +533,8 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(ephemeralBody.capability_receipt.retention_scope, "ephemeral");
     assert.equal(ephemeralBody.capability_receipt.repo_retrieval_allowed, false);
     assert.equal(ephemeralBody.capability_receipt.private_memory_access, false);
+    assert.equal(ephemeralBody.capability_receipt.retrieval_audit.allowed, false);
+    assert.equal(ephemeralBody.capability_receipt.retrieval_audit.blocked_reason, "trust_zone_blocks_repo_retrieval");
     assert.equal(ephemeralBody.capability_receipt.blocked_context.includes("repo_docs"), true);
     assert.equal(ephemeralBody.capability_receipt.blocked_context.includes("private_memory"), true);
     assert.equal(fs.existsSync(historyPath), false);
@@ -555,6 +573,8 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(body.capability_receipt.retention_scope, "conversation_only");
     assert.equal(body.capability_receipt.durable_memory_allowed, false);
     assert.equal(body.capability_receipt.repo_retrieval_allowed, false);
+    assert.equal(body.capability_receipt.retrieval_audit.allowed, false);
+    assert.equal(body.capability_receipt.retrieval_audit.rag.attempted, false);
     assert.equal(body.capability_receipt.blocked_context.includes("repo_docs"), true);
     assert.equal(body.capability_receipt.blocked_context.includes("private_memory"), true);
     assert.match(body.conversation_key, /^execute_client_client_a_review$/);

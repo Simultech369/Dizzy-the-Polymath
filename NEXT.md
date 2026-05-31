@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0021: Add fuller retrieval audit logs for model-backed answers.
+- W-0022: Define the first daily operator workflow loop that turns receipts, friction, trajectories, and maintain output into compounding value.
 
 ---
 
@@ -52,3 +52,4 @@ Rules:
 - W-0018: Added `CHOKEPOINTS.md` as an internal anti-extraction self-inspection map for dependency, capture, and exit risks.
 - W-0019: Added first-pass capability receipts to dispatch and `/agent/execute`, with safety tests for paid/public blocked context.
 - W-0020: Added local deletion and inactivity expiry pruning for scoped paid/client continuity history.
+- W-0021: Added structured retrieval audit details to capability receipts for RAG, memory graph, and trajectory context.

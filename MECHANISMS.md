@@ -146,7 +146,7 @@ Failure mode: "continuity" becomes a vague permission to reuse context.
 
 Problem: trust-zone doctrine is easy to claim and hard to verify from outside the code.
 
-Mechanism: attach a machine-readable receipt to dispatch outputs and `/agent/execute` responses showing trust zone, continuity mode, retention scope, memory/repo permissions, retrieved files, and blocked context categories.
+Mechanism: attach a machine-readable receipt to dispatch outputs and `/agent/execute` responses showing trust zone, continuity mode, retention scope, memory/repo permissions, retrieved files, retrieval audit details, and blocked context categories.
 
 Useful files:
 - `lib/dispatch.mjs`
