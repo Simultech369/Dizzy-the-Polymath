@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 import { connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
-import { getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
+import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -430,6 +430,7 @@ export async function createRuntime(opts = {}) {
         message,
         enqueue: enqueueTool,
       });
+      const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
       if (capabilities.retention_scope !== "ephemeral") {
         appendJsonl(executionHistoryPath(), {
           t: new Date().toISOString(),
@@ -441,6 +442,7 @@ export async function createRuntime(opts = {}) {
           retention_scope: capabilities.retention_scope,
           repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
           durable_memory_allowed: capabilities.durable_memory_allowed,
+          capability_receipt: capabilityReceipt,
           conversation_key: conversationKey,
           result_kind: out?.kind || "",
         });
@@ -453,6 +455,7 @@ export async function createRuntime(opts = {}) {
         expiry_policy: capabilities.expiry_policy,
         repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
         durable_memory_allowed: capabilities.durable_memory_allowed,
+        capability_receipt: capabilityReceipt,
         conversation_key: conversationKey,
         ...out,
       });

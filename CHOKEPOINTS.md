@@ -50,9 +50,10 @@ Current defense:
 - scoped markdown retrieval
 - curated `MEMORY.md`
 - memory validation
+- capability receipts on dispatch and `/agent/execute`
 
 Needed:
-- capability receipts for retrieval
+- fuller retrieval audit logs for model-backed answers
 - freshness and authority metadata on memory snippets
 - clearer deletion/expiry behavior for client continuity
 
@@ -64,10 +65,11 @@ Current defense:
 - paid/public continuity defaults to ephemeral
 - public surfaces are projections, not the core
 - optional market/culture files are marked non-runtime-governing
+- `/agent/execute` returns capability receipts with blocked context categories
 
 Needed:
 - hard expiry/deletion mechanics for client history
-- explicit client-visible status and continuity receipts
+- explicit client-visible status beyond first-pass continuity receipts
 - refusal path when marketplace incentives conflict with private trust boundaries
 
 ### Operator Attention

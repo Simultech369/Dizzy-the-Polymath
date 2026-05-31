@@ -4,7 +4,7 @@ import path from "path";
 
 import { startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -155,6 +155,33 @@ function testContinuityModes() {
   assert.equal(privateSelf.durable_memory_allowed, true);
 }
 
+function testCapabilityReceipts() {
+  const paidReceipt = buildCapabilityReceipt(
+    { channel: "execute", runtime_context: { trust_zone: "paid_public", continuity_mode: "client" } },
+  );
+  assert.equal(paidReceipt.trust_zone, "paid_public");
+  assert.equal(paidReceipt.continuity_mode, "client");
+  assert.equal(paidReceipt.retention_scope, "conversation_only");
+  assert.equal(paidReceipt.repo_retrieval_allowed, false);
+  assert.equal(paidReceipt.durable_memory_allowed, false);
+  assert.equal(paidReceipt.private_memory_access, false);
+  assert.deepEqual(paidReceipt.retrieved_files, []);
+  assert.equal(paidReceipt.retrieved_count, 0);
+  assert.equal(paidReceipt.blocked_context.includes("private_memory"), true);
+  assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
+
+  const privateReceipt = buildCapabilityReceipt(
+    { channel: "local", runtime_context: { trust_zone: "private_self" } },
+    { retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"] },
+  );
+  assert.equal(privateReceipt.trust_zone, "private_self");
+  assert.equal(privateReceipt.repo_retrieval_allowed, true);
+  assert.equal(privateReceipt.durable_memory_allowed, true);
+  assert.equal(privateReceipt.private_memory_access, true);
+  assert.deepEqual(privateReceipt.blocked_context, []);
+  assert.equal(privateReceipt.retrieved_count, 2);
+}
+
 function testQueueChannelSanitization() {
   const keys = makeQueueKeys("dizzy");
   assert.equal(keys.notify("Telegram / Ops"), "dizzy:queue:notify:telegram_ops");
@@ -262,6 +289,10 @@ async function testPaidPublicCannotCaptureTrajectories() {
 
   assert.equal(out.kind, "reply");
   assert.match(String(out.text), /only available in trust zones that allow durable memory/i);
+  assert.equal(out.capability_receipt.trust_zone, "paid_public");
+  assert.equal(out.capability_receipt.durable_memory_allowed, false);
+  assert.equal(out.capability_receipt.private_memory_access, false);
+  assert.equal(out.capability_receipt.blocked_context.includes("durable_memory"), true);
   assert.equal(fs.existsSync(path.resolve(process.cwd(), process.env.DIZZY_TRAJECTORY_PATH)), false);
 
   fs.rmSync(path.resolve(process.cwd(), process.env.DIZZY_TRAJECTORY_PATH), { force: true });
@@ -473,6 +504,12 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(ephemeralRes.status, 200);
     const ephemeralBody = await ephemeralRes.json();
     assert.equal(ephemeralBody.retention_scope, "ephemeral");
+    assert.equal(ephemeralBody.capability_receipt.trust_zone, "paid_public");
+    assert.equal(ephemeralBody.capability_receipt.retention_scope, "ephemeral");
+    assert.equal(ephemeralBody.capability_receipt.repo_retrieval_allowed, false);
+    assert.equal(ephemeralBody.capability_receipt.private_memory_access, false);
+    assert.equal(ephemeralBody.capability_receipt.blocked_context.includes("repo_docs"), true);
+    assert.equal(ephemeralBody.capability_receipt.blocked_context.includes("private_memory"), true);
     assert.equal(fs.existsSync(historyPath), false);
 
     const invalidRes = await fetch(url, {
@@ -504,12 +541,20 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(body.expiry_policy, "7_days_inactivity_operator_deletable");
     assert.equal(body.repo_retrieval_allowed, false);
     assert.equal(body.durable_memory_allowed, false);
+    assert.equal(body.capability_receipt.trust_zone, "paid_public");
+    assert.equal(body.capability_receipt.continuity_mode, "client");
+    assert.equal(body.capability_receipt.retention_scope, "conversation_only");
+    assert.equal(body.capability_receipt.durable_memory_allowed, false);
+    assert.equal(body.capability_receipt.repo_retrieval_allowed, false);
+    assert.equal(body.capability_receipt.blocked_context.includes("repo_docs"), true);
+    assert.equal(body.capability_receipt.blocked_context.includes("private_memory"), true);
     assert.match(body.conversation_key, /^execute_client_client_a_review$/);
     assert.doesNotMatch(body.conversation_key, /caller|shared/);
     assert.equal(fs.existsSync(historyPath), true);
     const history = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
     assert.equal(history.length, 1);
     assert.equal(history[0].retention_scope, "conversation_only");
+    assert.equal(history[0].capability_receipt.private_memory_access, false);
   } finally {
     await rt.stop();
     fs.rmSync(historyPath, { force: true });
@@ -686,6 +731,7 @@ await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
 testContinuityModes();
+testCapabilityReceipts();
 testQueueChannelSanitization();
 await testQueueMoveDueDelayed();
 await testQueueMoveDueDelayedFallback();

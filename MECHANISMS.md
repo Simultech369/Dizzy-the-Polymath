@@ -142,6 +142,20 @@ Useful files:
 
 Failure mode: "continuity" becomes a vague permission to reuse context.
 
+## Capability Receipts
+
+Problem: trust-zone doctrine is easy to claim and hard to verify from outside the code.
+
+Mechanism: attach a machine-readable receipt to dispatch outputs and `/agent/execute` responses showing trust zone, continuity mode, retention scope, memory/repo permissions, retrieved files, and blocked context categories.
+
+Useful files:
+- `lib/dispatch.mjs`
+- `agent_server.mjs`
+- `scripts/safety_checks.mjs`
+- `CHOKEPOINTS.md`
+
+Failure mode: receipts become decorative unless tests prove forbidden context stays blocked.
+
 ## Mechanism Rule
 
 Mechanisms are useful only when they reduce burden, clarify judgment, or create capability. If a mechanism mainly adds vocabulary, status, or ceremony, compress it or retire it.
