@@ -25,8 +25,9 @@ Read in this order:
 5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
 6. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms, with files and failure modes.
 7. [FILE_ROLES.md](FILE_ROLES.md) - root-file authority and role map.
-8. [RUNBOOK.md](RUNBOOK.md) - practical operation.
-9. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
+8. [OPERATING_LOOP.md](OPERATING_LOOP.md) - day-to-day operator workflow.
+9. [RUNBOOK.md](RUNBOOK.md) - practical operation.
+10. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
 
 That path is enough to understand the current system. The rest is detail.
 
@@ -47,6 +48,7 @@ That path is enough to understand the current system. The rest is detail.
 - [state.json](state.json): derived machine-readable snapshot of `DESIGN.md`.
 - [FILE_ROLES.md](FILE_ROLES.md): classifies root files so proximity does not imply authority.
 - [MECHANISMS.md](MECHANISMS.md): reusable mechanisms extracted from the system design.
+- [OPERATING_LOOP.md](OPERATING_LOOP.md): practical loop for session start, work intake, friction capture, trajectory capture, and session close.
 - [PROMPT_PACKS.md](PROMPT_PACKS.md): explains what files enter the live prompt.
 - [PROMPT_CORE.md](PROMPT_CORE.md): compact runtime behavioral core.
 - [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md): operational worksheet for anti-extractive and commons-friendly proposals.

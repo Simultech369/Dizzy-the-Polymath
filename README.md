@@ -75,6 +75,7 @@ The public or paid layer is currently a constrained projection of the core syste
 - [`FILE_ROLES.md`](FILE_ROLES.md): root-file authority and role map
 - [`MECHANISMS.md`](MECHANISMS.md): reusable design mechanisms in the repo
 - [`CHOKEPOINTS.md`](CHOKEPOINTS.md): self-inspection map for dependency, capture, and exit risks
+- [`OPERATING_LOOP.md`](OPERATING_LOOP.md): daily operator loop for turning work into durable value
 - [`OPERATIONS.md`](OPERATIONS.md): runtime execution overlay
 - [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md): worksheet for converting anti-extractive values into ownership, governance, enforcement, exit, and capability mechanisms
 - [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md): optional lightweight outward-facing surface

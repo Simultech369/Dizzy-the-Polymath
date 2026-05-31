@@ -67,6 +67,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 - `RUNBOOK.md`
 - `OPERATIONS.md`
+- `OPERATING_LOOP.md`
 - `OPERATING_SURFACE.md`
 - `CAPABILITIES.md`
 - `COMMUNICATION.md`

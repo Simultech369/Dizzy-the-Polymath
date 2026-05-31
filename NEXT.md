@@ -16,7 +16,7 @@ Rules:
 
 ## Work Queue
 
-- W-0022: Define the first daily operator workflow loop that turns receipts, friction, trajectories, and maintain output into compounding value.
+- W-0023: Add status frontmatter or pruning discipline for `upgrades/active/`.
 
 ---
 
@@ -53,3 +53,4 @@ Rules:
 - W-0019: Added first-pass capability receipts to dispatch and `/agent/execute`, with safety tests for paid/public blocked context.
 - W-0020: Added local deletion and inactivity expiry pruning for scoped paid/client continuity history.
 - W-0021: Added structured retrieval audit details to capability receipts for RAG, memory graph, and trajectory context.
+- W-0022: Added `OPERATING_LOOP.md` as a day-to-day operator workflow for maintain, receipts, friction, trajectories, and session close.

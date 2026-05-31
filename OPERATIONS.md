@@ -12,6 +12,8 @@ This is the system's **operational playbook**.
 It is an overlay, not a constitutional center.
 If a rule here is important enough to govern normal live behavior, compress it into the default prompt-pack docs instead of letting this file quietly outrank them.
 
+For the short repeatable day-to-day loop, see `OPERATING_LOOP.md`.
+
 ---
 
 Memory Discipline
