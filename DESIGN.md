@@ -380,6 +380,25 @@ Consequences:
 
 ---
 
+### D-0020: Capture eligibility gates durable memory and trajectory writes
+
+Decision:
+- Add a shared capture eligibility gate for memory-like writes.
+- Skip durable capture when the latest user turn is a social closer, when the candidate is empty, or when the candidate is too low-substance to justify persistence.
+- Apply the gate to automatic memory staging, trajectory distillation, and trajectory append.
+
+Rationale:
+- Durable continuity should preserve decisions, constraints, reusable patterns, and meaningful shifts, not routine acknowledgements.
+- The safest next memory improvement is deciding what should not be stored.
+- A shared gate prevents each capture surface from inventing its own noise threshold.
+
+Consequences:
+- `/trajectory add` rejects trivial payloads even when they satisfy the old structural schema.
+- `/trajectory distill` can skip before spending model work on thin history.
+- Auto-remember will not stage a memory candidate just because prior context was rich if the latest user turn is a social closer.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -621,6 +640,21 @@ Edit this block when you want to change what agents read.
       "heavy_vector_stack_without_need",
       "automatic_training_or_model_replacement"
     ]
+  },
+  "capture_eligibility": {
+    "module": "lib/capture_eligibility.mjs",
+    "applies_to": [
+      "auto_memory_staging",
+      "trajectory_distillation",
+      "trajectory_append"
+    ],
+    "skip_reasons": [
+      "empty_capture",
+      "latest_user_social_closer",
+      "social_closer",
+      "low_substance"
+    ],
+    "rule": "Durable capture requires substance beyond routine acknowledgement or schema satisfaction."
   },
   "queue": {
     "max_retries": 3,

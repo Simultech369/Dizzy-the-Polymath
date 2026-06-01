@@ -16,6 +16,7 @@ import { validateExternalUrl } from "../lib/tools.mjs";
 import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
+import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -734,6 +735,7 @@ function testAutoRememberHeuristics() {
   ];
 
   assert.equal(autoRememberSignalScore(richHistory) >= 4, true);
+  assert.equal(assessCaptureEligibility({ kind: "auto_memory", history: richHistory, minWords: 14 }).eligible, true);
   const convoKey = "test-auto-remember";
   fs.rmSync(path.resolve(process.cwd(), "runtime", "auto_memory", `${convoKey}.json`), { force: true });
   fs.rmSync(path.resolve(process.cwd(), "runtime", "auto_memory_candidates", `${convoKey}.json`), { force: true });
@@ -749,6 +751,16 @@ function testAutoRememberHeuristics() {
   assert.equal(promote.ok, true);
   assert.equal(promote.action, "promote");
   assert.equal(promote.candidate.signature, decision.signature);
+
+  const socialHistory = [
+    { role: "user", text: "I decided we should remember the memory lifecycle policy and trust-zone boundary." },
+    { role: "assistant", text: "That is a durable governance decision." },
+    { role: "user", text: "ok" },
+  ];
+  assert.equal(isSocialCloserText("ok"), true);
+  const social = shouldAutoRemember({ convoKey: "test-auto-social", history: socialHistory, nowMs: Date.parse("2026-04-07T12:00:00.000Z") });
+  assert.equal(social.ok, false);
+  assert.equal(social.reason, "latest_user_social_closer");
 
   if (oldAuto === undefined) delete process.env.DIZZY_AUTO_REMEMBER;
   else process.env.DIZZY_AUTO_REMEMBER = oldAuto;
@@ -817,6 +829,12 @@ function testTrajectoryDistilleryManualPath() {
   const block = formatTrajectoryContext("maintenance command operator burden", { filePath: testPath, k: 2 });
   assert.match(block, /KNOWN-GOOD TRAJECTORIES/);
   assert.match(block, /boring maintenance floor/i);
+
+  assert.throws(() => appendTrajectory({
+    goal: "ok",
+    reusable_pattern: "thanks",
+    reuse_tags: ["noise"],
+  }, { filePath: testPath }), /capture ineligible/);
 
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
 }

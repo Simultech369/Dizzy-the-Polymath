@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T04:13:32.837Z",
+  "updated_at": "2026-06-01T16:32:44.200Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -170,6 +170,21 @@
       "automatic_training_or_model_replacement"
     ]
   },
+  "capture_eligibility": {
+    "module": "lib/capture_eligibility.mjs",
+    "applies_to": [
+      "auto_memory_staging",
+      "trajectory_distillation",
+      "trajectory_append"
+    ],
+    "skip_reasons": [
+      "empty_capture",
+      "latest_user_social_closer",
+      "social_closer",
+      "low_substance"
+    ],
+    "rule": "Durable capture requires substance beyond routine acknowledgement or schema satisfaction."
+  },
   "queue": {
     "max_retries": 3,
     "backoff_seconds": [
@@ -256,6 +271,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "548d27990c1fae2437c133ee049089def7f18edff9fd97ebd205f8032816d690"
+    "design_md_sha256": "b75a79c3d47a7904f104b174b86d537286e3b5c9ddfc1f3a0e0f528ffc4c6ceb"
   }
 }
