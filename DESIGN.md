@@ -30,14 +30,24 @@ Acceptance checks:
 - `private_self`, `trusted_collaborator`, `outside_contact`, and `paid_public` produce visibly different retention and retrieval behavior.
 - Maintenance reports identify stale docs, drift risks, and memory/retrieval health without requiring a full repo reread.
 
+Positive institutional primitives:
+- Access floor: basic participation conditions cannot be hostage to chokepoints.
+- Portability: exit must include the ability to carry useful history, artifacts, and identity-adjacent records when safe.
+- Contestability: rules, refusals, and enforcement need reasons, appeal paths, and auditability.
+- Anti-chokepoint ownership: shared dependencies need governance that prevents gatekeeping rents.
+- Surplus circulation: value created by a shared system should not pool only at control points.
+- Anti-metric capture: commercial or engagement metrics may inform operations but cannot redefine private continuity quality.
+- Freedom from compulsory optimization: capability infrastructure should widen agency without forcing performance norms or managed subject formation.
+
 ---
 
 ## 1) Canonical State Contract
 
 Canonical hierarchy:
 1. `DESIGN.md` (primary)
-2. `state.json` (derived snapshot for agents/tools)
-3. Logs/artifacts (event stream; debugging only)
+2. `CONSTITUTION.md` (compact non-negotiables; conflict with `DESIGN.md` is a red maintenance item)
+3. `state.json` (derived snapshot for agents/tools)
+4. Logs/artifacts (event stream; debugging only)
 
 Rules:
 - Any behavioral change must be justified here.
@@ -152,6 +162,7 @@ Decision:
 - Treat the default prompt pack as the live constitutional core for chat behavior.
 - Any principle important enough to govern runtime behavior must exist in compact form in the default pack files:
   - `IDENTITY.md`
+  - `CONSTITUTION.md`
   - `SOUL.md`
   - `HEARTBEAT.md`
   - `TOOLS.md`
@@ -291,6 +302,64 @@ Consequences:
 
 ---
 
+### D-0016: Constitutional kernel is compact; overlays stay operational
+
+Decision:
+- Add `CONSTITUTION.md` as the compact non-negotiable kernel for ontology, consent, trust zones, memory rights, private/commercial separation, anti-domination, and promotion discipline.
+- Keep style rules, provider quirks, image layout recipes, scheduler details, model routing, and delivery templates out of constitutional scope unless they express one of those boundaries.
+- Treat conflict between `CONSTITUTION.md`, `DESIGN.md`, prompt packs, runtime receipts, or tests as a maintenance failure, not as an invitation to pick the convenient source.
+
+Rationale:
+- Distributed doctrine creates hidden authority and succession risk.
+- A short kernel makes drift easier to detect without turning every operating habit into law.
+- Constitutional prose should be enforceable or promotable, not merely evocative.
+
+Consequences:
+- `FILE_ROLES.md` must classify constitutional, operational, optional, and artifact files.
+- Prompt-pack drift checks should verify that live behavior retains the compact kernel.
+- Longer docs may elaborate but should not create new live obligations until promoted.
+
+---
+
+### D-0017: Memory has lifecycle metadata, not ambient authority
+
+Decision:
+- Durable memory claims should be classed by source, scope, confidence, freshness, sensitivity, and revocation path.
+- Summaries and compressions are lossy claims; they must not smuggle untrusted instructions, stale assumptions, or raw emotional detail into canonical memory.
+- Private reflection may distill reusable patterns, but raw emotional narrative should not be carried across unrelated contexts.
+
+Rationale:
+- Continuity is useful only when it improves present judgment.
+- Stale or overconfident memory can become a sticky narrative that competes with reality.
+- Consent and scope matter more as memory becomes more useful.
+
+Consequences:
+- Memory validation should evolve toward checking metadata presence and stale claims.
+- Retrieval should expose confidence/freshness when available.
+- Revocation, expiry, and revalidation should ship before richer self-learning or advanced distillation.
+
+---
+
+### D-0018: Doctrine-to-runtime promotion queue governs execution work
+
+Decision:
+- Classify doctrine-to-runtime work into three tiers:
+  - Tier 1: core safety and continuity, including memory expiry, boundary crossing, receipts, revocation, and private/commercial separation.
+  - Tier 2: operator value, including maintain loop quality, drift scans, history UX, and prompt/design sync.
+  - Tier 3: intelligence edge, including connection detection, trajectory scoring, compression, and adaptive routing.
+- Tier 1 work outranks Tier 3 novelty when both are unresolved.
+
+Rationale:
+- The repo is stronger doctrinally than operationally; promotion order prevents elegant concepts from outrunning enforcement.
+- Advanced learning features are valuable only after boundary and memory discipline are reliable.
+
+Consequences:
+- `NEXT.md` should keep active queue items tied to these tiers.
+- `scripts/maintain.mjs` should remain the single operator surface for surfacing promotion debt.
+- New doctrine should either be promoted into prompt/code/tests/maintenance or remain explicitly non-governing.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -387,6 +456,7 @@ Edit this block when you want to change what agents read.
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
+    "constitutional_kernel": "CONSTITUTION.md",
     "derived_state": "state.json",
     "open_queue": "NEXT.md"
   },
@@ -395,6 +465,7 @@ Edit this block when you want to change what agents read.
     "runtime_constitution": {
       "default_prompt_pack_files": [
         "IDENTITY.md",
+        "CONSTITUTION.md",
         "SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
@@ -417,6 +488,15 @@ Edit this block when you want to change what agents read.
   },
   "product_kernel": {
     "value": "Disciplined continuity of judgment: preserve context that improves agency, discard context that becomes sludge, and keep action aligned with explicit trust boundaries.",
+    "positive_primitives": [
+      "access_floor",
+      "portability",
+      "contestability",
+      "anti_chokepoint_ownership",
+      "surplus_circulation",
+      "anti_metric_capture",
+      "freedom_from_compulsory_optimization"
+    ],
     "day_1": "Answer from the active trust zone, expose relevant boundaries when they matter, and avoid importing hidden continuity into fresh-context situations.",
     "week_2": "Preserve durable decisions, constraints, and reusable patterns without turning raw conversation residue into doctrine.",
     "month_3": "Reduce repeated operator context-switching by surfacing known-good patterns, stale-status warnings, and maintenance needs before they become mental drag.",
@@ -425,6 +505,76 @@ Edit this block when you want to change what agents read.
       "Trust zones produce visibly different retention and retrieval behavior.",
       "Maintenance reports identify stale docs, drift risks, and memory/retrieval health without requiring a full repo reread."
     ]
+  },
+  "constitutional_kernel": {
+    "file": "CONSTITUTION.md",
+    "non_negotiables": [
+      "bounded_ontology",
+      "operator_execution_authority",
+      "trust_zones_fail_closed",
+      "private_continuity_non_commercial",
+      "no_commercial_override",
+      "curated_revocable_memory",
+      "lossy_compression_warning",
+      "approval_for_boundary_actions",
+      "anti_extraction_as_mechanisms",
+      "freedom_from_compulsory_optimization",
+      "redacted_public_projection",
+      "drift_mismatch_surfaces_as_maintenance"
+    ],
+    "authority_note": "If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
+  },
+  "trust_zone_crossing": {
+    "requires": [
+      "explicit_purpose",
+      "allowed_source_context",
+      "redaction_duty",
+      "retention_scope",
+      "revocation_or_deletion_path",
+      "visible_receipt_when_available"
+    ],
+    "zone_a_private": "non_export_default",
+    "zone_b_transform": "exportable_with_explicit_intent_and_redaction",
+    "zone_c_commercial": "minimal_scoped_no_sensitive_private_carryover"
+  },
+  "memory_lifecycle": {
+    "claim_metadata": [
+      "source",
+      "scope",
+      "confidence",
+      "freshness",
+      "sensitivity",
+      "revocation_path"
+    ],
+    "revalidate_or_demote_when": [
+      "source_context_changes",
+      "trust_zone_boundary_changes",
+      "confidence_drops",
+      "user_revokes",
+      "no_longer_improves_present_judgment"
+    ]
+  },
+  "promotion_queue": {
+    "tier_1_core_safety_continuity": [
+      "memory_expiry",
+      "boundary_crossing",
+      "capability_receipts",
+      "revocation",
+      "private_commercial_separation"
+    ],
+    "tier_2_operator_value": [
+      "maintain_loop_quality",
+      "drift_scans",
+      "history_ux",
+      "prompt_design_sync"
+    ],
+    "tier_3_intelligence_edge": [
+      "connection_detection",
+      "trajectory_scoring",
+      "compression",
+      "adaptive_routing"
+    ],
+    "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
   },
   "queue": {
     "max_retries": 3,

@@ -1,9 +1,10 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-31T22:38:16.789Z",
+  "updated_at": "2026-05-31T23:35:55.875Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
+    "constitutional_kernel": "CONSTITUTION.md",
     "derived_state": "state.json",
     "open_queue": "NEXT.md"
   },
@@ -15,6 +16,7 @@
     "runtime_constitution": {
       "default_prompt_pack_files": [
         "IDENTITY.md",
+        "CONSTITUTION.md",
         "SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
@@ -54,6 +56,15 @@
   },
   "product_kernel": {
     "value": "Disciplined continuity of judgment: preserve context that improves agency, discard context that becomes sludge, and keep action aligned with explicit trust boundaries.",
+    "positive_primitives": [
+      "access_floor",
+      "portability",
+      "contestability",
+      "anti_chokepoint_ownership",
+      "surplus_circulation",
+      "anti_metric_capture",
+      "freedom_from_compulsory_optimization"
+    ],
     "day_1": "Answer from the active trust zone, expose relevant boundaries when they matter, and avoid importing hidden continuity into fresh-context situations.",
     "week_2": "Preserve durable decisions, constraints, and reusable patterns without turning raw conversation residue into doctrine.",
     "month_3": "Reduce repeated operator context-switching by surfacing known-good patterns, stale-status warnings, and maintenance needs before they become mental drag.",
@@ -62,6 +73,76 @@
       "Trust zones produce visibly different retention and retrieval behavior.",
       "Maintenance reports identify stale docs, drift risks, and memory/retrieval health without requiring a full repo reread."
     ]
+  },
+  "constitutional_kernel": {
+    "file": "CONSTITUTION.md",
+    "non_negotiables": [
+      "bounded_ontology",
+      "operator_execution_authority",
+      "trust_zones_fail_closed",
+      "private_continuity_non_commercial",
+      "no_commercial_override",
+      "curated_revocable_memory",
+      "lossy_compression_warning",
+      "approval_for_boundary_actions",
+      "anti_extraction_as_mechanisms",
+      "freedom_from_compulsory_optimization",
+      "redacted_public_projection",
+      "drift_mismatch_surfaces_as_maintenance"
+    ],
+    "authority_note": "If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
+  },
+  "trust_zone_crossing": {
+    "requires": [
+      "explicit_purpose",
+      "allowed_source_context",
+      "redaction_duty",
+      "retention_scope",
+      "revocation_or_deletion_path",
+      "visible_receipt_when_available"
+    ],
+    "zone_a_private": "non_export_default",
+    "zone_b_transform": "exportable_with_explicit_intent_and_redaction",
+    "zone_c_commercial": "minimal_scoped_no_sensitive_private_carryover"
+  },
+  "memory_lifecycle": {
+    "claim_metadata": [
+      "source",
+      "scope",
+      "confidence",
+      "freshness",
+      "sensitivity",
+      "revocation_path"
+    ],
+    "revalidate_or_demote_when": [
+      "source_context_changes",
+      "trust_zone_boundary_changes",
+      "confidence_drops",
+      "user_revokes",
+      "no_longer_improves_present_judgment"
+    ]
+  },
+  "promotion_queue": {
+    "tier_1_core_safety_continuity": [
+      "memory_expiry",
+      "boundary_crossing",
+      "capability_receipts",
+      "revocation",
+      "private_commercial_separation"
+    ],
+    "tier_2_operator_value": [
+      "maintain_loop_quality",
+      "drift_scans",
+      "history_ux",
+      "prompt_design_sync"
+    ],
+    "tier_3_intelligence_edge": [
+      "connection_detection",
+      "trajectory_scoring",
+      "compression",
+      "adaptive_routing"
+    ],
+    "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
   },
   "queue": {
     "max_retries": 3,
@@ -149,6 +230,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "8ab790f07d88ca44c104f89b7f9b84dfed8afb3abaf5480c41454c1b22a1683e"
+    "design_md_sha256": "a6ceeda14d07c6a86e4685158d5dca187b383d8abdccf2ee5f9bf82315e4845c"
   }
 }

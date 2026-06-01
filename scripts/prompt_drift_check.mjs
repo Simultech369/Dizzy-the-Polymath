@@ -4,6 +4,7 @@ import path from "path";
 const ROOT = process.cwd();
 
 const REQUIRED_FILES = [
+  "CONSTITUTION.md",
   "IDENTITY.md",
   "SOUL.md",
   "HEARTBEAT.md",
@@ -14,6 +15,11 @@ const REQUIRED_FILES = [
 ];
 
 const DESIGN_TO_PROMPT_SIGNALS = [
+  {
+    id: "constitutional_kernel",
+    design: ["Constitutional kernel", "CONSTITUTION.md", "non-negotiable"],
+    prompt: ["compact kernel", "constitutional boundaries", "ontology stays bounded"],
+  },
   {
     id: "trust_zones",
     design: ["trust zone", "paid_public", "private_self"],
@@ -39,6 +45,16 @@ const DESIGN_TO_PROMPT_SIGNALS = [
     design: ["anti-extraction", "capability", "capture risk"],
     prompt: ["mechanism sieve", "ownership", "capture risk"],
   },
+  {
+    id: "memory_lifecycle",
+    design: ["Memory has lifecycle metadata", "confidence", "revocation"],
+    prompt: ["Memory Lifecycle", "confidence", "revocation path"],
+  },
+  {
+    id: "private_commercial_separation",
+    design: ["private core", "Commercial operation", "private-assistant continuity"],
+    prompt: ["Private continuity is non-commercial substrate", "Commercial objectives"],
+  },
 ];
 
 function read(file) {
@@ -59,6 +75,7 @@ function main() {
   const warnings = [];
 
   const design = read("DESIGN.md");
+  const constitution = read("CONSTITUTION.md");
   const promptCore = read("PROMPT_CORE.md");
   const promptModes = read("PROMPT_MODES.md");
   const promptJoined = `${promptCore}\n${promptModes}`;
@@ -69,7 +86,7 @@ function main() {
   }
 
   for (const signal of DESIGN_TO_PROMPT_SIGNALS) {
-    const inDesign = includesAny(design, signal.design);
+    const inDesign = includesAny(`${design}\n${constitution}`, signal.design);
     const inPrompt = includesAny(promptJoined, signal.prompt);
     if (inDesign && !inPrompt) {
       errors.push(`design signal '${signal.id}' is missing from PROMPT_CORE.md/PROMPT_MODES.md`);
@@ -79,6 +96,9 @@ function main() {
   const stateText = read("state.json");
   if (!includesAny(stateText, ["product_kernel"])) {
     warnings.push("state.json does not expose product_kernel; run node scripts/sync_state.mjs if DESIGN.md changed");
+  }
+  if (!includesAny(stateText, ["constitutional_kernel", "memory_lifecycle", "promotion_queue"])) {
+    warnings.push("state.json does not expose constitutional_kernel/memory_lifecycle/promotion_queue; run node scripts/sync_state.mjs if DESIGN.md changed");
   }
 
   if (errors.length) {

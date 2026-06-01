@@ -17,6 +17,11 @@ Rules:
 ## Work Queue
 
 - W-0023: Add status frontmatter or pruning discipline for `upgrades/active/`.
+- W-0024 [Tier 1]: Extend memory validation toward claim metadata: source, scope, confidence, freshness, sensitivity, and revocation path.
+- W-0025 [Tier 1]: Add an explicit trust-zone crossing checklist or receipt field for purpose, allowed context, redaction, retention, and deletion/revocation path.
+- W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
+- W-0027 [Tier 2]: Add byte-budget or scope warnings for default prompt-pack files so constitutional compression stays visible.
+- W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
 
 ---
 
