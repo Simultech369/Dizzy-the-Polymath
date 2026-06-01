@@ -556,6 +556,25 @@ Consequences:
 
 ---
 
+### D-0029: Constitutional coverage uses claim IDs and prompt budgets
+
+Decision:
+- Maintain a machine-readable constitutional claim manifest at `scripts/constitutional_claims.json`.
+- `scripts/prompt_drift_check.mjs` must verify each claim against constitution anchors, prompt-pack anchors, and runtime/test anchors where enforcement exists.
+- The same check must enforce byte budgets for the default prompt-pack files and total prompt-pack size.
+
+Rationale:
+- Semantic drift cannot be solved by pretending a script understands all doctrine, but explicit claim IDs can catch missing coverage.
+- Constitutional compression needs a mechanical pressure gauge; otherwise the default pack can silently become another sprawling doctrine surface.
+- Prompt-pack drift and prompt-pack bloat are the same maintenance class: the live core stops matching the intended core.
+
+Consequences:
+- W-0026 and W-0027 are enforced by the existing prompt drift check used by `maintain`.
+- Adding or changing a constitutional rule should update the manifest and anchors.
+- Budget limits are intentionally generous at this stage; exceeding them is a failure, nearing them is a warning.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -923,6 +942,31 @@ Edit this block when you want to change what agents read.
     "validator": "scripts/memory_validate.mjs",
     "missing_metadata": "warn",
     "invalid_metadata": "fail"
+  },
+  "constitutional_coverage": {
+    "manifest": "scripts/constitutional_claims.json",
+    "checker": "scripts/prompt_drift_check.mjs",
+    "claim_count": 12,
+    "required_anchors": [
+      "constitution",
+      "prompt_pack"
+    ],
+    "runtime_anchors_when_declared": true
+  },
+  "prompt_pack_budgets": {
+    "checker": "scripts/prompt_drift_check.mjs",
+    "total_budget_bytes": 72000,
+    "warning_threshold": 0.9,
+    "files": {
+      "CONSTITUTION.md": 6000,
+      "IDENTITY.md": 7000,
+      "SOUL.md": 13000,
+      "HEARTBEAT.md": 9000,
+      "TOOLS.md": 12000,
+      "USER.md": 9500,
+      "PROMPT_CORE.md": 22000,
+      "PROMPT_MODES.md": 4000
+    }
   },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,

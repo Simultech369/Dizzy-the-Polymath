@@ -16,8 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
-- W-0027 [Tier 2]: Add byte-budget or scope warnings for default prompt-pack files so constitutional compression stays visible.
 - W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
 - W-0035 [Tier 3]: Prototype three-pool retrieval as report-only: core, stale-important, edge-hypothesis.
 - W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
@@ -65,6 +63,8 @@ Rules:
 - W-0023: Added status frontmatter for every `upgrades/active/` note and taught `maintain` to summarize active, integrated, parked, and archived upgrade notes while flagging missing metadata or stale active reviews.
 - W-0024: Extended memory validation toward lifecycle metadata by adding topic frontmatter for memory class, source, scope, confidence, freshness, sensitivity, and revocation path; malformed present metadata now fails validation.
 - W-0025: Added `capability_receipt.boundary_crossing` with purpose, allowed source context, redaction duty, retention scope, deletion/revocation path, default export posture, and blocked context.
+- W-0026: Added constitutional claim manifest coverage to `scripts/prompt_drift_check.mjs` so constitution, prompt-pack, and declared runtime/test anchors are checked by claim ID.
+- W-0027: Added default prompt-pack byte budgets to `scripts/prompt_drift_check.mjs` so constitutional compression has a mechanical growth check.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.

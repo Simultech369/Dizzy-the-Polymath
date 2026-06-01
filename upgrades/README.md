@@ -94,11 +94,10 @@ Every note in `active/` must start with status frontmatter:
 
 ## Near-Term Implementation Sequence
 
-1. Teach `maintain` to compare `CONSTITUTION.md`, `DESIGN.md`, and `PROMPT_CORE.md` for kernel drift.
-2. Add prompt-pack byte-budget or scope warnings.
-3. Prototype three-pool retrieval as report-only.
-4. Define the Trajectory Distillery data contract.
-5. Review real `/trajectory distill` outputs before adding a confirmation flow.
+1. Define the Trajectory Distillery data contract.
+2. Prototype three-pool retrieval as report-only.
+3. Review real `/trajectory distill` outputs before adding a confirmation flow.
+4. Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 

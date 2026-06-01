@@ -1,0 +1,74 @@
+[
+  {
+    "id": "C-01-bounded-ontology",
+    "constitution": ["Ontology stays bounded", "not a person"],
+    "prompt": ["Ontology stays bounded", "no personhood"]
+  },
+  {
+    "id": "C-02-operator-execution-authority",
+    "constitution": ["Simul controls execution", "without consent"],
+    "prompt": ["Simul controls execution", "no autonomous external action"]
+  },
+  {
+    "id": "C-03-trust-zones-fail-closed",
+    "constitution": ["Trust zones are policy boundaries", "fail closed"],
+    "prompt": ["Trust-zone enforcement rules", "permissioned by trust zone"],
+    "runtime": {
+      "files": ["lib/dispatch.mjs", "scripts/safety_checks.mjs"],
+      "terms": ["getTrustZoneCapabilities", "repo_retrieval_allowed", "durable_memory_allowed"]
+    }
+  },
+  {
+    "id": "C-04-private-continuity-non-commercial",
+    "constitution": ["Private continuity is non-commercial substrate"],
+    "prompt": ["Private continuity is non-commercial substrate"],
+    "runtime": {
+      "files": ["lib/dispatch.mjs", "scripts/safety_checks.mjs"],
+      "terms": ["paid_public", "private_memory_access", "repo_retrieval_allowed"]
+    }
+  },
+  {
+    "id": "C-05-no-commercial-override",
+    "constitution": ["No commercial objective may override"],
+    "prompt": ["Commercial objectives may not rank private memories", "reshape risk framing"]
+  },
+  {
+    "id": "C-06-memory-lifecycle",
+    "constitution": ["Memory must be curated", "confidence-aware", "freshness-aware"],
+    "prompt": ["Memory Lifecycle", "confidence", "freshness", "revocation path"],
+    "runtime": {
+      "files": ["scripts/memory_validate.mjs", "memory/topics/civic-doctrine-kernel.md"],
+      "terms": ["memory_class", "confidence", "freshness", "revocation_path"]
+    }
+  },
+  {
+    "id": "C-07-lossy-compression-warning",
+    "constitution": ["Summaries and compressions are lossy claims"],
+    "prompt": ["summary or compression as a lossy claim"]
+  },
+  {
+    "id": "C-08-boundary-action-approval",
+    "constitution": ["External, public, irreversible, expensive", "explicit approval"],
+    "prompt": ["Irreversible, public, or expensive actions", "explicit reasoning"]
+  },
+  {
+    "id": "C-09-anti-extraction-mechanisms",
+    "constitution": ["Anti-extraction must cash out as mechanisms"],
+    "prompt": ["Cash out anti-extraction as mechanisms", "access floor", "contestability"]
+  },
+  {
+    "id": "C-10-freedom-from-compulsory-optimization",
+    "constitution": ["Capability systems must not become compulsory optimization systems"],
+    "prompt": ["capability infrastructure as suspect if it becomes compulsory optimization"]
+  },
+  {
+    "id": "C-11-redacted-public-projection",
+    "constitution": ["Public projection is evidence-bearing and redacted"],
+    "prompt": ["public writing", "private continuity", "trust-zone projection"]
+  },
+  {
+    "id": "C-12-drift-surfaces-as-maintenance",
+    "constitution": ["maintenance must surface the mismatch"],
+    "prompt": ["surface the mismatch as maintenance debt"]
+  }
+]

@@ -62,6 +62,19 @@ const DESIGN_TO_PROMPT_SIGNALS = [
   },
 ];
 
+const PROMPT_FILE_BUDGETS = {
+  "CONSTITUTION.md": 6000,
+  "IDENTITY.md": 7000,
+  "SOUL.md": 13000,
+  "HEARTBEAT.md": 9000,
+  "TOOLS.md": 12000,
+  "USER.md": 9500,
+  "PROMPT_CORE.md": 22000,
+  "PROMPT_MODES.md": 4000,
+};
+
+const DEFAULT_PROMPT_PACK_TOTAL_BUDGET = 72000;
+
 function read(file) {
   try {
     return fs.readFileSync(path.resolve(ROOT, file), "utf8");
@@ -70,9 +83,26 @@ function read(file) {
   }
 }
 
+function readJson(file) {
+  try {
+    return JSON.parse(read(file));
+  } catch {
+    return null;
+  }
+}
+
 function includesAny(haystack, needles) {
   const lower = String(haystack || "").toLowerCase();
   return needles.some((needle) => lower.includes(String(needle).toLowerCase()));
+}
+
+function includesAll(haystack, needles) {
+  const lower = String(haystack || "").toLowerCase();
+  return needles.every((needle) => lower.includes(String(needle).toLowerCase()));
+}
+
+function byteLen(text) {
+  return Buffer.byteLength(String(text ?? ""), "utf8");
 }
 
 function main() {
@@ -83,7 +113,8 @@ function main() {
   const constitution = read("CONSTITUTION.md");
   const promptCore = read("PROMPT_CORE.md");
   const promptModes = read("PROMPT_MODES.md");
-  const promptJoined = `${promptCore}\n${promptModes}`;
+  const promptPackTexts = Object.fromEntries(REQUIRED_FILES.map((file) => [file, read(file)]));
+  const promptJoined = Object.values(promptPackTexts).join("\n");
 
   for (const file of REQUIRED_FILES) {
     const abs = path.resolve(ROOT, file);
@@ -96,6 +127,49 @@ function main() {
     if (inDesign && !inPrompt) {
       errors.push(`design signal '${signal.id}' is missing from PROMPT_CORE.md/PROMPT_MODES.md`);
     }
+  }
+
+  const claimManifest = readJson("scripts/constitutional_claims.json");
+  if (!Array.isArray(claimManifest)) {
+    errors.push("missing or invalid scripts/constitutional_claims.json");
+  } else {
+    const seen = new Set();
+    for (const claim of claimManifest) {
+      const id = String(claim?.id || "").trim();
+      if (!id) {
+        errors.push("constitutional claim missing id");
+        continue;
+      }
+      if (seen.has(id)) errors.push(`duplicate constitutional claim id: ${id}`);
+      seen.add(id);
+
+      if (!includesAll(constitution, claim.constitution || [])) {
+        errors.push(`constitutional claim '${id}' missing constitution anchors`);
+      }
+      if (!includesAll(promptJoined, claim.prompt || [])) {
+        errors.push(`constitutional claim '${id}' missing prompt-pack anchors`);
+      }
+      if (claim.runtime) {
+        const files = Array.isArray(claim.runtime.files) ? claim.runtime.files : [];
+        const runtimeText = files.map(read).join("\n");
+        if (!files.length || !includesAll(runtimeText, claim.runtime.terms || [])) {
+          errors.push(`constitutional claim '${id}' missing runtime/test anchors`);
+        }
+      }
+    }
+  }
+
+  let totalPromptBytes = 0;
+  for (const [file, maxBytes] of Object.entries(PROMPT_FILE_BUDGETS)) {
+    const bytes = byteLen(promptPackTexts[file]);
+    totalPromptBytes += bytes;
+    if (bytes > maxBytes) errors.push(`${file} exceeds prompt budget: ${bytes}/${maxBytes} bytes`);
+    else if (bytes > maxBytes * 0.9) warnings.push(`${file} is near prompt budget: ${bytes}/${maxBytes} bytes`);
+  }
+  if (totalPromptBytes > DEFAULT_PROMPT_PACK_TOTAL_BUDGET) {
+    errors.push(`default prompt pack exceeds total budget: ${totalPromptBytes}/${DEFAULT_PROMPT_PACK_TOTAL_BUDGET} bytes`);
+  } else if (totalPromptBytes > DEFAULT_PROMPT_PACK_TOTAL_BUDGET * 0.9) {
+    warnings.push(`default prompt pack is near total budget: ${totalPromptBytes}/${DEFAULT_PROMPT_PACK_TOTAL_BUDGET} bytes`);
   }
 
   const stateText = read("state.json");

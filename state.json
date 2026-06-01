@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T22:18:10.301Z",
+  "updated_at": "2026-06-01T22:41:28.162Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -298,6 +298,31 @@
     "missing_metadata": "warn",
     "invalid_metadata": "fail"
   },
+  "constitutional_coverage": {
+    "manifest": "scripts/constitutional_claims.json",
+    "checker": "scripts/prompt_drift_check.mjs",
+    "claim_count": 12,
+    "required_anchors": [
+      "constitution",
+      "prompt_pack"
+    ],
+    "runtime_anchors_when_declared": true
+  },
+  "prompt_pack_budgets": {
+    "checker": "scripts/prompt_drift_check.mjs",
+    "total_budget_bytes": 72000,
+    "warning_threshold": 0.9,
+    "files": {
+      "CONSTITUTION.md": 6000,
+      "IDENTITY.md": 7000,
+      "SOUL.md": 13000,
+      "HEARTBEAT.md": 9000,
+      "TOOLS.md": 12000,
+      "USER.md": 9500,
+      "PROMPT_CORE.md": 22000,
+      "PROMPT_MODES.md": 4000
+    }
+  },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,
     "labels": [
@@ -407,6 +432,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "05354380da04f526896bcaead70a867f53297bb1165d119e4759084d7bc05c91"
+    "design_md_sha256": "f8897ece844c6ab7552d30b234addf7f3a8b9a2f8c21aa0404e170cba249177a"
   }
 }
