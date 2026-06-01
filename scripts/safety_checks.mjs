@@ -17,6 +17,7 @@ import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFrict
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
 import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";
+import { validateMemoryProvenance } from "../lib/provenance.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -174,6 +175,8 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.retrieval_audit.rag.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.memory_graph.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.trajectories.attempted, false);
+  assert.equal(paidReceipt.retrieval_audit.fallback_path, "blocked_by_trust_zone");
+  assert.deepEqual(paidReceipt.retrieval_audit.sources, []);
   assert.equal(paidReceipt.blocked_context.includes("private_memory"), true);
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
@@ -186,6 +189,9 @@ function testCapabilityReceipts() {
         memory_graph: { count: 1, files: ["memory/topics/civic-doctrine-kernel.md"] },
         trajectories: { count: 0, ids: [] },
       },
+      retrieval_sources: [
+        { source_type: "trusted_markdown", label: "rag", authority: "supporting_context", fallback_path: "local_markdown_index", count: 1, items: [{ id: "MEMORY.md" }] },
+      ],
     },
   );
   assert.equal(privateReceipt.trust_zone, "private_self");
@@ -198,6 +204,8 @@ function testCapabilityReceipts() {
   assert.equal(privateReceipt.retrieval_audit.blocked_reason, "");
   assert.equal(privateReceipt.retrieval_audit.rag.count, 1);
   assert.equal(privateReceipt.retrieval_audit.memory_graph.count, 1);
+  assert.equal(privateReceipt.retrieval_audit.fallback_path, "trusted_markdown -> memory_graph -> trajectory_ledger");
+  assert.equal(privateReceipt.retrieval_audit.sources[0].source_type, "trusted_markdown");
 }
 
 function testQueueChannelSanitization() {
@@ -818,9 +826,15 @@ function testTrajectoryDistilleryManualPath() {
   const saved = appendTrajectory(parsed, { filePath: testPath, now: new Date("2026-05-26T12:00:00.000Z") });
   assert.equal(saved.trajectory.outcome, "success");
   assert.equal(saved.trajectory.reuse_tags.includes("maintenance"), true);
+  assert.equal(saved.trajectory.memory_class, "reusable_pattern");
+  assert.equal(saved.trajectory.provenance.memory_class, "reusable_pattern");
+  assert.equal(saved.trajectory.provenance.evidence.outcome, "success");
+  assert.equal(validateMemoryProvenance(saved.trajectory.provenance).memory_class, "reusable_pattern");
+  assert.throws(() => validateMemoryProvenance({ memory_class: "user_claim", speaker: "user" }), /evidence_quote/);
 
   const rows = readTrajectories({ filePath: testPath });
   assert.equal(rows.length, 1);
+  assert.equal(rows[0].provenance.memory_class, "reusable_pattern");
 
   const matches = getRelevantTrajectories("maintenance command operator burden", { filePath: testPath, k: 2 });
   assert.equal(matches.length, 1);

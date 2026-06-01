@@ -22,8 +22,6 @@ Rules:
 - W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
 - W-0027 [Tier 2]: Add byte-budget or scope warnings for default prompt-pack files so constitutional compression stays visible.
 - W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
-- W-0030 [Tier 1]: Add provenance-required memory classes: user claim, assistant observation, project decision, reusable pattern.
-- W-0031 [Tier 1]: Add source labels and fallback path details to retrieval receipts.
 - W-0032 [Tier 2]: Add memory metabolism report mode: stale claims, duplicate candidates, surfaced count, confidence/freshness warnings.
 - W-0033 [Tier 2]: Add writer ownership map for memory-like files so independent writers cannot silently overwrite each other.
 - W-0034 [Tier 2]: Extend `maintain` into a fabric-style brief: recent work, pending promotion debt, stale continuity, top friction, smallest next action.
@@ -68,3 +66,5 @@ Rules:
 - W-0022: Added `OPERATING_LOOP.md` as a day-to-day operator workflow for maintain, receipts, friction, trajectories, and session close.
 - W-0029-note: Added `BORROWED_PATTERNS.md` and expanded `MECHANISMS.md` with external pattern translations from Memory OS, Samantha, and Icarus.
 - W-0029: Added shared capture eligibility gate for auto-memory staging, trajectory distillation, and trajectory append; social closers and low-substance candidates are skipped or rejected.
+- W-0030: Added provenance-required memory class helpers and enforced `reusable_pattern` provenance on trajectory rows.
+- W-0031: Added source labels and fallback-path details to retrieval capability receipts.

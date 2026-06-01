@@ -399,6 +399,27 @@ Consequences:
 
 ---
 
+### D-0021: Captured memory-like records need provenance classes and source-labeled receipts
+
+Decision:
+- Add a first provenance layer for memory-like records.
+- Use four durable memory classes as the target schema: `user_claim`, `assistant_observation`, `project_decision`, and `reusable_pattern`.
+- Enforce `reusable_pattern` provenance on trajectory rows first, because trajectories are already operator-reviewed durable records.
+- Add retrieval source labels and fallback-path metadata to capability receipts.
+
+Rationale:
+- Memory class names prevent decisions, observations, user claims, and reusable tactics from collapsing into one authority type.
+- Provenance should begin at the write boundary, before richer retrieval or decay logic exists.
+- Receipts should explain not only what was retrieved, but which subsystem produced it and how retrieval would degrade.
+
+Consequences:
+- Trajectory rows now include `memory_class=reusable_pattern` and a `provenance` object.
+- Invalid reusable-pattern provenance fails before a trajectory is written.
+- Capability receipts include `retrieval_audit.sources` and `retrieval_audit.fallback_path`.
+- Future memory classes can reuse `lib/provenance.mjs` instead of inventing their own schema.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -655,6 +676,26 @@ Edit this block when you want to change what agents read.
       "low_substance"
     ],
     "rule": "Durable capture requires substance beyond routine acknowledgement or schema satisfaction."
+  },
+  "memory_provenance": {
+    "module": "lib/provenance.mjs",
+    "classes": [
+      "user_claim",
+      "assistant_observation",
+      "project_decision",
+      "reusable_pattern"
+    ],
+    "first_enforced_surface": "trajectory_ledger",
+    "trajectory_memory_class": "reusable_pattern"
+  },
+  "retrieval_receipts": {
+    "source_labels": [
+      "trusted_markdown",
+      "memory_graph",
+      "trajectory_ledger"
+    ],
+    "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
+    "blocked_fallback_path": "blocked_by_trust_zone"
   },
   "queue": {
     "max_retries": 3,

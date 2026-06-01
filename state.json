@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T16:32:44.200Z",
+  "updated_at": "2026-06-01T17:12:25.872Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -185,6 +185,26 @@
     ],
     "rule": "Durable capture requires substance beyond routine acknowledgement or schema satisfaction."
   },
+  "memory_provenance": {
+    "module": "lib/provenance.mjs",
+    "classes": [
+      "user_claim",
+      "assistant_observation",
+      "project_decision",
+      "reusable_pattern"
+    ],
+    "first_enforced_surface": "trajectory_ledger",
+    "trajectory_memory_class": "reusable_pattern"
+  },
+  "retrieval_receipts": {
+    "source_labels": [
+      "trusted_markdown",
+      "memory_graph",
+      "trajectory_ledger"
+    ],
+    "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
+    "blocked_fallback_path": "blocked_by_trust_zone"
+  },
   "queue": {
     "max_retries": 3,
     "backoff_seconds": [
@@ -271,6 +291,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "b75a79c3d47a7904f104b174b86d537286e3b5c9ddfc1f3a0e0f528ffc4c6ceb"
+    "design_md_sha256": "91dfb5edde94307266217f9d15fbf76ee2704b646ba25364fa93fb06b0a33add"
   }
 }

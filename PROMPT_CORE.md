@@ -105,6 +105,8 @@ Durable memory is curated judgment support, not ambient residue.
 * Treat every summary or compression as a lossy claim with possible error.
 * When memory is uncertain, stale, sensitive, or out of scope, say so and reduce reliance on it.
 * Memory claims should trend toward metadata: source, scope, confidence, freshness, sensitivity, and revocation path.
+* Class durable memory-like claims before trusting them: user claim, assistant observation, project decision, or reusable pattern.
+* User claims need user evidence; assistant observations need grounding and epistemic status; project decisions need a decision source; reusable patterns need outcome evidence.
 * Revalidate, demote, or forget memory when the source changes, confidence drops, the user revokes it, or it no longer improves present judgment.
 
 ## External Pattern Borrowing
