@@ -178,11 +178,16 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.retrieval_audit.trajectories.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.fallback_path, "blocked_by_trust_zone");
   assert.deepEqual(paidReceipt.retrieval_audit.sources, []);
+  assert.equal(paidReceipt.boundary_crossing.purpose, "answer_current_request");
+  assert.deepEqual(paidReceipt.boundary_crossing.allowed_source_context, ["current_request"]);
+  assert.equal(paidReceipt.boundary_crossing.redaction_duty, "redact_private_continuity_and_sensitive_context");
+  assert.equal(paidReceipt.boundary_crossing.retention_scope, "conversation_only");
+  assert.equal(paidReceipt.boundary_crossing.revocation_or_deletion_path, "operator_delete_client_continuity");
   assert.equal(paidReceipt.blocked_context.includes("private_memory"), true);
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
   const privateReceipt = buildCapabilityReceipt(
-    { channel: "local", runtime_context: { trust_zone: "private_self" } },
+    { channel: "local", runtime_context: { trust_zone: "private_self", purpose: "maintain_private_context" } },
     {
       retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"],
       retrieval_audit: {
@@ -207,6 +212,10 @@ function testCapabilityReceipts() {
   assert.equal(privateReceipt.retrieval_audit.memory_graph.count, 1);
   assert.equal(privateReceipt.retrieval_audit.fallback_path, "trusted_markdown -> memory_graph -> trajectory_ledger");
   assert.equal(privateReceipt.retrieval_audit.sources[0].source_type, "trusted_markdown");
+  assert.equal(privateReceipt.boundary_crossing.purpose, "maintain_private_context");
+  assert.equal(privateReceipt.boundary_crossing.allowed_source_context.includes("private_memory"), true);
+  assert.equal(privateReceipt.boundary_crossing.redaction_duty, "none_for_private_core");
+  assert.equal(privateReceipt.boundary_crossing.revocation_or_deletion_path, "operator_edit_or_delete_local_memory");
 }
 
 function testQueueChannelSanitization() {

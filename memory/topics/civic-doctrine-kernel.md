@@ -1,3 +1,13 @@
+---
+memory_class: project_decision
+source: operator_reviewed
+scope: project
+confidence: high
+freshness: current
+sensitivity: normal
+revocation_path: edit or delete this topic file and remove its MEMORY.md index entry
+---
+
 # Civic Doctrine Kernel
 
 ## Summary

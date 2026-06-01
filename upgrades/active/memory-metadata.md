@@ -1,10 +1,10 @@
 ---
 id: U-memory-metadata
-status: active
+status: integrated
 tier: 1
-owner_surface: MEMORY.md
+owner_surface: scripts/memory_validate.mjs
 last_reviewed: 2026-06-01
-next_action: Extend metadata validation beyond trajectory rows after provenance coverage improves.
+next_action: Extend beyond curated topic files only after daily/conversation memory write contracts settle.
 ---
 
 # Memory Metadata

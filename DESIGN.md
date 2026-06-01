@@ -518,6 +518,44 @@ Consequences:
 
 ---
 
+### D-0027: Capability receipts carry trust-zone crossing fields
+
+Decision:
+- Capability receipts must include a `boundary_crossing` object with purpose, allowed source context, redaction duty, retention scope, revocation/deletion path, default export posture, and blocked context.
+- Paid/public receipts default to current-request-only source context and private-continuity redaction.
+- Private receipts may include private memory as allowed source context, but still expose the retention and deletion surface.
+
+Rationale:
+- Trust-zone doctrine needs a visible runtime artifact, not just prose.
+- Receipts are already the operator-facing surface for what context was used and why.
+- Explicit crossing fields make private-to-public and private-to-commercial leakage easier to inspect.
+
+Consequences:
+- `/agent/execute` responses inherit the boundary-crossing receipt.
+- Safety checks assert crossing fields for paid/public and private contexts.
+- Future external or irreversible actions should reuse the same field vocabulary.
+
+---
+
+### D-0028: Curated memory topics carry lifecycle metadata
+
+Decision:
+- Curated memory topic files should carry frontmatter for `memory_class`, `source`, `scope`, `confidence`, `freshness`, `sensitivity`, and `revocation_path`.
+- `scripts/memory_validate.mjs` validates present topic metadata and warns when linked topic files are missing metadata.
+- Existing retrieval strips frontmatter before using topic content as context.
+
+Rationale:
+- Memory governance needs an epistemic lifecycle before richer self-learning.
+- Topic files are the smallest safe surface for metadata migration because they are curated and already linked from `MEMORY.md`.
+- Warning on missing metadata allows gradual migration; malformed metadata should fail validation.
+
+Consequences:
+- Current topic files have metadata frontmatter.
+- Invalid metadata makes memory validation fail.
+- Future expansion can cover daily logs, conversation summaries, and runtime memory candidates once their write contracts are settled.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -851,6 +889,40 @@ Edit this block when you want to change what agents read.
     ],
     "maintain_check": true,
     "stale_active_review_days": 45
+  },
+  "boundary_crossing_receipts": {
+    "field": "capability_receipt.boundary_crossing",
+    "required_fields": [
+      "purpose",
+      "allowed_source_context",
+      "redaction_duty",
+      "retention_scope",
+      "revocation_or_deletion_path",
+      "default_export",
+      "blocked_context"
+    ],
+    "paid_public_default": {
+      "allowed_source_context": ["current_request"],
+      "redaction_duty": "redact_private_continuity_and_sensitive_context",
+      "default_export": "explicit_intent_required"
+    }
+  },
+  "curated_memory_metadata": {
+    "surfaces": [
+      "memory/topics/*.md"
+    ],
+    "required_frontmatter": [
+      "memory_class",
+      "source",
+      "scope",
+      "confidence",
+      "freshness",
+      "sensitivity",
+      "revocation_path"
+    ],
+    "validator": "scripts/memory_validate.mjs",
+    "missing_metadata": "warn",
+    "invalid_metadata": "fail"
   },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,

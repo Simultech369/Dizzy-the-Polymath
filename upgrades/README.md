@@ -88,18 +88,17 @@ Every note in `active/` must start with status frontmatter:
 
 ## Current Active Notes
 
-- `active`: [memory-metadata.md](active/memory-metadata.md), [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
-- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [civic-sieve.md](active/civic-sieve.md), [friction-ledger.md](active/friction-ledger.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [refinement-discipline.md](active/refinement-discipline.md), [trajectory-distillery.md](active/trajectory-distillery.md)
+- `active`: [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
+- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [civic-sieve.md](active/civic-sieve.md), [friction-ledger.md](active/friction-ledger.md), [memory-metadata.md](active/memory-metadata.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [refinement-discipline.md](active/refinement-discipline.md), [trajectory-distillery.md](active/trajectory-distillery.md)
 - `parked`: [2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md), [anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md), [privilege-split.md](active/privilege-split.md), [telos-substrate.md](active/telos-substrate.md)
 
 ## Near-Term Implementation Sequence
 
-1. Extend memory validation toward claim metadata across curated memory surfaces.
-2. Add explicit trust-zone crossing checklist fields to receipts.
-3. Teach `maintain` to compare `CONSTITUTION.md`, `DESIGN.md`, and `PROMPT_CORE.md` for kernel drift.
-4. Add prompt-pack byte-budget or scope warnings.
-5. Prototype three-pool retrieval as report-only.
-6. Review real `/trajectory distill` outputs before adding a confirmation flow.
+1. Teach `maintain` to compare `CONSTITUTION.md`, `DESIGN.md`, and `PROMPT_CORE.md` for kernel drift.
+2. Add prompt-pack byte-budget or scope warnings.
+3. Prototype three-pool retrieval as report-only.
+4. Define the Trajectory Distillery data contract.
+5. Review real `/trajectory distill` outputs before adding a confirmation flow.
 
 Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 

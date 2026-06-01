@@ -1,3 +1,13 @@
+---
+memory_class: assistant_observation
+source: operator_reviewed
+scope: project
+confidence: medium
+freshness: review_soon
+sensitivity: normal
+revocation_path: edit or delete this topic file and remove its MEMORY.md index entry
+---
+
 # Wikimedia World Model Substrate
 
 ## Summary

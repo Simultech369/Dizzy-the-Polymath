@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 
+import { parseFrontmatter } from "../lib/markdown_frontmatter.mjs";
+
 const ROOT = process.cwd();
 
 const MAX_LINES = Number(process.env.DIZZY_MEMORY_INDEX_MAX_LINES || 200) || 200;
@@ -52,6 +54,7 @@ function validateMemoryIndex() {
   const bytes = byteLen(raw);
 
   const errors = [];
+  const warnings = [];
 
   if (lines.length > MAX_LINES) {
     errors.push(`Too many lines: ${lines.length} (max ${MAX_LINES}).`);
@@ -87,6 +90,11 @@ function validateMemoryIndex() {
   for (const rel of links) {
     const abs = path.resolve(ROOT, rel);
     if (!fs.existsSync(abs)) missing.push(rel);
+    if (fs.existsSync(abs) && rel.replace(/\\/g, "/").startsWith("memory/topics/")) {
+      const metadataIssues = validateTopicMetadata(rel, readText(abs));
+      for (const issue of metadataIssues.errors) errors.push(issue);
+      for (const issue of metadataIssues.warnings) warnings.push(issue);
+    }
     if (missing.length >= 10) break;
   }
   if (missing.length) {
@@ -100,7 +108,39 @@ function validateMemoryIndex() {
   }
 
   console.log(`OK: MEMORY.md (${lines.length} lines, ${bytes} bytes).`);
+  for (const warning of warnings) console.warn(`WARN: ${warning}`);
   return { ok: true };
+}
+
+function validateTopicMetadata(rel, text) {
+  const { data } = parseFrontmatter(text);
+  const errors = [];
+  const warnings = [];
+  if (!data) {
+    warnings.push(`${rel}: missing memory metadata frontmatter`);
+    return { errors, warnings };
+  }
+
+  const required = ["memory_class", "source", "scope", "confidence", "freshness", "sensitivity", "revocation_path"];
+  for (const key of required) {
+    if (!data[key]) errors.push(`${rel}: missing ${key}`);
+  }
+
+  const enums = {
+    memory_class: ["user_claim", "assistant_observation", "project_decision", "reusable_pattern"],
+    source: ["operator_reviewed", "assistant_proposed", "runtime_generated", "imported_reference"],
+    scope: ["private", "project", "client", "public", "operational"],
+    confidence: ["low", "medium", "high"],
+    sensitivity: ["normal", "sensitive", "do_not_export"],
+    freshness: ["current", "review_soon", "stale"],
+  };
+  for (const [key, allowed] of Object.entries(enums)) {
+    if (data[key] && !allowed.includes(String(data[key]).trim().toLowerCase())) {
+      errors.push(`${rel}: invalid ${key} '${data[key]}'`);
+    }
+  }
+
+  return { errors, warnings };
 }
 
 const res = validateMemoryIndex();

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T22:09:28.510Z",
+  "updated_at": "2026-06-01T22:18:10.301Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -262,6 +262,42 @@
     "maintain_check": true,
     "stale_active_review_days": 45
   },
+  "boundary_crossing_receipts": {
+    "field": "capability_receipt.boundary_crossing",
+    "required_fields": [
+      "purpose",
+      "allowed_source_context",
+      "redaction_duty",
+      "retention_scope",
+      "revocation_or_deletion_path",
+      "default_export",
+      "blocked_context"
+    ],
+    "paid_public_default": {
+      "allowed_source_context": [
+        "current_request"
+      ],
+      "redaction_duty": "redact_private_continuity_and_sensitive_context",
+      "default_export": "explicit_intent_required"
+    }
+  },
+  "curated_memory_metadata": {
+    "surfaces": [
+      "memory/topics/*.md"
+    ],
+    "required_frontmatter": [
+      "memory_class",
+      "source",
+      "scope",
+      "confidence",
+      "freshness",
+      "sensitivity",
+      "revocation_path"
+    ],
+    "validator": "scripts/memory_validate.mjs",
+    "missing_metadata": "warn",
+    "invalid_metadata": "fail"
+  },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,
     "labels": [
@@ -371,6 +407,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "376b5d6cdbc6894f501dac4cbd4278dfb11d7247a5c0fa51205301c66627da9a"
+    "design_md_sha256": "05354380da04f526896bcaead70a867f53297bb1165d119e4759084d7bc05c91"
   }
 }

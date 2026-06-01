@@ -16,8 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0024 [Tier 1]: Extend memory validation toward claim metadata: source, scope, confidence, freshness, sensitivity, and revocation path.
-- W-0025 [Tier 1]: Add an explicit trust-zone crossing checklist or receipt field for purpose, allowed context, redaction, retention, and deletion/revocation path.
 - W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
 - W-0027 [Tier 2]: Add byte-budget or scope warnings for default prompt-pack files so constitutional compression stays visible.
 - W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
@@ -65,6 +63,8 @@ Rules:
 - W-0030: Added provenance-required memory class helpers and enforced `reusable_pattern` provenance on trajectory rows.
 - W-0031: Added source labels and fallback-path details to retrieval capability receipts.
 - W-0023: Added status frontmatter for every `upgrades/active/` note and taught `maintain` to summarize active, integrated, parked, and archived upgrade notes while flagging missing metadata or stale active reviews.
+- W-0024: Extended memory validation toward lifecycle metadata by adding topic frontmatter for memory class, source, scope, confidence, freshness, sensitivity, and revocation path; malformed present metadata now fails validation.
+- W-0025: Added `capability_receipt.boundary_crossing` with purpose, allowed source context, redaction duty, retention scope, deletion/revocation path, default export posture, and blocked context.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.
