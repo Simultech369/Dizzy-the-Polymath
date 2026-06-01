@@ -73,30 +73,33 @@ That separation keeps:
 - `historical provenance`: retained context, not an active recommendation.
 - `deprecated`: kept to prevent accidental revival.
 
+## Active Lane Discipline
+
+Every note in `active/` must start with status frontmatter:
+
+- `id`
+- `status`: `active`, `integrated`, `parked`, or `archived`
+- `tier`: `1`, `2`, or `3`
+- `owner_surface`: the live file, module, or future surface responsible for the idea
+- `last_reviewed`: ISO date
+- `next_action`: concrete next move or reason to retain as provenance
+
+`scripts/maintain.mjs` summarizes these counts and flags missing metadata, stale active reviews, and non-actionable next actions.
+
 ## Current Active Notes
 
-- [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md) - prioritized upgrade intake and sequencing after review.
-- [active/W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md) - implemented first pass; deletion/expiry mechanics remain before richer client continuity.
-- [active/tension-map.md](active/tension-map.md) - live contradiction map for experiments and failure modes.
-- [active/trajectory-distillery.md](active/trajectory-distillery.md) - manual sparse known-good trajectory path and proposal-only distillation implemented; confirmation flow remains future work.
-- [active/friction-ledger.md](active/friction-ledger.md) - design note for converting repeated operator stuck-points into product signal; not implemented yet.
-- [active/memory-metadata.md](active/memory-metadata.md) - narrow metadata proposal for `memory/topics/`, blocked on frontmatter-safe parsing.
-- [active/per-zone-capability-lists.md](active/per-zone-capability-lists.md) - code-enforced capability surfaces by trust zone.
-- [active/refinement-discipline.md](active/refinement-discipline.md) - compact, mostly invisible success-criteria discipline.
-- [active/telos-substrate.md](active/telos-substrate.md) - candidate Telos/Substrate compression question.
-- [active/civic-sieve.md](active/civic-sieve.md) - boundary/privacy guard before durable writes and risky paid/public outputs.
-- [active/privilege-split.md](active/privilege-split.md) - future quarantined-input and privileged-core split.
-- [active/anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md) - candidate review lens for recurring local failure pressures.
-- [active/selection-pressure.md](active/selection-pressure.md) - subtraction questions for keeping Dizzy and PBMRebate/PFC from metabolizing complexity instead of reducing it.
+- `active`: [memory-metadata.md](active/memory-metadata.md), [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
+- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [civic-sieve.md](active/civic-sieve.md), [friction-ledger.md](active/friction-ledger.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [refinement-discipline.md](active/refinement-discipline.md), [trajectory-distillery.md](active/trajectory-distillery.md)
+- `parked`: [2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md), [anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md), [privilege-split.md](active/privilege-split.md), [telos-substrate.md](active/telos-substrate.md)
 
 ## Near-Term Implementation Sequence
 
-1. Review real `/trajectory distill` outputs and decide whether to add a two-step confirmation flow or keep copy/paste saving.
-2. Review `runtime/reports/connections.md` after real use and decide whether connection hypotheses deserve a periodic operator review slot.
-3. Add model/provider routing with trust-zone, risk, cost, privacy, and provider-health awareness.
-4. Add deterministic experiential compression for retrieved snippets and tool outputs.
-5. Add frontmatter-safe parsing before memory metadata if metadata work resumes.
-6. Improve deletion/expiry mechanics in line with W-0004 retention rules before richer client continuity.
+1. Extend memory validation toward claim metadata across curated memory surfaces.
+2. Add explicit trust-zone crossing checklist fields to receipts.
+3. Teach `maintain` to compare `CONSTITUTION.md`, `DESIGN.md`, and `PROMPT_CORE.md` for kernel drift.
+4. Add prompt-pack byte-budget or scope warnings.
+5. Prototype three-pool retrieval as report-only.
+6. Review real `/trajectory distill` outputs before adding a confirmation flow.
 
 Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 

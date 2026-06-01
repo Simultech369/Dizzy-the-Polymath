@@ -1,3 +1,12 @@
+---
+id: U-friction-ledger
+status: integrated
+tier: 2
+owner_surface: lib/friction_ledger.mjs
+last_reviewed: 2026-06-01
+next_action: Review unresolved ledger entries through maintain before expanding the feature.
+---
+
 # Friction Ledger
 
 Track repeated operator stuck-points so annoyance becomes design signal instead of background drag.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T21:51:35.284Z",
+  "updated_at": "2026-06-01T22:09:28.510Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -243,6 +243,25 @@
     ],
     "mutation_allowed": false
   },
+  "upgrade_status": {
+    "directory": "upgrades/active",
+    "required_frontmatter": [
+      "id",
+      "status",
+      "tier",
+      "owner_surface",
+      "last_reviewed",
+      "next_action"
+    ],
+    "allowed_statuses": [
+      "active",
+      "integrated",
+      "parked",
+      "archived"
+    ],
+    "maintain_check": true,
+    "stale_active_review_days": 45
+  },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,
     "labels": [
@@ -352,6 +371,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "8354bf3e14bfd30a825f5d47e062d454fa3a85e560ae2e83b8fecdd18ef8cf1e"
+    "design_md_sha256": "376b5d6cdbc6894f501dac4cbd4278dfb11d7247a5c0fa51205301c66627da9a"
   }
 }

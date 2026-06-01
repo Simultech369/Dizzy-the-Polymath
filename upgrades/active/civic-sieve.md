@@ -1,3 +1,12 @@
+---
+id: U-civic-sieve
+status: integrated
+tier: 1
+owner_surface: MECHANISM_SIEVE.md
+last_reviewed: 2026-06-01
+next_action: Keep as provenance; active mechanism lives in MECHANISM_SIEVE.md and PROMPT_CORE.md.
+---
+
 # Civic Sieve
 
 Status: Accepted as a minimal guard concept; implementation should stay narrow.
@@ -36,4 +45,3 @@ Before public/paid output:
 - memory write paths in `lib/dispatch.mjs`
 - `MARKETPLACE_PROTOCOL.md`
 - future utility-model memory review
-

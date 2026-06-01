@@ -93,6 +93,84 @@ function listStaleUpgradeSignals() {
   return findings;
 }
 
+function parseFrontmatter(text) {
+  if (!text.startsWith("---\n") && !text.startsWith("---\r\n")) return null;
+  const end = text.indexOf("\n---", 4);
+  if (end === -1) return null;
+
+  const block = text.slice(4, end).trim();
+  const data = {};
+  for (const line of block.split(/\r?\n/)) {
+    const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    data[key] = rawValue.replace(/^["']|["']$/g, "").trim();
+  }
+  return data;
+}
+
+function daysSince(dateText) {
+  const date = new Date(`${dateText}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return Infinity;
+  const now = new Date();
+  return Math.floor((now.getTime() - date.getTime()) / 86400000);
+}
+
+function upgradeStatus() {
+  const activeDir = path.resolve(ROOT, "upgrades", "active");
+  if (!fs.existsSync(activeDir)) {
+    return { status: "green", message: "No upgrades/active directory.", findings: [] };
+  }
+
+  const required = ["id", "status", "tier", "owner_surface", "last_reviewed", "next_action"];
+  const allowedStatuses = new Set(["active", "integrated", "parked", "archived"]);
+  const counts = { active: 0, integrated: 0, parked: 0, archived: 0 };
+  const findings = [];
+
+  const files = fs
+    .readdirSync(activeDir)
+    .filter((name) => name.endsWith(".md"))
+    .sort();
+
+  for (const name of files) {
+    const rel = path.join("upgrades", "active", name).replaceAll("\\", "/");
+    const text = fs.readFileSync(path.join(activeDir, name), "utf8");
+    const frontmatter = parseFrontmatter(text);
+    if (!frontmatter) {
+      findings.push(`${rel}: missing status frontmatter`);
+      continue;
+    }
+
+    for (const key of required) {
+      if (!frontmatter[key]) findings.push(`${rel}: missing ${key}`);
+    }
+
+    const status = frontmatter.status;
+    if (allowedStatuses.has(status)) {
+      counts[status] += 1;
+    } else if (status) {
+      findings.push(`${rel}: invalid status '${status}'`);
+    }
+
+    if (frontmatter.status === "active" && daysSince(frontmatter.last_reviewed) > 45) {
+      findings.push(`${rel}: active note has not been reviewed in 45+ days`);
+    }
+    if (frontmatter.next_action && /^(none|n\/a|tbd)$/i.test(frontmatter.next_action)) {
+      findings.push(`${rel}: next_action is not actionable`);
+    }
+  }
+
+  const countText = Object.entries(counts)
+    .map(([status, count]) => `${status}=${count}`)
+    .join(", ");
+
+  return {
+    status: findings.length ? "yellow" : "green",
+    message: `${files.length} active-lane note(s): ${countText}.`,
+    findings,
+  };
+}
+
 function rootFileRoleStatus() {
   const roleMapPath = path.resolve(ROOT, "FILE_ROLES.md");
   if (!fs.existsSync(roleMapPath)) {
@@ -222,6 +300,7 @@ function color(status) {
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
+  const upgrades = upgradeStatus();
   const rootRoles = rootFileRoleStatus();
   const ownership = memoryOwnershipStatus();
   const trajectories = trajectoryStatus();
@@ -235,6 +314,7 @@ function main() {
   if (
     softFailures.length ||
     staleFindings.length ||
+    upgrades.status === "yellow" ||
     rootRoles.status === "yellow" ||
     ownership.status === "yellow" ||
     trajectories.status === "yellow" ||
@@ -250,7 +330,12 @@ function main() {
   console.log(`  latest_commit: ${latestCommitSummary()}`);
   console.log(`  open_work_items: ${queue.open} (${queue.tier1} Tier 1)`);
   console.log(`  next_queue_item: ${queue.next || "none"}`);
-  console.log(`  promotion_debt: ${metabolism.status === "yellow" ? "review memory metabolism findings" : "none visible"}`);
+  const promotionDebt = metabolism.status === "yellow"
+    ? "review memory metabolism findings"
+    : upgrades.status === "yellow"
+      ? "review upgrade status findings"
+      : "none visible";
+  console.log(`  promotion_debt: ${promotionDebt}`);
   console.log("");
 
   for (const result of results) {
@@ -267,6 +352,11 @@ function main() {
     console.log("[yellow] Stale status signals");
     for (const finding of staleFindings) console.log(`  - ${finding}`);
   }
+
+  console.log("");
+  console.log(`${color(upgrades.status)} Upgrade status`);
+  console.log(`  ${upgrades.message}`);
+  for (const finding of upgrades.findings.slice(0, 8)) console.log(`  - ${finding}`);
 
   console.log("");
   console.log(`${color(rootRoles.status)} Root file roles`);
@@ -299,6 +389,7 @@ function main() {
     for (const failure of hardFailures) console.log(`- Fix ${failure.id}: ${failure.label}.`);
     for (const failure of softFailures) console.log(`- Review ${failure.id}: ${failure.label}.`);
     for (const finding of staleFindings) console.log(`- Clean stale status: ${finding}`);
+    for (const finding of upgrades.findings.slice(0, 5)) console.log(`- Clean upgrade status: ${finding}`);
     if (rootRoles.status === "yellow") console.log("- Classify new root files in FILE_ROLES.md or move/archive them.");
     if (ownership.status === "yellow") console.log("- Update MEMORY_OWNERSHIP.md before adding new durable memory writers.");
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");

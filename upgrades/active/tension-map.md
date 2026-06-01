@@ -1,3 +1,12 @@
+---
+id: U-tension-map
+status: active
+tier: 2
+owner_surface: DESIGN.md
+last_reviewed: 2026-06-01
+next_action: Use to decide which contradictions deserve runtime implementation or explicit deferral.
+---
+
 # Tension Map
 
 Living document of core contradictions in Dizzy's design. Each tension should produce a small experiment, a failure mode, and a review path. This is a hypothesis map, not runtime doctrine.

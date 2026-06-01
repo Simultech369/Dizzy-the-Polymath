@@ -1,3 +1,12 @@
+---
+id: U-2026-05-13-priorities
+status: parked
+tier: 2
+owner_surface: NEXT.md
+last_reviewed: 2026-06-01
+next_action: Use as provenance; current queue lives in NEXT.md.
+---
+
 # Dizzy Upgrade Priorities
 
 Date: 2026-05-13
@@ -147,4 +156,3 @@ OpenClaude should review which of these should become:
 - implementation work items
 - upgrade notes only
 - deferred/inspirational material
-

@@ -1,3 +1,12 @@
+---
+id: U-per-zone-capability-lists
+status: integrated
+tier: 1
+owner_surface: lib/dispatch.mjs
+last_reviewed: 2026-06-01
+next_action: Extend only when new trust-zone capabilities appear.
+---
+
 # Per-Zone Capability Lists
 
 Status: Accepted - implement soon.
@@ -44,4 +53,3 @@ Even if the model is compromised, actions should remain bounded by code and expl
 - `lib/dispatch.mjs`
 - `scripts/safety_checks.mjs`
 - future capability selector if the tool surface expands
-

@@ -16,7 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0023: Add status frontmatter or pruning discipline for `upgrades/active/`.
 - W-0024 [Tier 1]: Extend memory validation toward claim metadata: source, scope, confidence, freshness, sensitivity, and revocation path.
 - W-0025 [Tier 1]: Add an explicit trust-zone crossing checklist or receipt field for purpose, allowed context, redaction, retention, and deletion/revocation path.
 - W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
@@ -42,7 +41,7 @@ Rules:
 - O-0001: Inbound Telegram relay (poll getUpdates -> forward to `/dispatch/incoming` -> send reply), implemented as `scripts/telegram_relay.mjs`.
 - W-0003: Added `RUNBOOK.md` for the recommended multi-process run setup.
 - N-0009: Runtime-governing doctrine must live in the default prompt pack; supplementary docs are explanatory unless compressed into the live core (D-0007).
-- W-0004: Defined and implemented the first paid/client continuity lifecycle for `paid_public` with `continuity_mode=client`: conversation-only retention, explicit expiry policy, no durable memory by default, no private repo retrieval by default, visible `/agent/execute` lifecycle fields, and safety checks. Deletion/expiry mechanics remain future work before richer client continuity.
+- W-0004: Defined and implemented the first paid/client continuity lifecycle for `paid_public` with `continuity_mode=client`: conversation-only retention, explicit expiry policy, no durable memory by default, no private repo retrieval by default, visible `/agent/execute` lifecycle fields, safety checks, local operator deletion, and inactivity expiry pruning.
 - W-0005: Added `scripts/maintain.mjs` as the single operator maintenance command.
 - W-0006: Added prompt-pack / `DESIGN.md` drift validation with `scripts/prompt_drift_check.mjs`.
 - W-0007: Added Product Kernel section to `DESIGN.md` and synced `state.json`.
@@ -65,6 +64,7 @@ Rules:
 - W-0029: Added shared capture eligibility gate for auto-memory staging, trajectory distillation, and trajectory append; social closers and low-substance candidates are skipped or rejected.
 - W-0030: Added provenance-required memory class helpers and enforced `reusable_pattern` provenance on trajectory rows.
 - W-0031: Added source labels and fallback-path details to retrieval capability receipts.
+- W-0023: Added status frontmatter for every `upgrades/active/` note and taught `maintain` to summarize active, integrated, parked, and archived upgrade notes while flagging missing metadata or stale active reviews.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.

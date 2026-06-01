@@ -1,3 +1,12 @@
+---
+id: W-0004-continuity-lifecycle
+status: integrated
+tier: 1
+owner_surface: lib/client_continuity.mjs
+last_reviewed: 2026-06-01
+next_action: Full authenticated client account lifecycle remains future; local deletion and inactivity expiry are implemented.
+---
+
 # W-0004: Paid/Client Continuity Lifecycle
 
 Status: Implemented first pass; retained as rationale/provenance.
@@ -11,7 +20,7 @@ Implementation status:
 - `/agent/execute` derives conversation keys from `client_id + service_id` rather than trusting caller-provided keys.
 - `/agent/execute` returns continuity, retention, retrieval, durable-memory, expiry, and conversation-key fields.
 - Safety checks verify that `paid_public` client continuity still blocks durable memory and repo/private retrieval by default.
-- Deletion/expiry mechanics are not implemented yet and remain required before richer client continuity is offered.
+- Local operator deletion and inactivity expiry pruning are implemented for scoped paid/client conversation history.
 
 ## Rules
 
@@ -21,8 +30,8 @@ Implementation status:
   - scoped conversation history only, likely `runtime/conversations/<client_id>-<service_id>.jsonl` or the current `execute_client_*` equivalent
   - no automatic durable memory writes
   - no private repo, private memory, or doctrine retrieval unless explicitly enabled per session by the operator
-- Expiry: default 7 days of inactivity, configurable per client when a real client lifecycle exists.
-- Deletion: operator must have a clear delete or forget path before richer client continuity is offered.
+- Expiry: default 7 days of inactivity, with local pruning for scoped paid/client history.
+- Deletion: local operator deletion exists for scoped paid/client history.
 - Client self-deletion across sessions is not assumed until authentication and client identity are real.
 
 ## Response Surface
@@ -52,6 +61,6 @@ Implementation status:
 
 ## Remaining Work
 
-1. Add delete/expiry mechanics for scoped paid/client conversation history.
-2. Add operator-facing cleanup command once real client continuity is used.
-3. Revisit client self-deletion only after authentication and client identity become real.
+1. Add authenticated client-facing deletion only if real client identity becomes part of the product.
+2. Add richer operator cleanup UX if scoped client continuity sees real use.
+3. Revisit retention windows after real paid/public workload creates evidence.

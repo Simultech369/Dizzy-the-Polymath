@@ -1,3 +1,12 @@
+---
+id: U-memory-metadata
+status: active
+tier: 1
+owner_surface: MEMORY.md
+last_reviewed: 2026-06-01
+next_action: Extend metadata validation beyond trajectory rows after provenance coverage improves.
+---
+
 # Memory Metadata
 
 Status: Accepted - implement soon, narrowly.
@@ -42,4 +51,3 @@ Support:
 - Update future drift or memory-review utilities to respect these fields.
 - Do not use metadata to auto-delete high-stability files.
 - Do not let metadata become a second hidden source of truth.
-

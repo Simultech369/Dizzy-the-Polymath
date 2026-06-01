@@ -1,3 +1,12 @@
+---
+id: U-telos-substrate
+status: parked
+tier: 3
+owner_surface: future-compression
+last_reviewed: 2026-06-01
+next_action: Revisit only after trajectory quality and compression contracts are stronger.
+---
+
 # Telos And Substrate
 
 Status: Strong candidate - needs OpenClaude review before constitutional adoption.
@@ -39,4 +48,3 @@ The agent must maintain a dissent channel: the ability to flag when a requested 
 - Should this live in `DESIGN.md`, `PROMPT_CORE.md`, or a new compact root file?
 - How can this avoid becoming prestige-coded doctrine sprawl?
 - Which parts are already covered by `IDENTITY.md`, `PROMPT_CORE.md`, and `PROTOCOL.md`?
-

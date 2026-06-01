@@ -1,3 +1,12 @@
+---
+id: U-refinement-discipline
+status: integrated
+tier: 2
+owner_surface: OPERATING_LOOP.md
+last_reviewed: 2026-06-01
+next_action: Keep success criteria operational; avoid promoting style micro-rules into constitution.
+---
+
 # Refinement Discipline And Success Criteria
 
 Status: Accepted - implement soon.
@@ -34,4 +43,3 @@ The internal or visible block should contain:
 Favor momentum and sparse prose over heavy prompt engineering.
 
 This is a discipline, not a new bureaucracy.
-

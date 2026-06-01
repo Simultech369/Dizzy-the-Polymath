@@ -1,3 +1,12 @@
+---
+id: U-anti-local-failure-pressure
+status: parked
+tier: 3
+owner_surface: upgrades/active
+last_reviewed: 2026-06-01
+next_action: Revisit only when recurring local failure pressure needs a named review lens.
+---
+
 # Anti-Goblin Local Failure Pressure
 
 **Status**: Candidate review lens, not live doctrine.

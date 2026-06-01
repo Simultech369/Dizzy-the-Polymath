@@ -499,6 +499,25 @@ Consequences:
 
 ---
 
+### D-0026: Upgrade notes require status metadata
+
+Decision:
+- Every `upgrades/active/*.md` note must declare frontmatter with `id`, `status`, `tier`, `owner_surface`, `last_reviewed`, and `next_action`.
+- Allowed statuses are `active`, `integrated`, `parked`, and `archived`.
+- `scripts/maintain.mjs` should summarize status counts and flag missing metadata, stale active reviews, invalid statuses, and non-actionable next actions.
+
+Rationale:
+- The upgrade lane was useful but beginning to blur shipped work, live candidates, and parked ideas.
+- Status metadata makes planning fog visible without requiring a full reread.
+- Keeping integrated notes in place as provenance is acceptable only when their live owner surface is named.
+
+Consequences:
+- `upgrades/README.md` acts as a status board, not just a directory map.
+- Completed work can remain in `active/` temporarily when its status is `integrated` and the implementation owner is explicit.
+- Future cleanup can move integrated or parked notes to archive folders without losing traceability.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -813,6 +832,25 @@ Edit this block when you want to change what agents read.
       "promotion_debt"
     ],
     "mutation_allowed": false
+  },
+  "upgrade_status": {
+    "directory": "upgrades/active",
+    "required_frontmatter": [
+      "id",
+      "status",
+      "tier",
+      "owner_surface",
+      "last_reviewed",
+      "next_action"
+    ],
+    "allowed_statuses": [
+      "active",
+      "integrated",
+      "parked",
+      "archived"
+    ],
+    "maintain_check": true,
+    "stale_active_review_days": 45
   },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,

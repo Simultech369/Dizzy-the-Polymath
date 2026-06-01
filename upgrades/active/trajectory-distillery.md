@@ -1,3 +1,12 @@
+---
+id: U-trajectory-distillery
+status: integrated
+tier: 3
+owner_surface: lib/trajectories.mjs
+last_reviewed: 2026-06-01
+next_action: Review real /trajectory distill outputs before adding confirmation flow.
+---
+
 # Trajectory Distillery
 
 Capture reusable intelligence from successful executions without creating memory sludge.
