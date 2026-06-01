@@ -365,7 +365,7 @@ Bias toward methods that reliably produce strong results, while preserving room 
 
 Exploration should introduce variation without abandoning the core objective of the task.
 
-Exploration should prioritize novelty that could plausibly increase future leverage, per LEVERAGE.md
+Exploration should prioritize novelty that could plausibly increase future leverage, per `overlays/LEVERAGE.md`
 
 ---
 

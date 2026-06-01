@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 
 import { summarizeFriction } from "../lib/friction_ledger.mjs";
+import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 
 const ROOT = process.cwd();
 
@@ -124,6 +125,31 @@ function rootFileRoleStatus() {
   };
 }
 
+function memoryOwnershipStatus() {
+  const filePath = path.resolve(ROOT, "MEMORY_OWNERSHIP.md");
+  if (!fs.existsSync(filePath)) {
+    return { status: "yellow", message: "MEMORY_OWNERSHIP.md is missing." };
+  }
+  const text = fs.readFileSync(filePath, "utf8");
+  const required = [
+    "MEMORY.md",
+    "memory/topics/*.md",
+    "memory/YYYY-MM-DD.md",
+    "memory/conversations/*.md",
+    "runtime/trajectories/known_good.jsonl",
+    "runtime/friction/ledger.jsonl",
+    "runtime/auto_memory_candidates/*.json",
+    "runtime/auto_memory/*.json",
+  ];
+  const missing = required.filter((surface) => !text.includes(surface));
+  return {
+    status: missing.length ? "yellow" : "green",
+    message: missing.length
+      ? `Missing ownership entries: ${missing.join(", ")}.`
+      : "Memory-like durable surfaces have declared owners.",
+  };
+}
+
 function trajectoryStatus() {
   const filePath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
   if (!fs.existsSync(filePath)) {
@@ -168,6 +194,25 @@ function frictionStatus() {
   };
 }
 
+function latestCommitSummary() {
+  const result = spawnSync("git", ["log", "-1", "--oneline"], {
+    cwd: ROOT,
+    encoding: "utf8",
+    shell: false,
+  });
+  return String(result.stdout || "").trim() || "unknown";
+}
+
+function workQueueStatus() {
+  const nextPath = path.resolve(ROOT, "NEXT.md");
+  if (!fs.existsSync(nextPath)) return { open: 0, tier1: 0, next: "" };
+  const text = fs.readFileSync(nextPath, "utf8");
+  const workSection = text.split("## Work Queue")[1]?.split("## Completed")[0] || "";
+  const work = workSection.split(/\r?\n/).filter((line) => /^- W-\d+/.test(line));
+  const tier1 = work.filter((line) => /\[Tier 1\]/.test(line)).length;
+  return { open: work.length, tier1, next: work[0] || "" };
+}
+
 function color(status) {
   if (status === "green") return "[green]";
   if (status === "yellow") return "[yellow]";
@@ -178,8 +223,11 @@ function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
   const rootRoles = rootFileRoleStatus();
+  const ownership = memoryOwnershipStatus();
   const trajectories = trajectoryStatus();
+  const metabolism = summarizeMemoryMetabolism();
   const friction = frictionStatus();
+  const queue = workQueueStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
 
@@ -188,12 +236,21 @@ function main() {
     softFailures.length ||
     staleFindings.length ||
     rootRoles.status === "yellow" ||
+    ownership.status === "yellow" ||
     trajectories.status === "yellow" ||
+    metabolism.status === "yellow" ||
     friction.status === "yellow"
   ) overall = "yellow";
   if (hardFailures.length) overall = "red";
 
   console.log(`${color(overall)} Dizzy maintenance status`);
+  console.log("");
+
+  console.log("Operator brief:");
+  console.log(`  latest_commit: ${latestCommitSummary()}`);
+  console.log(`  open_work_items: ${queue.open} (${queue.tier1} Tier 1)`);
+  console.log(`  next_queue_item: ${queue.next || "none"}`);
+  console.log(`  promotion_debt: ${metabolism.status === "yellow" ? "review memory metabolism findings" : "none visible"}`);
   console.log("");
 
   for (const result of results) {
@@ -216,8 +273,19 @@ function main() {
   console.log(`  ${rootRoles.message}`);
 
   console.log("");
+  console.log(`${color(ownership.status)} Memory ownership`);
+  console.log(`  ${ownership.message}`);
+
+  console.log("");
   console.log(`${color(trajectories.status)} Trajectory ledger`);
   console.log(`  ${trajectories.message}`);
+
+  console.log("");
+  console.log(`${color(metabolism.status)} Memory metabolism`);
+  console.log(`  ${metabolism.message}`);
+  for (const finding of metabolism.findings.slice(0, 5)) {
+    console.log(`  - ${finding.kind}: ${finding.message}`);
+  }
 
   console.log("");
   console.log(`${color(friction.status)} Friction ledger`);
@@ -232,7 +300,9 @@ function main() {
     for (const failure of softFailures) console.log(`- Review ${failure.id}: ${failure.label}.`);
     for (const finding of staleFindings) console.log(`- Clean stale status: ${finding}`);
     if (rootRoles.status === "yellow") console.log("- Classify new root files in FILE_ROLES.md or move/archive them.");
+    if (ownership.status === "yellow") console.log("- Update MEMORY_OWNERSHIP.md before adding new durable memory writers.");
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
+    if (metabolism.status === "yellow") console.log("- Review memory metabolism findings before adding richer memory automation.");
     if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
   }
 

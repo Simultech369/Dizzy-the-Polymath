@@ -18,6 +18,7 @@ import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, par
 import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
 import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";
 import { validateMemoryProvenance } from "../lib/provenance.mjs";
+import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -841,7 +842,8 @@ function testTrajectoryDistilleryManualPath() {
   assert.equal(matches[0].id, saved.trajectory.id);
 
   const block = formatTrajectoryContext("maintenance command operator burden", { filePath: testPath, k: 2 });
-  assert.match(block, /KNOWN-GOOD TRAJECTORIES/);
+  assert.match(block, /RETRIEVAL SOURCE: trajectory_ledger/);
+  assert.match(block, /memory_class=reusable_pattern/);
   assert.match(block, /boring maintenance floor/i);
 
   assert.throws(() => appendTrajectory({
@@ -851,6 +853,59 @@ function testTrajectoryDistilleryManualPath() {
   }, { filePath: testPath }), /capture ineligible/);
 
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
+}
+
+function testMemoryMetabolismReportMode() {
+  const testPath = "runtime/test-memory-metabolism.jsonl";
+  const abs = path.resolve(process.cwd(), testPath);
+  fs.rmSync(abs, { force: true });
+
+  const valid = appendTrajectory({
+    goal: "Keep memory report mode non-mutating",
+    success_criteria: "Report flags issues without deleting rows",
+    actions_taken: ["added metabolism report"],
+    outcome: "success",
+    reusable_pattern: "Report memory decay candidates before mutating durable records",
+    reuse_tags: ["memory", "maintenance"],
+    strength: 8,
+  }, { filePath: testPath, now: new Date("2026-06-01T12:00:00.000Z") });
+
+  fs.appendFileSync(abs, `${JSON.stringify({
+    id: "legacy_missing_provenance",
+    goal: "Old row",
+    reusable_pattern: "Report memory decay candidates before mutating durable records",
+    reuse_tags: ["memory"],
+    strength: 9,
+  })}\n`, "utf8");
+  fs.appendFileSync(abs, `${JSON.stringify({
+    id: "low_confidence_high_strength",
+    memory_class: "reusable_pattern",
+    reusable_pattern: "Keep low confidence high strength visible",
+    reuse_tags: ["memory"],
+    strength: 9,
+    provenance: {
+      memory_class: "reusable_pattern",
+      source: "operator_reviewed",
+      scope: "private",
+      confidence: "low",
+      sensitivity: "normal",
+      evidence: { actions_taken: ["test row"] },
+      reusable_pattern: "Keep low confidence high strength visible",
+      revocation_path: "delete row",
+      lossy_risk: "medium",
+    },
+  })}\n`, "utf8");
+
+  const report = summarizeMemoryMetabolism({ filePath: testPath });
+  assert.equal(report.status, "yellow");
+  assert.equal(report.total, 3);
+  assert.equal(report.findings.some((x) => x.kind === "invalid_provenance"), true);
+  assert.equal(report.findings.some((x) => x.kind === "legacy_missing_provenance"), true);
+  assert.equal(report.findings.some((x) => x.kind === "duplicate_pattern_candidate"), true);
+  assert.equal(report.findings.some((x) => x.kind === "high_strength_low_confidence"), true);
+  assert.equal(valid.trajectory.memory_class, "reusable_pattern");
+
+  fs.rmSync(abs, { force: true });
 }
 
 function testFrictionLedgerManualPath() {
@@ -899,6 +954,7 @@ testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
 testTrajectoryDistilleryManualPath();
+testMemoryMetabolismReportMode();
 testFrictionLedgerManualPath();
 testClientContinuityExpiryPrune();
 await testCommandAvailabilityWithoutChatBackend();

@@ -62,6 +62,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `CHOKEPOINTS.md`
 - `MECHANISM_SIEVE.md`
 - `MECHANISMS.md`
+- `MEMORY_OWNERSHIP.md`
 - `ECONOMICS.md`
 - `DRIFT_AUDIT.md`
 
@@ -86,13 +87,18 @@ Memory is curated context, not doctrine. Topic files live under `memory/`.
 
 ## Flavor / Optional Voice Surfaces
 
-- `PENGUIN.md`
-- `TROLL.md`
-- `COPPER-INU.md`
-- `COSMIC-CORRESPONDENT.md`
-- `LEVERAGE.md`
+- `flavor/PENGUIN.md`
+- `flavor/TROLL.md`
+- `flavor/COPPER-INU.md`
+- `flavor/COSMIC-CORRESPONDENT.md`
 
 These files may carry style, experiments, or optional public-surface material. They do not govern runtime unless compressed into the default prompt pack, tests, or code.
+
+## Optional Strategy Overlays
+
+- `overlays/LEVERAGE.md`
+
+These files may carry optional economic, strategy, or campaign-specific orientation. They do not govern runtime unless explicitly included in a prompt pack or promoted through `DESIGN.md`, tests, or code.
 
 ## Local Artifacts / Cleanup Candidates
 

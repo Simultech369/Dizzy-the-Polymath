@@ -97,9 +97,9 @@ Best for:
 
 Add when needed:
 - `PROTOCOL.md`
-- `LEVERAGE.md`
-- `PENGUIN.md`
-- `COPPER-INU.md`
+- `overlays/LEVERAGE.md`
+- `flavor/PENGUIN.md`
+- `flavor/COPPER-INU.md`
 
 ### `ops`
 

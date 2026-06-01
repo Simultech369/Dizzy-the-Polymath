@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T17:12:25.872Z",
+  "updated_at": "2026-06-01T21:51:35.284Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -205,6 +205,67 @@
     "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
     "blocked_fallback_path": "blocked_by_trust_zone"
   },
+  "memory_metabolism": {
+    "module": "lib/memory_metabolism.mjs",
+    "mode": "report_only",
+    "first_surface": "trajectory_ledger",
+    "findings": [
+      "malformed_trajectory",
+      "legacy_missing_provenance",
+      "missing_memory_class",
+      "invalid_provenance",
+      "duplicate_pattern_candidate",
+      "high_strength_low_confidence"
+    ],
+    "mutation_allowed": false
+  },
+  "memory_ownership": {
+    "file": "MEMORY_OWNERSHIP.md",
+    "maintain_check": true,
+    "known_surfaces": [
+      "MEMORY.md",
+      "memory/topics/*.md",
+      "memory/YYYY-MM-DD.md",
+      "memory/conversations/*.md",
+      "runtime/trajectories/known_good.jsonl",
+      "runtime/friction/ledger.jsonl",
+      "runtime/auto_memory_candidates/*.json",
+      "runtime/auto_memory/*.json"
+    ]
+  },
+  "maintain_brief": {
+    "fields": [
+      "latest_commit",
+      "open_work_items",
+      "tier_1_count",
+      "next_queue_item",
+      "promotion_debt"
+    ],
+    "mutation_allowed": false
+  },
+  "retrieval_prompt_blocks": {
+    "source_labels_match_receipts": true,
+    "labels": [
+      "trusted_markdown",
+      "memory_graph",
+      "trajectory_ledger"
+    ]
+  },
+  "optional_overlays": {
+    "directory": "flavor/",
+    "strategy_directory": "overlays/",
+    "root_files_allowed": false,
+    "flavor_files": [
+      "flavor/PENGUIN.md",
+      "flavor/TROLL.md",
+      "flavor/COPPER-INU.md",
+      "flavor/COSMIC-CORRESPONDENT.md"
+    ],
+    "strategy_files": [
+      "overlays/LEVERAGE.md"
+    ],
+    "governing_by_default": false
+  },
   "queue": {
     "max_retries": 3,
     "backoff_seconds": [
@@ -291,6 +352,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "91dfb5edde94307266217f9d15fbf76ee2704b646ba25364fa93fb06b0a33add"
+    "design_md_sha256": "8354bf3e14bfd30a825f5d47e062d454fa3a85e560ae2e83b8fecdd18ef8cf1e"
   }
 }

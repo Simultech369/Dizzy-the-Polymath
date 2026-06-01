@@ -420,6 +420,85 @@ Consequences:
 
 ---
 
+### D-0022: Memory metabolism starts as report-only maintenance
+
+Decision:
+- Add a non-mutating memory metabolism report to `maintain`.
+- Scan the trajectory ledger for malformed rows, invalid/missing provenance, duplicate reusable-pattern candidates, and high-strength/low-confidence contradictions.
+- Do not archive, delete, merge, or rewrite durable records automatically.
+
+Rationale:
+- Decay and dedup are useful only after the signal is trusted.
+- Report mode gives the operator visibility without creating a hidden deletion engine.
+- Trajectories are the first safe surface because they are structured, local, and operator-reviewed.
+
+Consequences:
+- `scripts/maintain.mjs` now includes a Memory metabolism section.
+- Findings turn maintenance yellow and point to review, not mutation.
+- Future metabolism can expand to memory topics, daily logs, and conversation summaries after provenance coverage improves.
+
+---
+
+### D-0023: Memory-like surfaces need writer ownership
+
+Decision:
+- Add `MEMORY_OWNERSHIP.md` as the operational owner map for durable memory-like files and ledgers.
+- Treat new durable memory writers as incomplete until their target surface is classified.
+- Have `maintain` report whether the ownership map exists and includes the currently known durable surfaces.
+
+Rationale:
+- Memory corruption often comes from multiple writers treating the same file as theirs.
+- Ownership is cheaper than recovery after silent overwrite or schema drift.
+- A visible map keeps runtime ledgers, curated memory, proposal files, and daily logs from blending into one vague memory layer.
+
+Consequences:
+- `MEMORY_OWNERSHIP.md` is required for green maintenance.
+- The current check validates coverage of known surfaces, not exhaustive path discovery.
+- Future memory writers should update this map before writing durable state.
+
+---
+
+### D-0024: Maintain output should act as an operator brief
+
+Decision:
+- Extend `scripts/maintain.mjs` with a short operator brief: latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.
+- Keep the detailed checks below the brief.
+- Keep the brief local and diagnostic; it should not mutate state or invent work.
+
+Rationale:
+- Maintenance should reduce operator burden, not just run checks.
+- A brief makes the next move visible without rereading `NEXT.md`, git history, and the ledgers.
+- This is the low-friction version of the fabric-style brief pattern.
+
+Consequences:
+- `maintain` output starts with the status and operator brief.
+- Memory metabolism findings can become visible promotion debt.
+- Later brief fields can include recent work, stale upgrades, and top friction when those signals exist.
+
+---
+
+### D-0025: Optional overlays live outside the root
+
+Decision:
+- Move optional flavor and strategy overlay files out of the repo root.
+- Use `flavor/` for voice, meme, and character surfaces.
+- Use `overlays/` for optional strategy/economic orientation.
+- Keep them available to optional prompt packs by updating prompt-pack paths.
+- Keep `FILE_ROLES.md` as the explicit authority map for these non-governing surfaces.
+
+Rationale:
+- Root proximity was making optional voice and economic overlays look more authoritative than intended.
+- Moving them resolves the aesthetic/doctrinal tension without deleting useful material.
+- Optional prompt packs can still opt into the material deliberately.
+
+Consequences:
+- `flavor/PENGUIN.md`, `flavor/TROLL.md`, `flavor/COPPER-INU.md`, and `flavor/COSMIC-CORRESPONDENT.md` are optional flavor surfaces.
+- `overlays/LEVERAGE.md` is an optional strategy overlay.
+- Default prompt-pack behavior remains governed by the compact runtime constitution.
+- References to these files must use the correct `flavor/` or `overlays/` namespace.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -696,6 +775,67 @@ Edit this block when you want to change what agents read.
     ],
     "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
     "blocked_fallback_path": "blocked_by_trust_zone"
+  },
+  "memory_metabolism": {
+    "module": "lib/memory_metabolism.mjs",
+    "mode": "report_only",
+    "first_surface": "trajectory_ledger",
+    "findings": [
+      "malformed_trajectory",
+      "legacy_missing_provenance",
+      "missing_memory_class",
+      "invalid_provenance",
+      "duplicate_pattern_candidate",
+      "high_strength_low_confidence"
+    ],
+    "mutation_allowed": false
+  },
+  "memory_ownership": {
+    "file": "MEMORY_OWNERSHIP.md",
+    "maintain_check": true,
+    "known_surfaces": [
+      "MEMORY.md",
+      "memory/topics/*.md",
+      "memory/YYYY-MM-DD.md",
+      "memory/conversations/*.md",
+      "runtime/trajectories/known_good.jsonl",
+      "runtime/friction/ledger.jsonl",
+      "runtime/auto_memory_candidates/*.json",
+      "runtime/auto_memory/*.json"
+    ]
+  },
+  "maintain_brief": {
+    "fields": [
+      "latest_commit",
+      "open_work_items",
+      "tier_1_count",
+      "next_queue_item",
+      "promotion_debt"
+    ],
+    "mutation_allowed": false
+  },
+  "retrieval_prompt_blocks": {
+    "source_labels_match_receipts": true,
+    "labels": [
+      "trusted_markdown",
+      "memory_graph",
+      "trajectory_ledger"
+    ]
+  },
+  "optional_overlays": {
+    "directory": "flavor/",
+    "strategy_directory": "overlays/",
+    "root_files_allowed": false,
+    "flavor_files": [
+      "flavor/PENGUIN.md",
+      "flavor/TROLL.md",
+      "flavor/COPPER-INU.md",
+      "flavor/COSMIC-CORRESPONDENT.md"
+    ],
+    "strategy_files": [
+      "overlays/LEVERAGE.md"
+    ],
+    "governing_by_default": false
   },
   "queue": {
     "max_retries": 3,
