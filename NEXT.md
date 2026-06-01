@@ -22,6 +22,14 @@ Rules:
 - W-0026 [Tier 2]: Teach `scripts/maintain.mjs` to flag `CONSTITUTION.md` / `DESIGN.md` / `PROMPT_CORE.md` kernel drift.
 - W-0027 [Tier 2]: Add byte-budget or scope warnings for default prompt-pack files so constitutional compression stays visible.
 - W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
+- W-0029 [Tier 1]: Add capture eligibility gate for durable memory, trajectory, and session receipt writes; skip social closers and low-substance turns.
+- W-0030 [Tier 1]: Add provenance-required memory classes: user claim, assistant observation, project decision, reusable pattern.
+- W-0031 [Tier 1]: Add source labels and fallback path details to retrieval receipts.
+- W-0032 [Tier 2]: Add memory metabolism report mode: stale claims, duplicate candidates, surfaced count, confidence/freshness warnings.
+- W-0033 [Tier 2]: Add writer ownership map for memory-like files so independent writers cannot silently overwrite each other.
+- W-0034 [Tier 2]: Extend `maintain` into a fabric-style brief: recent work, pending promotion debt, stale continuity, top friction, smallest next action.
+- W-0035 [Tier 3]: Prototype three-pool retrieval as report-only: core, stale-important, edge-hypothesis.
+- W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 ---
 
@@ -59,3 +67,4 @@ Rules:
 - W-0020: Added local deletion and inactivity expiry pruning for scoped paid/client continuity history.
 - W-0021: Added structured retrieval audit details to capability receipts for RAG, memory graph, and trajectory context.
 - W-0022: Added `OPERATING_LOOP.md` as a day-to-day operator workflow for maintain, receipts, friction, trajectories, and session close.
+- W-0029-note: Added `BORROWED_PATTERNS.md` and expanded `MECHANISMS.md` with external pattern translations from Memory OS, Samantha, and Icarus.

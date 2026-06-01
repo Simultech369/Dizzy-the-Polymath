@@ -170,6 +170,78 @@ Useful files:
 
 Failure mode: local deletion is mistaken for a full authenticated client account lifecycle.
 
+## Capture Eligibility Gate
+
+Problem: durable memory and trajectory capture can turn routine chatter, emotional intensity, or low-substance turns into sticky authority.
+
+Mechanism: before writing durable memory, trajectories, or session receipts, classify whether the material has enough substance, provenance, and reuse value. Social closers, routine acknowledgements, thin status messages, and ungrounded observations should skip durable capture.
+
+Useful files:
+- `BORROWED_PATTERNS.md`
+- `CONSTITUTION.md`
+- `PROMPT_CORE.md`
+- `lib/trajectories.mjs`
+- future memory write paths
+
+Failure mode: the gate becomes too strict and loses real decisions, or too loose and launders noise into continuity.
+
+## Provenance-Required Memory
+
+Problem: memory extraction can hallucinate user facts, over-trust assistant interpretations, or merge observation with evidence.
+
+Mechanism: split durable memory candidates by class. User claims need evidence from the user's words. Assistant observations need grounding, confidence, and epistemic status. Project decisions need decision source and date. Reusable patterns need success criteria and outcome evidence.
+
+Useful files:
+- `BORROWED_PATTERNS.md`
+- `MEMORY.md`
+- `scripts/memory_validate.mjs`
+- `PROMPT_CORE.md`
+
+Failure mode: provenance fields become decorative unless validation and retrieval expose them.
+
+## Memory Metabolism
+
+Problem: useful continuity decays at different rates, but flat memory makes old, uncertain, and low-value claims look equally alive.
+
+Mechanism: memory-like records carry freshness, confidence, sensitivity, surfaced count, and revocation data. Maintenance can report stale or duplicate claims before any automatic mutation happens. Decay begins as a report, then becomes archival only after the operator trusts the signal.
+
+Useful files:
+- `CONSTITUTION.md`
+- `BORROWED_PATTERNS.md`
+- `scripts/maintain.mjs`
+- `scripts/memory_validate.mjs`
+
+Failure mode: decay becomes a hidden deletion engine instead of a legible demotion and archival process.
+
+## Source-Labeled Retrieval
+
+Problem: retrieved context from memory, sessions, docs, facts, trajectories, and hypotheses can collapse into one undifferentiated authority blob.
+
+Mechanism: every retrieval block and capability receipt should identify source type, trust zone, fallback path, confidence/freshness when available, and whether the item is authority, evidence, or hypothesis.
+
+Useful files:
+- `lib/dispatch.mjs`
+- `lib/md_retriever.mjs`
+- `lib/memory_graph.mjs`
+- `lib/trajectories.mjs`
+- `BORROWED_PATTERNS.md`
+
+Failure mode: labels are present but the assistant still treats all retrieved content as equally authoritative.
+
+## Sidecar Boundary
+
+Problem: richer memory services can become tightly coupled to the main runtime, increasing fragility and lock-in.
+
+Mechanism: if Dizzy adopts a semantic memory service, keep it as an optional local sidecar with health checks, graceful degradation, explicit trust-zone permissions, and no required role in basic chat.
+
+Useful files:
+- `BORROWED_PATTERNS.md`
+- `RUNBOOK.md`
+- `OPERATIONS.md`
+- future sidecar docs
+
+Failure mode: sidecar availability becomes a hidden requirement for ordinary work, or vector recall expands beyond consent boundaries.
+
 ## Mechanism Rule
 
 Mechanisms are useful only when they reduce burden, clarify judgment, or create capability. If a mechanism mainly adds vocabulary, status, or ceremony, compress it or retire it.

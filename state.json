@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-31T23:35:55.875Z",
+  "updated_at": "2026-06-01T04:13:32.837Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -144,6 +144,32 @@
     ],
     "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
   },
+  "borrowed_patterns": {
+    "file": "BORROWED_PATTERNS.md",
+    "status": "reference_material_not_authority",
+    "sources": [
+      "ClaudioDrews/memory-os",
+      "ClaudioDrews/project-samantha",
+      "ClaudioDrews/icarus-plugin"
+    ],
+    "take": [
+      "capture_eligibility",
+      "provenance_required_memory",
+      "source_labeled_retrieval",
+      "memory_decay_and_dedup_reports",
+      "sidecar_isolation",
+      "graceful_degradation",
+      "silent_heartbeat_ok"
+    ],
+    "avoid": [
+      "companion_ontology",
+      "attachment_dynamics",
+      "mandatory_recall_before_every_response",
+      "autonomous_emotional_outreach",
+      "heavy_vector_stack_without_need",
+      "automatic_training_or_model_replacement"
+    ]
+  },
   "queue": {
     "max_retries": 3,
     "backoff_seconds": [
@@ -230,6 +256,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "a6ceeda14d07c6a86e4685158d5dca187b383d8abdccf2ee5f9bf82315e4845c"
+    "design_md_sha256": "548d27990c1fae2437c133ee049089def7f18edff9fd97ebd205f8032816d690"
   }
 }

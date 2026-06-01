@@ -360,6 +360,26 @@ Consequences:
 
 ---
 
+### D-0019: External memory-system patterns are reference material, not authority
+
+Decision:
+- Use `BORROWED_PATTERNS.md` to track patterns from external repositories such as Memory OS, Project Samantha, and Icarus.
+- Borrow mechanisms that strengthen Dizzy's existing kernel: memory metadata, provenance, capture eligibility, source-labeled retrieval, dedup/decay reporting, sidecar isolation, and graceful degradation.
+- Reject or quarantine patterns that import companion ontology, attachment dynamics, mandatory recall rituals, autonomous emotional outreach, or heavy infrastructure without a proven local need.
+- External repositories under `_external/` remain denied for automatic retrieval by default.
+
+Rationale:
+- External systems can contain strong implementation patterns while carrying incompatible assumptions.
+- Dizzy needs memory metabolism and provenance more than it needs a new identity model or vector stack.
+- Borrowing should reduce burden and boundary risk, not create another authority layer.
+
+Consequences:
+- `BORROWED_PATTERNS.md` is a mechanism map, not governance.
+- Useful external patterns must be translated into Dizzy terms before becoming queue items.
+- Runtime adoption still requires promotion through prompt packs, code, tests, or maintenance checks.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -575,6 +595,32 @@ Edit this block when you want to change what agents read.
       "adaptive_routing"
     ],
     "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
+  },
+  "borrowed_patterns": {
+    "file": "BORROWED_PATTERNS.md",
+    "status": "reference_material_not_authority",
+    "sources": [
+      "ClaudioDrews/memory-os",
+      "ClaudioDrews/project-samantha",
+      "ClaudioDrews/icarus-plugin"
+    ],
+    "take": [
+      "capture_eligibility",
+      "provenance_required_memory",
+      "source_labeled_retrieval",
+      "memory_decay_and_dedup_reports",
+      "sidecar_isolation",
+      "graceful_degradation",
+      "silent_heartbeat_ok"
+    ],
+    "avoid": [
+      "companion_ontology",
+      "attachment_dynamics",
+      "mandatory_recall_before_every_response",
+      "autonomous_emotional_outreach",
+      "heavy_vector_stack_without_need",
+      "automatic_training_or_model_replacement"
+    ]
   },
   "queue": {
     "max_retries": 3,
