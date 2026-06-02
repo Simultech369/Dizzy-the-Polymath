@@ -45,9 +45,10 @@ Positive institutional primitives:
 
 Canonical hierarchy:
 1. `DESIGN.md` (primary)
-2. `CONSTITUTION.md` (compact non-negotiables; conflict with `DESIGN.md` is a red maintenance item)
-3. `state.json` (derived snapshot for agents/tools)
-4. Logs/artifacts (event stream; debugging only)
+2. `CONSTITUTIONAL_KERNEL.md` (first-loaded compact live kernel)
+3. `CONSTITUTION.md` (constitutional expansion; conflict with `DESIGN.md` is a red maintenance item)
+4. `state.json` (derived snapshot for agents/tools)
+5. Logs/artifacts (event stream; debugging only)
 
 Rules:
 - Any behavioral change must be justified here.
@@ -162,6 +163,7 @@ Decision:
 - Treat the default prompt pack as the live constitutional core for chat behavior.
 - Any principle important enough to govern runtime behavior must exist in compact form in the default pack files:
   - `IDENTITY.md`
+  - `CONSTITUTIONAL_KERNEL.md`
   - `CONSTITUTION.md`
   - `SOUL.md`
   - `HEARTBEAT.md`
@@ -575,6 +577,27 @@ Consequences:
 
 ---
 
+### D-0030: Paid/public execution forces a client-safe prompt pack
+
+Decision:
+- Add `CONSTITUTIONAL_KERNEL.md` as the first-loaded minimal live kernel.
+- Include `CONSTITUTIONAL_KERNEL.md` and `CONSTITUTION.md` in the default prompt pack.
+- Force `paid_public` prompt construction to a client-safe allowlist regardless of `DIZZY_PROMPT_PACK`.
+- The client-safe allowlist is `CONSTITUTIONAL_KERNEL.md`, `CONSTITUTION.md`, `IDENTITY.md`, `PROMPT_CORE.md`, and `PROMPT_MODES.md`.
+
+Rationale:
+- Trust-zone enforcement cannot stop leakage if the base system prompt already loaded private calibration files.
+- Paid/public work should receive capability and boundary rules, not private memory, operator-specific orientation, flavor, overlays, or broad ops docs.
+- A small first-loaded kernel improves durability under truncation, model swaps, and maintainer fatigue.
+
+Consequences:
+- `lib/prompt_bundle.mjs` chooses prompt sources by trust zone.
+- `lib/dispatch.mjs` requests the base prompt with the active trust zone.
+- Safety checks prove `DIZZY_PROMPT_PACK=full` does not leak disallowed prompt files into `paid_public`.
+- `/prompt?trust_zone=paid_public` can inspect the effective client-safe prompt files.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -671,7 +694,8 @@ Edit this block when you want to change what agents read.
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
-    "constitutional_kernel": "CONSTITUTION.md",
+    "constitutional_kernel": "CONSTITUTIONAL_KERNEL.md",
+    "constitutional_expansion": "CONSTITUTION.md",
     "derived_state": "state.json",
     "open_queue": "NEXT.md"
   },
@@ -679,8 +703,9 @@ Edit this block when you want to change what agents read.
     "anchors": ["Benkler", "Waldron"],
     "runtime_constitution": {
       "default_prompt_pack_files": [
-        "IDENTITY.md",
+        "CONSTITUTIONAL_KERNEL.md",
         "CONSTITUTION.md",
+        "IDENTITY.md",
         "SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
@@ -722,7 +747,8 @@ Edit this block when you want to change what agents read.
     ]
   },
   "constitutional_kernel": {
-    "file": "CONSTITUTION.md",
+    "file": "CONSTITUTIONAL_KERNEL.md",
+    "expansion_file": "CONSTITUTION.md",
     "non_negotiables": [
       "bounded_ontology",
       "operator_execution_authority",
@@ -737,7 +763,7 @@ Edit this block when you want to change what agents read.
       "redacted_public_projection",
       "drift_mismatch_surfaces_as_maintenance"
     ],
-    "authority_note": "If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
+    "authority_note": "CONSTITUTIONAL_KERNEL.md is first-loaded. If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
   },
   "trust_zone_crossing": {
     "requires": [
@@ -932,11 +958,14 @@ Edit this block when you want to change what agents read.
     ],
     "required_frontmatter": [
       "memory_class",
+      "captured_at",
       "source",
-      "scope",
       "confidence",
-      "freshness",
-      "sensitivity",
+      "freshness_window",
+      "sensitivity_class",
+      "zone_origin",
+      "zone_allowed",
+      "last_reviewed",
       "revocation_path"
     ],
     "validator": "scripts/memory_validate.mjs",
@@ -958,6 +987,7 @@ Edit this block when you want to change what agents read.
     "total_budget_bytes": 72000,
     "warning_threshold": 0.9,
     "files": {
+      "CONSTITUTIONAL_KERNEL.md": 3000,
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
       "SOUL.md": 13000,
@@ -967,6 +997,28 @@ Edit this block when you want to change what agents read.
       "PROMPT_CORE.md": 22000,
       "PROMPT_MODES.md": 4000
     }
+  },
+  "client_safe_prompt_pack": {
+    "forced_for_trust_zone": "paid_public",
+    "files": [
+      "CONSTITUTIONAL_KERNEL.md",
+      "CONSTITUTION.md",
+      "IDENTITY.md",
+      "PROMPT_CORE.md",
+      "PROMPT_MODES.md"
+    ],
+    "disallowed_by_default": [
+      "SOUL.md",
+      "USER.md",
+      "TOOLS.md",
+      "HEARTBEAT.md",
+      "MEMORY.md",
+      "flavor/",
+      "overlays/",
+      "MARKETPLACE_PROTOCOL.md",
+      "CLIENTS.md"
+    ],
+    "checker": "scripts/prompt_drift_check.mjs"
   },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,

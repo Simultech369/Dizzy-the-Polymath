@@ -37,6 +37,8 @@ Restart the server after changing env vars.
 
 `core` loads:
 
+- `CONSTITUTIONAL_KERNEL.md`
+- `CONSTITUTION.md`
 - `IDENTITY.md`
 - `SOUL.md`
 - `HEARTBEAT.md`
@@ -46,6 +48,16 @@ Restart the server after changing env vars.
 - `PROMPT_MODES.md`
 
 This is the live constitutional center for normal chat behavior.
+
+For `paid_public` execution, runtime code forces a client-safe prompt source allowlist regardless of `DIZZY_PROMPT_PACK`:
+
+- `CONSTITUTIONAL_KERNEL.md`
+- `CONSTITUTION.md`
+- `IDENTITY.md`
+- `PROMPT_CORE.md`
+- `PROMPT_MODES.md`
+
+That client-safe path excludes private calibration, user-specific orientation, memory index files, flavor files, overlays, and marketplace/client docs unless the relevant context is explicitly supplied for the task.
 
 Why this pack exists:
 - it is the smallest set that defines identity, calibration, user alignment, and live response behavior

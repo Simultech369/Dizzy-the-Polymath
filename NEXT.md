@@ -65,6 +65,8 @@ Rules:
 - W-0025: Added `capability_receipt.boundary_crossing` with purpose, allowed source context, redaction duty, retention scope, deletion/revocation path, default export posture, and blocked context.
 - W-0026: Added constitutional claim manifest coverage to `scripts/prompt_drift_check.mjs` so constitution, prompt-pack, and declared runtime/test anchors are checked by claim ID.
 - W-0027: Added default prompt-pack byte budgets to `scripts/prompt_drift_check.mjs` so constitutional compression has a mechanical growth check.
+- W-0037: Added `CONSTITUTIONAL_KERNEL.md` as the first-loaded compact live kernel and included it in the default prompt pack.
+- W-0038: Forced `paid_public` prompt construction to a client-safe allowlist regardless of `DIZZY_PROMPT_PACK`, with safety coverage against `full` pack leakage.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.

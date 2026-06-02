@@ -1,10 +1,14 @@
 ---
 memory_class: assistant_observation
+captured_at: 2026-06-01
 source: operator_reviewed
 scope: project
 confidence: medium
-freshness: review_soon
-sensitivity: normal
+freshness_window: review_before_world-model_build
+sensitivity_class: normal
+zone_origin: private_self
+zone_allowed: private_self,trusted_collaborator
+last_reviewed: 2026-06-02
 revocation_path: edit or delete this topic file and remove its MEMORY.md index entry
 ---
 

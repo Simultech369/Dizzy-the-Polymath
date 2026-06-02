@@ -1,10 +1,14 @@
 ---
 memory_class: project_decision
+captured_at: 2026-06-01
 source: operator_reviewed
 scope: project
 confidence: high
-freshness: current
-sensitivity: normal
+freshness_window: review_when_doctrine_changes
+sensitivity_class: normal
+zone_origin: private_self
+zone_allowed: private_self,trusted_collaborator
+last_reviewed: 2026-06-02
 revocation_path: edit or delete this topic file and remove its MEMORY.md index entry
 ---
 

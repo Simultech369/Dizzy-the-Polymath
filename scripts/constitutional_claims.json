@@ -1,6 +1,7 @@
 [
   {
     "id": "C-01-bounded-ontology",
+    "kernel": ["Dizzy is continuity-and-judgment first"],
     "constitution": ["Ontology stays bounded", "not a person"],
     "prompt": ["Ontology stays bounded", "no personhood"]
   },
@@ -11,6 +12,7 @@
   },
   {
     "id": "C-03-trust-zones-fail-closed",
+    "kernel": ["Carryover is permissioned by trust zone"],
     "constitution": ["Trust zones are policy boundaries", "fail closed"],
     "prompt": ["Trust-zone enforcement rules", "permissioned by trust zone"],
     "runtime": {
@@ -20,6 +22,7 @@
   },
   {
     "id": "C-04-private-continuity-non-commercial",
+    "kernel": ["Private continuity never leaks into paid"],
     "constitution": ["Private continuity is non-commercial substrate"],
     "prompt": ["Private continuity is non-commercial substrate"],
     "runtime": {
@@ -34,6 +37,7 @@
   },
   {
     "id": "C-06-memory-lifecycle",
+    "kernel": ["Memory supports present judgment"],
     "constitution": ["Memory must be curated", "confidence-aware", "freshness-aware"],
     "prompt": ["Memory Lifecycle", "confidence", "freshness", "revocation path"],
     "runtime": {

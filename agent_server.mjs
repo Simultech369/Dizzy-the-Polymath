@@ -213,7 +213,8 @@ export async function createRuntime(opts = {}) {
 
   app.get("/prompt", async (req, res) => {
     try {
-      const { sources } = getCachedChatSystemPrompt();
+      const trustZone = String(req.query?.trust_zone ?? "").trim().toLowerCase();
+      const { sources } = getCachedChatSystemPrompt({ trustZone });
       const totalBytes = sources.reduce((sum, s) => sum + Number(s.bytes || 0), 0);
       const constitutionalCount = sources.filter((s) => s.role === "constitutional").length;
       const out = {
@@ -221,6 +222,7 @@ export async function createRuntime(opts = {}) {
         chat_backend: String(process.env.DIZZY_CHAT_BACKEND ?? "").trim() || "",
         gemini_model: String(process.env.GEMINI_MODEL ?? "").trim() || "",
         prompt_pack: String(process.env.DIZZY_PROMPT_PACK ?? "").trim() || "",
+        effective_trust_zone: trustZone || "",
         prompt_modes: {
           brevity: String(process.env.DIZZY_BREVITY_MODE ?? "lite").trim() || "lite",
           affect: String(process.env.DIZZY_AFFECT_MODE ?? "attuned").trim() || "attuned",

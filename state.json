@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-01T22:41:28.162Z",
+  "updated_at": "2026-06-02T05:03:05.732Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
-    "constitutional_kernel": "CONSTITUTION.md",
+    "constitutional_kernel": "CONSTITUTIONAL_KERNEL.md",
+    "constitutional_expansion": "CONSTITUTION.md",
     "derived_state": "state.json",
     "open_queue": "NEXT.md"
   },
@@ -15,8 +16,9 @@
     ],
     "runtime_constitution": {
       "default_prompt_pack_files": [
-        "IDENTITY.md",
+        "CONSTITUTIONAL_KERNEL.md",
         "CONSTITUTION.md",
+        "IDENTITY.md",
         "SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
@@ -75,7 +77,8 @@
     ]
   },
   "constitutional_kernel": {
-    "file": "CONSTITUTION.md",
+    "file": "CONSTITUTIONAL_KERNEL.md",
+    "expansion_file": "CONSTITUTION.md",
     "non_negotiables": [
       "bounded_ontology",
       "operator_execution_authority",
@@ -90,7 +93,7 @@
       "redacted_public_projection",
       "drift_mismatch_surfaces_as_maintenance"
     ],
-    "authority_note": "If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
+    "authority_note": "CONSTITUTIONAL_KERNEL.md is first-loaded. If CONSTITUTION.md and DESIGN.md conflict, treat the conflict as a red maintenance item and resolve it explicitly."
   },
   "trust_zone_crossing": {
     "requires": [
@@ -287,11 +290,14 @@
     ],
     "required_frontmatter": [
       "memory_class",
+      "captured_at",
       "source",
-      "scope",
       "confidence",
-      "freshness",
-      "sensitivity",
+      "freshness_window",
+      "sensitivity_class",
+      "zone_origin",
+      "zone_allowed",
+      "last_reviewed",
       "revocation_path"
     ],
     "validator": "scripts/memory_validate.mjs",
@@ -313,6 +319,7 @@
     "total_budget_bytes": 72000,
     "warning_threshold": 0.9,
     "files": {
+      "CONSTITUTIONAL_KERNEL.md": 3000,
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
       "SOUL.md": 13000,
@@ -322,6 +329,28 @@
       "PROMPT_CORE.md": 22000,
       "PROMPT_MODES.md": 4000
     }
+  },
+  "client_safe_prompt_pack": {
+    "forced_for_trust_zone": "paid_public",
+    "files": [
+      "CONSTITUTIONAL_KERNEL.md",
+      "CONSTITUTION.md",
+      "IDENTITY.md",
+      "PROMPT_CORE.md",
+      "PROMPT_MODES.md"
+    ],
+    "disallowed_by_default": [
+      "SOUL.md",
+      "USER.md",
+      "TOOLS.md",
+      "HEARTBEAT.md",
+      "MEMORY.md",
+      "flavor/",
+      "overlays/",
+      "MARKETPLACE_PROTOCOL.md",
+      "CLIENTS.md"
+    ],
+    "checker": "scripts/prompt_drift_check.mjs"
   },
   "retrieval_prompt_blocks": {
     "source_labels_match_receipts": true,
@@ -432,6 +461,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "f8897ece844c6ab7552d30b234addf7f3a8b9a2f8c21aa0404e170cba249177a"
+    "design_md_sha256": "ac25b35f4ef19063c90476e110683527b44c5a0f47c68cb81aaf970566b537a7"
   }
 }

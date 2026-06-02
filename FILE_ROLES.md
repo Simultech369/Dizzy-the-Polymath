@@ -43,6 +43,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 ## Live Prompt Pack / Runtime Constitution
 
+- `CONSTITUTIONAL_KERNEL.md`
 - `CONSTITUTION.md`
 - `IDENTITY.md`
 - `SOUL.md`

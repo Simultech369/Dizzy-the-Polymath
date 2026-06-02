@@ -800,6 +800,8 @@ function testPromptBundleDefaults() {
   const sources = getPromptSources();
   const paths = sources.map((s) => s.path);
   assert.deepEqual(paths, [
+    "CONSTITUTIONAL_KERNEL.md",
+    "CONSTITUTION.md",
     "IDENTITY.md",
     "SOUL.md",
     "HEARTBEAT.md",
@@ -813,6 +815,21 @@ function testPromptBundleDefaults() {
   process.env.DIZZY_PROMPT_PACK = "creative";
   const creative = getPromptSources();
   assert.equal(creative.some((s) => s.path === "PROMPT_MODES.md" && s.role === "constitutional"), true);
+
+  process.env.DIZZY_PROMPT_PACK = "full";
+  const paidPublic = getPromptSources({ trustZone: "paid_public" });
+  const paidPaths = paidPublic.map((s) => s.path);
+  assert.deepEqual(paidPaths, [
+    "CONSTITUTIONAL_KERNEL.md",
+    "CONSTITUTION.md",
+    "IDENTITY.md",
+    "PROMPT_CORE.md",
+    "PROMPT_MODES.md",
+  ]);
+  assert.equal(paidPaths.includes("MEMORY.md"), false);
+  assert.equal(paidPaths.includes("SOUL.md"), false);
+  assert.equal(paidPaths.includes("USER.md"), false);
+  assert.equal(paidPaths.some((p) => p.startsWith("flavor/")), false);
 
   if (oldPack === undefined) delete process.env.DIZZY_PROMPT_PACK;
   else process.env.DIZZY_PROMPT_PACK = oldPack;

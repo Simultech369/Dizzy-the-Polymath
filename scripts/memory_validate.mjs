@@ -121,7 +121,18 @@ function validateTopicMetadata(rel, text) {
     return { errors, warnings };
   }
 
-  const required = ["memory_class", "source", "scope", "confidence", "freshness", "sensitivity", "revocation_path"];
+  const required = [
+    "memory_class",
+    "captured_at",
+    "source",
+    "confidence",
+    "freshness_window",
+    "sensitivity_class",
+    "zone_origin",
+    "zone_allowed",
+    "last_reviewed",
+    "revocation_path",
+  ];
   for (const key of required) {
     if (!data[key]) errors.push(`${rel}: missing ${key}`);
   }
@@ -131,12 +142,26 @@ function validateTopicMetadata(rel, text) {
     source: ["operator_reviewed", "assistant_proposed", "runtime_generated", "imported_reference"],
     scope: ["private", "project", "client", "public", "operational"],
     confidence: ["low", "medium", "high"],
-    sensitivity: ["normal", "sensitive", "do_not_export"],
-    freshness: ["current", "review_soon", "stale"],
+    sensitivity_class: ["normal", "sensitive", "do_not_export"],
+    zone_origin: ["private_self", "trusted_collaborator", "outside_contact", "paid_public", "project"],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (data[key] && !allowed.includes(String(data[key]).trim().toLowerCase())) {
       errors.push(`${rel}: invalid ${key} '${data[key]}'`);
+    }
+  }
+
+  for (const key of ["captured_at", "last_reviewed"]) {
+    if (data[key] && Number.isNaN(new Date(`${data[key]}T00:00:00Z`).getTime())) {
+      errors.push(`${rel}: invalid ${key} '${data[key]}'`);
+    }
+  }
+
+  if (data.zone_allowed) {
+    const allowed = String(data.zone_allowed).split(",").map((x) => x.trim()).filter(Boolean);
+    const valid = new Set(["private_self", "trusted_collaborator", "outside_contact", "paid_public"]);
+    for (const zone of allowed) {
+      if (!valid.has(zone)) errors.push(`${rel}: invalid zone_allowed '${zone}'`);
     }
   }
 

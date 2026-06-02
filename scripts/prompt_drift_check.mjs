@@ -4,6 +4,7 @@ import path from "path";
 const ROOT = process.cwd();
 
 const REQUIRED_FILES = [
+  "CONSTITUTIONAL_KERNEL.md",
   "CONSTITUTION.md",
   "IDENTITY.md",
   "SOUL.md",
@@ -63,6 +64,7 @@ const DESIGN_TO_PROMPT_SIGNALS = [
 ];
 
 const PROMPT_FILE_BUDGETS = {
+  "CONSTITUTIONAL_KERNEL.md": 3000,
   "CONSTITUTION.md": 6000,
   "IDENTITY.md": 7000,
   "SOUL.md": 13000,
@@ -110,6 +112,7 @@ function main() {
   const warnings = [];
 
   const design = read("DESIGN.md");
+  const kernel = read("CONSTITUTIONAL_KERNEL.md");
   const constitution = read("CONSTITUTION.md");
   const promptCore = read("PROMPT_CORE.md");
   const promptModes = read("PROMPT_MODES.md");
@@ -143,6 +146,9 @@ function main() {
       if (seen.has(id)) errors.push(`duplicate constitutional claim id: ${id}`);
       seen.add(id);
 
+      if (claim.kernel && !includesAll(kernel, claim.kernel || [])) {
+        errors.push(`constitutional claim '${id}' missing kernel anchors`);
+      }
       if (!includesAll(constitution, claim.constitution || [])) {
         errors.push(`constitutional claim '${id}' missing constitution anchors`);
       }
@@ -170,6 +176,22 @@ function main() {
     errors.push(`default prompt pack exceeds total budget: ${totalPromptBytes}/${DEFAULT_PROMPT_PACK_TOTAL_BUDGET} bytes`);
   } else if (totalPromptBytes > DEFAULT_PROMPT_PACK_TOTAL_BUDGET * 0.9) {
     warnings.push(`default prompt pack is near total budget: ${totalPromptBytes}/${DEFAULT_PROMPT_PACK_TOTAL_BUDGET} bytes`);
+  }
+
+  const clientSafeSources = [
+    "CONSTITUTIONAL_KERNEL.md",
+    "CONSTITUTION.md",
+    "IDENTITY.md",
+    "PROMPT_CORE.md",
+    "PROMPT_MODES.md",
+  ];
+  const promptBundleText = read("lib/prompt_bundle.mjs");
+  for (const file of clientSafeSources) {
+    if (!promptBundleText.includes(file)) errors.push(`client-safe prompt allowlist missing ${file}`);
+  }
+  for (const disallowed of ["SOUL.md", "USER.md", "TOOLS.md", "HEARTBEAT.md", "MEMORY.md", "flavor/"]) {
+    const clientSafeBlock = promptBundleText.split("const CLIENT_SAFE_PROMPT_FILES = [")[1]?.split("];")[0] || "";
+    if (clientSafeBlock.includes(disallowed)) errors.push(`client-safe prompt allowlist includes disallowed source ${disallowed}`);
   }
 
   const stateText = read("state.json");
