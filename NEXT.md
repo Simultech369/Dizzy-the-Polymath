@@ -16,7 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0028 [Tier 3]: Define the Trajectory Distillery data contract for what can be distilled, what must be excluded, and how lossy-risk labels appear.
 - W-0035 [Tier 3]: Prototype three-pool retrieval as report-only: core, stale-important, edge-hypothesis.
 - W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
@@ -68,6 +67,7 @@ Rules:
 - W-0037: Added `CONSTITUTIONAL_KERNEL.md` as the first-loaded compact live kernel and included it in the default prompt pack.
 - W-0038: Forced `paid_public` prompt construction to a client-safe allowlist regardless of `DIZZY_PROMPT_PACK`, with safety coverage against `full` pack leakage.
 - W-0039: Borrowed selected `quarqlabs/agent-oss` memory patterns as Dizzy-native contracts: typed/temporal/numeric topic metadata and report-only retrieval plans in capability receipts.
+- W-0028: Defined the Trajectory Distillery data contract with allowed/excluded content classes, evidence basis, lossy-risk labels, operator-review requirement, auto-save prohibition, safety tests, and metabolism reporting.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.

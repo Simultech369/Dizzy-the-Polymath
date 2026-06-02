@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-02T15:55:21.548Z",
+  "updated_at": "2026-06-02T16:02:51.786Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -209,6 +209,35 @@
     ],
     "first_enforced_surface": "trajectory_ledger",
     "trajectory_memory_class": "reusable_pattern"
+  },
+  "trajectory_distillation_contract": {
+    "module": "lib/trajectories.mjs",
+    "field": "distillation_contract",
+    "allowed_content_classes": [
+      "goal",
+      "constraints",
+      "success_criteria",
+      "actions_taken",
+      "outcome",
+      "reusable_pattern",
+      "reuse_tags",
+      "source_hash"
+    ],
+    "required_excluded_content_classes": [
+      "raw_transcript",
+      "secret_material",
+      "private_emotional_detail",
+      "identity_or_attachment_claim",
+      "unverified_user_fact"
+    ],
+    "lossy_risk": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "operator_review_required": true,
+    "auto_save_allowed": false,
+    "metabolism_check": "lib/memory_metabolism.mjs"
   },
   "retrieval_receipts": {
     "source_labels": [
@@ -496,6 +525,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "a43166872d324b0fdb638917e0a84e6a8021763d0f3bd6ae6770e6ae52270001"
+    "design_md_sha256": "9a502d22bc5cccea6d6e84a2528f6ed032cdd2d98ea7cb4e9a756173e38c4776"
   }
 }

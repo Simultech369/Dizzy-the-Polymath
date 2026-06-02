@@ -873,12 +873,19 @@ function testTrajectoryDistilleryManualPath() {
   assert.equal(saved.trajectory.memory_class, "reusable_pattern");
   assert.equal(saved.trajectory.provenance.memory_class, "reusable_pattern");
   assert.equal(saved.trajectory.provenance.evidence.outcome, "success");
+  assert.equal(saved.trajectory.provenance.lossy_risk, "medium");
+  assert.equal(saved.trajectory.distillation_contract.lossy_risk, "medium");
+  assert.equal(saved.trajectory.distillation_contract.operator_review_required, true);
+  assert.equal(saved.trajectory.distillation_contract.auto_save_allowed, false);
+  assert.equal(saved.trajectory.distillation_contract.excluded_content_classes.includes("raw_transcript"), true);
+  assert.equal(saved.trajectory.distillation_contract.excluded_content_classes.includes("private_emotional_detail"), true);
   assert.equal(validateMemoryProvenance(saved.trajectory.provenance).memory_class, "reusable_pattern");
   assert.throws(() => validateMemoryProvenance({ memory_class: "user_claim", speaker: "user" }), /evidence_quote/);
 
   const rows = readTrajectories({ filePath: testPath });
   assert.equal(rows.length, 1);
   assert.equal(rows[0].provenance.memory_class, "reusable_pattern");
+  assert.equal(rows[0].distillation_contract.evidence_basis.length > 0, true);
 
   const matches = getRelevantTrajectories("maintenance command operator burden", { filePath: testPath, k: 2 });
   assert.equal(matches.length, 1);
@@ -894,6 +901,21 @@ function testTrajectoryDistilleryManualPath() {
     reusable_pattern: "thanks",
     reuse_tags: ["noise"],
   }, { filePath: testPath }), /capture ineligible/);
+
+  assert.throws(() => appendTrajectory({
+    goal: "Block raw transcript storage",
+    reusable_pattern: "Keep trajectory contracts sparse and evidence-gated",
+    reuse_tags: ["trajectory"],
+    strength: 7,
+    distillation_contract: {
+      allowed_content_classes: ["goal", "raw_transcript"],
+      excluded_content_classes: ["secret_material"],
+      evidence_basis: ["operator supplied enough evidence"],
+      lossy_risk: "medium",
+      operator_review_required: true,
+      auto_save_allowed: false,
+    },
+  }, { filePath: testPath, checkEligibility: false }), /invalid trajectory distillation contract/);
 
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
 }

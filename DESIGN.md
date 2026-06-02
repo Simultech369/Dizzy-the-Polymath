@@ -619,6 +619,27 @@ Consequences:
 
 ---
 
+### D-0032: Trajectory distillation preserves reusable moves only
+
+Decision:
+- Define a trajectory distillation contract for every saved trajectory row.
+- The contract names allowed content classes, excluded content classes, evidence basis, lossy-risk label, operator-review requirement, and auto-save prohibition.
+- Allowed content is limited to goal, constraints, success criteria, actions taken, outcome, reusable pattern, reuse tags, and source hash.
+- Excluded content must include raw transcript, secret material, private emotional detail, identity or attachment claims, and unverified user facts.
+- `/trajectory distill` remains proposal-only; `/trajectory add` normalizes and validates the contract before saving.
+
+Rationale:
+- Trajectories should preserve transferable judgment, not conversation residue.
+- A useful distillation can still be lossy; the risk should be labeled rather than hidden.
+- Evidence basis keeps reusable patterns tied to what worked instead of vibes, praise, or memory sludge.
+
+Consequences:
+- `lib/trajectories.mjs` writes `distillation_contract` on saved rows.
+- `lib/memory_metabolism.mjs` reports malformed or missing distillation contracts without mutating ledgers.
+- Safety checks cover contract normalization, lossy-risk propagation, required exclusions, and rejection of raw transcript capture.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -900,6 +921,35 @@ Edit this block when you want to change what agents read.
     ],
     "first_enforced_surface": "trajectory_ledger",
     "trajectory_memory_class": "reusable_pattern"
+  },
+  "trajectory_distillation_contract": {
+    "module": "lib/trajectories.mjs",
+    "field": "distillation_contract",
+    "allowed_content_classes": [
+      "goal",
+      "constraints",
+      "success_criteria",
+      "actions_taken",
+      "outcome",
+      "reusable_pattern",
+      "reuse_tags",
+      "source_hash"
+    ],
+    "required_excluded_content_classes": [
+      "raw_transcript",
+      "secret_material",
+      "private_emotional_detail",
+      "identity_or_attachment_claim",
+      "unverified_user_fact"
+    ],
+    "lossy_risk": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "operator_review_required": true,
+    "auto_save_allowed": false,
+    "metabolism_check": "lib/memory_metabolism.mjs"
   },
   "retrieval_receipts": {
     "source_labels": [
