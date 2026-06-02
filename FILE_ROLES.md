@@ -56,7 +56,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 ## Governance And Mechanisms
 
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 - `GOVERNANCE.md`
 - `PROTOCOL.md`
 - `LEGAL-GUARDRAILS.md`

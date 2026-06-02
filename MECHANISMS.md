@@ -177,7 +177,7 @@ Problem: durable memory and trajectory capture can turn routine chatter, emotion
 Mechanism: before writing durable memory, trajectories, or session receipts, classify whether the material has enough substance, provenance, and reuse value. Social closers, routine acknowledgements, thin status messages, and ungrounded observations should skip durable capture.
 
 Useful files:
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 - `CONSTITUTION.md`
 - `PROMPT_CORE.md`
 - `lib/trajectories.mjs`
@@ -192,7 +192,7 @@ Problem: memory extraction can hallucinate user facts, over-trust assistant inte
 Mechanism: split durable memory candidates by class. User claims need evidence from the user's words. Assistant observations need grounding, confidence, and epistemic status. Project decisions need decision source and date. Reusable patterns need success criteria and outcome evidence.
 
 Useful files:
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 - `MEMORY.md`
 - `scripts/memory_validate.mjs`
 - `PROMPT_CORE.md`
@@ -207,7 +207,7 @@ Mechanism: memory-like records carry freshness, confidence, sensitivity, surface
 
 Useful files:
 - `CONSTITUTION.md`
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 - `scripts/maintain.mjs`
 - `scripts/memory_validate.mjs`
 
@@ -224,7 +224,7 @@ Useful files:
 - `lib/md_retriever.mjs`
 - `lib/memory_graph.mjs`
 - `lib/trajectories.mjs`
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 
 Failure mode: labels are present but the assistant still treats all retrieved content as equally authoritative.
 
@@ -235,7 +235,7 @@ Problem: richer memory services can become tightly coupled to the main runtime, 
 Mechanism: if Dizzy adopts a semantic memory service, keep it as an optional local sidecar with health checks, graceful degradation, explicit trust-zone permissions, and no required role in basic chat.
 
 Useful files:
-- `BORROWED_PATTERNS.md`
+- `REFERENCE_PATTERNS.md`
 - `RUNBOOK.md`
 - `OPERATIONS.md`
 - future sidecar docs

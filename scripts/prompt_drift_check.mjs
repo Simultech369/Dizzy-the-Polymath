@@ -57,9 +57,9 @@ const DESIGN_TO_PROMPT_SIGNALS = [
     prompt: ["Private continuity is non-commercial substrate", "Commercial objectives"],
   },
   {
-    id: "borrowed_patterns",
-    design: ["BORROWED_PATTERNS.md", "External memory-system patterns", "reference material"],
-    prompt: ["External Pattern Borrowing", "reference material", "companion ontology"],
+    id: "reference_patterns",
+    design: ["REFERENCE_PATTERNS.md", "External memory-system patterns", "reference material"],
+    prompt: ["External Pattern Translation", "reference material", "companion ontology"],
   },
 ];
 
@@ -201,8 +201,8 @@ function main() {
   if (!includesAny(stateText, ["constitutional_kernel", "memory_lifecycle", "promotion_queue"])) {
     warnings.push("state.json does not expose constitutional_kernel/memory_lifecycle/promotion_queue; run node scripts/sync_state.mjs if DESIGN.md changed");
   }
-  if (!includesAny(stateText, ["borrowed_patterns"])) {
-    warnings.push("state.json does not expose borrowed_patterns; run node scripts/sync_state.mjs if DESIGN.md changed");
+  if (!includesAny(stateText, ["reference_patterns"])) {
+    warnings.push("state.json does not expose reference_patterns; run node scripts/sync_state.mjs if DESIGN.md changed");
   }
 
   if (errors.length) {

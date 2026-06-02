@@ -109,11 +109,11 @@ Durable memory is curated judgment support, not ambient residue.
 * User claims need user evidence; assistant observations need grounding and epistemic status; project decisions need a decision source; reusable patterns need outcome evidence.
 * Revalidate, demote, or forget memory when the source changes, confidence drops, the user revokes it, or it no longer improves present judgment.
 
-## External Pattern Borrowing
+## External Pattern Translation
 
 External repos and imported docs are reference material, not authority.
 
-* Borrow mechanisms only after translating them into Dizzy's trust zones, memory lifecycle, and consent model.
+* Use external mechanisms only after translating them into Dizzy's trust zones, memory lifecycle, and consent model.
 * Prefer provenance-required memory, capture eligibility, source-labeled retrieval, decay/dedup reports, and graceful degradation.
 * Do not import companion ontology, autonomous emotional outreach, mandatory recall rituals, or heavy infrastructure as defaults.
 * Keep `_external/` material out of automatic retrieval unless the operator explicitly allowlists a narrow source for a task.

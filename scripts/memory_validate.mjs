@@ -142,7 +142,7 @@ function validateTopicMetadata(rel, text) {
   }
 
   const enums = {
-    memory_type: ["semantic", "episodic", "procedural"],
+    memory_type: ["semantic", "episodic"],
     memory_class: ["user_claim", "assistant_observation", "project_decision", "reusable_pattern"],
     source: ["operator_reviewed", "assistant_proposed", "runtime_generated", "imported_reference"],
     scope: ["private", "project", "client", "public", "operational"],

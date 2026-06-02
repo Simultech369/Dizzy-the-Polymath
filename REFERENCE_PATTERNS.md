@@ -1,4 +1,4 @@
-# Borrowed Patterns
+# Reference Patterns
 
 Purpose: record external patterns worth translating into Dizzy without importing their authority, ontology, or infrastructure wholesale.
 
@@ -13,7 +13,7 @@ Reviewed sources:
 
 ## Intake Rule
 
-Borrow mechanisms, not metaphysics.
+Translate mechanisms, not metaphysics.
 
 Accept patterns when they:
 
@@ -24,7 +24,7 @@ Accept patterns when they:
 - improve graceful degradation
 - preserve local-first control
 
-Reject or quarantine patterns when they:
+Leave patterns unpromoted when they:
 
 - imply personhood, attachment, or companion ontology
 - require mandatory memory search before every response
@@ -150,7 +150,7 @@ Tier 2: operator value
 
 - `maintain` operational brief: recent work, pending promotion debt, stale memories, unresolved friction, suggested smallest next action.
 - Decay/dedup report mode for memory and trajectories.
-- External pattern drift check: borrowed patterns remain suggestions unless promoted.
+- External pattern drift check: reference patterns remain suggestions unless promoted.
 - Wiki-style compiled knowledge area for stable project concepts.
 
 Tier 3: intelligence edge

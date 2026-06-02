@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-02T15:36:56.946Z",
+  "updated_at": "2026-06-02T15:55:21.548Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -147,8 +147,8 @@
     ],
     "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
   },
-  "borrowed_patterns": {
-    "file": "BORROWED_PATTERNS.md",
+  "reference_patterns": {
+    "file": "REFERENCE_PATTERNS.md",
     "status": "reference_material_not_authority",
     "sources": [
       "ClaudioDrews/memory-os",
@@ -328,6 +328,17 @@
     "missing_metadata": "warn",
     "invalid_metadata": "fail"
   },
+  "procedural_memory_boundary": {
+    "rule": "Procedural memory belongs in prompt, rule, runbook, or policy surfaces, not curated topic memory.",
+    "topic_memory_allows": [
+      "semantic",
+      "episodic"
+    ],
+    "topic_memory_disallows": [
+      "procedural"
+    ],
+    "validator": "scripts/memory_validate.mjs"
+  },
   "constitutional_coverage": {
     "manifest": "scripts/constitutional_claims.json",
     "checker": "scripts/prompt_drift_check.mjs",
@@ -485,6 +496,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "f3d9b4212bd2496f297c8d83cf12b0497e27a2b70f975d812ad77bc65c2c8910"
+    "design_md_sha256": "a43166872d324b0fdb638917e0a84e6a8021763d0f3bd6ae6770e6ae52270001"
   }
 }

@@ -365,18 +365,18 @@ Consequences:
 ### D-0019: External memory-system patterns are reference material, not authority
 
 Decision:
-- Use `BORROWED_PATTERNS.md` to track patterns from external repositories such as Memory OS, Project Samantha, and Icarus.
-- Borrow mechanisms that strengthen Dizzy's existing kernel: memory metadata, provenance, capture eligibility, source-labeled retrieval, dedup/decay reporting, sidecar isolation, and graceful degradation.
-- Reject or quarantine patterns that import companion ontology, attachment dynamics, mandatory recall rituals, autonomous emotional outreach, or heavy infrastructure without a proven local need.
+- Use `REFERENCE_PATTERNS.md` to track patterns from external repositories such as Memory OS, Project Samantha, Icarus, and Agent OSS.
+- Translate mechanisms that strengthen Dizzy's existing kernel: memory metadata, provenance, capture eligibility, source-labeled retrieval, dedup/decay reporting, sidecar isolation, and graceful degradation.
+- Leave unpromoted patterns that import companion ontology, attachment dynamics, mandatory recall rituals, autonomous emotional outreach, or heavy infrastructure without a proven local need.
 - External repositories under `_external/` remain denied for automatic retrieval by default.
 
 Rationale:
 - External systems can contain strong implementation patterns while carrying incompatible assumptions.
 - Dizzy needs memory metabolism and provenance more than it needs a new identity model or vector stack.
-- Borrowing should reduce burden and boundary risk, not create another authority layer.
+- External pattern translation should reduce burden and boundary risk, not create another authority layer.
 
 Consequences:
-- `BORROWED_PATTERNS.md` is a mechanism map, not governance.
+- `REFERENCE_PATTERNS.md` is a mechanism map, not governance.
 - Useful external patterns must be translated into Dizzy terms before becoming queue items.
 - Runtime adoption still requires promotion through prompt packs, code, tests, or maintenance checks.
 
@@ -601,8 +601,8 @@ Consequences:
 ### D-0031: Agent-OSS memory patterns are tactical, not architectural
 
 Decision:
-- Borrow selected memory-engineering patterns from `quarqlabs/agent-oss`.
-- Adopt typed memory vocabulary (`semantic`, `episodic`, `procedural`) as metadata, not as a new memory-native product center.
+- Translate selected memory-engineering patterns from `quarqlabs/agent-oss`.
+- Adopt typed memory vocabulary while keeping curated topic memory limited to `semantic` and `episodic`; `procedural` belongs in prompt/rule/runbook/policy routing.
 - Add temporal separation between captured/storage time and event time for curated memory topics.
 - Add a report-only retrieval plan to receipts: `standard` or `deep`, keywords, threshold hint, and REQUIRED_DATA fallback availability.
 - Leave second-pass retrieval, structured extractors, async learning, and automatic memory mutation unpromoted unless a concrete Dizzy need appears.
@@ -838,8 +838,8 @@ Edit this block when you want to change what agents read.
     ],
     "rule": "Tier 1 unresolved work outranks Tier 3 novelty."
   },
-  "borrowed_patterns": {
-    "file": "BORROWED_PATTERNS.md",
+  "reference_patterns": {
+    "file": "REFERENCE_PATTERNS.md",
     "status": "reference_material_not_authority",
     "sources": [
       "ClaudioDrews/memory-os",
@@ -1013,6 +1013,17 @@ Edit this block when you want to change what agents read.
     "validator": "scripts/memory_validate.mjs",
     "missing_metadata": "warn",
     "invalid_metadata": "fail"
+  },
+  "procedural_memory_boundary": {
+    "rule": "Procedural memory belongs in prompt, rule, runbook, or policy surfaces, not curated topic memory.",
+    "topic_memory_allows": [
+      "semantic",
+      "episodic"
+    ],
+    "topic_memory_disallows": [
+      "procedural"
+    ],
+    "validator": "scripts/memory_validate.mjs"
   },
   "constitutional_coverage": {
     "manifest": "scripts/constitutional_claims.json",
