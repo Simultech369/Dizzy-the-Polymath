@@ -1,11 +1,15 @@
 ---
+memory_type: semantic
 memory_class: assistant_observation
 captured_at: 2026-06-01
+event_time: 2026-06-01
+event_time_basis: project_research_session
 source: operator_reviewed
 scope: project
 confidence: medium
 freshness_window: review_before_world-model_build
 sensitivity_class: normal
+quantitative_attribution: none
 zone_origin: private_self
 zone_allowed: private_self,trusted_collaborator
 last_reviewed: 2026-06-02

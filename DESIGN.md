@@ -598,6 +598,27 @@ Consequences:
 
 ---
 
+### D-0031: Agent-OSS memory patterns are tactical, not architectural
+
+Decision:
+- Borrow selected memory-engineering patterns from `quarqlabs/agent-oss`.
+- Adopt typed memory vocabulary (`semantic`, `episodic`, `procedural`) as metadata, not as a new memory-native product center.
+- Add temporal separation between captured/storage time and event time for curated memory topics.
+- Add a report-only retrieval plan to receipts: `standard` or `deep`, keywords, threshold hint, and REQUIRED_DATA fallback availability.
+- Leave second-pass retrieval, structured extractors, async learning, and automatic memory mutation unpromoted unless a concrete Dizzy need appears.
+
+Rationale:
+- Agent-OSS is strong at memory fidelity: typed memory, temporal truth, quantitative attribution, and self-correcting retrieval.
+- Dizzy should use those ideas to reduce false coherence and retrieval sloppiness, not become a benchmark-optimized memory agent.
+- Report-only planning preserves operator visibility without adding background proactivity or hidden memory writes.
+
+Consequences:
+- `scripts/memory_validate.mjs` validates typed/temporal/numeric metadata fields on curated topic files.
+- `capability_receipt.retrieval_audit.plan` exposes retrieval mode and REQUIRED_DATA fallback status.
+- Future hybrid retrieval can build from this contract if needed; the current pass stays at metadata and report-only planning.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -823,16 +844,27 @@ Edit this block when you want to change what agents read.
     "sources": [
       "ClaudioDrews/memory-os",
       "ClaudioDrews/project-samantha",
-      "ClaudioDrews/icarus-plugin"
+      "ClaudioDrews/icarus-plugin",
+      "quarqlabs/agent-oss"
     ],
     "take": [
       "capture_eligibility",
       "provenance_required_memory",
       "source_labeled_retrieval",
       "memory_decay_and_dedup_reports",
+      "typed_memory_metadata",
+      "event_time_vs_storage_time",
+      "quantitative_attribution",
+      "report_only_retrieval_plan",
       "sidecar_isolation",
       "graceful_degradation",
       "silent_heartbeat_ok"
+    ],
+    "reference_only_until_needed": [
+      "memory_native_product_framing",
+      "background_async_learning",
+      "benchmark_optimization",
+      "full_langgraph_orchestration"
     ],
     "avoid": [
       "companion_ontology",
@@ -876,7 +908,13 @@ Edit this block when you want to change what agents read.
       "trajectory_ledger"
     ],
     "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
-    "blocked_fallback_path": "blocked_by_trust_zone"
+    "blocked_fallback_path": "blocked_by_trust_zone",
+    "plan": {
+      "module": "lib/retrieval_plan.mjs",
+      "modes": ["standard", "deep"],
+      "required_data_fallback": "report_only",
+      "auto_second_pass": false
+    }
   },
   "memory_metabolism": {
     "module": "lib/memory_metabolism.mjs",
@@ -957,12 +995,16 @@ Edit this block when you want to change what agents read.
       "memory/topics/*.md"
     ],
     "required_frontmatter": [
+      "memory_type",
       "memory_class",
       "captured_at",
+      "event_time",
+      "event_time_basis",
       "source",
       "confidence",
       "freshness_window",
       "sensitivity_class",
+      "quantitative_attribution",
       "zone_origin",
       "zone_allowed",
       "last_reviewed",

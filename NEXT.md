@@ -67,6 +67,7 @@ Rules:
 - W-0027: Added default prompt-pack byte budgets to `scripts/prompt_drift_check.mjs` so constitutional compression has a mechanical growth check.
 - W-0037: Added `CONSTITUTIONAL_KERNEL.md` as the first-loaded compact live kernel and included it in the default prompt pack.
 - W-0038: Forced `paid_public` prompt construction to a client-safe allowlist regardless of `DIZZY_PROMPT_PACK`, with safety coverage against `full` pack leakage.
+- W-0039: Borrowed selected `quarqlabs/agent-oss` memory patterns as Dizzy-native contracts: typed/temporal/numeric topic metadata and report-only retrieval plans in capability receipts.
 - W-0032: Added report-only memory metabolism scan to `maintain` for trajectory ledger provenance, duplicate patterns, malformed rows, and high-strength/low-confidence contradictions.
 - W-0033: Added `MEMORY_OWNERSHIP.md` and maintain coverage check for known memory-like durable surfaces.
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.

@@ -1,11 +1,15 @@
 ---
+memory_type: semantic
 memory_class: project_decision
 captured_at: 2026-06-01
+event_time: 2026-06-01
+event_time_basis: doctrine_review_session
 source: operator_reviewed
 scope: project
 confidence: high
 freshness_window: review_when_doctrine_changes
 sensitivity_class: normal
+quantitative_attribution: none
 zone_origin: private_self
 zone_allowed: private_self,trusted_collaborator
 last_reviewed: 2026-06-02

@@ -9,6 +9,7 @@ Reviewed sources:
 - `ClaudioDrews/memory-os`
 - `ClaudioDrews/project-samantha`
 - `ClaudioDrews/icarus-plugin`
+- `quarqlabs/agent-oss`
 
 ## Intake Rule
 
@@ -108,6 +109,32 @@ Avoid:
 - Companion identity, emergent personhood, first-person inner-life claims, or autonomous emotional outreach.
 - Mandatory update-at-least-one-file-per-session rules.
 - Random emotional-word retrieval for Dizzy private work; use edge hypotheses tied to task context instead.
+
+## Quarq Agent OSS
+
+Useful patterns:
+
+- Typed memory separation: semantic facts, episodic events, and procedural rules should not share one authority shape.
+- Temporal truth discipline: storage/capture time is not the same thing as event time.
+- Quantitative attribution: numbers need owner, property, item, and exactness before they become evidence.
+- Hybrid retrieval planning: strict point-fact retrieval and wider timeline/total retrieval have different thresholds.
+- Required-data fallback: when evidence is missing, the system should request a targeted second pass instead of guessing.
+- Structured extractors: tables, timelines, quotes, budgets, metrics, and ratios can be preserved with higher fidelity than generic summaries.
+
+Translate into Dizzy:
+
+- Add `memory_type`, `event_time`, `event_time_basis`, and `quantitative_attribution` to curated topic metadata.
+- Add a report-only retrieval plan to capability receipts: `standard` vs `deep`, keywords, threshold hint, and REQUIRED_DATA fallback availability.
+- Keep second-pass retrieval report-only until trust-zone and receipt behavior prove stable.
+- Treat procedural memory as prompt/rule routing, not as hidden private-user preference injection across trust zones.
+
+Reference-only unless a concrete need appears:
+
+- Memory-native product framing.
+- Background async learning.
+- Automatic memory creation, update, or deletion.
+- Benchmark optimization.
+- Full LangGraph orchestration or broad tool routing.
 
 ## Dizzy Translation Queue
 

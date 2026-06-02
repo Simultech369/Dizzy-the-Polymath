@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-02T05:03:05.732Z",
+  "updated_at": "2026-06-02T15:36:56.946Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -153,16 +153,27 @@
     "sources": [
       "ClaudioDrews/memory-os",
       "ClaudioDrews/project-samantha",
-      "ClaudioDrews/icarus-plugin"
+      "ClaudioDrews/icarus-plugin",
+      "quarqlabs/agent-oss"
     ],
     "take": [
       "capture_eligibility",
       "provenance_required_memory",
       "source_labeled_retrieval",
       "memory_decay_and_dedup_reports",
+      "typed_memory_metadata",
+      "event_time_vs_storage_time",
+      "quantitative_attribution",
+      "report_only_retrieval_plan",
       "sidecar_isolation",
       "graceful_degradation",
       "silent_heartbeat_ok"
+    ],
+    "reference_only_until_needed": [
+      "memory_native_product_framing",
+      "background_async_learning",
+      "benchmark_optimization",
+      "full_langgraph_orchestration"
     ],
     "avoid": [
       "companion_ontology",
@@ -206,7 +217,16 @@
       "trajectory_ledger"
     ],
     "fallback_path": "trusted_markdown -> memory_graph -> trajectory_ledger",
-    "blocked_fallback_path": "blocked_by_trust_zone"
+    "blocked_fallback_path": "blocked_by_trust_zone",
+    "plan": {
+      "module": "lib/retrieval_plan.mjs",
+      "modes": [
+        "standard",
+        "deep"
+      ],
+      "required_data_fallback": "report_only",
+      "auto_second_pass": false
+    }
   },
   "memory_metabolism": {
     "module": "lib/memory_metabolism.mjs",
@@ -289,12 +309,16 @@
       "memory/topics/*.md"
     ],
     "required_frontmatter": [
+      "memory_type",
       "memory_class",
       "captured_at",
+      "event_time",
+      "event_time_basis",
       "source",
       "confidence",
       "freshness_window",
       "sensitivity_class",
+      "quantitative_attribution",
       "zone_origin",
       "zone_allowed",
       "last_reviewed",
@@ -461,6 +485,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "ac25b35f4ef19063c90476e110683527b44c5a0f47c68cb81aaf970566b537a7"
+    "design_md_sha256": "f3d9b4212bd2496f297c8d83cf12b0497e27a2b70f975d812ad77bc65c2c8910"
   }
 }

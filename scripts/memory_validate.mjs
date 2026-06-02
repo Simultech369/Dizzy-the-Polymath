@@ -122,12 +122,16 @@ function validateTopicMetadata(rel, text) {
   }
 
   const required = [
+    "memory_type",
     "memory_class",
     "captured_at",
+    "event_time",
+    "event_time_basis",
     "source",
     "confidence",
     "freshness_window",
     "sensitivity_class",
+    "quantitative_attribution",
     "zone_origin",
     "zone_allowed",
     "last_reviewed",
@@ -138,11 +142,13 @@ function validateTopicMetadata(rel, text) {
   }
 
   const enums = {
+    memory_type: ["semantic", "episodic", "procedural"],
     memory_class: ["user_claim", "assistant_observation", "project_decision", "reusable_pattern"],
     source: ["operator_reviewed", "assistant_proposed", "runtime_generated", "imported_reference"],
     scope: ["private", "project", "client", "public", "operational"],
     confidence: ["low", "medium", "high"],
     sensitivity_class: ["normal", "sensitive", "do_not_export"],
+    quantitative_attribution: ["none", "required", "present"],
     zone_origin: ["private_self", "trusted_collaborator", "outside_contact", "paid_public", "project"],
   };
   for (const [key, allowed] of Object.entries(enums)) {
@@ -151,7 +157,7 @@ function validateTopicMetadata(rel, text) {
     }
   }
 
-  for (const key of ["captured_at", "last_reviewed"]) {
+  for (const key of ["captured_at", "event_time", "last_reviewed"]) {
     if (data[key] && Number.isNaN(new Date(`${data[key]}T00:00:00Z`).getTime())) {
       errors.push(`${rel}: invalid ${key} '${data[key]}'`);
     }

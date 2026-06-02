@@ -10,6 +10,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_gra
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
+import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { validateExternalUrl } from "../lib/tools.mjs";
@@ -172,6 +173,7 @@ function testCapabilityReceipts() {
   assert.deepEqual(paidReceipt.retrieved_files, []);
   assert.equal(paidReceipt.retrieved_count, 0);
   assert.equal(paidReceipt.retrieval_audit.allowed, false);
+  assert.equal(paidReceipt.retrieval_audit.plan, null);
   assert.equal(paidReceipt.retrieval_audit.blocked_reason, "trust_zone_blocks_repo_retrieval");
   assert.equal(paidReceipt.retrieval_audit.rag.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.memory_graph.attempted, false);
@@ -216,6 +218,21 @@ function testCapabilityReceipts() {
   assert.equal(privateReceipt.boundary_crossing.allowed_source_context.includes("private_memory"), true);
   assert.equal(privateReceipt.boundary_crossing.redaction_duty, "none_for_private_core");
   assert.equal(privateReceipt.boundary_crossing.revocation_or_deletion_path, "operator_edit_or_delete_local_memory");
+}
+
+function testRetrievalPlan() {
+  const standard = buildRetrievalPlan("What is the civic doctrine?", { trustZone: "private_self", retrievalAllowed: true });
+  assert.equal(standard.mode, "standard");
+  assert.equal(standard.required_data_fallback.auto_second_pass, false);
+
+  const deep = buildRetrievalPlan("What was the exact total cost over time?", { trustZone: "private_self", retrievalAllowed: true });
+  assert.equal(deep.mode, "deep");
+  assert.equal(deep.required_data_fallback.status, "available_report_only");
+  assert.equal(deep.required_data_fallback.auto_second_pass, false);
+
+  const blocked = buildRetrievalPlan("What was the exact total?", { trustZone: "paid_public", retrievalAllowed: false });
+  assert.equal(blocked.retrieval_allowed, false);
+  assert.equal(blocked.required_data_fallback.status, "not_requested");
 }
 
 function testQueueChannelSanitization() {
@@ -966,6 +983,7 @@ testFulfillmentGating();
 testRemoteMutationGating();
 testContinuityModes();
 testCapabilityReceipts();
+testRetrievalPlan();
 testQueueChannelSanitization();
 await testQueueMoveDueDelayed();
 await testQueueMoveDueDelayedFallback();
