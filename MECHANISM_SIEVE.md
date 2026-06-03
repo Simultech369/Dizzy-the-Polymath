@@ -116,6 +116,23 @@ Mechanism:
 - next experiment:
 ```
 
+## Case Study: Fiduciary Rebate Commons (Pharmacy-Fiduciary-Commons)
+
+Here is how the Sieve is run on the Fiduciary Rebate Commons:
+
+- **Capability**: Independent pharmacies can query expected vs. recorded rebate deposits on-chain via the Ledger of Omissions and file root-omission disputes via `flagExclusion` without requiring a pre-computed Merkle proof.
+- **Ownership**: The treasury smart contract is ownerless (no upgradeability). The `COUNCIL_ROLE` (3/5 multisig Safe) controls administrative epochs, and the `EXECUTOR_ROLE` (Timelock Controller) controls parameter adjustments. All on-chain records are permanently owned by the public.
+- **Funding**: Funded via third-party rebate deposits. Claim pass-throughs incur a 10% fee automatically routed on-chain to the community-governed `patientFund` at claim time.
+- **Governance**: Managed by a 3/5 Council, but subject to:
+  - Downward-ratchet volume caps.
+  - Strict parameter boundaries on setters.
+  - Escalation to Dizzy for off-chain arbitration (Nested Enterprises model).
+- **Enforcement**: Sanctions applied with public on-chain reason codes, contestable via the `appealSanction` registry which triggers a mandatory 14-day review window.
+- **Exit**: Protected via `PORTABILITY.md` specifications. Pharmacies and patients can export complete claims histories, signatures, Merkle proofs, and credential records in open formats (JSON/CSV) at any time.
+- **Capture Risk**: Mitigation of Council capture via petition-driven rotation thresholds (10% participant signatures). Mitigation of Sybil matching attacks via advocate credential requirements.
+- **Simplification**: Eliminates PBM/intermediary accounting opacity by making missing deposits permanently visible on-chain.
+- **Next Experiment**: Deploy the testnet version and run the first live matching epoch with small capital guardrails ($1,000 daily cap).
+
 ## Failure Modes
 
 - Mechanism cosplay: filling fields without changing the proposal.
