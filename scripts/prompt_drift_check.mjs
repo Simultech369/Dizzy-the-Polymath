@@ -76,6 +76,23 @@ function main() {
     }
   }
 
+  const designNorm = design.replace(/\r\n/g, "\n");
+  const promptCoreNorm = promptCore.replace(/\r\n/g, "\n");
+  const manifestStart = "<!-- MANIFEST_START -->";
+  const manifestEnd = "<!-- MANIFEST_END -->";
+
+  const startIndex = designNorm.indexOf(manifestStart);
+  const endIndex = designNorm.indexOf(manifestEnd);
+
+  if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+    errors.push("Could not find valid manifest block (<!-- MANIFEST_START --> ... <!-- MANIFEST_END -->) in DESIGN.md");
+  } else {
+    const manifestBlock = designNorm.substring(startIndex, endIndex + manifestEnd.length).trim();
+    if (!promptCoreNorm.includes(manifestBlock)) {
+      errors.push("Core Manifest block in PROMPT_CORE.md does not match the block in DESIGN.md verbatim.");
+    }
+  }
+
   const stateText = read("state.json");
   if (!includesAny(stateText, ["product_kernel"])) {
     warnings.push("state.json does not expose product_kernel; run node scripts/sync_state.mjs if DESIGN.md changed");

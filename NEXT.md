@@ -15,7 +15,6 @@ Rules:
 ---
 
 ## Work Queue
-
 - W-0023: Add status frontmatter or pruning discipline for `upgrades/active/`.
 
 ---

@@ -174,6 +174,181 @@ function color(status) {
   return "[red]";
 }
 
+function checkFileDates() {
+  const issues = [];
+  const memoryMdPath = path.resolve(ROOT, "MEMORY.md");
+  const designMdPath = path.resolve(ROOT, "DESIGN.md");
+  const stateJsonPath = path.resolve(ROOT, "state.json");
+  
+  if (fs.existsSync(designMdPath) && fs.existsSync(stateJsonPath)) {
+    const designMtime = fs.statSync(designMdPath).mtimeMs;
+    const stateMtime = fs.statSync(stateJsonPath).mtimeMs;
+    if (designMtime > stateMtime + 1000) {
+      issues.push("state.json is older than DESIGN.md. Needs sync (node scripts/sync_state.mjs).");
+    }
+  }
+  
+  if (fs.existsSync(memoryMdPath)) {
+    const memoryMtime = fs.statSync(memoryMdPath).mtimeMs;
+    const topicsDir = path.resolve(ROOT, "memory/topics");
+    if (fs.existsSync(topicsDir)) {
+      const topicFiles = fs.readdirSync(topicsDir).filter(f => f.endsWith(".md"));
+      let topicNewerThanIndex = false;
+      for (const file of topicFiles) {
+        const topicMtime = fs.statSync(path.resolve(topicsDir, file)).mtimeMs;
+        if (topicMtime > memoryMtime + 1000) {
+          topicNewerThanIndex = true;
+          break;
+        }
+      }
+      if (topicNewerThanIndex) {
+        issues.push("One or more memory/topics files are newer than MEMORY.md. The long-term memory index may need an update.");
+      }
+    }
+  }
+  return issues;
+}
+
+function scanZoneViolations() {
+  const violations = [];
+  const rootFiles = fs.readdirSync(ROOT, { withFileTypes: true });
+  for (const entry of rootFiles) {
+    if (entry.isFile()) {
+      const name = entry.name;
+      if (name.startsWith("session") || name.startsWith("telegram") || name.endsWith(".jsonl") || name.startsWith("private")) {
+        violations.push(`File ${name} in root directory might violate trust zone boundaries (contains session or private data).`);
+      }
+    }
+  }
+  
+  const filesToScan = rootFiles.filter(e => e.isFile() && (e.name.endsWith(".md") || e.name.endsWith(".json") || e.name.endsWith(".mjs")));
+  const sensitiveKeywords = [
+    /GEMINI_API_KEY\s*=\s*['"](?!(\.\.\.|\<.*\>))[^'"]+['"]/i,
+    /TELEGRAM_BOT_TOKEN\s*=\s*['"](?!(\.\.\.|\<.*\>))[^'"]+['"]/i,
+    /DIZZY_AUTH_TOKEN\s*=\s*['"](?!(\.\.\.|\<.*\>))[^'"]+['"]/i
+  ];
+  for (const file of filesToScan) {
+    const filePath = path.resolve(ROOT, file.name);
+    try {
+      const content = fs.readFileSync(filePath, "utf8");
+      for (const pattern of sensitiveKeywords) {
+        if (pattern.test(content)) {
+          violations.push(`File ${file.name} contains hardcoded API key or token (zone violation).`);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return violations;
+}
+
+function schemaCheckFiles() {
+  const issues = [];
+  
+  // 1. Validate Trajectories
+  const trajPath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
+  if (fs.existsSync(trajPath)) {
+    const lines = fs.readFileSync(trajPath, "utf8").split(/\r?\n/).filter(Boolean);
+    lines.forEach((line, index) => {
+      try {
+        const obj = JSON.parse(line);
+        if (!obj.goal) issues.push(`Trajectory line ${index + 1}: missing 'goal'`);
+        if (!obj.reusable_pattern) issues.push(`Trajectory line ${index + 1}: missing 'reusable_pattern'`);
+        if (!obj.reuse_tags || !Array.isArray(obj.reuse_tags) || obj.reuse_tags.length === 0) {
+          issues.push(`Trajectory line ${index + 1}: 'reuse_tags' must be a non-empty array`);
+        }
+        if (obj.strength !== undefined && (typeof obj.strength !== "number" || obj.strength < 1 || obj.strength > 10)) {
+          issues.push(`Trajectory line ${index + 1}: 'strength' must be a number between 1 and 10`);
+        }
+      } catch (e) {
+        issues.push(`Trajectory line ${index + 1}: invalid JSON: ${e.message}`);
+      }
+    });
+  }
+
+  // 2. Validate Friction Ledger
+  const fricPath = path.resolve(ROOT, process.env.DIZZY_FRICTION_PATH || "runtime/friction/ledger.jsonl");
+  if (fs.existsSync(fricPath)) {
+    const lines = fs.readFileSync(fricPath, "utf8").split(/\r?\n/).filter(Boolean);
+    lines.forEach((line, index) => {
+      try {
+        const obj = JSON.parse(line);
+        if (!obj.description) issues.push(`Friction line ${index + 1}: missing 'description'`);
+        if (!obj.friction_type) issues.push(`Friction line ${index + 1}: missing 'friction_type'`);
+        if (obj.severity !== undefined && (typeof obj.severity !== "number" || obj.severity < 1 || obj.severity > 10)) {
+          issues.push(`Friction line ${index + 1}: 'severity' must be a number between 1 and 10`);
+        }
+      } catch (e) {
+        issues.push(`Friction line ${index + 1}: invalid JSON: ${e.message}`);
+      }
+    });
+  }
+  
+  return issues;
+}
+
+function updateNextMdWithIssues(issues) {
+  const filePath = path.resolve(ROOT, "NEXT.md");
+  if (!fs.existsSync(filePath)) return;
+
+  let content = fs.readFileSync(filePath, "utf8");
+  content = content.replace(/\r\n/g, "\n");
+
+  const lines = content.split("\n");
+  const workQueueIndex = lines.findIndex((line) => line.trim().startsWith("## Work Queue"));
+  if (workQueueIndex === -1) return;
+
+  let nextSectionIndex = -1;
+  for (let i = workQueueIndex + 1; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("##") || lines[i].trim().startsWith("---")) {
+      nextSectionIndex = i;
+      break;
+    }
+  }
+  if (nextSectionIndex === -1) nextSectionIndex = lines.length;
+
+  const workQueueLines = lines.slice(workQueueIndex + 1, nextSectionIndex);
+  
+  const newTasks = [];
+  issues.forEach((issue) => {
+    const exists = workQueueLines.some((line) => line.toLowerCase().includes(issue.toLowerCase()));
+    if (!exists) {
+      newTasks.push(`- [ ] Maintenance: ${issue}`);
+    }
+  });
+
+  if (newTasks.length === 0) return;
+
+  const before = lines.slice(0, workQueueIndex + 1);
+  const queueContent = [];
+  for (const line of workQueueLines) {
+    if (line.trim() || queueContent.length > 0) {
+      queueContent.push(line);
+    }
+  }
+
+  while (queueContent.length > 0 && !queueContent[queueContent.length - 1].trim()) {
+    queueContent.pop();
+  }
+
+  if (queueContent.length > 0 && queueContent[queueContent.length - 1].trim()) {
+    queueContent.push("");
+  }
+  
+  newTasks.forEach((task) => {
+    queueContent.push(task);
+  });
+  
+  queueContent.push("");
+  
+  const after = lines.slice(nextSectionIndex);
+  
+  const updatedContent = [...before, ...queueContent, ...after].join("\n");
+  fs.writeFileSync(filePath, updatedContent, "utf8");
+}
+
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
@@ -183,13 +358,69 @@ function main() {
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
 
+  const dateIssues = checkFileDates();
+  const zoneViolations = scanZoneViolations();
+  const schemaFailures = schemaCheckFiles();
+
+  const allIssues = [];
+  for (const check of results) {
+    if (!check.ok) allIssues.push(`Check failed: ${check.label} (${check.id})`);
+  }
+  for (const finding of staleFindings) {
+    allIssues.push(`Stale signal: ${finding}`);
+  }
+  if (rootRoles.status === "yellow") {
+    rootRoles.unclassified.forEach(file => {
+      allIssues.push(`Unclassified root file: ${file}`);
+    });
+  }
+  allIssues.push(...dateIssues);
+  allIssues.push(...zoneViolations);
+  allIssues.push(...schemaFailures);
+
+  const isReport = process.argv.includes("--report");
+
+  if (isReport) {
+    updateNextMdWithIssues(allIssues);
+
+    console.log("# Dizzy Maintenance Report");
+    console.log(`Generated on: ${new Date().toISOString()}`);
+    console.log("");
+    console.log(`Overall Status: ${hardFailures.length ? "RED" : (allIssues.length ? "YELLOW" : "GREEN")}`);
+    console.log("");
+    console.log("## Standard Checks");
+    for (const result of results) {
+      console.log(`- [${result.ok ? "OK" : "FAIL"}] ${result.label} (${result.id})`);
+    }
+    console.log("");
+    console.log("## Additional Diagnostics");
+    console.log(`- **Date Issues**: ${dateIssues.length ? dateIssues.join("; ") : "None"}`);
+    console.log(`- **Zone Violations**: ${zoneViolations.length ? zoneViolations.join("; ") : "None"}`);
+    console.log(`- **Schema Failures**: ${schemaFailures.length ? schemaFailures.join("; ") : "None"}`);
+    console.log(`- **Root File Roles**: ${rootRoles.message}`);
+    console.log(`- **Trajectories**: ${trajectories.message}`);
+    console.log(`- **Friction**: ${friction.message}`);
+    console.log("");
+    console.log("## Actions Taken");
+    if (allIssues.length) {
+      console.log(`- Synchronized ${allIssues.length} maintenance issues to NEXT.md Work Queue.`);
+    } else {
+      console.log("- No issues found. Work Queue is clean.");
+    }
+    process.exit(hardFailures.length ? 1 : 0);
+    return;
+  }
+
   let overall = "green";
   if (
     softFailures.length ||
     staleFindings.length ||
     rootRoles.status === "yellow" ||
     trajectories.status === "yellow" ||
-    friction.status === "yellow"
+    friction.status === "yellow" ||
+    dateIssues.length ||
+    zoneViolations.length ||
+    schemaFailures.length
   ) overall = "yellow";
   if (hardFailures.length) overall = "red";
 
@@ -223,6 +454,24 @@ function main() {
   console.log(`${color(friction.status)} Friction ledger`);
   console.log(`  ${friction.message}`);
 
+  if (dateIssues.length) {
+    console.log("");
+    console.log("[yellow] Date Issues");
+    for (const issue of dateIssues) console.log(`  - ${issue}`);
+  }
+
+  if (zoneViolations.length) {
+    console.log("");
+    console.log("[yellow] Zone Violations");
+    for (const v of zoneViolations) console.log(`  - ${v}`);
+  }
+
+  if (schemaFailures.length) {
+    console.log("");
+    console.log("[yellow] Schema Failures");
+    for (const f of schemaFailures) console.log(`  - ${f}`);
+  }
+
   console.log("");
   console.log("Actionable next steps:");
   if (overall === "green") {
@@ -234,6 +483,9 @@ function main() {
     if (rootRoles.status === "yellow") console.log("- Classify new root files in FILE_ROLES.md or move/archive them.");
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
     if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
+    for (const issue of dateIssues) console.log(`- Date Sync Issue: ${issue}`);
+    for (const v of zoneViolations) console.log(`- Zone boundary violation: ${v}`);
+    for (const f of schemaFailures) console.log(`- Schema failure: ${f}`);
   }
 
   process.exit(hardFailures.length ? 1 : 0);
