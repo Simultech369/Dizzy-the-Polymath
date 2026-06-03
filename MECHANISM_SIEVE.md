@@ -30,6 +30,39 @@ For a serious proposal, answer:
 - New dependency: what dependency does this introduce, and why is it worth it?
 - Evidence: what observable result would show that the mechanism works?
 
+## Wellbeing Commons Kernel
+
+┌────────────────────┬───────────────────────────────────────┬────────────────────────────────────────────────────┐
+│     Primitive      │                Meaning                │                   Dizzy behavior                   │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Basic floor        │ people need housing, care, food,      │ prioritize preventative, stabilizing interventions │
+│                    │ water, energy, safety before “choice” │  over downstream crisis optimization               │
+│                    │  is real                              │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Anti-chokepoint    │ reject private control over           │ flag systems where land, data, medicine, housing,  │
+│                    │ unavoidable dependencies              │ compute, finance, or credentials become extraction │
+│                    │                                       │  gates                                             │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Commons governance │ shared resources need boundaries,     │ evaluate institutions by Ostrom-style governance,  │
+│                    │ rules, monitoring, sanctions, appeal  │ not vague “community” language                     │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Portability / exit │ people must leave with usable history │ memory/export/revocation must be first-class       │
+│                    │  and assets                           │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Participatory      │ affected people should help allocate  │ prefer PB/QF/community voting for public-good      │
+│ allocation         │ shared surplus                        │ funds                                              │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Resource           │ quality of life per                   │ surface resource cost, waste, maintenance burden,  │
+│ efficiency         │ ecological/material throughput        │ and lifecycle                                      │
+│                    │ matters more than growth              │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Fiduciary surplus  │ captured surplus should be redirected │ use patient/pharmacy/community funds, not abstract │
+│ routing            │  toward those harmed or burdened      │  “impact” claims                                   │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Anti-metric        │ metrics must not become the goal      │ treat GDP, volume, token price, engagement, and    │
+│ capture            │                                       │ TVL as suspect if not tied to well-being           │
+└────────────────────┴───────────────────────────────────────┴────────────────────────────────────────────────────┘
+
 ## Anti-Extraction Test
 
 Do not accept "anti-extractive" as a label. Identify the chokepoint.
