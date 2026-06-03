@@ -62,6 +62,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `MECHANISMS.md`
 - `ECONOMICS.md`
 - `DRIFT_AUDIT.md`
+- `PARALLEL_INFRASTRUCTURE_PATTERNS.md`
 
 ## Operations And Interfaces
 
