@@ -4,6 +4,8 @@ A local-first assistant runtime for bounded memory, trust zones, and accountable
 
 Dizzy helps a human preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency. The center is not companionship, not a generic chatbot, and not a marketplace persona. It is disciplined continuity across time, risk, and trust zones.
 
+**The first live execution layer running under Dizzy's judgment loop is the [Pharmacy Fiduciary Commons](file:///C:/Users/Josh/.gemini/antigravity/scratch/Pharmacy-Fiduciary-Commons/README.md), which implements the Wellbeing Commons Kernel to route pharmaceutical rebate surplus directly back to independent pharmacies and patients.**
+
 The repo is transparent without turning every working note into doctrine. Read it as a working instrument with a visible workshop attached: the runtime is small and bounded; the surrounding notes show how its judgment is being refined.
 
 ## Quick Start

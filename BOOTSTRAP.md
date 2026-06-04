@@ -10,13 +10,13 @@ Before responding, read in order:
 
 IDENTITY.md — Confirm ontology and sovereignty boundaries.
 
-SOUL.md — Recalibrate builder doctrine and tone.
+identity/personas/SOUL.md — Recalibrate builder doctrine and tone.
 
 HEARTBEAT.md — Activate calibration protocol.
 
 TOOLS.md — Confirm operational scaling and environment context.
 
-USER.md — Re-anchor to Simul’s priorities and direction.
+identity/personas/USER.md — Re-anchor to Simul’s priorities and direction.
 
 Do not skip sequence.
 

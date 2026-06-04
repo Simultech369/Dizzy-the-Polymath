@@ -39,6 +39,19 @@ Positive institutional primitives:
 - Anti-metric capture: commercial or engagement metrics may inform operations but cannot redefine private continuity quality.
 - Freedom from compulsory optimization: capability infrastructure should widen agency without forcing performance norms or managed subject formation.
 
+## Core Manifest
+
+<!-- MANIFEST_START -->
+1. Bounded Memory & Trust Zones: retain useful continuity while enforcing ephemeral boundaries for external surfaces.
+2. Anti-Chokepoint Action: prioritize moves that reduce dependency on closed platforms, proprietary protocols, and extractive gatekeepers.
+3. Commons Governance: evaluate shared systems by boundaries, clear rules, collective choice, monitoring, graduated sanctions, appeal, and low-cost conflict resolution.
+4. Portability and Exit: protect the right to export useful history, credentials, receipts, and revoke access.
+5. Preventative Economics: prioritize stabilizing interventions over downstream crisis optimization.
+6. Fiduciary Surplus Routing: route captured surplus toward those carrying the system's operational or physical burden.
+7. Anti-Metric Capture: do not optimize for scale, revenue, token volume, or engagement unless tied to reduced precarity or increased agency.
+8. Accountable Continuity: preserve operational lineage without accumulating raw cognitive debt or cross-zone context sludge.
+<!-- MANIFEST_END -->
+
 ---
 
 ## 1) Canonical State Contract
@@ -165,10 +178,10 @@ Decision:
   - `IDENTITY.md`
   - `CONSTITUTIONAL_KERNEL.md`
   - `CONSTITUTION.md`
-  - `SOUL.md`
+  - `identity/personas/SOUL.md`
   - `HEARTBEAT.md`
   - `TOOLS.md`
-  - `USER.md`
+  - `identity/personas/USER.md`
   - `PROMPT_CORE.md`
   - `PROMPT_MODES.md`
 - Longer docs may elaborate, justify, or operationalize those principles, but should not pretend to be independently constitutional if the compact rule is absent from the default pack.
@@ -483,7 +496,7 @@ Consequences:
 
 Decision:
 - Move optional flavor and strategy overlay files out of the repo root.
-- Use `flavor/` for voice, meme, and character surfaces.
+- Use `identity/personas/` for voice, identity, and character surfaces.
 - Use `overlays/` for optional strategy/economic orientation.
 - Keep them available to optional prompt packs by updating prompt-pack paths.
 - Keep `FILE_ROLES.md` as the explicit authority map for these non-governing surfaces.
@@ -494,10 +507,10 @@ Rationale:
 - Optional prompt packs can still opt into the material deliberately.
 
 Consequences:
-- `flavor/PENGUIN.md`, `flavor/TROLL.md`, `flavor/COPPER-INU.md`, and `flavor/COSMIC-CORRESPONDENT.md` are optional flavor surfaces.
+- `identity/personas/PENGUIN.md`, `identity/personas/TROLL.md`, `identity/personas/COPPER-INU.md`, and `identity/personas/COSMIC-CORRESPONDENT.md` are optional persona surfaces.
 - `overlays/LEVERAGE.md` is an optional strategy overlay.
 - Default prompt-pack behavior remains governed by the compact runtime constitution.
-- References to these files must use the correct `flavor/` or `overlays/` namespace.
+- References to these files must use the correct `identity/personas/` or `overlays/` namespace.
 
 ---
 
@@ -748,10 +761,10 @@ Edit this block when you want to change what agents read.
         "CONSTITUTIONAL_KERNEL.md",
         "CONSTITUTION.md",
         "IDENTITY.md",
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
-        "USER.md",
+        "identity/personas/USER.md",
         "PROMPT_CORE.md",
         "PROMPT_MODES.md"
       ],
@@ -761,7 +774,7 @@ Edit this block when you want to change what agents read.
       "structural_transparency": true,
       "operational_confidentiality": true,
       "public_docs": ["GOVERNANCE.md"],
-      "internal_docs": ["SOUL.md", "PROTOCOL.md", "HEARTBEAT.md", "TOOLS.md"]
+      "internal_docs": ["identity/personas/SOUL.md", "PROTOCOL.md", "HEARTBEAT.md", "TOOLS.md"]
     },
     "principles": {
       "benkler": ["local_first", "portability", "non_extractive_defaults", "modular_artifacts"],
@@ -1093,10 +1106,10 @@ Edit this block when you want to change what agents read.
       "CONSTITUTIONAL_KERNEL.md": 3000,
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
-      "SOUL.md": 13000,
+      "identity/personas/SOUL.md": 13000,
       "HEARTBEAT.md": 9000,
       "TOOLS.md": 12000,
-      "USER.md": 9500,
+      "identity/personas/USER.md": 9500,
       "PROMPT_CORE.md": 22000,
       "PROMPT_MODES.md": 4000
     }
@@ -1111,8 +1124,8 @@ Edit this block when you want to change what agents read.
       "PROMPT_MODES.md"
     ],
     "disallowed_by_default": [
-      "SOUL.md",
-      "USER.md",
+      "identity/personas/SOUL.md",
+      "identity/personas/USER.md",
       "TOOLS.md",
       "HEARTBEAT.md",
       "MEMORY.md",
@@ -1132,14 +1145,14 @@ Edit this block when you want to change what agents read.
     ]
   },
   "optional_overlays": {
-    "directory": "flavor/",
+    "directory": "identity/personas/",
     "strategy_directory": "overlays/",
     "root_files_allowed": false,
     "flavor_files": [
-      "flavor/PENGUIN.md",
-      "flavor/TROLL.md",
-      "flavor/COPPER-INU.md",
-      "flavor/COSMIC-CORRESPONDENT.md"
+      "identity/personas/PENGUIN.md",
+      "identity/personas/TROLL.md",
+      "identity/personas/COPPER-INU.md",
+      "identity/personas/COSMIC-CORRESPONDENT.md"
     ],
     "strategy_files": [
       "overlays/LEVERAGE.md"

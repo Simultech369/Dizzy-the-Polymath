@@ -66,6 +66,19 @@ That separation keeps:
 
 ## Status Vocabulary
 
+All upgrade proposals in `upgrades/active/` must start with a YAML frontmatter block defining ID, title, status, and dates:
+
+```yaml
+---
+id: W-0004
+title: Paid/Client Continuity Lifecycle
+status: runtime-enforced
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
+```
+
+Available statuses:
 - `runtime-enforced`: implemented in code, tests, or machine-facing behavior.
 - `constitutional`: governing prompt-pack or doctrine text.
 - `operator overlay`: manual practice or runbook-level discipline.

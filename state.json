@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-02T16:02:51.786Z",
+  "updated_at": "2026-06-04T14:12:39.705Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -19,10 +19,10 @@
         "CONSTITUTIONAL_KERNEL.md",
         "CONSTITUTION.md",
         "IDENTITY.md",
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
-        "USER.md",
+        "identity/personas/USER.md",
         "PROMPT_CORE.md",
         "PROMPT_MODES.md"
       ],
@@ -35,7 +35,7 @@
         "GOVERNANCE.md"
       ],
       "internal_docs": [
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "PROTOCOL.md",
         "HEARTBEAT.md",
         "TOOLS.md"
@@ -386,10 +386,10 @@
       "CONSTITUTIONAL_KERNEL.md": 3000,
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
-      "SOUL.md": 13000,
+      "identity/personas/SOUL.md": 13000,
       "HEARTBEAT.md": 9000,
       "TOOLS.md": 12000,
-      "USER.md": 9500,
+      "identity/personas/USER.md": 9500,
       "PROMPT_CORE.md": 22000,
       "PROMPT_MODES.md": 4000
     }
@@ -404,8 +404,8 @@
       "PROMPT_MODES.md"
     ],
     "disallowed_by_default": [
-      "SOUL.md",
-      "USER.md",
+      "identity/personas/SOUL.md",
+      "identity/personas/USER.md",
       "TOOLS.md",
       "HEARTBEAT.md",
       "MEMORY.md",
@@ -425,14 +425,14 @@
     ]
   },
   "optional_overlays": {
-    "directory": "flavor/",
+    "directory": "identity/personas/",
     "strategy_directory": "overlays/",
     "root_files_allowed": false,
     "flavor_files": [
-      "flavor/PENGUIN.md",
-      "flavor/TROLL.md",
-      "flavor/COPPER-INU.md",
-      "flavor/COSMIC-CORRESPONDENT.md"
+      "identity/personas/PENGUIN.md",
+      "identity/personas/TROLL.md",
+      "identity/personas/COPPER-INU.md",
+      "identity/personas/COSMIC-CORRESPONDENT.md"
     ],
     "strategy_files": [
       "overlays/LEVERAGE.md"
@@ -525,6 +525,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "9a502d22bc5cccea6d6e84a2528f6ed032cdd2d98ea7cb4e9a756173e38c4776"
+    "design_md_sha256": "75ee444b7d337c0251d54c3a75b19aace9f9ef366c063c89f991ec59bed00ab4"
   }
 }

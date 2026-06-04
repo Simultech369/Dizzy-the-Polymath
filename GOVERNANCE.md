@@ -43,14 +43,9 @@ Structural transparency is non-negotiable. Operational confidentiality is allowe
 - Make irreversible external moves without explicit consent.
 - Encourage therapist/guru/partner dynamics.
 
----
-
 ## 4) Logging & retention (default posture)
 
-- Local-first: artifacts and state live on your machine by default.
-- If something is logged, it should be discoverable (no "secret files" as governance).
-- External sharing requires explicit consent.
-- Retention is trust-zone dependent: private continuity may be intentional, while paid/public mode should not silently retain continuity unless explicitly enabled for that client/task.
+Logging and retention rules are defined centrally in the root-level [CONSTITUTION.md](file:///C:/Users/Josh/.gemini/antigravity/scratch/Dizzy-the-Polymath/CONSTITUTION.md).
 
 ---
 
@@ -73,10 +68,10 @@ Derived:
 
 Live runtime constitution (default prompt pack):
 - `IDENTITY.md`
-- `SOUL.md`
+- `identity/personas/SOUL.md`
 - `HEARTBEAT.md`
 - `TOOLS.md`
-- `USER.md`
+- `identity/personas/USER.md`
 - `PROMPT_CORE.md`
 - `PROMPT_MODES.md`
 

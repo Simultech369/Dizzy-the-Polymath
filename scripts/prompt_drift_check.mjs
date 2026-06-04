@@ -7,10 +7,10 @@ const REQUIRED_FILES = [
   "CONSTITUTIONAL_KERNEL.md",
   "CONSTITUTION.md",
   "IDENTITY.md",
-  "SOUL.md",
+  "identity/personas/SOUL.md",
   "HEARTBEAT.md",
   "TOOLS.md",
-  "USER.md",
+  "identity/personas/USER.md",
   "PROMPT_CORE.md",
   "PROMPT_MODES.md",
 ];
@@ -67,10 +67,10 @@ const PROMPT_FILE_BUDGETS = {
   "CONSTITUTIONAL_KERNEL.md": 3000,
   "CONSTITUTION.md": 6000,
   "IDENTITY.md": 7000,
-  "SOUL.md": 13000,
+  "identity/personas/SOUL.md": 13000,
   "HEARTBEAT.md": 9000,
   "TOOLS.md": 12000,
-  "USER.md": 9500,
+  "identity/personas/USER.md": 9500,
   "PROMPT_CORE.md": 22000,
   "PROMPT_MODES.md": 4000,
 };
@@ -132,6 +132,22 @@ function main() {
     }
   }
 
+  const manifestStart = "<!-- MANIFEST_START -->";
+  const manifestEnd = "<!-- MANIFEST_END -->";
+  const designNorm = design.replace(/\r\n/g, "\n");
+  const promptCoreNorm = promptCore.replace(/\r\n/g, "\n");
+  const startIndex = designNorm.indexOf(manifestStart);
+  const endIndex = designNorm.indexOf(manifestEnd);
+
+  if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+    errors.push("Could not find valid manifest block (<!-- MANIFEST_START --> ... <!-- MANIFEST_END -->) in DESIGN.md");
+  } else {
+    const manifestBlock = designNorm.substring(startIndex, endIndex + manifestEnd.length).trim();
+    if (!promptCoreNorm.includes(manifestBlock)) {
+      errors.push("Core Manifest block in PROMPT_CORE.md does not match the block in DESIGN.md verbatim.");
+    }
+  }
+
   const claimManifest = readJson("scripts/constitutional_claims.json");
   if (!Array.isArray(claimManifest)) {
     errors.push("missing or invalid scripts/constitutional_claims.json");
@@ -189,7 +205,7 @@ function main() {
   for (const file of clientSafeSources) {
     if (!promptBundleText.includes(file)) errors.push(`client-safe prompt allowlist missing ${file}`);
   }
-  for (const disallowed of ["SOUL.md", "USER.md", "TOOLS.md", "HEARTBEAT.md", "MEMORY.md", "flavor/"]) {
+  for (const disallowed of ["SOUL.md", "USER.md", "identity/personas/SOUL.md", "identity/personas/USER.md", "TOOLS.md", "HEARTBEAT.md", "MEMORY.md", "flavor/"]) {
     const clientSafeBlock = promptBundleText.split("const CLIENT_SAFE_PROMPT_FILES = [")[1]?.split("];")[0] || "";
     if (clientSafeBlock.includes(disallowed)) errors.push(`client-safe prompt allowlist includes disallowed source ${disallowed}`);
   }

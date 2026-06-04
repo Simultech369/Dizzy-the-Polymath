@@ -40,10 +40,10 @@ Restart the server after changing env vars.
 - `CONSTITUTIONAL_KERNEL.md`
 - `CONSTITUTION.md`
 - `IDENTITY.md`
-- `SOUL.md`
+- `identity/personas/SOUL.md`
 - `HEARTBEAT.md`
 - `TOOLS.md`
-- `USER.md`
+- `identity/personas/USER.md`
 - `PROMPT_CORE.md`
 - `PROMPT_MODES.md`
 
@@ -110,8 +110,8 @@ Best for:
 Add when needed:
 - `PROTOCOL.md`
 - `overlays/LEVERAGE.md`
-- `flavor/PENGUIN.md`
-- `flavor/COPPER-INU.md`
+- `identity/personas/PENGUIN.md`
+- `identity/personas/COPPER-INU.md`
 
 ### `ops`
 
@@ -148,7 +148,7 @@ Adds a broader but still bounded set of support docs.
 
 You can bypass packs and specify an exact comma-separated list:
 
-- `DIZZY_PROMPT_FILES=IDENTITY.md,SOUL.md,HEARTBEAT.md,TOOLS.md,USER.md,PROMPT_CORE.md,PROTOCOL.md`
+- `DIZZY_PROMPT_FILES=IDENTITY.md,identity/personas/SOUL.md,HEARTBEAT.md,TOOLS.md,identity/personas/USER.md,PROMPT_CORE.md,PROTOCOL.md`
 
 `DIZZY_PROMPT_PACK` wins if both are set. Unset it to use `DIZZY_PROMPT_FILES`.
 

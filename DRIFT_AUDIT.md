@@ -66,3 +66,4 @@ Purpose: label major docs and surfaces as `accurate`, `stale`, `aspirational`, o
 2. Add one Redis-backed integration test outside the current fake-redis test layer when a local Redis service is available.
 3. Either trim `MARKETPLACE_PROTOCOL.md` to current reality or add explicit “operator-mediated” language so it does not over-claim automation.
 4. Decide whether the marketplace/profile endpoints are informational only or part of a real public contract, then document them accordingly.
+5. Metrics check: Ensure all active projects under judgment optimize for real well-being metrics (e.g. patients assisted, pharmacies supported, access gaps closed, carbon efficiency) rather than TVL, deposit volume, or token price.

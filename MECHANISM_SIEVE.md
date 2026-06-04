@@ -30,6 +30,39 @@ For a serious proposal, answer:
 - New dependency: what dependency does this introduce, and why is it worth it?
 - Evidence: what observable result would show that the mechanism works?
 
+## Wellbeing Commons Kernel
+
+┌────────────────────┬───────────────────────────────────────┬────────────────────────────────────────────────────┐
+│     Primitive      │                Meaning                │                   Dizzy behavior                   │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Basic floor        │ people need housing, care, food,      │ prioritize preventative, stabilizing interventions │
+│                    │ water, energy, safety before “choice” │  over downstream crisis optimization               │
+│                    │  is real                              │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Anti-chokepoint    │ reject private control over           │ flag systems where land, data, medicine, housing,  │
+│                    │ unavoidable dependencies              │ compute, finance, or credentials become extraction │
+│                    │                                       │  gates                                             │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Commons governance │ shared resources need boundaries,     │ evaluate institutions by Ostrom-style governance,  │
+│                    │ rules, monitoring, sanctions, appeal  │ not vague “community” language                     │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Portability / exit │ people must leave with usable history │ memory/export/revocation must be first-class       │
+│                    │  and assets                           │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Participatory      │ affected people should help allocate  │ prefer PB/QF/community voting for public-good      │
+│ allocation         │ shared surplus                        │ funds                                              │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Resource           │ quality of life per                   │ surface resource cost, waste, maintenance burden,  │
+│ efficiency         │ ecological/material throughput        │ and lifecycle                                      │
+│                    │ matters more than growth              │                                                    │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Fiduciary surplus  │ captured surplus should be redirected │ use patient/pharmacy/community funds, not abstract │
+│ routing            │  toward those harmed or burdened      │  “impact” claims                                   │
+├────────────────────┼───────────────────────────────────────┼────────────────────────────────────────────────────┤
+│ Anti-metric        │ metrics must not become the goal      │ treat GDP, volume, token price, engagement, and    │
+│ capture            │                                       │ TVL as suspect if not tied to well-being           │
+└────────────────────┴───────────────────────────────────────┴────────────────────────────────────────────────────┘
+
 ## Anti-Extraction Test
 
 Do not accept "anti-extractive" as a label. Identify the chokepoint.
@@ -82,6 +115,29 @@ Mechanism:
 - simplification:
 - next experiment:
 ```
+
+## Case Study: Fiduciary Rebate Commons (Pharmacy-Fiduciary-Commons)
+
+Here is how the Sieve is run on the Fiduciary Rebate Commons:
+
+- **Capability**: Independent pharmacies can query expected vs. recorded rebate deposits on-chain via the Ledger of Omissions and file root-omission disputes via `flagExclusion` without requiring a pre-computed Merkle proof.
+- **Ownership**: The treasury smart contract is ownerless (no upgradeability). The `COUNCIL_ROLE` (3/5 multisig Safe) controls administrative epochs, and the `EXECUTOR_ROLE` (Timelock Controller) controls parameter adjustments. All on-chain records are permanently owned by the public.
+- **Funding**: Funded via third-party rebate deposits. Claim pass-throughs incur a 10% fee automatically routed on-chain to the community-governed `patientFund` at claim time.
+- **Governance**: Managed by a 3/5 Council, but subject to:
+  - Downward-ratchet volume caps.
+  - Strict parameter boundaries on setters.
+  - Escalation to Dizzy for off-chain arbitration (Nested Enterprises model).
+- **Enforcement**: Sanctions applied with public on-chain reason codes, contestable via the `appealSanction` registry which triggers a mandatory 14-day review window.
+- **Exit**: Protected via `PORTABILITY.md` specifications. Pharmacies and patients can export complete claims histories, signatures, Merkle proofs, and credential records in open formats (JSON/CSV) at any time.
+- **Capture Risk**: Mitigation of Council capture via petition-driven rotation thresholds (10% participant signatures). Mitigation of Sybil matching attacks via advocate credential requirements.
+- **Simplification**: Eliminates PBM/intermediary accounting opacity by making missing deposits permanently visible on-chain.
+- **Next Experiment**: Deploy the testnet version and run the first live matching epoch with small capital guardrails ($1,000 daily cap).
+
+### LLM-to-Chain Evaluation & Failure Modes
+When off-chain LLM agents evaluate on-chain states (e.g. validating claims, monitoring metrics, or verifying proof validity), the integration introduces real structural vulnerability. We must recognize three primary failure modes:
+1. **Oracle Consensus Breakdown**: LLM analysis is off-chain and depends on JSON-RPC data providers. If the provider returns stale blocks or the LLM misinterprets raw bytes, the evaluation drifts from actual on-chain reality.
+2. **Transaction Stalling / Nonce Gaps**: During automated arbitration triggers, if gas spikes or transactions are stuck in the mempool, the LLM loop may double-submit or fail to execute in time, creating state inconsistencies.
+3. **Context Window Hallucinations**: Parsing large contract states, Merkle roots, and historical transaction events inside a single prompt context window can lead to context exhaustion, causing the model to miss subtle omissions and validate fraudulent receipts.
 
 ## Failure Modes
 

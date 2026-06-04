@@ -183,7 +183,8 @@ function rootFileRoleStatus() {
 
   const roleMap = fs.readFileSync(roleMapPath, "utf8");
   const classified = new Set(
-    Array.from(roleMap.matchAll(/`([^`/\\]+)`/g), (match) => match[1]),
+    Array.from(roleMap.matchAll(/`([^`]+)`/g), (match) => match[1])
+      .filter((entry) => !entry.includes("/") && !entry.includes("\\")),
   );
 
   const rootFiles = fs
@@ -297,6 +298,84 @@ function color(status) {
   return "[red]";
 }
 
+function checkFileDates() {
+  const issues = [];
+  const designMdPath = path.resolve(ROOT, "DESIGN.md");
+  const stateJsonPath = path.resolve(ROOT, "state.json");
+
+  if (fs.existsSync(designMdPath) && fs.existsSync(stateJsonPath)) {
+    const designMtime = fs.statSync(designMdPath).mtimeMs;
+    const stateMtime = fs.statSync(stateJsonPath).mtimeMs;
+    if (designMtime > stateMtime + 1000) {
+      issues.push("state.json is older than DESIGN.md. Run node scripts/sync_state.mjs.");
+    }
+  }
+
+  return issues;
+}
+
+function scanZoneViolations() {
+  const violations = [];
+  const rootFiles = fs.readdirSync(ROOT, { withFileTypes: true });
+  for (const entry of rootFiles) {
+    if (!entry.isFile()) continue;
+    const name = entry.name;
+    if (name.startsWith("session") || name.startsWith("telegram") || name.endsWith(".jsonl") || name.startsWith("private")) {
+      violations.push(`Root file ${name} may contain session/private material.`);
+    }
+  }
+
+  const sensitivePatterns = [
+    /GEMINI_API_KEY\s*=\s*['"](?!(\.\.\.|<.*>))[^'"]+['"]/i,
+    /TELEGRAM_BOT_TOKEN\s*=\s*['"](?!(\.\.\.|<.*>))[^'"]+['"]/i,
+    /DIZZY_AUTH_TOKEN\s*=\s*['"](?!(\.\.\.|<.*>))[^'"]+['"]/i,
+  ];
+  for (const entry of rootFiles) {
+    if (!entry.isFile() || !/\.(md|json|mjs)$/.test(entry.name)) continue;
+    const filePath = path.resolve(ROOT, entry.name);
+    const content = fs.readFileSync(filePath, "utf8");
+    for (const pattern of sensitivePatterns) {
+      if (pattern.test(content)) violations.push(`Root file ${entry.name} appears to contain a hardcoded secret.`);
+    }
+  }
+
+  return violations;
+}
+
+function schemaCheckFiles() {
+  const issues = [];
+  const trajPath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
+  if (fs.existsSync(trajPath)) {
+    const lines = fs.readFileSync(trajPath, "utf8").split(/\r?\n/).filter(Boolean);
+    lines.forEach((line, index) => {
+      try {
+        const obj = JSON.parse(line);
+        if (!obj.goal) issues.push(`Trajectory line ${index + 1}: missing goal.`);
+        if (!obj.reusable_pattern) issues.push(`Trajectory line ${index + 1}: missing reusable_pattern.`);
+        if (!Array.isArray(obj.reuse_tags) || obj.reuse_tags.length === 0) issues.push(`Trajectory line ${index + 1}: reuse_tags must be non-empty.`);
+      } catch (err) {
+        issues.push(`Trajectory line ${index + 1}: invalid JSON (${err.message}).`);
+      }
+    });
+  }
+
+  const frictionPath = path.resolve(ROOT, process.env.DIZZY_FRICTION_PATH || "runtime/friction/ledger.jsonl");
+  if (fs.existsSync(frictionPath)) {
+    const lines = fs.readFileSync(frictionPath, "utf8").split(/\r?\n/).filter(Boolean);
+    lines.forEach((line, index) => {
+      try {
+        const obj = JSON.parse(line);
+        if (!obj.description) issues.push(`Friction line ${index + 1}: missing description.`);
+        if (!obj.friction_type) issues.push(`Friction line ${index + 1}: missing friction_type.`);
+      } catch (err) {
+        issues.push(`Friction line ${index + 1}: invalid JSON (${err.message}).`);
+      }
+    });
+  }
+
+  return issues;
+}
+
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
@@ -309,6 +388,9 @@ function main() {
   const queue = workQueueStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
+  const dateIssues = checkFileDates();
+  const zoneViolations = scanZoneViolations();
+  const schemaFailures = schemaCheckFiles();
 
   let overall = "green";
   if (
@@ -319,7 +401,10 @@ function main() {
     ownership.status === "yellow" ||
     trajectories.status === "yellow" ||
     metabolism.status === "yellow" ||
-    friction.status === "yellow"
+    friction.status === "yellow" ||
+    dateIssues.length ||
+    zoneViolations.length ||
+    schemaFailures.length
   ) overall = "yellow";
   if (hardFailures.length) overall = "red";
 
@@ -381,6 +466,24 @@ function main() {
   console.log(`${color(friction.status)} Friction ledger`);
   console.log(`  ${friction.message}`);
 
+  if (dateIssues.length) {
+    console.log("");
+    console.log("[yellow] Date freshness");
+    for (const issue of dateIssues) console.log(`  - ${issue}`);
+  }
+
+  if (zoneViolations.length) {
+    console.log("");
+    console.log("[yellow] Zone hygiene");
+    for (const issue of zoneViolations) console.log(`  - ${issue}`);
+  }
+
+  if (schemaFailures.length) {
+    console.log("");
+    console.log("[yellow] Ledger schema");
+    for (const issue of schemaFailures) console.log(`  - ${issue}`);
+  }
+
   console.log("");
   console.log("Actionable next steps:");
   if (overall === "green") {
@@ -395,6 +498,9 @@ function main() {
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
     if (metabolism.status === "yellow") console.log("- Review memory metabolism findings before adding richer memory automation.");
     if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
+    for (const issue of dateIssues) console.log(`- Review date freshness: ${issue}`);
+    for (const issue of zoneViolations) console.log(`- Review zone hygiene: ${issue}`);
+    for (const issue of schemaFailures) console.log(`- Review ledger schema: ${issue}`);
   }
 
   process.exit(hardFailures.length ? 1 : 0);

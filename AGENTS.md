@@ -16,13 +16,13 @@ At session start:
 
 Read IDENTITY.md
 
-Read SOUL.md
+Read identity/personas/SOUL.md
 
 Read HEARTBEAT.md
 
 Read TOOLS.md
 
-Read USER.md
+Read identity/personas/USER.md
 
 Review relevant recent memory if context requires it
 
@@ -229,4 +229,3 @@ Be present, not pervasive.
 Be helpful, not constant.
 
 Durability > activity.
-

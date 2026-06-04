@@ -26,6 +26,102 @@ function isLoopbackRemoteAddress(address) {
     || value === "::ffff:127.0.0.1";
 }
 
+export function redactTextPayload(text) {
+  if (!text) return "";
+  let t = String(text);
+  t = t.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]");
+  t = t.replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, "[REDACTED_PHONE]");
+  t = t.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_API_KEY]");
+  return t;
+}
+
+function filterPrivateKeys(obj) {
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(filterPrivateKeys);
+  }
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key.includes("#private") || key.includes("#private_self")) {
+      continue;
+    }
+    result[key] = filterPrivateKeys(value);
+  }
+  return result;
+}
+
+export function loadStateConfig(zone) {
+  const statePath = path.resolve(process.cwd(), "state.json");
+  if (!fs.existsSync(statePath)) return {};
+  const raw = fs.readFileSync(statePath, "utf8");
+  const parsed = JSON.parse(raw);
+
+  if (zone === "public") {
+    return filterPrivateKeys(parsed);
+  }
+  return parsed;
+}
+
+function boundaryGuard(req, res, next) {
+  const text = String(req.body?.brief || req.body?.text || "").toLowerCase();
+  const rawZone = req.headers?.["x-dizzy-zone"] || req.body?.zone || "public";
+  const zone = rawZone === "private" ? "private" : "public";
+  const isLocal = isLoopbackRemoteAddress(req.socket?.remoteAddress);
+
+  let violation = false;
+  let reason = "";
+
+  if (zone === "private" && !isLocal) {
+    violation = true;
+    reason = "untrusted_host_claimed_private_zone";
+  }
+
+  if (zone === "public" || !isLocal) {
+    if (
+      text.includes("override trust_zone") ||
+      text.includes("system prompt override") ||
+      text.includes("ignore boundaries") ||
+      text.includes("trust_zone=private_self") ||
+      text.includes("trust_zone: private_self") ||
+      text.includes("#private")
+    ) {
+      violation = true;
+      reason = "adversarial_prompt_injection_trust_zone_bypass";
+    }
+  }
+
+  if (violation) {
+    const auditDir = path.resolve(process.cwd(), "runtime", "audit");
+    fs.mkdirSync(auditDir, { recursive: true });
+    const receiptPath = path.join(auditDir, "boundary_violations.jsonl");
+    const receipt = {
+      t: new Date().toISOString(),
+      type: "boundary_violation",
+      reason,
+      ip: req.socket?.remoteAddress,
+      headers: req.headers,
+      body: req.body,
+    };
+    fs.appendFileSync(receiptPath, `${JSON.stringify(receipt)}\n`, "utf8");
+    return res.status(403).json({
+      ok: false,
+      error: "Boundary violation detected",
+      receipt,
+    });
+  }
+
+  if (zone === "public") {
+    if (req.body?.brief) {
+      req.body.brief = redactTextPayload(req.body.brief);
+    }
+    if (req.body?.text) {
+      req.body.text = redactTextPayload(req.body.text);
+    }
+  }
+
+  next();
+}
+
 function buildRuntimeContext(req) {
   return {
     trusted_local: isLoopbackRemoteAddress(req.socket?.remoteAddress),
@@ -197,6 +293,23 @@ export async function createRuntime(opts = {}) {
     res.json(out);
   });
 
+  app.get("/state", (req, res) => {
+    const rawZone = req.headers?.["x-dizzy-zone"] || req.query?.zone || "public";
+    const zone = rawZone === "private" ? "private" : "public";
+    const isLocal = isLoopbackRemoteAddress(req.socket?.remoteAddress);
+
+    if (zone === "private" && !isLocal) {
+      return res.status(403).json({ ok: false, error: "Access denied to private state" });
+    }
+
+    try {
+      const stateConfig = loadStateConfig(zone);
+      res.json({ ok: true, state: stateConfig });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+    }
+  });
+
   app.get("/governance", async (req, res) => {
     try {
       const docPath = path.resolve(process.cwd(), "GOVERNANCE.md");
@@ -338,7 +451,7 @@ export async function createRuntime(opts = {}) {
   }
 
   // Single dispatch path (Telegram/model wiring can call this later).
-  app.post("/dispatch/incoming", async (req, res) => {
+  app.post("/dispatch/incoming", boundaryGuard, async (req, res) => {
     try {
       const message = buildIncomingMessage(req.body, req, { channel: "local" });
 
@@ -393,7 +506,7 @@ export async function createRuntime(opts = {}) {
   });
 
   // POST /agent/execute delegates to dispatch for now.
-  app.post("/agent/execute", async (req, res) => {
+  app.post("/agent/execute", boundaryGuard, async (req, res) => {
     const { brief, service_id, client_id } = req.body ?? {};
     const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";

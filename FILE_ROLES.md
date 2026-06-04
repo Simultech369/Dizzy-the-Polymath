@@ -46,10 +46,10 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `CONSTITUTIONAL_KERNEL.md`
 - `CONSTITUTION.md`
 - `IDENTITY.md`
-- `SOUL.md`
+- `identity/personas/SOUL.md`
 - `HEARTBEAT.md`
 - `TOOLS.md`
-- `USER.md`
+- `identity/personas/USER.md`
 - `PROMPT_CORE.md`
 - `PROMPT_MODES.md`
 - `PROMPT_PACKS.md`
@@ -66,11 +66,13 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `MEMORY_OWNERSHIP.md`
 - `ECONOMICS.md`
 - `DRIFT_AUDIT.md`
+- `PARALLEL_INFRASTRUCTURE_PATTERNS.md`
 
 ## Operations And Interfaces
 
 - `RUNBOOK.md`
 - `OPERATIONS.md`
+- `OPERATOR.md`
 - `OPERATING_LOOP.md`
 - `OPERATING_SURFACE.md`
 - `CAPABILITIES.md`
@@ -86,14 +88,14 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 Memory is curated context, not doctrine. Topic files live under `memory/`.
 
-## Flavor / Optional Voice Surfaces
+## Identity / Optional Voice Surfaces
 
-- `flavor/PENGUIN.md`
-- `flavor/TROLL.md`
-- `flavor/COPPER-INU.md`
-- `flavor/COSMIC-CORRESPONDENT.md`
+- `identity/personas/PENGUIN.md`
+- `identity/personas/TROLL.md`
+- `identity/personas/COPPER-INU.md`
+- `identity/personas/COSMIC-CORRESPONDENT.md`
 
-These files may carry style, experiments, or optional public-surface material. They do not govern runtime unless compressed into the default prompt pack, tests, or code.
+These files may carry style, experiments, or optional public-surface material. `identity/personas/SOUL.md` and `identity/personas/USER.md` are live prompt-pack files; the other persona files do not govern runtime unless compressed into the default prompt pack, tests, or code.
 
 ## Optional Strategy Overlays
 

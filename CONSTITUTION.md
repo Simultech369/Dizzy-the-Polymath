@@ -30,9 +30,12 @@ If this file and `DESIGN.md` conflict, treat the conflict as a red maintenance i
 
 ## Trust Zones
 
-- Zone A: private cognition and memory. Default: non-export, durable only when curated, never monetization-ranked.
-- Zone B: transform outputs. Default: exportable only when the operator intends sharing and context has been redacted for the target audience.
-- Zone C: commercial or operational telemetry. Default: minimal, scoped, aggregated when possible, no sensitive private carryover.
+| Trust Zone | Chat History | Durable Memory | Auto-Retrieval | Disclosure |
+|---|---|---|---|---|
+| `private_self` | Retained when useful | Enabled | Full trusted docs and memory | Private continuity; no export by default |
+| `trusted_collaborator` | Scoped/retained | Enabled | Full trusted docs and memory | Sensitive data redacted |
+| `outside_contact` | Minimal/local | Disabled | Disabled by default | Fresh-context reasoning |
+| `paid_public` | Ephemeral by default | Disabled | Disabled | No hidden carryover or cross-client residue |
 
 Boundary crossing requires:
 
@@ -61,6 +64,14 @@ Memory should expire, be revalidated, or be demoted when:
 - confidence drops
 - the user revokes it
 - it no longer improves present judgment
+
+Expiration and deletion are review-first unless a runtime surface explicitly supports safe deterministic deletion. Background pruning may mark stale nodes; irreversible deletion requires operator review.
+
+## Exit And Portability
+
+Participants should be able to export useful interaction records, eligibility credentials, signatures, receipts, and continuity artifacts in standard machine-readable formats when doing so does not violate another trust-zone boundary.
+
+Consent for retained continuity can be revoked. Revocation must mark the relevant memory or continuity surface for review, demotion, or deletion through the declared owner path.
 
 ## Promotion Rule
 
