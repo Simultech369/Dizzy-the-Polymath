@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-03T20:00:38.410Z",
+  "updated_at": "2026-06-04T07:50:23.301Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -15,10 +15,10 @@
     "runtime_constitution": {
       "default_prompt_pack_files": [
         "IDENTITY.md",
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
-        "USER.md",
+        "identity/personas/USER.md",
         "PROMPT_CORE.md",
         "PROMPT_MODES.md"
       ],
@@ -31,7 +31,7 @@
         "GOVERNANCE.md"
       ],
       "internal_docs": [
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "PROTOCOL.md",
         "HEARTBEAT.md",
         "TOOLS.md"
@@ -148,7 +148,8 @@
       "notify_drain_script": "scripts/telegram_notify_drain.mjs"
     }
   },
+  "memory_nodes": [],
   "derived_from": {
-    "design_md_sha256": "49e575dee255e2bfc799b4059ae2f8e92a4fc208351ea80bfba3cf741292bc61"
+    "design_md_sha256": "d25374d9abcde7c58a16ec00251d11a2e12ca08fcbbab24378f94fb9bf63ed10"
   }
 }

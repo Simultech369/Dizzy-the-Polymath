@@ -152,10 +152,10 @@ Decision:
 - Treat the default prompt pack as the live constitutional core for chat behavior.
 - Any principle important enough to govern runtime behavior must exist in compact form in the default pack files:
   - `IDENTITY.md`
-  - `SOUL.md`
+  - `identity/personas/SOUL.md`
   - `HEARTBEAT.md`
   - `TOOLS.md`
-  - `USER.md`
+  - `identity/personas/USER.md`
   - `PROMPT_CORE.md`
   - `PROMPT_MODES.md`
 - Longer docs may elaborate, justify, or operationalize those principles, but should not pretend to be independently constitutional if the compact rule is absent from the default pack.
@@ -363,28 +363,7 @@ Consequences:
 
 ### 3.3 Trust-Zone Runtime Matrix
 
-- `private_self`
-  - chat history: retained
-  - durable memory writes: allowed
-  - auto-retrieval: trusted doctrine + memory surfaces
-  - disclosure posture: fullest continuity, strongest anti-dependency guardrails
-- `trusted_collaborator`
-  - chat history: retained when explicitly part of the collaboration surface
-  - durable memory writes: allowed, but sensitive carryover should be explicit
-  - auto-retrieval: trusted doctrine + memory surfaces
-  - disclosure posture: narrower than private self
-- `outside_contact`
-  - chat history: minimal/local operational residue only
-  - durable memory writes: disabled by default
-  - auto-retrieval: disabled by default
-  - disclosure posture: fresh-context reasoning first
-- `paid_public`
-  - chat history: ephemeral by default; continuity only when explicitly enabled per client/task
-  - client continuity: scoped conversation history only, keyed by server-derived `client_id` + `service_id`
-  - durable memory writes: disabled
-  - auto-retrieval: disabled
-  - expiry policy: `7_days_inactivity_operator_deletable` until stronger lifecycle exists
-  - disclosure posture: no hidden private carryover, no cross-client residue
+Governance matrix moved to the root-level [CONSTITUTION.md](file:///C:/Users/Josh/.gemini/antigravity/scratch/Dizzy-the-Polymath/CONSTITUTION.md) to serve as the unified, centralized authority on trust boundaries and security policies.
 
 ### 3.4 Retrieval Surfaces
 
@@ -443,10 +422,10 @@ Edit this block when you want to change what agents read.
     "runtime_constitution": {
       "default_prompt_pack_files": [
         "IDENTITY.md",
-        "SOUL.md",
+        "identity/personas/SOUL.md",
         "HEARTBEAT.md",
         "TOOLS.md",
-        "USER.md",
+        "identity/personas/USER.md",
         "PROMPT_CORE.md",
         "PROMPT_MODES.md"
       ],
@@ -456,7 +435,7 @@ Edit this block when you want to change what agents read.
       "structural_transparency": true,
       "operational_confidentiality": true,
       "public_docs": ["GOVERNANCE.md"],
-      "internal_docs": ["SOUL.md", "PROTOCOL.md", "HEARTBEAT.md", "TOOLS.md"]
+      "internal_docs": ["identity/personas/SOUL.md", "PROTOCOL.md", "HEARTBEAT.md", "TOOLS.md"]
     },
     "principles": {
       "benkler": ["local_first", "portability", "non_extractive_defaults", "modular_artifacts"],
@@ -545,7 +524,8 @@ Edit this block when you want to change what agents read.
       "relay_script": "scripts/telegram_relay.mjs",
       "notify_drain_script": "scripts/telegram_notify_drain.mjs"
     }
-  }
+  },
+  "memory_nodes": []
 }
 ```
 <!-- STATE_JSON:END -->

@@ -133,6 +133,12 @@ Here is how the Sieve is run on the Fiduciary Rebate Commons:
 - **Simplification**: Eliminates PBM/intermediary accounting opacity by making missing deposits permanently visible on-chain.
 - **Next Experiment**: Deploy the testnet version and run the first live matching epoch with small capital guardrails ($1,000 daily cap).
 
+### LLM-to-Chain Evaluation & Failure Modes
+When off-chain LLM agents evaluate on-chain states (e.g. validating claims, monitoring metrics, or verifying proof validity), the integration introduces real structural vulnerability. We must recognize three primary failure modes:
+1. **Oracle Consensus Breakdown**: LLM analysis is off-chain and depends on JSON-RPC data providers. If the provider returns stale blocks or the LLM misinterprets raw bytes, the evaluation drifts from actual on-chain reality.
+2. **Transaction Stalling / Nonce Gaps**: During automated arbitration triggers, if gas spikes or transactions are stuck in the mempool, the LLM loop may double-submit or fail to execute in time, creating state inconsistencies.
+3. **Context Window Hallucinations**: Parsing large contract states, Merkle roots, and historical transaction events inside a single prompt context window can lead to context exhaustion, causing the model to miss subtle omissions and validate fraudulent receipts.
+
 ## Failure Modes
 
 - Mechanism cosplay: filling fields without changing the proposal.
