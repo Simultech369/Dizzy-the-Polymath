@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-04T14:12:39.705Z",
+  "updated_at": "2026-06-04T22:09:19.208Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -253,6 +253,16 @@
         "standard",
         "deep"
       ],
+      "pools": [
+        "core",
+        "stale_important",
+        "edge_hypothesis"
+      ],
+      "pool_policy": {
+        "status": "report_only",
+        "auto_promote": false,
+        "auto_write_memory": false
+      },
       "required_data_fallback": "report_only",
       "auto_second_pass": false
     }
@@ -525,6 +535,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "75ee444b7d337c0251d54c3a75b19aace9f9ef366c063c89f991ec59bed00ab4"
+    "design_md_sha256": "f9045574b58a1bac8f63fa499912a8d24f8a97b7f7d2d48a494a4d9c35c8785f"
   }
 }

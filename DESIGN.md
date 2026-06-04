@@ -653,6 +653,29 @@ Consequences:
 
 ---
 
+### D-0033: Three-pool retrieval starts report-only
+
+Decision:
+- Extend `lib/retrieval_plan.mjs` with three retrieval attention pools:
+  - `core`: fresh trusted context likely to answer the request directly.
+  - `stale_important`: older but important context that may matter only with explicit freshness warnings.
+  - `edge_hypothesis`: weak or adjacent connections that may inspire hypotheses but cannot answer as authority.
+- Keep pool selection report-only inside `capability_receipt.retrieval_audit.plan`.
+- Do not change retrieval results, thresholds, memory writes, or second-pass behavior from pool labels alone.
+- Paid/public and other retrieval-blocked trust zones must still mark `core` as `blocked_by_trust_zone` and keep all pools non-authoritative.
+
+Rationale:
+- Continuity-and-judgment needs more nuance than “retrieval on/off,” but richer retrieval should not silently become authority.
+- Separating stale-important and edge-hypothesis context reduces compression laundering and speculative overreach.
+- Pool labels create operator visibility before any future hybrid retrieval implementation.
+
+Consequences:
+- Receipts can show why a query suggests broad recall, stale-context review, or hypothesis-only connection finding.
+- Safety checks pin `pool_policy.status=report_only`, `auto_promote=false`, and `auto_write_memory=false`.
+- `W-0035` is complete as a prototype; any future pool-driven retrieval must be promoted through a new decision and tests.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -975,6 +998,16 @@ Edit this block when you want to change what agents read.
     "plan": {
       "module": "lib/retrieval_plan.mjs",
       "modes": ["standard", "deep"],
+      "pools": [
+        "core",
+        "stale_important",
+        "edge_hypothesis"
+      ],
+      "pool_policy": {
+        "status": "report_only",
+        "auto_promote": false,
+        "auto_write_memory": false
+      },
       "required_data_fallback": "report_only",
       "auto_second_pass": false
     }

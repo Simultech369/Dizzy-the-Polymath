@@ -16,7 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0035 [Tier 3]: Prototype three-pool retrieval as report-only: core, stale-important, edge-hypothesis.
 - W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 ---
@@ -73,3 +72,4 @@ Rules:
 - W-0034: Added operator brief to `maintain` with latest commit, open work count, Tier 1 count, next queue item, and visible promotion debt.
 - W-0034-note: Aligned prompt retrieval block headers with receipt source labels for trusted markdown, memory graph, and trajectory ledger.
 - W-0035-note: Moved optional flavor/economic overlay files into `flavor/` and updated prompt-pack references.
+- W-0035: Prototyped three-pool retrieval as report-only (`core`, `stale_important`, `edge_hypothesis`) in retrieval plans and capability receipts, with safety checks preventing auto-promotion or memory writes.

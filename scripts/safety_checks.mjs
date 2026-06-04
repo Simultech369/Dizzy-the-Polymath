@@ -225,15 +225,26 @@ function testRetrievalPlan() {
   const standard = buildRetrievalPlan("What is the civic doctrine?", { trustZone: "private_self", retrievalAllowed: true });
   assert.equal(standard.mode, "standard");
   assert.equal(standard.required_data_fallback.auto_second_pass, false);
+  assert.equal(standard.pool_policy.status, "report_only");
+  assert.equal(standard.pool_policy.auto_promote, false);
+  assert.equal(standard.pool_policy.auto_write_memory, false);
+  assert.equal(standard.pools.find((p) => p.id === "core").status, "candidate");
 
   const deep = buildRetrievalPlan("What was the exact total cost over time?", { trustZone: "private_self", retrievalAllowed: true });
   assert.equal(deep.mode, "deep");
   assert.equal(deep.required_data_fallback.status, "available_report_only");
   assert.equal(deep.required_data_fallback.auto_second_pass, false);
+  assert.equal(deep.pools.find((p) => p.id === "stale_important").status, "candidate");
+
+  const edge = buildRetrievalPlan("What surprising connection or pattern might link these?", { trustZone: "private_self", retrievalAllowed: true });
+  assert.equal(edge.pools.find((p) => p.id === "edge_hypothesis").status, "candidate");
+  assert.equal(edge.pools.find((p) => p.id === "edge_hypothesis").threshold_hint, "low_confidence_report_only");
 
   const blocked = buildRetrievalPlan("What was the exact total?", { trustZone: "paid_public", retrievalAllowed: false });
   assert.equal(blocked.retrieval_allowed, false);
   assert.equal(blocked.required_data_fallback.status, "not_requested");
+  assert.equal(blocked.pools.find((p) => p.id === "core").status, "blocked_by_trust_zone");
+  assert.equal(blocked.pool_policy.status, "report_only");
 }
 
 function testQueueChannelSanitization() {
