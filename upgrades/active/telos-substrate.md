@@ -1,3 +1,10 @@
+---
+id: W-0031
+title: Telos Substrate
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Telos And Substrate
 
 Status: Strong candidate - needs OpenClaude review before constitutional adoption.

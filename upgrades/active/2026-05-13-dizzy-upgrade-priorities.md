@@ -1,3 +1,10 @@
+---
+id: U-20260513
+title: Dizzy Upgrade Priorities
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Dizzy Upgrade Priorities
 
 Date: 2026-05-13

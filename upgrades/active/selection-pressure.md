@@ -1,3 +1,10 @@
+---
+id: W-0030
+title: Selection Pressure
+status: operator overlay
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Selection Pressure
 
 **Status**: Active operating lens, not runtime doctrine.

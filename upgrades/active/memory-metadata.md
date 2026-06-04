@@ -1,3 +1,10 @@
+---
+id: W-0026
+title: Memory Metadata
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Memory Metadata
 
 Status: Accepted - implement soon, narrowly.

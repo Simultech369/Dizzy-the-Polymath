@@ -1,3 +1,10 @@
+---
+id: W-0032
+title: Tension Map
+status: operator overlay
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Tension Map
 
 Living document of core contradictions in Dizzy's design. Each tension should produce a small experiment, a failure mode, and a review path. This is a hypothesis map, not runtime doctrine.

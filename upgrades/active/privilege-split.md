@@ -1,3 +1,10 @@
+---
+id: W-0028
+title: Privilege Split
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Privilege Split
 
 Status: Strong near-term candidate; start logical, not heavyweight.

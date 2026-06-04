@@ -1,3 +1,10 @@
+---
+id: W-0004
+title: Paid/Client Continuity Lifecycle
+status: runtime-enforced
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # W-0004: Paid/Client Continuity Lifecycle
 
 Status: Implemented first pass; retained as rationale/provenance.

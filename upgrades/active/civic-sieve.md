@@ -1,3 +1,10 @@
+---
+id: W-0025
+title: Civic Sieve
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Civic Sieve
 
 Status: Accepted as a minimal guard concept; implementation should stay narrow.

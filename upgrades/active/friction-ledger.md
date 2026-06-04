@@ -1,3 +1,10 @@
+---
+id: W-0012
+title: Friction Ledger
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Friction Ledger
 
 Track repeated operator stuck-points so annoyance becomes design signal instead of background drag.

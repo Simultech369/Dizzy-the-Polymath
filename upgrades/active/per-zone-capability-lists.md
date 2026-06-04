@@ -1,3 +1,10 @@
+---
+id: W-0027
+title: Per-Zone Capability Lists
+status: runtime-enforced
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Per-Zone Capability Lists
 
 Status: Accepted - implement soon.

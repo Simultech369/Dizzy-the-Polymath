@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 
+import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
 import { autoRememberSignalScore, buildCapabilityReceipt, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
@@ -873,4 +874,45 @@ await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
 await testPaidPublicCannotCaptureTrajectories();
 await testAgentExecuteContinuityLifecycleResponse();
+
+function testSieveDisputeLoopSimulation() {
+  const validProposal = {
+    title: "Fiduciary Rebate Commons",
+    capability: "Independent pharmacies can verify rebate deposits and file omissions disputes directly.",
+    ownership: "Ownerless contract managed by 3/5 council Safe and EXECUTOR timelock controller.",
+    funding: "Third-party rebate deposits; 10% gross claims fee to patient fund.",
+    governance: "3/5 council management with 14-day appeals window and Dizzy judgment layer.",
+    enforcement: "On-chain sanctions contestable via appealSanction registry.",
+    exit: "Data portability via PORTABILITY.md standards allowing complete CSV/JSON claims history export.",
+    captureRisk: "10% participant signatures rotation threshold mitigates council capture.",
+    simplification: "Eliminates PBM opacity via visible Ledger of Omissions.",
+    wellbeingMetrics: "Optimizes for patients assisted, pharmacies stabilized, and waste reduction.",
+  };
+
+  const res1 = validateMechanismSieve(validProposal);
+  assert.equal(res1.ok, true, `Valid proposal failed: ${res1.errors.join(", ")}`);
+
+  const badProposal = {
+    title: "Captured Token Treasury",
+    capability: "Distribute rewards to traders.",
+    ownership: "Absolute operator ownership and control of token reserves.",
+    funding: "Depositors bear 100% of risk; operator takes 50% of the upside.",
+    governance: "Centralized operator decisions, no appeals or dispute path.",
+    enforcement: "Arbitrary sanctions without explanation.",
+    exit: "None. Users are locked in and cannot export their claims or credentials.",
+    captureRisk: "No mitigation. Absolute operator control is expected.",
+    simplification: "None.",
+    wellbeingMetrics: "Optimizes for token price, transaction volume, and TVL growth.",
+  };
+
+  const res2 = validateMechanismSieve(badProposal);
+  assert.equal(res2.ok, false, "Expected bad proposal to fail sieve check");
+  assert.equal(res2.errors.length >= 3, true, `Expected multiple failures, got: ${res2.errors.join(", ")}`);
+  assert.equal(res2.errors.some(e => e.includes("Exit")), true, "Expected exit strategy error");
+  assert.equal(res2.errors.some(e => e.includes("capture")), true, "Expected capture risk error");
+  assert.equal(res2.errors.some(e => e.includes("Metrics")), true, "Expected metrics capture error");
+}
+
+testSieveDisputeLoopSimulation();
+
 console.log("SAFETY_CHECKS_OK");

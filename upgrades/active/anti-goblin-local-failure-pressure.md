@@ -1,3 +1,10 @@
+---
+id: W-0024
+title: Anti-Goblin Local Failure Pressure
+status: planning candidate
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Anti-Goblin Local Failure Pressure
 
 **Status**: Candidate review lens, not live doctrine.

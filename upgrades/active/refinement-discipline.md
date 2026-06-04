@@ -1,3 +1,10 @@
+---
+id: W-0029
+title: Refinement Discipline
+status: operator overlay
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Refinement Discipline And Success Criteria
 
 Status: Accepted - implement soon.

@@ -289,6 +289,56 @@ function schemaCheckFiles() {
   return issues;
 }
 
+function checkUpgradeProposalsFrontmatter() {
+  const issues = [];
+  const activeDir = path.resolve(ROOT, "upgrades/active");
+  if (!fs.existsSync(activeDir)) return issues;
+
+  const files = fs.readdirSync(activeDir).filter(f => f.endsWith(".md"));
+  const validStatuses = [
+    "runtime-enforced",
+    "constitutional",
+    "operator overlay",
+    "planning candidate",
+    "historical provenance",
+    "deprecated"
+  ];
+
+  for (const file of files) {
+    const filePath = path.resolve(activeDir, file);
+    const content = fs.readFileSync(filePath, "utf8");
+    
+    const match = content.match(/^---\r?\n([\s\S]+?)\r?\n---/);
+    if (!match) {
+      issues.push(`Upgrade proposal ${file} is missing YAML frontmatter.`);
+      continue;
+    }
+
+    const yamlLines = match[1].split(/\r?\n/);
+    const meta = {};
+    for (const line of yamlLines) {
+      const parts = line.split(":");
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const value = parts.slice(1).join(":").trim().replace(/^['"]|['"]$/g, "");
+        meta[key] = value;
+      }
+    }
+
+    if (!meta.status) {
+      issues.push(`Upgrade proposal ${file} frontmatter is missing 'status' field.`);
+    } else if (!validStatuses.includes(meta.status)) {
+      issues.push(`Upgrade proposal ${file} has invalid status '${meta.status}'. Must be one of: ${validStatuses.join(", ")}`);
+    }
+
+    if (!meta.id && file.startsWith("W-")) {
+      issues.push(`Upgrade proposal ${file} is missing 'id' field in frontmatter.`);
+    }
+  }
+
+  return issues;
+}
+
 function updateNextMdWithIssues(issues) {
   const filePath = path.resolve(ROOT, "NEXT.md");
   if (!fs.existsSync(filePath)) return;
@@ -361,6 +411,7 @@ function main() {
   const dateIssues = checkFileDates();
   const zoneViolations = scanZoneViolations();
   const schemaFailures = schemaCheckFiles();
+  const frontmatterIssues = checkUpgradeProposalsFrontmatter();
 
   const allIssues = [];
   for (const check of results) {
@@ -377,6 +428,7 @@ function main() {
   allIssues.push(...dateIssues);
   allIssues.push(...zoneViolations);
   allIssues.push(...schemaFailures);
+  allIssues.push(...frontmatterIssues);
 
   const isReport = process.argv.includes("--report");
 
@@ -397,6 +449,7 @@ function main() {
     console.log(`- **Date Issues**: ${dateIssues.length ? dateIssues.join("; ") : "None"}`);
     console.log(`- **Zone Violations**: ${zoneViolations.length ? zoneViolations.join("; ") : "None"}`);
     console.log(`- **Schema Failures**: ${schemaFailures.length ? schemaFailures.join("; ") : "None"}`);
+    console.log(`- **Upgrade Proposal Frontmatter**: ${frontmatterIssues.length ? frontmatterIssues.join("; ") : "None"}`);
     console.log(`- **Root File Roles**: ${rootRoles.message}`);
     console.log(`- **Trajectories**: ${trajectories.message}`);
     console.log(`- **Friction**: ${friction.message}`);
@@ -420,7 +473,8 @@ function main() {
     friction.status === "yellow" ||
     dateIssues.length ||
     zoneViolations.length ||
-    schemaFailures.length
+    schemaFailures.length ||
+    frontmatterIssues.length
   ) overall = "yellow";
   if (hardFailures.length) overall = "red";
 
@@ -472,6 +526,12 @@ function main() {
     for (const f of schemaFailures) console.log(`  - ${f}`);
   }
 
+  if (frontmatterIssues.length) {
+    console.log("");
+    console.log("[yellow] Upgrade Frontmatter Failures");
+    for (const f of frontmatterIssues) console.log(`  - ${f}`);
+  }
+
   console.log("");
   console.log("Actionable next steps:");
   if (overall === "green") {
@@ -486,6 +546,7 @@ function main() {
     for (const issue of dateIssues) console.log(`- Date Sync Issue: ${issue}`);
     for (const v of zoneViolations) console.log(`- Zone boundary violation: ${v}`);
     for (const f of schemaFailures) console.log(`- Schema failure: ${f}`);
+    for (const f of frontmatterIssues) console.log(`- Upgrade proposal frontmatter error: ${f}`);
   }
 
   process.exit(hardFailures.length ? 1 : 0);

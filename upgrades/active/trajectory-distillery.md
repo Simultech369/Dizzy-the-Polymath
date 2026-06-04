@@ -1,3 +1,10 @@
+---
+id: W-0008
+title: Trajectory Distillery
+status: runtime-enforced
+created_at: 2026-05-13
+updated_at: 2026-06-03
+---
 # Trajectory Distillery
 
 Capture reusable intelligence from successful executions without creating memory sludge.
