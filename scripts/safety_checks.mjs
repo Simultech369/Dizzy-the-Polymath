@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
+import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
@@ -14,7 +15,7 @@ import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
 import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
-import { validateExternalUrl } from "../lib/tools.mjs";
+import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
 import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
@@ -1153,6 +1154,58 @@ async function testAdversarialTrustZoneBypass() {
   }
 }
 
+async function testReadContractTool() {
+  const oldAllowLocal = process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+  process.env.DIZZY_TOOL_ALLOW_LOCALHOST = "1";
+
+  const originalDetectNetwork = ethers.JsonRpcProvider.prototype._detectNetwork;
+  const originalSend = ethers.JsonRpcProvider.prototype.send;
+
+  ethers.JsonRpcProvider.prototype._detectNetwork = async function () {
+    return ethers.Network.from(1);
+  };
+
+  ethers.JsonRpcProvider.prototype.send = async function (method, params) {
+    if (method === "eth_call") {
+      // Mock result: return 1 encoded as uint256 (32 bytes)
+      return "0x0000000000000000000000000000000000000000000000000000000000000001";
+    }
+    return originalSend.call(this, method, params);
+  };
+
+  try {
+    const job = {
+      tool: "read_contract",
+      payload: {
+        rpcUrl: "http://127.0.0.1:8545",
+        contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        abi: [
+          {
+            inputs: [],
+            name: "currentRound",
+            outputs: [{ name: "", type: "uint256" }],
+            stateMutability: "view",
+            type: "function"
+          }
+        ],
+        functionName: "currentRound",
+        args: []
+      }
+    };
+
+    const out = await runToolJob(job);
+    assert.equal(out.success, true);
+    assert.equal(out.result, "1"); // BigInt serialized as string
+
+  } finally {
+    ethers.JsonRpcProvider.prototype._detectNetwork = originalDetectNetwork;
+    ethers.JsonRpcProvider.prototype.send = originalSend;
+    if (oldAllowLocal === undefined) delete process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+    else process.env.DIZZY_TOOL_ALLOW_LOCALHOST = oldAllowLocal;
+  }
+}
+
 await testAdversarialTrustZoneBypass();
+await testReadContractTool();
 
 console.log("SAFETY_CHECKS_OK");
