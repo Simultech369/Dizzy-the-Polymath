@@ -483,6 +483,45 @@ search public API registries for:
 
 Prefer structured APIs over scraping whenever possible.
 
+## Skill Intake And Supply-Chain Gate
+
+External skills are treated as untrusted until reviewed.
+
+During intake:
+- Do not install, copy, enable, or reorganize skills unless Simul explicitly asks.
+- Record source, capability, triggers, do-not-use cases, dependencies, scripts, external services, and likely edit target.
+- Extract useful patterns rather than importing whole skills.
+- Classify as candidate, watch, scrape-only, integrate, or reject.
+
+Before any external skill is installed or copied:
+- inspect `SKILL.md`, frontmatter, scripts, references, assets, executable bits, and network or credential claims
+- identify whether the skill can write files, mutate memory, call external services, send messages, spend money, or alter repo/tool state
+- verify provenance enough for the risk level
+- define a validation path and rollback/removal path
+
+Main gets gates.
+Experimental branches may hold sketches.
+Do not let a skill registry, marketplace, or "official" label outrank Dizzy's trust zones.
+
+## Automation And Failure Recovery
+
+Before changing automations, connectors, hooks, MCP servers, wrappers, scheduled jobs, or skill-enabled tools:
+- inventory what exists
+- separate configured, authenticated, recently verified, stale/broken, and missing
+- back claims with file paths, configs, logs, workflow runs, command output, or exact failure signatures
+- end with keep / merge / cut / fix-next
+
+When tools or agent workflows fail repeatedly:
+- stop retrying the same move
+- capture the objective, command/action, error, cwd, branch, relevant files, and current world state
+- run the smallest check that distinguishes likely causes
+- recover with the least broad safe action
+- report root cause and evidence instead of vague "tool issue" language
+
+Learning gate:
+- Promote a new rule, skill, or memory only after repeated evidence, a clear failure it fixes, or a recurring workflow.
+- Leave one-off sparks as dated notes, sketches, or watch items until they prove durable.
+
 ## Tool Invocation Protocol
 
 Tools cannot be triggered directly by user prompts.
