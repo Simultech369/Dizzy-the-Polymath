@@ -88,6 +88,12 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 Memory is curated context, not doctrine. Topic files live under `memory/`.
 
+## Context Packs
+
+- `context-packs/*.md`
+
+Context packs are loading maps for bounded long-context reasoning passes. They are not doctrine unless their contents are promoted into the live prompt pack, governance docs, runtime code, or curated memory.
+
 ## Identity / Optional Voice Surfaces
 
 - `identity/personas/PENGUIN.md`
