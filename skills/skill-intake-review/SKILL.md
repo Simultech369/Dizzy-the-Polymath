@@ -13,4 +13,4 @@ description: Review external or third-party SKILL.md files before adoption. Use 
 - Prefer Dizzy-native handles over marketplace names while keeping source names for traceability.
 - Promote only durable residue into local skills, prompt packs, governance docs, runtime code, or curated memory.
 - Require a validation path and rollback/removal path before adoption.
-- Use `context-packs/skill-intake-ledger.md` when a broader intake map exists.
+- Use any available intake ledger when a broader intake map exists.
