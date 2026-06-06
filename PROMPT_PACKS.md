@@ -158,3 +158,4 @@ You can bypass packs and specify an exact comma-separated list:
 - Do not solve ambiguity by loading everything.
 - Bigger packs are not "more true"; they are just more context-heavy.
 - If a doc describes a revenue surface, aesthetic mode, or historical idea, do not let it quietly outrank the continuity-and-judgment core.
+- Context packs under `context-packs/` are task-specific loading maps, not live prompt packs. Use them to prepare deep reasoning passes; promote only the durable residue into governing or memory files.
