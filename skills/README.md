@@ -16,6 +16,7 @@ Practical expansion:
 - model-routing
 - safety-permissions
 - memory-discipline
+- skill-intake-review
 
 Cultural and creative expansion:
 - culture-stewardship
