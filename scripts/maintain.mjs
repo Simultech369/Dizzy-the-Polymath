@@ -39,6 +39,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "production",
+    label: "Production readiness wiring",
+    command: ["node", "scripts/production_readiness_check.mjs"],
+    severity: "yellow",
+  },
+  {
     id: "drift",
     label: "Doctrine drift scan",
     command: ["node", "scripts/drift_scan.mjs"],

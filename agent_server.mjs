@@ -26,6 +26,62 @@ function isLoopbackRemoteAddress(address) {
     || value === "::ffff:127.0.0.1";
 }
 
+function parseBool(value, fallback = false) {
+  const raw = String(value ?? (fallback ? "1" : "0")).trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+function parsePositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+function getRateLimitConfig(opts = {}) {
+  const enabled = opts.rateLimitEnabled !== undefined
+    ? Boolean(opts.rateLimitEnabled)
+    : parseBool(process.env.DIZZY_RATE_LIMIT_ENABLED, false);
+  return {
+    enabled,
+    windowMs: parsePositiveInt(opts.rateLimitWindowMs ?? process.env.DIZZY_RATE_LIMIT_WINDOW_MS, 60000),
+    max: parsePositiveInt(opts.rateLimitMax ?? process.env.DIZZY_RATE_LIMIT_MAX, 120),
+  };
+}
+
+function createRateLimitMiddleware(config) {
+  const buckets = new Map();
+
+  return function rateLimit(req, res, next) {
+    if (!config.enabled || req.path === "/health") return next();
+
+    const now = Date.now();
+    const key = String(req.ip || req.socket?.remoteAddress || "unknown");
+    const current = buckets.get(key);
+    const bucket = current && current.resetAt > now
+      ? current
+      : { count: 0, resetAt: now + config.windowMs };
+
+    bucket.count += 1;
+    buckets.set(key, bucket);
+
+    const remaining = Math.max(0, config.max - bucket.count);
+    const resetSeconds = Math.ceil(bucket.resetAt / 1000);
+    res.setHeader("RateLimit-Limit", String(config.max));
+    res.setHeader("RateLimit-Remaining", String(remaining));
+    res.setHeader("RateLimit-Reset", String(resetSeconds));
+
+    if (bucket.count > config.max) {
+      res.setHeader("Retry-After", String(Math.ceil((bucket.resetAt - now) / 1000)));
+      return res.status(429).json({
+        ok: false,
+        error: "Rate limit exceeded",
+        retry_after_ms: Math.max(0, bucket.resetAt - now),
+      });
+    }
+
+    return next();
+  };
+}
+
 export function redactTextPayload(text) {
   if (!text) return "";
   let t = String(text);
@@ -217,9 +273,11 @@ export async function createRuntime(opts = {}) {
   const authToken = String(opts.authToken ?? process.env.DIZZY_AUTH_TOKEN ?? "").trim();
   const redisUrl = String(opts.redisUrl ?? process.env.REDIS_URL ?? "");
   const queuePrefix = String(opts.queuePrefix ?? process.env.DIZZY_QUEUE_PREFIX ?? "dizzy");
+  const rateLimit = getRateLimitConfig(opts);
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
+  app.use(createRateLimitMiddleware(rateLimit));
 
   const runtimeSafety = getRuntimeSafetyConfig();
   const safetyDiagnostics = assertRuntimeSafetyConfig({ ...runtimeSafety, bindHost, authTokenConfigured: Boolean(authToken) });
@@ -276,6 +334,12 @@ export async function createRuntime(opts = {}) {
         warnings: safetyDiagnostics.warnings,
         remote_mutations_enabled: runtimeSafety.allowRemoteMutations,
         self_modify_enabled: runtimeSafety.allowSelfModify,
+      },
+      rate_limit: {
+        enabled: rateLimit.enabled,
+        window_ms: rateLimit.windowMs,
+        max: rateLimit.max,
+        health_exempted: true,
       },
     };
 
@@ -596,7 +660,7 @@ export async function createRuntime(opts = {}) {
     }
   });
 
-  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken) };
+  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit };
 }
 
 export async function startServer(opts = {}) {
