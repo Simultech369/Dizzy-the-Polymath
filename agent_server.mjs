@@ -88,7 +88,55 @@ export function redactTextPayload(text) {
   t = t.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]");
   t = t.replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, "[REDACTED_PHONE]");
   t = t.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_API_KEY]");
+  t = t.replace(/\b(\d{6,}):([A-Za-z0-9_-]{20,})\b/g, "[REDACTED_TELEGRAM_TOKEN]");
+  t = t.replace(/\bAIza[0-9A-Za-z_-]{20,}\b/g, "[REDACTED_API_KEY]");
+  t = t.replace(/\b([A-Z0-9_]{2,64}(?:API|TOKEN|SECRET|KEY)[A-Z0-9_]{0,64})=([^\s]{6,})\b/g, "$1=[REDACTED]");
   return t;
+}
+
+function redactAuditValue(value, depth = 0) {
+  if (value == null) return value;
+  if (depth > 4) return "[REDACTED_DEPTH]";
+  if (typeof value === "string") return redactTextPayload(value).slice(0, 1000);
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => redactAuditValue(item, depth + 1));
+  if (typeof value !== "object") return String(value);
+
+  const out = {};
+  for (const [key, raw] of Object.entries(value)) {
+    const k = String(key);
+    const lower = k.toLowerCase();
+    if (
+      lower.includes("authorization")
+      || lower.includes("cookie")
+      || lower.includes("token")
+      || lower.includes("secret")
+      || lower.includes("password")
+      || lower.includes("api_key")
+      || lower.includes("apikey")
+      || lower.includes("#private")
+      || lower.includes("#private_self")
+    ) {
+      out[k] = "[REDACTED]";
+      continue;
+    }
+    out[k] = redactAuditValue(raw, depth + 1);
+  }
+  return out;
+}
+
+function buildBoundaryViolationReceipt({ reason, req, zone }) {
+  return {
+    t: new Date().toISOString(),
+    type: "boundary_violation",
+    reason,
+    zone,
+    ip: req.socket?.remoteAddress,
+    method: req.method,
+    path: req.path,
+    headers: redactAuditValue(req.headers),
+    body: redactAuditValue(req.body),
+  };
 }
 
 function filterPrivateKeys(obj) {
@@ -150,14 +198,7 @@ function boundaryGuard(req, res, next) {
     const auditDir = path.resolve(process.cwd(), "runtime", "audit");
     fs.mkdirSync(auditDir, { recursive: true });
     const receiptPath = path.join(auditDir, "boundary_violations.jsonl");
-    const receipt = {
-      t: new Date().toISOString(),
-      type: "boundary_violation",
-      reason,
-      ip: req.socket?.remoteAddress,
-      headers: req.headers,
-      body: req.body,
-    };
+    const receipt = buildBoundaryViolationReceipt({ reason, req, zone });
     fs.appendFileSync(receiptPath, `${JSON.stringify(receipt)}\n`, "utf8");
     return res.status(403).json({
       ok: false,
