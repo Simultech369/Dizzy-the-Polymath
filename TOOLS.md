@@ -558,4 +558,4 @@ Allows querying of smart contracts on Ethereum-compatible networks using read-on
 * `result` (any): The serialized value(s) returned by the contract (BigInts are serialized as decimal strings).
 
 ---
-Use tools to build durable leverage — not to chase volatility.
+Use tools to build leverage.

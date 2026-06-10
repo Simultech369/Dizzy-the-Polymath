@@ -1081,6 +1081,38 @@ function testSieveDisputeLoopSimulation() {
 
 testSieveDisputeLoopSimulation();
 
+async function testRateLimiting() {
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    redisUrl: "",
+    rateLimitEnabled: true,
+    rateLimitWindowMs: 60000,
+    rateLimitMax: 1,
+  });
+
+  try {
+    const port = started.boundPort;
+    const health = await fetch(`http://127.0.0.1:${port}/health`).then((r) => r.json());
+    assert.equal(health.ok, true);
+    assert.equal(health.rate_limit.enabled, true);
+
+    const first = await fetch(`http://127.0.0.1:${port}/governance`);
+    assert.equal(first.status, 200);
+    assert.equal(first.headers.get("ratelimit-limit"), "1");
+
+    const second = await fetch(`http://127.0.0.1:${port}/governance`);
+    assert.equal(second.status, 429);
+    const body = await second.json();
+    assert.equal(body.ok, false);
+    assert.match(body.error, /Rate limit/i);
+    assert.ok(second.headers.get("retry-after"));
+  } finally {
+    await started.stop();
+  }
+}
+
 async function testAdversarialTrustZoneBypass() {
   const auditPath = path.resolve(process.cwd(), "runtime", "audit", "boundary_violations.jsonl");
   fs.rmSync(auditPath, { force: true });
@@ -1205,6 +1237,7 @@ async function testReadContractTool() {
   }
 }
 
+await testRateLimiting();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 

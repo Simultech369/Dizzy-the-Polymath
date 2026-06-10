@@ -32,6 +32,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `.env.example`
 - `.gitattributes`
 - `.gitignore`
+- `LICENSE`
 
 ## Canonical Design And State
 
@@ -73,6 +74,8 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `RUNBOOK.md`
 - `OPERATIONS.md`
 - `OPERATOR.md`
+- `PRODUCTION_READINESS.md`
+- `PROFILE_README.md`
 - `OPERATING_LOOP.md`
 - `OPERATING_SURFACE.md`
 - `CAPABILITIES.md`

@@ -1,12 +1,54 @@
 # Dizzy
 
-A local-first assistant runtime for bounded memory, trust zones, and accountable continuity.
+<div align="center">
 
-Dizzy helps a human preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency. The center is not companionship, not a generic chatbot, and not a marketplace persona. It is disciplined continuity across time, risk, and trust zones.
+<img src="dizzylogofull.png" alt="Dizzy Studio logo" width="420">
 
-**The first live execution layer running under Dizzy's judgment loop is the [Pharmacy Fiduciary Commons](file:///C:/Users/Josh/.gemini/antigravity/scratch/Pharmacy-Fiduciary-Commons/README.md), which implements the Wellbeing Commons Kernel to route pharmaceutical rebate surplus directly back to independent pharmacies and patients.**
+**Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
 
-The repo is transparent without turning every working note into doctrine. Read it as a working instrument with a visible workshop attached: the runtime is small and bounded; the surrounding notes show how its judgment is being refined.
+<p>
+  <img alt="Node.js 18+" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
+  <img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/Simultech369/Dizzy-the-Polymath/checks.yml?branch=main&style=for-the-badge&label=checks">
+  <img alt="License" src="https://img.shields.io/github/license/Simultech369/Dizzy-the-Polymath?style=for-the-badge">
+  <img alt="Local-first runtime" src="https://img.shields.io/badge/runtime-local--first-111827?style=for-the-badge">
+  <img alt="Trust zones enforced" src="https://img.shields.io/badge/trust%20zones-enforced-2563eb?style=for-the-badge">
+  <img alt="Bounded memory" src="https://img.shields.io/badge/memory-bounded-7c3aed?style=for-the-badge">
+  <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
+</p>
+
+</div>
+
+Dizzy is a local-first continuity-and-judgment runtime. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
+
+The repo is transparent without turning every working note into doctrine: the runtime is small and bounded; the surrounding documents show how its judgment loop, memory rules, and public/private trust boundaries are being refined.
+
+## What Runs Today
+
+| Surface | Proof |
+| --- | --- |
+| Local HTTP runtime | `/health`, `/prompt`, `/governance`, `/memory/graph` |
+| Prompt governance | Prompt sources are loaded through a scoped bundle and budget checks |
+| Bounded memory | Retrieval is scoped by trust zone and allowed surfaces |
+| Paid/public mode | Defaults to ephemeral continuity unless explicitly enabled |
+| Safety checks | `npm test`, `npm run smoke`, `npm run check:state` |
+
+## Runtime Shape
+
+```mermaid
+flowchart LR
+  Operator["Operator"] --> Server["Local Dizzy Runtime"]
+  Server --> Health["/health"]
+  Server --> Prompt["/prompt"]
+  Server --> Governance["/governance"]
+  Server --> Memory["/memory/graph"]
+  Server --> Tools["Explicit Tool Layer"]
+  Prompt --> Packs["Prompt Packs"]
+  Memory --> Zones["Trust Zones"]
+  Zones --> Private["private_self"]
+  Zones --> Trusted["trusted_collaborator"]
+  Zones --> Outside["outside_contact"]
+  Zones --> Paid["paid_public ephemeral"]
+```
 
 ## Quick Start
 
@@ -33,9 +75,9 @@ Invoke-RestMethod http://127.0.0.1:3000/memory/graph
 Run verification:
 
 ```powershell
-node .\scripts\safety_checks.mjs
-node .\smoke_test.mjs
-node .\scripts\sync_state.mjs --check
+npm test
+npm run smoke
+npm run check:state
 ```
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
@@ -47,7 +89,7 @@ For a guided map of the repo, see [`REPO_GUIDE.md`](REPO_GUIDE.md).
 - A local-first runtime for a continuity-aware assistant
 - A doctrine + runtime repo where the constitutional layer is explicit
 - A system with trust zones, retention boundaries, and operator-mediated public surfaces
-- A working codebase with health, prompt, governance, memory, and queue/tool infrastructure
+- A working codebase with health, prompt, governance, memory, queue, and tool infrastructure
 
 ## What This Is Not
 
@@ -68,29 +110,33 @@ The public or paid layer is currently a constrained projection of the core syste
 
 ## Repo Map
 
-- [`DESIGN.md`](DESIGN.md): human canonical source of truth
-- [`GOVERNANCE.md`](GOVERNANCE.md): plain-language governance summary
-- [`PROMPT_CORE.md`](PROMPT_CORE.md): live behavioral core
-- [`PROMPT_PACKS.md`](PROMPT_PACKS.md): prompt-pack model
-- [`RUNBOOK.md`](RUNBOOK.md): local setup and operational notes
-- [`REPO_GUIDE.md`](REPO_GUIDE.md): guided map for first-time readers and maintainers
-- [`FILE_ROLES.md`](FILE_ROLES.md): root-file authority and role map
-- [`MECHANISMS.md`](MECHANISMS.md): reusable design mechanisms in the repo
-- [`CHOKEPOINTS.md`](CHOKEPOINTS.md): self-inspection map for dependency, capture, and exit risks
-- [`OPERATING_LOOP.md`](OPERATING_LOOP.md): daily operator loop for turning work into durable value
-- [`OPERATIONS.md`](OPERATIONS.md): runtime execution overlay
-- [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md): worksheet for converting anti-extractive values into ownership, governance, enforcement, exit, and capability mechanisms
-- [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md): optional lightweight outward-facing surface
-- [`upgrades/`](upgrades/): planning lane, review trail, and candidate improvements; not runtime doctrine
+| File | Role |
+| --- | --- |
+| [`DESIGN.md`](DESIGN.md) | Human canonical source of truth |
+| [`GOVERNANCE.md`](GOVERNANCE.md) | Plain-language governance summary |
+| [`PROMPT_CORE.md`](PROMPT_CORE.md) | Live behavioral core |
+| [`PROMPT_PACKS.md`](PROMPT_PACKS.md) | Prompt-pack model |
+| [`RUNBOOK.md`](RUNBOOK.md) | Local setup and operational notes |
+| [`REPO_GUIDE.md`](REPO_GUIDE.md) | Guided map for first-time readers and maintainers |
+| [`FILE_ROLES.md`](FILE_ROLES.md) | Root-file authority and role map |
+| [`MECHANISMS.md`](MECHANISMS.md) | Reusable design mechanisms in the repo |
+| [`CHOKEPOINTS.md`](CHOKEPOINTS.md) | Self-inspection map for dependency, capture, and exit risks |
+| [`OPERATING_LOOP.md`](OPERATING_LOOP.md) | Daily operator loop for turning work into durable value |
+| [`OPERATIONS.md`](OPERATIONS.md) | Runtime execution overlay |
+| [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md) | Worksheet for converting values into mechanisms |
+| [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md) | Optional lightweight outward-facing surface |
+| [`upgrades/`](upgrades/) | Planning lane, review trail, and candidate improvements; not runtime doctrine |
 
 ## Trust Zones And Retention
 
 Dizzy uses trust zones as real runtime boundaries:
 
-- `private_self`: retained continuity and durable memory allowed
-- `trusted_collaborator`: selective continuity, narrower disclosure
-- `outside_contact`: fresh-context reasoning by default
-- `paid_public`: ephemeral by default; continuity only when explicitly enabled per client/task
+| Zone | Default continuity posture |
+| --- | --- |
+| `private_self` | Retained continuity and durable memory allowed |
+| `trusted_collaborator` | Selective continuity, narrower disclosure |
+| `outside_contact` | Fresh-context reasoning by default |
+| `paid_public` | Ephemeral by default; continuity only when explicitly enabled per client/task |
 
 Retention is intentional and local-first, not ambient.
 
@@ -116,12 +162,51 @@ The repo carries a political-economic direction centered on anti-extraction, cap
 - `historical provenance`: retained context for audit, not an active recommendation
 - `deprecated`: kept only to explain what should not guide future work
 
-## Verification
+## Visual Upgrades To Add When Public
 
-Current baseline checks:
+These are free and easy, but should be added only when the public account/repo details are ready:
 
-- `node .\scripts\safety_checks.mjs`
-- `node .\smoke_test.mjs`
+- GitHub Actions status badge for the verification workflow
+- Profile README surface in [`PROFILE_README.md`](PROFILE_README.md) for `Simultech369/Simultech369`
+- Public demo GIF showing `/health`, `/prompt`, and `/memory/graph`
+- GitHub Readme Stats card for the operator/profile README
+- GitHub Profile Trophy card for the profile README
+- Contribution graph animation for the profile README
+- Pinned project grid linking Dizzy, Pharmacy Fiduciary Commons, and any bounty/client work that is safe to show
+
+## Production Readiness Checklist
+
+This is the minimum bar before any hosted or client-facing surface should be treated as production-ready.
+
+The integrated project gate lives in [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md) and is checked by:
+
+```powershell
+npm run check:production
+```
+
+| Area | Requirement |
+| --- | --- |
+| Minified front end | Production build uses minified assets, no exposed secrets, no public source maps unless intentionally gated, and no environment variables shipped into client bundles unless safe for public use |
+| Database | Row-level security is enabled where supported, every authenticated read/write path is scoped to the current user or tenant, and service-role credentials never touch the browser |
+| Version control | Main branch is protected, releases are tagged, secrets are excluded from git history, and deploys come from reviewed commits |
+| APIs | Auth, input validation, schema checks, CORS policy, request size limits, structured errors, and explicit public/private route boundaries are in place |
+| Hosting and deployment | Deploy target uses HTTPS, least-privilege environment variables, rollback path, health checks, and separate development/staging/production configuration |
+| Rate limiting | Public, auth, and expensive routes have per-IP or per-user limits; abuse limits fail closed without leaking private state |
+| Caching | Static assets are cacheable, sensitive responses are not cached publicly, and cache invalidation is explicit for user-specific data |
+| Scaling | Runtime has documented resource assumptions, queue/backpressure behavior, horizontal-scaling constraints, and failure modes for Redis/database/provider outages |
+| Error tracking | Server and client errors are captured with environment, release, and request context, while secrets and private user content are scrubbed |
+| Accessibility / ADA | Public UI targets WCAG 2.2 AA; legal/procurement-sensitive surfaces verify at least WCAG 2.1 AA, with keyboard navigation, semantic HTML, labels, focus states, contrast, alt text, reduced-motion support, and screen-reader checks |
+
+## Launch Proof To Capture
+
+- Screenshot or GIF of the production build running
+- `/health` response from the deployed target
+- Passing test output from the release commit
+- Accessibility scan results plus one manual keyboard/screen-reader pass
+- Rate-limit behavior shown on one public route
+- Error-tracking dashboard receiving a test event
+- Database RLS policy notes or migration references
+- Deployment rollback command or provider rollback path
 
 ## Notes
 
