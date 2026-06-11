@@ -62,6 +62,46 @@
     "web-request-skill": {
       "status": "active",
       "trigger_terms": ["http", "api request", "endpoint", "webhook", "curl", "request headers", "auth failure"]
+    },
+    "context-budgeting": {
+      "status": "standby",
+      "trigger_terms": ["context budget", "context pack", "long context", "lost in the middle", "context poisoning"]
+    },
+    "agent-failure-recovery": {
+      "status": "standby",
+      "trigger_terms": ["agent failed", "tool failed", "retry failed", "handoff failed", "stale state"]
+    },
+    "automation-surface-audit": {
+      "status": "standby",
+      "trigger_terms": ["automation audit", "connector audit", "scheduled job audit", "mcp audit", "hook audit"]
+    },
+    "plan-execution-checkpoints": {
+      "status": "standby",
+      "trigger_terms": ["execute plan", "implementation plan", "plan checkpoints", "work in batches"]
+    },
+    "ci-log-triage": {
+      "status": "standby",
+      "trigger_terms": ["ci failure", "workflow failed", "build log", "test log", "release failure"]
+    },
+    "differential-review": {
+      "status": "standby",
+      "trigger_terms": ["review diff", "review branch", "review pull request", "security regression", "blast radius"]
+    },
+    "eval-driven-testing": {
+      "status": "standby",
+      "trigger_terms": ["eval harness", "agent eval", "prompt eval", "skill regression", "grader"]
+    },
+    "security-review-stack": {
+      "status": "standby",
+      "trigger_terms": ["security review", "security audit", "scanner triage", "owasp", "threat model"]
+    },
+    "api-contract-design": {
+      "status": "standby",
+      "trigger_terms": ["api design", "api contract", "openapi", "error schema", "readiness endpoint"]
+    },
+    "web-search-router": {
+      "status": "standby",
+      "trigger_terms": ["search strategy", "fresh web search", "deep research", "primary source search"]
     }
   }
 }

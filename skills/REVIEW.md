@@ -39,6 +39,23 @@ Controls:
 - include loaded and rejected skill names in the capability receipt
 - keep external intake-ledger entries unavailable until separately reviewed and promoted
 
+## Pre-Integrated Standby Batch
+
+These Dizzy-native skills were derived from the intake ledger summaries, not copied from unverified source bodies. They are validated and available by explicit name, but excluded from automatic selection until use demonstrates value and trigger precision.
+
+| Skill | Source candidate | Pre-integration reason |
+| --- | --- | --- |
+| `context-budgeting` | Context Engineering | Protects every future long-context workflow |
+| `agent-failure-recovery` | Agent Introspection Debugging | High-leverage recovery contract without dependencies |
+| `automation-surface-audit` | Automation Audit Ops | Prevents configured surfaces from being mistaken for working ones |
+| `plan-execution-checkpoints` | Executing Plans | Makes larger implementation plans evidence-responsive |
+| `ci-log-triage` | CI failure triage / log analysis | Useful once branch and workflow activity increases |
+| `differential-review` | Differential / requesting / receiving review | Adds blast-radius and review-feedback discipline |
+| `eval-driven-testing` | Eval Harness | Supplies the evidence mechanism needed to activate skills responsibly |
+| `security-review-stack` | Security Auditor / Review / Triage | Consolidates overlapping security candidates |
+| `api-contract-design` | API Design | Fits Dizzy's growing HTTP and marketplace surfaces |
+| `web-search-router` | Tavily / Exa / discovery skills | Separates fresh discovery from deep synthesis |
+
 ## Acceptance Test
 
 - all fifteen directories contain a valid `SKILL.md` whose frontmatter name matches the directory

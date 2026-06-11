@@ -170,3 +170,4 @@ Reviewed skills under `skills/*/SKILL.md` are not always-on prompt files. The ru
 - local skills load only in `private_self` and `trusted_collaborator`
 - `outside_contact` and `paid_public` cannot load them
 - entries in `context-packs/skill-intake-ledger.md` remain unavailable until promoted into a reviewed local `SKILL.md`
+- `standby` skills are pre-integrated but explicit-only until usage evidence justifies automatic triggers

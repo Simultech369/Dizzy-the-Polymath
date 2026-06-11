@@ -39,9 +39,10 @@ async function expectReject(fn, pattern) {
 function testLocalSkillRegistry() {
   const registry = discoverLocalSkills();
   assert.equal(registry.issues.length, 0, registry.issues.join("; "));
-  assert.equal(registry.skills.length, 15);
+  assert.equal(registry.skills.length, 25);
   assert.equal(registry.skills.filter((skill) => skill.status === "active").length, 14);
   assert.equal(registry.skills.filter((skill) => skill.status === "restricted").length, 1);
+  assert.equal(registry.skills.filter((skill) => skill.status === "standby").length, 10);
 
   const automatic = selectLocalSkills("Please inspect the git branch diff and commit history", { trustZone: "private_self" });
   assert.deepEqual(automatic.selected.map((skill) => skill.name), ["git-skill"]);
@@ -52,6 +53,15 @@ function testLocalSkillRegistry() {
     runtimeContext: { skills: ["database-interface", "web-request-skill"] },
   });
   assert.deepEqual(explicit.selected.map((skill) => skill.name), ["database-interface", "web-request-skill"]);
+
+  const explicitStandby = selectLocalSkills("help", {
+    trustZone: "private_self",
+    runtimeContext: { skills: ["security-review-stack"] },
+  });
+  assert.deepEqual(explicitStandby.selected.map((skill) => skill.name), ["security-review-stack"]);
+
+  const standbyDoesNotAutoLoad = selectLocalSkills("Run a security review and threat model", { trustZone: "private_self" });
+  assert.equal(standbyDoesNotAutoLoad.selected.some((skill) => skill.name === "security-review-stack"), false);
 
   const unknown = selectLocalSkills("help", {
     trustZone: "private_self",
