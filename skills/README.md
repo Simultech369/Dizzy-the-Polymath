@@ -17,6 +17,7 @@ Practical expansion:
 - safety-permissions
 - memory-discipline
 - skill-intake-review
+- bug-bounty-scout
 
 Cultural and creative expansion:
 - culture-stewardship

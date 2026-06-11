@@ -16,6 +16,8 @@ Rules:
 
 ## Work Queue
 
+- W-0040 [Tier 1]: Implement Privilege Split / Quarantined Janitor core safety inputs gate (ref upgrades/active/privilege-split.md).
+- W-0041 [Tier 1]: Implement Telos & Substrate reasoning constraints and Anti-Rationalization Dissent Channel (ref upgrades/active/telos-substrate.md).
 - W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 ---
