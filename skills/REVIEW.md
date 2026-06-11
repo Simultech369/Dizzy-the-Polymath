@@ -56,6 +56,21 @@ These Dizzy-native skills were derived from the intake ledger summaries, not cop
 | `api-contract-design` | API Design | Fits Dizzy's growing HTTP and marketplace surfaces |
 | `web-search-router` | Tavily / Exa / discovery skills | Separates fresh discovery from deep synthesis |
 
+## Existing Skill Fold-Ins
+
+These candidate groups were integrated into existing owners rather than becoming new skill names.
+
+| Candidate group | Existing owner |
+| --- | --- |
+| Skill Intake Gate | `skill-intake-review` |
+| Skill Supply-Chain Review | `skill-intake-review` |
+| Continuous Learning Gate | `memory-discipline` |
+| Obsidian Memory Stewardship | `filesystem-workplace`, `memory-discipline` |
+| Browser State Loop | `browser-automation` |
+| Lint And Hygiene Fixes | `shell-terminal`, `git-skill` |
+| Coding Standards From The Codebase | `differential-review` |
+| Provider API Integration | `model-routing`, `web-request-skill` |
+
 ## Acceptance Test
 
 - all fifteen directories contain a valid `SKILL.md` whose frontmatter name matches the directory

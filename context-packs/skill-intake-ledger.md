@@ -62,7 +62,8 @@ These shape how skills should be reviewed, named, validated, promoted, or reject
 #### Skill Intake Gate
 
 source names: OpenClaw Skill Creator; Anthropic Official; Create Instructions; Create Prompt; Writing Skills; Prompt Engineering; Everything Claude Code; Microsoft Skills; Superpowers
-status: candidate
+status: integrated
+integrated into: `skills/skill-intake-review/SKILL.md`
 
 Possible edit:
 
@@ -107,7 +108,8 @@ Avoid:
 #### Skill Supply-Chain Review
 
 source names: Skill Supply Chain Review; Skill Security Auditor; SkillSync; Skilldex-style conformance checks
-status: candidate
+status: integrated
+integrated into: `skills/skill-intake-review/SKILL.md`
 
 Possible edit:
 
@@ -150,7 +152,8 @@ Avoid:
 #### Continuous Learning Gate
 
 source names: Continuous Learning
-status: candidate
+status: integrated
+integrated into: `skills/memory-discipline/SKILL.md`
 
 Possible edit:
 
@@ -187,7 +190,8 @@ Avoid:
 #### Obsidian Memory Stewardship
 
 source names: Obsidian Vault Maintainer
-status: candidate
+status: integrated
+integrated into: `skills/filesystem-workplace/SKILL.md` and `skills/memory-discipline/SKILL.md`
 
 Possible edit:
 
@@ -362,7 +366,8 @@ Avoid:
 #### Browser State Loop
 
 source names: OpenClaw Browser Automation
-status: candidate
+status: integrated
+integrated into: `skills/browser-automation/SKILL.md`
 
 Possible edit:
 
@@ -466,7 +471,8 @@ Avoid:
 #### Lint And Hygiene Fixes
 
 source names: Fix; Hygiene
-status: candidate
+status: integrated
+integrated into: `skills/shell-terminal/SKILL.md` and `skills/git-skill/SKILL.md`
 
 Possible edit:
 
@@ -523,7 +529,8 @@ Avoid:
 #### Coding Standards From The Codebase
 
 source names: Coding Standards
-status: candidate
+status: integrated
+integrated into: `skills/differential-review/SKILL.md`
 
 Possible edit:
 
@@ -602,7 +609,8 @@ Avoid:
 #### Provider API Integration
 
 source names: Claude API
-status: candidate
+status: integrated
+integrated into: `skills/model-routing/SKILL.md` and `skills/web-request-skill/SKILL.md`
 
 Possible edit:
 

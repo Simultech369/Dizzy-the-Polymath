@@ -5,6 +5,10 @@ description: Maintain high-signal memory by separating daily logs from durable l
 
 - Log decisions, pivots, and risk changes.
 - Avoid logging casual conversation noise.
-- Promote only repeated patterns to long-term memory.
+- Treat one-off inspiration as dated residue unless clear failure evidence makes it immediately durable.
+- Promote only repeated patterns or strongly evidenced structural lessons to long-term memory.
+- Separate source summary, inference, action implication, and memory candidate when processing outside information.
+- Give every improvement candidate a review, promotion, rejection, or expiry path.
 - Review unresolved items on heartbeat cycles.
 - Keep memory concise and searchable.
+- Never convert novelty or every completed session into automatic learning.

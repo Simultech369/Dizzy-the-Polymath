@@ -13,7 +13,7 @@
     },
     "browser-automation": {
       "status": "active",
-      "trigger_terms": ["browser", "playwright", "puppeteer", "click", "screenshot", "scrape", "ui test"]
+      "trigger_terms": ["browser", "playwright", "puppeteer", "click", "screenshot", "scrape", "ui test", "browser profile", "stale selector"]
     },
     "culture-stewardship": {
       "status": "active",
@@ -29,19 +29,19 @@
     },
     "filesystem-workplace": {
       "status": "active",
-      "trigger_terms": ["filesystem", "files", "folders", "directory", "move file", "organize files", "locate file"]
+      "trigger_terms": ["filesystem", "files", "folders", "directory", "move file", "organize files", "locate file", "obsidian", "vault", "wikilink"]
     },
     "git-skill": {
       "status": "active",
-      "trigger_terms": ["git", "branch", "commit", "merge", "rebase", "pull request", "diff"]
+      "trigger_terms": ["git", "branch", "commit", "merge", "rebase", "pull request", "diff", "pre-commit", "format changes"]
     },
     "memory-discipline": {
       "status": "active",
-      "trigger_terms": ["memory", "remember", "daily log", "long-term memory", "continuity", "stale memory"]
+      "trigger_terms": ["memory", "remember", "daily log", "long-term memory", "continuity", "stale memory", "continuous learning", "promote lesson"]
     },
     "model-routing": {
       "status": "active",
-      "trigger_terms": ["model routing", "fallback model", "model choice", "latency", "token cost", "gemini", "openai model"]
+      "trigger_terms": ["model routing", "fallback model", "model choice", "latency", "token cost", "gemini", "openai model", "claude api", "anthropic"]
     },
     "safety-permissions": {
       "status": "active",
@@ -53,15 +53,15 @@
     },
     "shell-terminal": {
       "status": "active",
-      "trigger_terms": ["terminal", "shell", "powershell", "command", "process", "logs", "cli"]
+      "trigger_terms": ["terminal", "shell", "powershell", "command", "process", "logs", "cli", "lint", "format", "typecheck"]
     },
     "skill-intake-review": {
       "status": "restricted",
-      "trigger_terms": ["external skill", "third-party skill", "skill marketplace", "install skill", "skill intake", "skill review"]
+      "trigger_terms": ["external skill", "third-party skill", "skill marketplace", "install skill", "skill intake", "skill review", "skill supply chain", "skill security"]
     },
     "web-request-skill": {
       "status": "active",
-      "trigger_terms": ["http", "api request", "endpoint", "webhook", "curl", "request headers", "auth failure"]
+      "trigger_terms": ["http", "api request", "endpoint", "webhook", "curl", "request headers", "auth failure", "claude api", "anthropic sdk"]
     },
     "context-budgeting": {
       "status": "standby",
