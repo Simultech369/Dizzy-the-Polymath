@@ -12,6 +12,7 @@
                     "check:prompt":  "node ./scripts/prompt_drift_check.mjs",
                     "check:production":  "node ./scripts/production_readiness_check.mjs",
                     "check:next":  "node ./scripts/next_consistency_check.mjs",
+                    "check:skills":  "node ./scripts/skill_registry_check.mjs",
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",

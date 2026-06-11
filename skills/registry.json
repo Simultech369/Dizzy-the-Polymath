@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-06-11",
+  "default_max_selected": 3,
+  "skills": {
+    "agent-relationships": {
+      "status": "active",
+      "trigger_terms": ["multi-agent", "sub-agent", "delegate", "handoff", "agent conflict", "agent role"]
+    },
+    "autonomous-research": {
+      "status": "active",
+      "trigger_terms": ["research", "investigate", "compare sources", "primary sources", "recommendation brief", "fast-changing"]
+    },
+    "browser-automation": {
+      "status": "active",
+      "trigger_terms": ["browser", "playwright", "puppeteer", "click", "screenshot", "scrape", "ui test"]
+    },
+    "culture-stewardship": {
+      "status": "active",
+      "trigger_terms": ["tone", "community", "client trust", "conduct", "culture", "relational boundaries"]
+    },
+    "database-interface": {
+      "status": "active",
+      "trigger_terms": ["database", "sql", "schema", "table", "query", "row count", "migration"]
+    },
+    "divergent-thinking": {
+      "status": "active",
+      "trigger_terms": ["brainstorm", "ideate", "creative directions", "novel options", "alternatives", "divergent"]
+    },
+    "filesystem-workplace": {
+      "status": "active",
+      "trigger_terms": ["filesystem", "files", "folders", "directory", "move file", "organize files", "locate file"]
+    },
+    "git-skill": {
+      "status": "active",
+      "trigger_terms": ["git", "branch", "commit", "merge", "rebase", "pull request", "diff"]
+    },
+    "memory-discipline": {
+      "status": "active",
+      "trigger_terms": ["memory", "remember", "daily log", "long-term memory", "continuity", "stale memory"]
+    },
+    "model-routing": {
+      "status": "active",
+      "trigger_terms": ["model routing", "fallback model", "model choice", "latency", "token cost", "gemini", "openai model"]
+    },
+    "safety-permissions": {
+      "status": "active",
+      "trigger_terms": ["permission", "irreversible", "public action", "sensitive data", "secret", "credential", "destructive"]
+    },
+    "scheduler-skill": {
+      "status": "active",
+      "trigger_terms": ["schedule", "recurring", "cron", "heartbeat", "periodic", "delayed job", "reminder"]
+    },
+    "shell-terminal": {
+      "status": "active",
+      "trigger_terms": ["terminal", "shell", "powershell", "command", "process", "logs", "cli"]
+    },
+    "skill-intake-review": {
+      "status": "restricted",
+      "trigger_terms": ["external skill", "third-party skill", "skill marketplace", "install skill", "skill intake", "skill review"]
+    },
+    "web-request-skill": {
+      "status": "active",
+      "trigger_terms": ["http", "api request", "endpoint", "webhook", "curl", "request headers", "auth failure"]
+    }
+  }
+}

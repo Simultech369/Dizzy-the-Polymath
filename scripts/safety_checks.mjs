@@ -23,6 +23,7 @@ import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eli
 import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_consistency.mjs";
+import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "../lib/skill_registry.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -33,6 +34,50 @@ async function expectReject(fn, pattern) {
     if (pattern) assert.match(String(err?.message ?? err), pattern);
   }
   assert.equal(threw, true, "expected rejection");
+}
+
+function testLocalSkillRegistry() {
+  const registry = discoverLocalSkills();
+  assert.equal(registry.issues.length, 0, registry.issues.join("; "));
+  assert.equal(registry.skills.length, 15);
+  assert.equal(registry.skills.filter((skill) => skill.status === "active").length, 14);
+  assert.equal(registry.skills.filter((skill) => skill.status === "restricted").length, 1);
+
+  const automatic = selectLocalSkills("Please inspect the git branch diff and commit history", { trustZone: "private_self" });
+  assert.deepEqual(automatic.selected.map((skill) => skill.name), ["git-skill"]);
+  assert.match(formatSelectedSkills(automatic), /SELECTED LOCAL SKILLS/);
+
+  const explicit = selectLocalSkills("help", {
+    trustZone: "trusted_collaborator",
+    runtimeContext: { skills: ["database-interface", "web-request-skill"] },
+  });
+  assert.deepEqual(explicit.selected.map((skill) => skill.name), ["database-interface", "web-request-skill"]);
+
+  const unknown = selectLocalSkills("help", {
+    trustZone: "private_self",
+    runtimeContext: { skills: ["not-a-real-skill"] },
+  });
+  assert.equal(unknown.selected.length, 0);
+  assert.equal(unknown.rejected[0].reason, "unknown_or_unapproved_skill");
+
+  const publicSelection = selectLocalSkills("git branch database query", {
+    trustZone: "paid_public",
+    runtimeContext: { skills: ["git-skill"] },
+  });
+  assert.equal(publicSelection.selected.length, 0);
+  assert.equal(publicSelection.rejected[0].reason, "trust_zone_blocks_local_skills");
+
+  const unrelated = selectLocalSkills("Tell me a short joke", { trustZone: "private_self" });
+  assert.equal(unrelated.selected.length, 0);
+
+  const receipt = buildCapabilityReceipt({ channel: "local" }, {
+    selected_skills: ["git-skill"],
+    rejected_skills: [{ name: "not-a-real-skill", reason: "unknown_or_unapproved_skill" }],
+    skill_selection_mode: "explicit",
+  });
+  assert.equal(receipt.skills.allowed, true);
+  assert.deepEqual(receipt.skills.loaded, ["git-skill"]);
+  assert.equal(receipt.skills.rejected[0].name, "not-a-real-skill");
 }
 
 function writeJson(filePath, value) {
@@ -1048,6 +1093,7 @@ function testFrictionLedgerManualPath() {
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
 }
 
+testLocalSkillRegistry();
 await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();

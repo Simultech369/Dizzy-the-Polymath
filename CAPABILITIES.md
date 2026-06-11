@@ -265,6 +265,10 @@ Capabilities should activate contextually.
 
 Activation rules keep capabilities aligned with real tasks rather than abstract theorizing.
 
+### Reviewed local skills
+
+For private or trusted-collaborator requests, Dizzy may select up to three reviewed workflows from `skills/registry.json`. These skills refine task execution below the constitutional prompt; they do not grant tools, credentials, network access, or external authority. Loaded and rejected skill names remain visible in the capability receipt.
+
 ---
 
 ## Capability Boundaries

@@ -159,3 +159,14 @@ You can bypass packs and specify an exact comma-separated list:
 - Bigger packs are not "more true"; they are just more context-heavy.
 - If a doc describes a revenue surface, aesthetic mode, or historical idea, do not let it quietly outrank the continuity-and-judgment core.
 - Context packs under `context-packs/` are task-specific loading maps, not live prompt packs. Use them to prepare deep reasoning passes; promote only the durable residue into governing or memory files.
+
+## Local Skills
+
+Reviewed skills under `skills/*/SKILL.md` are not always-on prompt files. The runtime selects up to three relevant skills for each request using `skills/registry.json`, then appends them below the constitutional prompt as task workflow guidance.
+
+- automatic selection uses reviewed trigger terms
+- API callers may request exact names through `runtime_context.skills`
+- selected and rejected names appear in the capability receipt
+- local skills load only in `private_self` and `trusted_collaborator`
+- `outside_contact` and `paid_public` cannot load them
+- entries in `context-packs/skill-intake-ledger.md` remain unavailable until promoted into a reviewed local `SKILL.md`

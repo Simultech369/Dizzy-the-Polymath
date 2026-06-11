@@ -102,6 +102,14 @@ Memory is curated context, not doctrine. Topic files live under `memory/`.
 
 Context packs are loading maps for bounded long-context reasoning passes. They are not doctrine unless their contents are promoted into the live prompt pack, governance docs, runtime code, or curated memory.
 
+## Local Skills
+
+- `skills/*/SKILL.md`
+- `skills/registry.json`
+- `skills/REVIEW.md`
+
+Local skills are reviewed task-workflow guidance. They are selected per request below the constitutional prompt and do not grant tools, credentials, network access, or authority beyond existing runtime boundaries.
+
 ## Identity / Optional Voice Surfaces
 
 - `identity/personas/PENGUIN.md`

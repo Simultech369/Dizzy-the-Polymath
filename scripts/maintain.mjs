@@ -51,6 +51,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "skills",
+    label: "Local skill registry",
+    command: ["node", "scripts/skill_registry_check.mjs"],
+    severity: "yellow",
+  },
+  {
     id: "drift",
     label: "Doctrine drift scan",
     command: ["node", "scripts/drift_scan.mjs"],

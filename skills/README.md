@@ -17,9 +17,12 @@ Practical expansion:
 - safety-permissions
 - memory-discipline
 - skill-intake-review
-- bug-bounty-scout
 
 Cultural and creative expansion:
 - culture-stewardship
 - divergent-thinking
 - agent-relationships
+
+Runtime selection is defined in `skills/registry.json`. Review decisions and safety boundaries are recorded in `skills/REVIEW.md`.
+
+Bug-bounty discovery is intentionally not a local skill. Use the bounded discovery automation and update the local `bounty-board.md` notes instead of loading changing bounty-market state into Dizzy's skill prompt.
