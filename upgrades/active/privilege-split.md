@@ -3,13 +3,49 @@ id: U-privilege-split
 status: parked
 tier: 2
 owner_surface: future-runtime-safety
-last_reviewed: 2026-06-01
-next_action: Revisit before importing untrusted tool outputs into privileged context.
+last_reviewed: 2026-06-11
+next_action: Revisit when untrusted external content enters a privileged, tool-capable context.
 ---
 
 # Privilege Split
 
 Status: Strong near-term candidate; start logical, not heavyweight.
+
+## Current Decision
+
+Keep parked. The June 11 experimental Tier 1 promotion was reconsidered and removed because no current ingestion path, incident evidence, or tested boundary contract demonstrates that the activation trigger has been reached.
+
+Fresh review supersedes the older review date without changing the parked disposition.
+
+## Activation Prerequisites
+
+- identify a real file, media, webpage, or tool-output path that can reach privileged reasoning or tools
+- document the trust boundary and at least one concrete indirect-instruction threat case
+- define the sanitized-summary schema and permitted fact loss
+- define when raw-input escalation is allowed and how it is audited
+- confirm whether logical separation is sufficient before adding model or process separation
+
+## Main Risks
+
+- sanitization can omit or distort facts needed for sound judgment
+- the janitor can become a security-critical chokepoint
+- shared tools, memory, or credentials can make apparent separation ineffective
+- additional process or model boundaries can increase latency, cost, and debugging difficulty
+
+## Evidence Required For Promotion
+
+- a reproducible unsafe-input fixture or observed boundary failure
+- a documented data flow from untrusted source to privileged capability
+- focused tests for instruction labeling, fact preservation, escalation, and audit output
+- measured justification before requiring a second model or process
+
+## Acceptance Tests For Future Activation
+
+- embedded instructions are treated as data and cannot trigger tools or memory writes
+- factual content required by the operator survives sanitization with provenance
+- raw input is unavailable by default and every escalation is explicit and auditable
+- malformed or unavailable sanitization fails closed without blocking ordinary trusted input
+- the privileged path cannot inherit credentials or authority through janitor output
 
 ## Goal
 

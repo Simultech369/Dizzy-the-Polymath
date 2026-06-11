@@ -41,8 +41,8 @@ No experimental commit receives authority merely because it is pushed, recent, o
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
 | HEARTBEAT.md retirement | Migration candidate | Move every retained behavior to a declared owner, close references, and prove behavioral equivalence |
 | GOVERNANCE.md rename to INTERACTION_NORMS.md | Migration candidate | Complete namespace migration while retaining `/governance` API compatibility |
-| W-0040 Privilege Split | Keep parked until source note changes | Upgrade note status, tier, evidence, and acceptance test must agree before `NEXT.md` promotion |
-| W-0041 Telos/Substrate | Keep parked until source note changes | Resolve duplication and doctrine-sprawl risk before `NEXT.md` promotion |
+| W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met |
+| W-0041 Telos/Substrate | Parked after fresh review on 2026-06-11 | Activate only after measurable trajectory/compression contracts and documented doctrine failures meet the source note's evidence gate |
 
 ## HEARTBEAT.md Retirement Map
 

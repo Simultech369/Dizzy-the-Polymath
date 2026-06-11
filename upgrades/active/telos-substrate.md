@@ -3,13 +3,50 @@ id: U-telos-substrate
 status: parked
 tier: 3
 owner_surface: future-compression
-last_reviewed: 2026-06-01
-next_action: Revisit only after trajectory quality and compression contracts are stronger.
+last_reviewed: 2026-06-11
+next_action: Revisit after trajectory quality and compression contracts are measurable and current doctrine shows repeated insufficiency.
 ---
 
 # Telos And Substrate
 
 Status: Strong candidate - needs OpenClaude review before constitutional adoption.
+
+## Current Decision
+
+Keep parked. The June 11 experimental Tier 1 promotion was reconsidered and removed because stronger trajectory and compression contracts, duplication review, and evidence of current doctrinal failure do not yet exist.
+
+Fresh review supersedes the older review date without granting constitutional authority.
+
+## Activation Prerequisites
+
+- define measurable trajectory-quality and compression contracts
+- complete an OpenClaude review before constitutional adoption
+- map candidate laws against `IDENTITY.md`, `PROMPT_CORE.md`, `PROTOCOL.md`, and `CONSTITUTIONAL_KERNEL.md`
+- identify repeated cases where existing doctrine was rationalized away or failed to resolve a real conflict
+- choose one authority surface and define amendment and conflict-resolution rules
+
+## Main Risks
+
+- duplicated doctrine can create ambiguity instead of durability
+- immutable language can make correction harder when a rule proves incomplete or wrong
+- civic-doctrine supremacy can overpower task utility, operator intent, or legitimate pluralism
+- an anti-rationalization channel can produce performative dissent without improving decisions
+- constitutional expansion can become prestige-coded doctrine sprawl
+
+## Evidence Required For Promotion
+
+- concrete failure cases that existing doctrine and prompt checks did not prevent
+- a duplication matrix showing what is new, retained, consolidated, or rejected
+- compression measurements demonstrating a smaller or clearer live authority surface
+- an amendment path and explicit precedence rules for doctrine conflicts
+
+## Acceptance Tests For Future Activation
+
+- candidate laws resolve documented failures that current authority files do not resolve
+- the live constitutional prompt becomes no larger unless measured utility justifies the increase
+- every law has one canonical owner and no contradictory duplicate
+- dissent identifies a specific conflict and offers a compliant alternative rather than generic resistance
+- operator authority and explicit trust-zone boundaries remain final and testable
 
 ## Proposed Telos Section
 
