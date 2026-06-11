@@ -33,7 +33,7 @@ No experimental commit receives authority merely because it is pushed, recent, o
 | --- | --- | --- |
 | Context packs and strange-attractor ledger | Keep experimental | Demonstrate repeated value in bounded review tasks before changing default loading |
 | Skill intake ledger/review skill | Review for selective harvest | Confirm current `main` does not already contain patch-equivalent behavior; preserve supply-chain gates |
-| BM25 retrieval | Active extraction on `codex/bm25-retrieval` | Extract alone; preserve trust-zone blocks; add deterministic relevance and diagnostic latency tests |
+| BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence |
 | Time-decay memory | Report-only experiment first | Separate freshness from authority; use memory-class-specific policies |
 | Drift and memory dashboard | Keep experimental | Extract from `agent_server.mjs`; make read-only; prove private data cannot cross zones |
