@@ -45,6 +45,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "next",
+    label: "NEXT.md upgrade consistency",
+    command: ["node", "scripts/next_consistency_check.mjs"],
+    severity: "yellow",
+  },
+  {
     id: "drift",
     label: "Doctrine drift scan",
     command: ["node", "scripts/drift_scan.mjs"],

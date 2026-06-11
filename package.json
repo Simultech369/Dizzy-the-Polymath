@@ -11,6 +11,8 @@
                     "check:memory":  "node ./scripts/memory_validate.mjs",
                     "check:prompt":  "node ./scripts/prompt_drift_check.mjs",
                     "check:production":  "node ./scripts/production_readiness_check.mjs",
+                    "check:next":  "node ./scripts/next_consistency_check.mjs",
+                    "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",
                     "maintain":  "node ./scripts/maintain.mjs",

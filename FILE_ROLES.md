@@ -42,6 +42,12 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `REPO_GUIDE.md`
 - `README.md`
 
+## Planning Maps
+
+- `EXPERIMENT_RECONCILIATION.md`
+
+Planning maps coordinate review and promotion work. They are non-authoritative until their decisions are promoted into `DESIGN.md`, `NEXT.md`, runtime code, or tests.
+
 ## Live Prompt Pack / Runtime Constitution
 
 - `CONSTITUTIONAL_KERNEL.md`
