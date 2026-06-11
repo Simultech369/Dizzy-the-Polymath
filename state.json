@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-04T22:09:19.208Z",
+  "updated_at": "2026-06-10T23:30:53.665Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -20,7 +20,6 @@
         "CONSTITUTION.md",
         "IDENTITY.md",
         "identity/personas/SOUL.md",
-        "HEARTBEAT.md",
         "TOOLS.md",
         "identity/personas/USER.md",
         "PROMPT_CORE.md",
@@ -32,12 +31,11 @@
       "structural_transparency": true,
       "operational_confidentiality": true,
       "public_docs": [
-        "GOVERNANCE.md"
+        "INTERACTION_NORMS.md"
       ],
       "internal_docs": [
         "identity/personas/SOUL.md",
         "PROTOCOL.md",
-        "HEARTBEAT.md",
         "TOOLS.md"
       ]
     },
@@ -397,7 +395,6 @@
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
       "identity/personas/SOUL.md": 13000,
-      "HEARTBEAT.md": 9000,
       "TOOLS.md": 12000,
       "identity/personas/USER.md": 9500,
       "PROMPT_CORE.md": 22000,
@@ -417,7 +414,6 @@
       "identity/personas/SOUL.md",
       "identity/personas/USER.md",
       "TOOLS.md",
-      "HEARTBEAT.md",
       "MEMORY.md",
       "flavor/",
       "overlays/",
@@ -535,6 +531,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "f9045574b58a1bac8f63fa499912a8d24f8a97b7f7d2d48a494a4d9c35c8785f"
+    "design_md_sha256": "4bbf61c0d80a3a82eed7db717bb16150212b657523c42115e93fc3aa9d706a3a"
   }
 }

@@ -48,7 +48,6 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `CONSTITUTION.md`
 - `IDENTITY.md`
 - `identity/personas/SOUL.md`
-- `HEARTBEAT.md`
 - `TOOLS.md`
 - `identity/personas/USER.md`
 - `PROMPT_CORE.md`
@@ -58,7 +57,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 ## Governance And Mechanisms
 
 - `REFERENCE_PATTERNS.md`
-- `GOVERNANCE.md`
+- `INTERACTION_NORMS.md`
 - `PROTOCOL.md`
 - `LEGAL-GUARDRAILS.md`
 - `CHOKEPOINTS.md`

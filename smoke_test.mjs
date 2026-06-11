@@ -32,7 +32,17 @@ try {
   await must(typeof profile.avatar_url === "string" && profile.avatar_url.includes("/assets/logo"), "profile avatar missing");
 
   const gov = await fetch(`http://127.0.0.1:${port}/governance`).then((r) => r.text());
-  await must(gov.includes("GOVERNANCE.md"), "governance doc missing");
+  await must(gov.includes("INTERACTION_NORMS.md"), "governance doc missing");
+
+  const dashHtml = await fetch(`http://127.0.0.1:${port}/dashboard`).then((r) => r.text());
+  await must(dashHtml.includes("Drift & Memory Dashboard"), "dashboard html missing title");
+
+  const dashData = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`).then((r) => r.json());
+  await must(dashData.ok === true && Array.isArray(dashData.prompt_sources) && Array.isArray(dashData.docs), "dashboard data invalid");
+
+  const dashQuery = await fetch(`http://127.0.0.1:${port}/api/dashboard-query?q=apples`).then((r) => r.json());
+  await must(dashQuery.ok === true && Array.isArray(dashQuery.snippets), "dashboard query invalid");
+  await must(dashQuery.snippets.some(s => s.path.includes("calibration-examples.md")), "dashboard query missing calibration doc");
 
   const memoryGraph = await fetch(`http://127.0.0.1:${port}/memory/graph`).then((r) => r.json());
   await must(memoryGraph.ok === true && memoryGraph.mode === "summary", "memory graph summary missing");

@@ -124,7 +124,7 @@ Definitions:
 - Structural transparency: the user is explicitly informed that governance exists (system prompts / policies), what it is for in general terms, what interaction norms apply, and how to inspect the norms they are subject to.
 
 Decision:
-- Publish a plain-language governance summary (`GOVERNANCE.md`) that describes what rules exist, why they exist, and what the user can expect.
+- Publish a plain-language governance summary (`INTERACTION_NORMS.md`) that describes what rules exist, why they exist, and what the user can expect.
 - Keep internal system text private where needed, but always expose: categories of rules, escalation/consent boundaries, logging/retention posture, and contestability path.
 
 Rationale:
@@ -132,7 +132,7 @@ Rationale:
 - A system can be operationally confidential and still structurally transparent.
 
 Consequences:
-- `GOVERNANCE.md` must be kept up to date whenever behavior changes.
+- `INTERACTION_NORMS.md` must be kept up to date whenever behavior changes.
 - Derived artifacts (`state.json`, notifications) must carry reason codes and user-legible next steps.
 
 ---
@@ -179,7 +179,6 @@ Decision:
   - `CONSTITUTIONAL_KERNEL.md`
   - `CONSTITUTION.md`
   - `identity/personas/SOUL.md`
-  - `HEARTBEAT.md`
   - `TOOLS.md`
   - `identity/personas/USER.md`
   - `PROMPT_CORE.md`
@@ -194,7 +193,7 @@ Rationale:
 Consequences:
 - `DESIGN.md` remains the human canonical source of truth for decisions and rationale.
 - The default prompt pack remains the live runtime constitution.
-- `GOVERNANCE.md` and `PROMPT_PACKS.md` should describe this split plainly so the repo does not overclaim.
+- `INTERACTION_NORMS.md` and `PROMPT_PACKS.md` should describe this split plainly so the repo does not overclaim.
 - Supplemental docs should be treated as explanatory annexes unless their governing content is compressed into the default pack.
 
 ---
@@ -785,7 +784,6 @@ Edit this block when you want to change what agents read.
         "CONSTITUTION.md",
         "IDENTITY.md",
         "identity/personas/SOUL.md",
-        "HEARTBEAT.md",
         "TOOLS.md",
         "identity/personas/USER.md",
         "PROMPT_CORE.md",
@@ -796,8 +794,8 @@ Edit this block when you want to change what agents read.
     "transparency": {
       "structural_transparency": true,
       "operational_confidentiality": true,
-      "public_docs": ["GOVERNANCE.md"],
-      "internal_docs": ["identity/personas/SOUL.md", "PROTOCOL.md", "HEARTBEAT.md", "TOOLS.md"]
+      "public_docs": ["INTERACTION_NORMS.md"],
+      "internal_docs": ["identity/personas/SOUL.md", "PROTOCOL.md", "TOOLS.md"]
     },
     "principles": {
       "benkler": ["local_first", "portability", "non_extractive_defaults", "modular_artifacts"],
@@ -1140,7 +1138,6 @@ Edit this block when you want to change what agents read.
       "CONSTITUTION.md": 6000,
       "IDENTITY.md": 7000,
       "identity/personas/SOUL.md": 13000,
-      "HEARTBEAT.md": 9000,
       "TOOLS.md": 12000,
       "identity/personas/USER.md": 9500,
       "PROMPT_CORE.md": 22000,
@@ -1160,7 +1157,6 @@ Edit this block when you want to change what agents read.
       "identity/personas/SOUL.md",
       "identity/personas/USER.md",
       "TOOLS.md",
-      "HEARTBEAT.md",
       "MEMORY.md",
       "flavor/",
       "overlays/",

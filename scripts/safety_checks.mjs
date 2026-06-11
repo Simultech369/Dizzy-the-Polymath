@@ -834,7 +834,6 @@ function testPromptBundleDefaults() {
     "CONSTITUTION.md",
     "IDENTITY.md",
     "identity/personas/SOUL.md",
-    "HEARTBEAT.md",
     "TOOLS.md",
     "identity/personas/USER.md",
     "PROMPT_CORE.md",

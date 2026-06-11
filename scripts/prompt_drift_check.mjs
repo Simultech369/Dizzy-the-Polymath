@@ -8,7 +8,6 @@ const REQUIRED_FILES = [
   "CONSTITUTION.md",
   "IDENTITY.md",
   "identity/personas/SOUL.md",
-  "HEARTBEAT.md",
   "TOOLS.md",
   "identity/personas/USER.md",
   "PROMPT_CORE.md",
@@ -68,7 +67,6 @@ const PROMPT_FILE_BUDGETS = {
   "CONSTITUTION.md": 6000,
   "IDENTITY.md": 7000,
   "identity/personas/SOUL.md": 13000,
-  "HEARTBEAT.md": 9000,
   "TOOLS.md": 12000,
   "identity/personas/USER.md": 9500,
   "PROMPT_CORE.md": 22000,
@@ -205,7 +203,7 @@ function main() {
   for (const file of clientSafeSources) {
     if (!promptBundleText.includes(file)) errors.push(`client-safe prompt allowlist missing ${file}`);
   }
-  for (const disallowed of ["SOUL.md", "USER.md", "identity/personas/SOUL.md", "identity/personas/USER.md", "TOOLS.md", "HEARTBEAT.md", "MEMORY.md", "flavor/"]) {
+  for (const disallowed of ["SOUL.md", "USER.md", "identity/personas/SOUL.md", "identity/personas/USER.md", "TOOLS.md", "MEMORY.md", "flavor/"]) {
     const clientSafeBlock = promptBundleText.split("const CLIENT_SAFE_PROMPT_FILES = [")[1]?.split("];")[0] || "";
     if (clientSafeBlock.includes(disallowed)) errors.push(`client-safe prompt allowlist includes disallowed source ${disallowed}`);
   }

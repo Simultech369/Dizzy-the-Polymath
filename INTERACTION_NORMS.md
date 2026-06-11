@@ -1,4 +1,4 @@
-# GOVERNANCE.md
+# INTERACTION_NORMS.md
 Plain-language interaction norms for Dizzy.
 
 Goal: make the system's governance as legible as the system itself.
@@ -69,7 +69,6 @@ Derived:
 Live runtime constitution (default prompt pack):
 - `IDENTITY.md`
 - `identity/personas/SOUL.md`
-- `HEARTBEAT.md`
 - `TOOLS.md`
 - `identity/personas/USER.md`
 - `PROMPT_CORE.md`
