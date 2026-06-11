@@ -33,7 +33,7 @@ No experimental commit receives authority merely because it is pushed, recent, o
 | --- | --- | --- |
 | Context packs and strange-attractor ledger | Keep experimental | Demonstrate repeated value in bounded review tasks before changing default loading |
 | Skill intake ledger/review skill | Review for selective harvest | Confirm current `main` does not already contain patch-equivalent behavior; preserve supply-chain gates |
-| BM25 retrieval | Harvest candidate | Extract alone; preserve trust-zone blocks; add relevance and latency tests |
+| BM25 retrieval | Active extraction on `codex/bm25-retrieval` | Extract alone; preserve trust-zone blocks; add deterministic relevance and diagnostic latency tests |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence |
 | Time-decay memory | Report-only experiment first | Separate freshness from authority; use memory-class-specific policies |
 | Drift and memory dashboard | Keep experimental | Extract from `agent_server.mjs`; make read-only; prove private data cannot cross zones |
@@ -130,9 +130,16 @@ Acceptance tests:
 
 - Existing retrieval tests remain green.
 - Repeated relevant terms outrank incidental mentions.
+- Long-document normalization prevents keyword stuffing from winning automatically.
+- Rare terms contribute more than corpus-common terms.
 - Explicit decision queries still retrieve decision material.
 - `paid_public` and other blocked zones cannot gain repo retrieval.
-- Retrieval latency remains within an agreed local threshold.
+- Frontmatter remains excluded from searchable body text.
+- Missing terms return no snippets.
+- Result metadata remains stable: path, hash, retrieval time, kind, reasons, signals, and excerpt.
+- Tests use a deterministic temporary fixture corpus rather than the live repo corpus.
+- The retriever exposes a narrow cache-reset hook for test isolation.
+- Warm fixture retrieval median stays under 25ms and cold fixture indexing stays under 500ms; production-corpus timing is diagnostic only.
 
 ## Time Decay Experiment
 
