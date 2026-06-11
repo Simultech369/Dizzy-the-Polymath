@@ -22,6 +22,7 @@ import { buildClientConversationKey, conversationPathForKey, deleteClientContinu
 import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";
 import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
+import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_consistency.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -38,6 +39,41 @@ function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
+
+function testNextConsistency() {
+  const activeNote = `---\nid: U-active\nstatus: active\ntier: 2\n---\n`;
+  const parkedNote = `---\nid: U-parked\nstatus: parked\ntier: 3\n---\n`;
+  const nextText = `# NEXT.md\n\n## Work Queue\n\n- W-0100 [Tier 2]: Valid item (ref upgrades/active/active.md)\n- W-0101 [Tier 1]: Parked mismatch (ref upgrades/active/parked.md).\n- W-0102 [Tier 3]: Standalone item without a source note\n\n## Completed\n`;
+  const files = new Map([
+    ["upgrades/active/active.md", activeNote],
+    ["upgrades/active/parked.md", parkedNote],
+  ]);
+
+  const parsed = parseReferencedQueueItems(nextText);
+  assert.equal(parsed.length, 2);
+  assert.equal(parsed[0].id, "W-0100");
+  assert.equal(parsed[0].tier, 2);
+
+  const result = validateNextConsistency({
+    nextText,
+    readFile: (ref) => {
+      if (!files.has(ref)) throw new Error("missing");
+      return files.get(ref);
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.checked, 2);
+  assert.equal(result.issues.some((issue) => issue.includes("status 'parked'")), true);
+  assert.equal(result.issues.some((issue) => issue.includes("Tier 1") && issue.includes("Tier 3")), true);
+
+  const valid = validateNextConsistency({
+    nextText: `## Work Queue\n- W-0100 [Tier 2]: Valid item (ref upgrades/active/active.md)\n## Completed\n`,
+    readFile: () => activeNote,
+  });
+  assert.deepEqual(valid, { ok: true, checked: 1, issues: [] });
+}
+
+testNextConsistency();
 
 async function testUrlValidation() {
   const oldLocalhost = process.env.DIZZY_TOOL_ALLOW_LOCALHOST;

@@ -187,7 +187,7 @@ Promotion order:
 2. Review duplication with existing doctrine/runtime mechanisms.
 3. Add or promote the corresponding `NEXT.md` item.
 
-Candidate maintenance rule: warn when an active `NEXT.md` item conflicts with the status or tier in its referenced upgrade note.
+Implemented on `codex/next-consistency`: `npm run check:next` and `npm run maintain` warn when an active referenced `NEXT.md` item conflicts with the status or tier in its source upgrade note. Standalone queue items remain valid without a reference.
 
 ## Operational Sequence
 
