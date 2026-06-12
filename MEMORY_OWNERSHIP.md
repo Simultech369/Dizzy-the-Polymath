@@ -10,8 +10,8 @@ This is an operational map, not a constitution. If a new memory-like file or led
 |---|---|---|---|
 | `MEMORY.md` | Operator-curated memory index | `/memory_review` proposals, manual edits | Non-governing long-term memory index |
 | `memory/topics/*.md` | Operator-curated topic memory | `/memory_review` proposals, manual edits | Durable topic context |
-| `memory/YYYY-MM-DD.md` | Daily log | `/remember`, auto-memory promotion, session close | Dated decisions and meaningful shifts |
-| `memory/conversations/*.md` | Conversation memory | `/remember`, auto-memory promotion | Compact conversation continuity |
+| `memory/YYYY-MM-DD.md` | Daily log | `/remember`, auto-memory promotion, session close | Dated decisions and meaningful shifts; generated summaries declare `source`, capture mode, and review status |
+| `memory/conversations/*.md` | Conversation memory | `/remember`, auto-memory promotion | Compact conversation continuity; generated summaries remain `runtime_generated` until separately curated |
 | `runtime/trajectories/known_good.jsonl` | Trajectory Distillery | `/trajectory add` after review | Reusable known-good patterns |
 | `runtime/friction/ledger.jsonl` | Friction Ledger | `/friction add` | Repeated operator stuck-points |
 | `runtime/auto_memory_candidates/*.json` | Auto-memory staging | auto-memory gate | Delayed candidate before promotion |

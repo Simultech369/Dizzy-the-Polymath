@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, buildCapabilityReceipt, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -88,6 +88,43 @@ function testLocalSkillRegistry() {
   assert.equal(receipt.skills.allowed, true);
   assert.deepEqual(receipt.skills.loaded, ["git-skill"]);
   assert.equal(receipt.skills.rejected[0].name, "not-a-real-skill");
+}
+
+function testRememberedMemoryProvenance() {
+  const autoHeader = buildRememberedMemoryHeader({
+    convoKey: "auto-test",
+    iso: "2026-06-12T12:00:00.000Z",
+    sourceChannel: "local",
+    mode: "auto",
+  });
+  assert.match(autoHeader, /- source: runtime_generated/);
+  assert.match(autoHeader, /- source_channel: local/);
+  assert.match(autoHeader, /- capture_mode: auto/);
+  assert.match(autoHeader, /- review_status: unreviewed/);
+  assert.doesNotMatch(autoHeader, /operator_reviewed/);
+
+  const manualHeader = buildRememberedMemoryHeader({
+    convoKey: "manual-test",
+    iso: "2026-06-12T12:00:00.000Z",
+    sourceChannel: "telegram",
+    mode: "manual",
+  });
+  assert.match(manualHeader, /- source: runtime_generated/);
+  assert.match(manualHeader, /- source_channel: telegram/);
+  assert.match(manualHeader, /- capture_mode: manual/);
+  assert.match(manualHeader, /- review_status: operator_requested_not_content_reviewed/);
+  assert.doesNotMatch(manualHeader, /operator_reviewed/);
+
+  const dailySection = buildRememberedDailySection({
+    convoKey: "auto-test",
+    iso: "2026-06-12T12:00:00.000Z",
+    mode: "auto",
+    content: "## Summary\nA generated summary.",
+  });
+  assert.match(dailySection, /^## Auto Remembered/m);
+  assert.match(dailySection, /- source: runtime_generated/);
+  assert.match(dailySection, /- review_status: unreviewed/);
+  assert.match(dailySection, /A generated summary/);
 }
 
 function writeJson(filePath, value) {
@@ -1104,6 +1141,7 @@ function testFrictionLedgerManualPath() {
 }
 
 testLocalSkillRegistry();
+testRememberedMemoryProvenance();
 await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
