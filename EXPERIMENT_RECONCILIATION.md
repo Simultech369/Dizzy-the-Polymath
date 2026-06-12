@@ -2,17 +2,18 @@
 
 Status: planning map, non-authoritative.
 
-Purpose: preserve experimental work on `codex/context-packs-strange-attractors` while promoting only small, reviewed, independently tested mechanisms into `main`.
+Purpose: preserve experimental work on `experiments` while promoting only small, reviewed, independently tested mechanisms into `main`.
 
 This file records reconciliation intent. It does not change runtime behavior, constitutional doctrine, or `NEXT.md` priority by itself.
 
 ## Branch State
 
 - Stable branch: `main`
-- Experimental branch: `codex/context-packs-strange-attractors`
-- Experimental remote tip at review: `2ff8766`
+- Experimental branch: `experiments`
+- Experimental remote tip at review: `6bd5386`
 - The experimental branch must not be merged wholesale.
-- Experimental work remains non-authoritative until promoted through a focused branch or commit with tests.
+- Experimental work remains non-authoritative until promoted through a focused commit with tests.
+- Keep exactly two active branches: `main` and `experiments`. Preserve obsolete unique history as archive tags rather than active branches.
 
 ## Promotion Rule
 
@@ -21,7 +22,7 @@ For each candidate:
 1. Identify the smallest useful mechanism.
 2. Separate it from unrelated doctrine, naming, UI, and architecture changes.
 3. Define risks and an acceptance test.
-4. Implement or extract it on a fresh branch from current `main`.
+4. Reconcile it against current `main` and prepare the smallest focused commit that can be applied directly to `main`.
 5. Run focused tests and `npm run maintain`.
 6. Promote with one scoped commit or PR, or leave it experimental with recorded rationale.
 
@@ -187,27 +188,26 @@ Promotion order:
 2. Review duplication with existing doctrine/runtime mechanisms.
 3. Add or promote the corresponding `NEXT.md` item.
 
-Implemented on `codex/next-consistency`: `npm run check:next` and `npm run maintain` warn when an active referenced `NEXT.md` item conflicts with the status or tier in its source upgrade note. Standalone queue items remain valid without a reference.
+Implemented on `main`: `npm run check:next` and `npm run maintain` warn when an active referenced `NEXT.md` item conflicts with the status or tier in its source upgrade note. Standalone queue items remain valid without a reference.
 
 ## Operational Sequence
 
-1. Keep `main` clean and synchronized.
-2. Fast-forward the local experimental branch to its remote tip without merging it into `main`.
-3. Merge current `main` into the experimental branch so experiments receive current security fixes.
-4. Repair active references for the Heartbeat and interaction-norm migrations on the experimental branch.
-5. Reconcile W-0040/W-0041 with their source upgrade notes.
-6. Run the experimental branch's focused tests and full maintenance suite.
-7. Extract BM25 on a new branch from `main`.
-8. Evaluate time decay in report-only mode.
-9. Keep dashboard and prompt expiry experimental until their acceptance gates pass.
-10. Record promote, rework, retain, or reject decisions here.
+1. Keep `main` and `experiments` clean and synchronized.
+2. Bring current `main` into `experiments` before evaluating promotion candidates.
+3. Define one candidate's risks, boundaries, and acceptance tests.
+4. Run focused tests and the full maintenance suite on `experiments`.
+5. Apply only the candidate's focused commits to `main`; never merge `experiments` wholesale.
+6. Run `npm run maintain` on `main` before pushing.
+7. Keep time decay report-only until memory-class policies exist.
+8. Keep dashboard, prompt expiry, Heartbeat retirement, and interaction-norm migration experimental until their acceptance gates pass.
+9. Record promote, rework, retain, or reject decisions here.
 
 ## Additional Radar
 
-- The local experimental branch trails its remote and should be synchronized before further work.
-- The deleted remote `codex/context-pack-core-integration` branch is already contained in `main`; its local branch is archival.
-- Backup and pre-sync branches remain local preservation points and should not be treated as active work queues.
-- Boundary audit hardening is present on `main` and must be brought into the experimental branch before public dashboard work continues.
+- Local and remote branch inventories contain only `main` and `experiments`.
+- Unique pre-sync history is preserved in `archive/*` tags, not active branches.
+- Boundary audit hardening from `main` is present in `experiments`.
+- CI runs the full maintenance suite for pull requests and pushes to both active branches.
 - Production-readiness checks currently verify some wiring more strongly than behavior; future improvements should report `implemented`, `documented`, `missing`, or `not_applicable` per area.
 
 ## Done Condition
