@@ -40,8 +40,8 @@ No experimental commit receives authority merely because it is pushed, recent, o
 | Drift and memory dashboard | Keep experimental | Extract from `agent_server.mjs`; make read-only; prove private data cannot cross zones |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
-| HEARTBEAT.md retirement | Migration candidate | Move every retained behavior to a declared owner, close references, and prove behavioral equivalence |
-| GOVERNANCE.md rename to INTERACTION_NORMS.md | Migration candidate | Complete namespace migration while retaining `/governance` API compatibility |
+| HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` |
+| GOVERNANCE.md rename to INTERACTION_NORMS.md | Completed on `experiments`; promotion candidate | Namespace migration is complete while `/governance` retains API compatibility |
 | W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met |
 | W-0041 Telos/Substrate | Parked after fresh review on 2026-06-11 | Activate only after measurable trajectory/compression contracts and documented doctrine failures meet the source note's evidence gate |
 
@@ -81,6 +81,8 @@ Acceptance tests:
 - Doctrine drift remains visible through maintenance checks.
 - Any active heartbeat poll still receives its expected no-action response.
 
+Implementation evidence (2026-06-13): live references migrated; polling ownership retained in `AGENTS.md`; document-reference validation added to maintenance.
+
 ## Interaction Norms Rename
 
 Renaming Dizzy's `GOVERNANCE.md` to `INTERACTION_NORMS.md` prevents confusion with institutional governance in Pharmacy Fiduciary Commons and future cross-project work.
@@ -107,6 +109,8 @@ Acceptance tests:
 - `/governance` continues to return the public interaction norms.
 - README and repo-guide links resolve.
 - Prompt and retrieval allowlists contain the intended renamed file.
+
+Implementation evidence (2026-06-13): active links and references use `INTERACTION_NORMS.md`; `/governance` compatibility remains covered by smoke tests.
 
 ## BM25 Extraction
 

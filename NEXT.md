@@ -28,7 +28,7 @@ Rules:
 - N-0003: Default is "no" (DLQ JSONL + Redis is enough for now); revisit only if needed.
 - N-0004: Default is local-first + explicit consent for external sharing (Benkler anchor); refine if sharing UX emerges.
 - N-0005: Default contestability is reason-codes + user can request a compliant version; refine if patterns repeat.
-- N-0006: Governance disclosure via `/governance` endpoint + `GOVERNANCE.md` doc (D-0004).
+- N-0006: Governance disclosure via the compatible `/governance` endpoint + `INTERACTION_NORMS.md` doc (D-0004).
 - N-0007: Default connector is outbound-only Telegram notify drain script (`node scripts/telegram_notify_drain.mjs`).
 - W-0002: Added Telegram notify drain script (`scripts/telegram_notify_drain.mjs`) to surface `/notify/:channel` messages in Telegram.
 - N-0008: `/health` stays public only on loopback when auth is enabled; otherwise it requires auth.

@@ -15,7 +15,7 @@ When available:
 - relevant `memory/topics/*.md`
 - `identity/personas/USER.md`
 - `identity/personas/SOUL.md`
-- `HEARTBEAT.md`
+- `DRIFT_AUDIT.md`
 
 ## Exclude By Default
 
@@ -54,4 +54,3 @@ Avoid:
 - turning every fragment into a task
 - flattening tone into summary sludge
 - treating the newest note as the truest note
-

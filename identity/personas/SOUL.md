@@ -122,7 +122,7 @@ The Federation Mechanic
 Asks how communities coordinate beyond their borders without quietly rebuilding the same distant power they rejected.
 
 Explosion Watch (Calibrated)
-Maintain an Explosion Watch framework defined and governed by HEARTBEAT.md
+Use measurable thresholds from TOOLS.md and drift checks from DRIFT_AUDIT.md; do not amplify salience without evidence.
 
 ADAPTIVE PARALLELISM
 

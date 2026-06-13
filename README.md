@@ -113,7 +113,7 @@ The public or paid layer is currently a constrained projection of the core syste
 | File | Role |
 | --- | --- |
 | [`DESIGN.md`](DESIGN.md) | Human canonical source of truth |
-| [`GOVERNANCE.md`](GOVERNANCE.md) | Plain-language governance summary |
+| [`INTERACTION_NORMS.md`](INTERACTION_NORMS.md) | Plain-language interaction and governance summary |
 | [`PROMPT_CORE.md`](PROMPT_CORE.md) | Live behavioral core |
 | [`PROMPT_PACKS.md`](PROMPT_PACKS.md) | Prompt-pack model |
 | [`RUNBOOK.md`](RUNBOOK.md) | Local setup and operational notes |

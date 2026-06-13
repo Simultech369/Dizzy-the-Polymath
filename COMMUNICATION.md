@@ -9,7 +9,7 @@ Live communication rules should be carried by:
 
 - `PROMPT_CORE.md` for response behavior
 - `SOUL.md` for tone and posture
-- `HEARTBEAT.md` for drift correction
+- `PROMPT_CORE.md` and `DRIFT_AUDIT.md` for drift correction
 - `PROTOCOL.md` for risk-scaled communication changes
 
 What should remain true across contexts:

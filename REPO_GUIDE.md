@@ -20,7 +20,7 @@ Read in this order:
 
 1. [README.md](README.md) - what this is and how to run it.
 2. [DESIGN.md](DESIGN.md) - canonical decisions and rationale.
-3. [GOVERNANCE.md](GOVERNANCE.md) - plain-language governance summary.
+3. [INTERACTION_NORMS.md](INTERACTION_NORMS.md) - plain-language interaction and governance summary.
 4. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
 5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
 6. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms, with files and failure modes.
@@ -52,7 +52,7 @@ That path is enough to understand the current system. The rest is detail.
 - [PROMPT_PACKS.md](PROMPT_PACKS.md): explains what files enter the live prompt.
 - [PROMPT_CORE.md](PROMPT_CORE.md): compact runtime behavioral core.
 - [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md): operational worksheet for anti-extractive and commons-friendly proposals.
-- [IDENTITY.md](IDENTITY.md), [SOUL.md](SOUL.md), [HEARTBEAT.md](HEARTBEAT.md), [TOOLS.md](TOOLS.md), [USER.md](USER.md), [PROMPT_MODES.md](PROMPT_MODES.md): default prompt-pack files.
+- [IDENTITY.md](IDENTITY.md), [SOUL.md](identity/personas/SOUL.md), [TOOLS.md](TOOLS.md), [USER.md](identity/personas/USER.md), [PROMPT_CORE.md](PROMPT_CORE.md), [PROMPT_MODES.md](PROMPT_MODES.md): default prompt-pack files.
 - [MARKETPLACE_PROTOCOL.md](MARKETPLACE_PROTOCOL.md): paid/public trust-zone overlay.
 
 ## Memory And Retrieval

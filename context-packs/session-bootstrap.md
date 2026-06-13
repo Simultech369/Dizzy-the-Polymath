@@ -11,7 +11,8 @@ Core runtime orientation:
 - `BOOTSTRAP.md`
 - `IDENTITY.md`
 - `identity/personas/SOUL.md`
-- `HEARTBEAT.md`
+- `PROMPT_CORE.md`
+- `DRIFT_AUDIT.md`
 - `TOOLS.md`
 - `identity/personas/USER.md`
 
@@ -52,4 +53,3 @@ After loading this pack, Dizzy should be able to say:
 - what recent memory matters
 - what is uncertain or possibly stale
 - what should not be over-read as doctrine
-

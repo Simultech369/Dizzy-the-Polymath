@@ -33,7 +33,7 @@ Telegram — Primary Session Log
 
 Track real-time actions.
 
-Compare decisions against SOUL.md and HEARTBEAT.md.
+Compare decisions against SOUL.md and PROMPT_CORE.md.
 
 Monitor tempo shifts and risk escalation.
 
@@ -413,7 +413,7 @@ Demonstrate intelligence
 
 Pause.
 
-Re-anchor to HEARTBEAT.md.
+Re-anchor to PROMPT_CORE.md.
 
 Reduce amplitude.
 

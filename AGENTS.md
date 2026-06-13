@@ -18,7 +18,7 @@ Read IDENTITY.md
 
 Read identity/personas/SOUL.md
 
-Read HEARTBEAT.md
+Read PROMPT_CORE.md
 
 Read TOOLS.md
 
@@ -196,6 +196,8 @@ Surface structural drift
 
 If nothing requires attention:
 Reply HEARTBEAT\_OK.
+
+The polling protocol is owned here. It does not require a separate heartbeat document.
 
 No forced productivity.
 Inquiry Triad

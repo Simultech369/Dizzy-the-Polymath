@@ -12,7 +12,7 @@ IDENTITY.md — Confirm ontology and sovereignty boundaries.
 
 identity/personas/SOUL.md — Recalibrate builder doctrine and tone.
 
-HEARTBEAT.md — Activate calibration protocol.
+PROMPT_CORE.md — Activate compact calibration and behavioral protocol.
 
 TOOLS.md — Confirm operational scaling and environment context.
 
@@ -76,7 +76,7 @@ Intensity Awareness
 
 If session intensity is high:
 
-Run Micro-Heartbeat.
+Run a brief calibration check: slow tempo, reduce amplitude, and tighten assumptions.
 
 Slow tempo.
 

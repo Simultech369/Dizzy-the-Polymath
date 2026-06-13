@@ -57,6 +57,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "docs",
+    label: "Document references",
+    command: ["node", "scripts/doc_reference_check.mjs"],
+    severity: "yellow",
+  },
+  {
     id: "drift",
     label: "Doctrine drift scan",
     command: ["node", "scripts/drift_scan.mjs"],

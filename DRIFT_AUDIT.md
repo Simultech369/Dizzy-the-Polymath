@@ -10,7 +10,7 @@ Purpose: label major docs and surfaces as `accurate`, `stale`, `aspirational`, o
   - Mostly aligned after the recent safety updates.
   - Correctly reflects tool-network defaults, Telegram startup-message behavior, and remote-mutation gating.
 
-- `GOVERNANCE.md`
+- `INTERACTION_NORMS.md`
   - Still matches the runtime at a high level.
   - Structural transparency, contestability, and local-first posture are represented honestly.
 
@@ -34,7 +34,7 @@ Purpose: label major docs and surfaces as `accurate`, `stale`, `aspirational`, o
   - `Metadata Sidecar` is partly reflected in the new staged fulfillment metadata, but not yet generalized across all generation flows.
   - `Financial Guardrails (Gas Limit)` is a policy intention; there is no generalized cost-heartbeat enforcement in runtime code yet.
 
-- `GOVERNANCE.md` contestability flow
+- `INTERACTION_NORMS.md` contestability flow
   - It points users toward `NEXT.md` and `DESIGN.md`, which is a reasonable governance workflow, but the runtime does not actively surface or enforce that path.
 
 ## Dangerous If Literal

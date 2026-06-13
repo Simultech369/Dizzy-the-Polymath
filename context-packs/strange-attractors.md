@@ -16,7 +16,7 @@ It is a place to notice what keeps bending the system's attention.
 - notes explicitly marked as strange, unresolved, open, live, or unfinished
 - optional persona files when their tone is being tested
 - `identity/personas/SOUL.md`
-- `HEARTBEAT.md`
+- `PROMPT_CORE.md`
 - `DRIFT_AUDIT.md`
 - directly relevant conversation or project notes
 
@@ -87,4 +87,3 @@ Clear status labels, git history, and a promotion path from sketch to memory or 
 What would make it dangerous or silly:
 
 If looseness becomes an excuse for incoherence, mystique, or unreviewed behavioral drift.
-

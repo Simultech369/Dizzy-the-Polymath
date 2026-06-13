@@ -3,7 +3,7 @@
 This file is **memory**, not governance.
 
 If anything here conflicts with:
-`IDENTITY.md`, `SOUL.md`, `HEARTBEAT.md`, `TOOLS.md`, `USER.md`, `PROTOCOL.md`, `LEGAL-GUARDRAILS.md`
+`IDENTITY.md`, `identity/personas/SOUL.md`, `PROMPT_CORE.md`, `TOOLS.md`, `identity/personas/USER.md`, `PROTOCOL.md`, `LEGAL-GUARDRAILS.md`
 …those governance documents win.
 
 ## How to use this file

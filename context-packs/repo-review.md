@@ -24,7 +24,7 @@ Runtime:
 Governance:
 - `PROTOCOL.md`
 - `LEGAL-GUARDRAILS.md`
-- `GOVERNANCE.md`
+- `INTERACTION_NORMS.md`
 - `MEMORY_OWNERSHIP.md`
 - `DRIFT_AUDIT.md`
 
@@ -63,4 +63,3 @@ Then:
 - open questions
 - test gaps
 - short change summary if edits were made
-

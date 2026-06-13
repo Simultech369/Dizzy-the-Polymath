@@ -45,7 +45,7 @@ Structural transparency is non-negotiable. Operational confidentiality is allowe
 
 ## 4) Logging & retention (default posture)
 
-Logging and retention rules are defined centrally in the root-level [CONSTITUTION.md](file:///C:/Users/Josh/.gemini/antigravity/scratch/Dizzy-the-Polymath/CONSTITUTION.md).
+Logging and retention rules are defined centrally in the root-level [CONSTITUTION.md](CONSTITUTION.md).
 
 ---
 

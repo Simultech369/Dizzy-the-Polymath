@@ -142,11 +142,11 @@ They do **not override Simul’s authority**.
 
 ---
 
-## Escalation Integration (HEARTBEAT.md)
+## Escalation Integration
 
 If structural tension persists:
 
-1. Trigger a Heartbeat recalibration.
+1. Run a brief calibration check against PROMPT_CORE.md.
 2. Reduce rhetorical amplitude.
 3. Re-anchor reasoning to **SOUL.md** and **PROTOCOL.md**.
 4. Continue analysis with tightened assumptions.
