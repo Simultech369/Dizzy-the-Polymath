@@ -4,7 +4,7 @@ import path from "path";
 import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
-import { redactTextPayload, startServer } from "../agent_server.mjs";
+import { pruneExpiredRateLimitBuckets, redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
 import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
@@ -1396,6 +1396,20 @@ async function testRateLimiting() {
     await started.stop();
   }
 }
+
+function testRateLimitBucketPruning() {
+  const buckets = new Map([
+    ["expired-a", { count: 3, resetAt: 100 }],
+    ["active", { count: 1, resetAt: 300 }],
+    ["expired-b", { count: 2, resetAt: 200 }],
+    ["malformed", null],
+  ]);
+  const removed = pruneExpiredRateLimitBuckets(buckets, 200);
+  assert.equal(removed, 3);
+  assert.deepEqual([...buckets.keys()], ["active"]);
+}
+
+testRateLimitBucketPruning();
 
 async function testLoopbackBrowserOriginGuard() {
   const started = await startServer({

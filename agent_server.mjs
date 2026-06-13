@@ -48,13 +48,29 @@ function getRateLimitConfig(opts = {}) {
   };
 }
 
+export function pruneExpiredRateLimitBuckets(buckets, now = Date.now()) {
+  let removed = 0;
+  for (const [key, bucket] of buckets.entries()) {
+    if (!bucket || Number(bucket.resetAt) <= now) {
+      buckets.delete(key);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
 function createRateLimitMiddleware(config) {
   const buckets = new Map();
+  let nextPruneAt = 0;
 
   return function rateLimit(req, res, next) {
     if (!config.enabled || req.path === "/health") return next();
 
     const now = Date.now();
+    if (now >= nextPruneAt) {
+      pruneExpiredRateLimitBuckets(buckets, now);
+      nextPruneAt = now + config.windowMs;
+    }
     const key = String(req.ip || req.socket?.remoteAddress || "unknown");
     const current = buckets.get(key);
     const bucket = current && current.resetAt > now
