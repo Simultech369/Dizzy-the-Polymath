@@ -6,13 +6,7 @@ Operational Manual: Daily Protocols, Troubleshooting, and System Constraints.
 ## 1. Daily & Weekly Task Protocols
 
 ### Daily Protocols
-1. **Memory Vacuum Review**
-   - Run the manual memory vacuum utility daily to clean up expired nodes staged by the background worker:
-     ```bash
-     npm run memory:vacuum
-     ```
-   - Review each staged memory node. Confirm deletion (`y`) only for nodes that contain trivial conversation residue or expired session states.
-2. **Health Check**
+1. **Health Check**
    - Query the local health endpoint to ensure authentication, safety configurations, and database connections are operational:
      ```bash
      curl http://127.0.0.1:3000/health
@@ -58,6 +52,5 @@ Operational Manual: Daily Protocols, Troubleshooting, and System Constraints.
 > [!CAUTION]
 > The following actions bypass core trust boundaries and are strictly prohibited:
 >
-> 1. **Automated Memory Deletion**: Do not automate the final deletion step of the memory vacuum pipeline. All purges must be manually confirmed by the operator to protect context continuity.
-> 2. **Unauthenticated Public Exposure**: Never expose endpoints beyond loopback (`127.0.0.1`) without configuring a strong `DIZZY_AUTH_TOKEN` in the environment.
-> 3. **Monetization / Subscription Integrations**: Keep all monetization layers disabled or out of scope until on-chain portability standards (`PORTABILITY.md`) are verified.
+> 1. **Unauthenticated Public Exposure**: Never expose endpoints beyond loopback (`127.0.0.1`) without configuring a strong `DIZZY_AUTH_TOKEN` in the environment.
+> 2. **Monetization / Subscription Integrations**: Keep all monetization layers disabled or out of scope until on-chain portability standards (`PORTABILITY.md`) are verified.

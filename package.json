@@ -17,8 +17,7 @@
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",
-                    "maintain":  "node ./scripts/maintain.mjs",
-                    "memory:vacuum":  "node ./scripts/memory_vacuum.mjs"
+                    "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [
                      "assistant",

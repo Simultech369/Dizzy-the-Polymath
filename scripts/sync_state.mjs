@@ -55,7 +55,6 @@ function normalizeForCompare(obj) {
   if (!obj || typeof obj !== "object") return obj;
   const out = JSON.parse(JSON.stringify(obj));
   delete out.updated_at;
-  delete out.memory_nodes;
   return out;
 }
 

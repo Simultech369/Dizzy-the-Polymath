@@ -72,6 +72,7 @@ Evidence still lacking:
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary |
 | Retrieved-context instruction boundary | Defense-in-depth experiment | Excerpts cannot close their data containers and are labeled untrusted evidence; prompt formatting is neither authorization nor complete injection prevention |
 | Unused ChromaDB and Puppeteer dependencies | Removed on `experiments` | Re-add only with an executable runtime path, sandbox policy, and integration tests |
+| Orphan `memory_nodes` vacuum lifecycle | Removed on `experiments` | Reintroduce only with a defined producer, durable owner, lifecycle schema, and acceptance tests; do not mix runtime records into canonical `state.json` |
 | HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` |
 | GOVERNANCE.md rename to INTERACTION_NORMS.md | Completed on `experiments`; promotion candidate | Namespace migration is complete while `/governance` retains API compatibility |
 | W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met |
