@@ -208,7 +208,7 @@ export function loadStateConfig(zone) {
   return parsed;
 }
 
-function boundaryGuard(req, res, next) {
+function requestBoundaryAuditGuard(req, res, next) {
   const text = String(req.body?.brief || req.body?.text || "").toLowerCase();
   const rawZone = req.headers?.["x-dizzy-zone"] || req.body?.zone || "public";
   const zone = rawZone === "private" ? "private" : "public";
@@ -222,6 +222,8 @@ function boundaryGuard(req, res, next) {
     reason = "untrusted_host_claimed_private_zone";
   }
 
+  // Phrase detection is defense-in-depth telemetry, not semantic authorization.
+  // Trust-zone capability checks remain the boundary for retrieval and mutation.
   if (zone === "public" || !isLocal) {
     if (
       text.includes("override trust_zone") ||
@@ -1207,7 +1209,7 @@ function getDashboardHtml() {
   }
 
   // Single dispatch path (Telegram/model wiring can call this later).
-  app.post("/dispatch/incoming", boundaryGuard, async (req, res) => {
+  app.post("/dispatch/incoming", requestBoundaryAuditGuard, async (req, res) => {
     try {
       const message = buildIncomingMessage(req.body, req, { channel: "local" });
 
@@ -1262,7 +1264,7 @@ function getDashboardHtml() {
   });
 
   // POST /agent/execute delegates to dispatch for now.
-  app.post("/agent/execute", boundaryGuard, async (req, res) => {
+  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res) => {
     const { brief, service_id, client_id } = req.body ?? {};
     const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";
