@@ -15,3 +15,6 @@ coverage/
 dist/
 __pycache__/
 *.pyc
+
+# Rust build target
+/core/target/
