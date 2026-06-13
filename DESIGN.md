@@ -677,6 +677,27 @@ Consequences:
 
 ---
 
+### D-0034: Durable writers share a narrow fail-closed policy
+
+Decision:
+- Route remembered memory, auto-memory candidates, friction entries, and trajectories through `lib/durable_write_policy.mjs` before writing.
+- Permit durable writes only from `private_self` and `trusted_collaborator`.
+- Reject explicit non-persistent sensitivity classes, obvious credential material, and captures that do not meet the existing durable-value gate.
+- Keep political and civic doctrine classification outside the write policy.
+
+Rationale:
+- Trust-zone and privacy rules are weaker when each writer implements a different subset.
+- A shared pre-write boundary is easier to test and audit than post-write cleanup.
+- Broad PII or doctrine classifiers would add false confidence and false positives without current evidence that they improve this local workflow.
+
+Consequences:
+- Blocked records fail before a durable file is created.
+- Secret redaction remains available for display and preparation, but detection at a durable boundary blocks the write instead of silently persisting a modified record.
+- Callers remain responsible for labeling sensitive material that obvious credential patterns cannot identify.
+- Future durable writers must call the shared policy and add writer-boundary acceptance coverage.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

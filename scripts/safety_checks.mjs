@@ -24,6 +24,7 @@ import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_consistency.mjs";
 import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "../lib/skill_registry.mjs";
+import { assessDurableWrite, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -35,6 +36,53 @@ async function expectReject(fn, pattern) {
   }
   assert.equal(threw, true, "expected rejection");
 }
+
+function testDurableWritePolicy() {
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "paid_public",
+    payload: "A durable project decision with enough useful context to retain later.",
+  }).reason, "trust_zone_blocked");
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    sensitivityClass: "do_not_persist",
+    payload: "A durable project decision with enough useful context to retain later.",
+  }).reason, "sensitivity_blocks_persistence");
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
+  }).reason, "secret_material_detected");
+  assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: "The operator decided the client continuity window remains seven days pending real usage evidence.",
+  }).allowed, true);
+
+  const blockedFrictionPath = "runtime/test-durable-write-blocked-friction.jsonl";
+  const blockedTrajectoryPath = "runtime/test-durable-write-blocked-trajectory.jsonl";
+  fs.rmSync(blockedFrictionPath, { force: true });
+  fs.rmSync(blockedTrajectoryPath, { force: true });
+  assert.throws(() => appendFriction({
+    friction_type: "privacy",
+    description: "A public request attempted to create a durable local friction record.",
+    suggested_fix: "Keep paid public interactions ephemeral unless continuity is explicitly enabled.",
+  }, { filePath: blockedFrictionPath, trustZone: "paid_public" }), /trust_zone_blocked/);
+  assert.throws(() => appendTrajectory({
+    goal: "Prevent accidental secret persistence in reusable trajectory records.",
+    success_criteria: "The durable writer rejects the record before creating a file.",
+    actions_taken: ["attempted a trajectory write containing secret material"],
+    outcome: "success",
+    reusable_pattern: "Never save API_KEY=supersecretvalue123 in a durable record.",
+    reuse_tags: ["privacy", "memory"],
+  }, { filePath: blockedTrajectoryPath, checkEligibility: false }), /secret_material_detected/);
+  assert.equal(fs.existsSync(blockedFrictionPath), false);
+  assert.equal(fs.existsSync(blockedTrajectoryPath), false);
+}
+
+testDurableWritePolicy();
 
 function testConversationArtifactContainment() {
   const ownerDir = path.resolve(process.cwd(), "runtime", "test-conversation-artifacts");

@@ -101,17 +101,16 @@ Every note in `active/` must start with status frontmatter:
 
 ## Current Active Notes
 
-- `active`: [civic-sieve.md](active/civic-sieve.md), [drift-check-evidence.md](active/drift-check-evidence.md), [privilege-split.md](active/privilege-split.md), [refinement-discipline.md](active/refinement-discipline.md), [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
-- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [friction-ledger.md](active/friction-ledger.md), [memory-metadata.md](active/memory-metadata.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [trajectory-distillery.md](active/trajectory-distillery.md)
+- `active`: [drift-check-evidence.md](active/drift-check-evidence.md), [privilege-split.md](active/privilege-split.md), [refinement-discipline.md](active/refinement-discipline.md), [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
+- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [civic-sieve.md](active/civic-sieve.md), [friction-ledger.md](active/friction-ledger.md), [memory-metadata.md](active/memory-metadata.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [trajectory-distillery.md](active/trajectory-distillery.md)
 - `parked`: [2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md), [anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md), [telos-substrate.md](active/telos-substrate.md)
 
 ## Near-Term Implementation Sequence
 
-1. Implement the shared durable-write privacy and capture gate.
-2. Define the compact refinement preflight contract.
-3. Add auditable evidence to report-only drift scans.
-4. Strengthen the logical untrusted-context boundary.
-5. Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
+1. Define the compact refinement preflight contract.
+2. Add auditable evidence to report-only drift scans.
+3. Strengthen the logical untrusted-context boundary.
+4. Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 Before adding another layer, read the selection-pressure note and decide what should become simpler, less necessary, or explicitly deferred.
 

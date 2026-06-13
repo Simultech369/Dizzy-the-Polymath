@@ -16,7 +16,6 @@ Rules:
 
 ## Work Queue
 
-- W-0042 [Tier 1]: Implement a shared durable-write privacy and capture gate without doctrine policing (ref upgrades/active/civic-sieve.md).
 - W-0043 [Tier 2]: Define and test the compact refinement preflight contract (ref upgrades/active/refinement-discipline.md).
 - W-0044 [Tier 2]: Add revision and rule-set evidence to report-only drift scans (ref upgrades/active/drift-check-evidence.md).
 - W-0045 [Tier 2]: Strengthen the logical untrusted-context boundary before considering process or model separation (ref upgrades/active/privilege-split.md).
@@ -26,6 +25,7 @@ Rules:
 
 ## Completed
 
+- W-0042: Added a shared durable-write policy for remembered memory, auto-memory candidates, friction entries, and trajectories; disallowed trust zones, non-persistent sensitivity classes, obvious credentials, and low-value captures fail before a file is written.
 - W-0001: Added `node scripts/sync_state.mjs --check` to verify `state.json` matches `DESIGN.md`.
 - N-0001: Canonical job state machine defined in `DESIGN.md` (D-0005).
 - N-0002: Optional auth token decision defined in `DESIGN.md` (D-0006).
