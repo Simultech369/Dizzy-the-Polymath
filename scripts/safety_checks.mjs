@@ -7,7 +7,7 @@ import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
 import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
-import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
+import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
@@ -718,6 +718,51 @@ function testMarkdownRetrieverSignals() {
   assert.equal(snippets.every((s) => Number.isFinite(Date.parse(s.retrieved_at))), true);
 }
 
+function testClassAwareMemoryDecay() {
+  const decisionPath = path.resolve(process.cwd(), "memory", "topics", "test-old-project-decision.md");
+  const observationPath = path.resolve(process.cwd(), "memory", "topics", "test-recent-observation.md");
+  fs.writeFileSync(decisionPath, `---
+memory_class: project_decision
+captured_at: 2020-01-01
+last_reviewed: 2020-01-01
+confidence: high
+---
+# Durable policy
+Classawarepolicy says durable operator policy remains authoritative.
+`, "utf8");
+  fs.writeFileSync(observationPath, `---
+memory_class: assistant_observation
+captured_at: 2026-06-01
+last_reviewed: 2026-06-01
+confidence: low
+---
+# Recent observation
+Classawarepolicy is a recent generated observation.
+`, "utf8");
+
+  try {
+    resetMarkdownIndexCacheForTests();
+    const snippets = getRelevantMarkdownSnippets("classawarepolicy", { k: 8 });
+    const decision = snippets.find((item) => item.path.endsWith("test-old-project-decision.md"));
+    const observation = snippets.find((item) => item.path.endsWith("test-recent-observation.md"));
+    assert.ok(decision);
+    assert.ok(observation);
+    assert.equal(decision.memory_class, "project_decision");
+    assert.equal(decision.decay, 1);
+    assert.equal(decision.decay_policy, "authority_preserved_review_age_only");
+    assert.equal(decision.review_due, true);
+    assert.equal(decision.review_age_days > 365, true);
+    assert.equal(observation.memory_class, "assistant_observation");
+    assert.equal(observation.decay_policy, "relevance_half_life_180_days");
+    assert.equal(observation.decay < 1, true);
+    assert.equal(decision.score > observation.score, true);
+  } finally {
+    fs.rmSync(decisionPath, { force: true });
+    fs.rmSync(observationPath, { force: true });
+    resetMarkdownIndexCacheForTests();
+  }
+}
+
 async function testAgentExecuteContinuityLifecycleResponse() {
   const oldBackend = process.env.DIZZY_CHAT_BACKEND;
   const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
@@ -1230,6 +1275,7 @@ testModelRoutingRoles();
 testFrontmatterStrip();
 testMemoryGraph();
 testMarkdownRetrieverSignals();
+testClassAwareMemoryDecay();
 testMarkdownRetrieverExcludesUntrustedRoots();
 testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();

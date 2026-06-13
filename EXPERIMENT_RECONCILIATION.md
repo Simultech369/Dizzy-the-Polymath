@@ -36,7 +36,7 @@ No experimental commit receives authority merely because it is pushed, recent, o
 | Skill intake ledger/review skill | Review for selective harvest | Confirm current `main` does not already contain patch-equivalent behavior; preserve supply-chain gates |
 | BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence |
-| Time-decay memory | Report-only experiment first | Separate freshness from authority; use memory-class-specific policies |
+| Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible |
 | Drift and memory dashboard | Keep experimental | Extract from `agent_server.mjs`; make read-only; prove private data cannot cross zones |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
