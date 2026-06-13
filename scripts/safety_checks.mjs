@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -80,7 +80,7 @@ function testLocalSkillRegistry() {
   const unrelated = selectLocalSkills("Tell me a short joke", { trustZone: "private_self" });
   assert.equal(unrelated.selected.length, 0);
 
-  const receipt = buildCapabilityReceipt({ channel: "local" }, {
+  const receipt = buildCapabilityReceipt({ channel: "local", runtime_context: { trusted_local: true } }, {
     selected_skills: ["git-skill"],
     rejected_skills: [{ name: "not-a-real-skill", reason: "unknown_or_unapproved_skill" }],
     skill_selection_mode: "explicit",
@@ -285,9 +285,31 @@ function testContinuityModes() {
   assert.equal(paidClient.durable_memory_allowed, false);
   assert.equal(paidClient.expiry_policy, "7_days_inactivity_operator_deletable");
 
-  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trust_zone: "private_self" } });
+  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trusted_local: true, trust_zone: "private_self" } });
   assert.equal(privateSelf.repo_retrieval_allowed, true);
   assert.equal(privateSelf.durable_memory_allowed, true);
+}
+
+function testTrustZoneRequiresIngressAuthority() {
+  assert.equal(getTrustZone({ channel: "local", runtime_context: { trusted_local: true } }), "private_self");
+  assert.equal(getTrustZone({ channel: "local", runtime_context: { trusted_local: false } }), "outside_contact");
+  assert.equal(getTrustZone({ channel: "telegram" }), "outside_contact");
+  assert.equal(
+    getTrustZone({ channel: "local", runtime_context: { trusted_local: false, trust_zone: "private_self" } }),
+    "outside_contact",
+  );
+  assert.equal(
+    getTrustZone({ channel: "local", runtime_context: { trusted_local: true, trust_zone: "private_self" } }),
+    "private_self",
+  );
+
+  const untrustedCapabilities = getTrustZoneCapabilities({
+    channel: "local",
+    runtime_context: { trusted_local: false },
+  });
+  assert.equal(untrustedCapabilities.trust_zone, "outside_contact");
+  assert.equal(untrustedCapabilities.repo_retrieval_allowed, false);
+  assert.equal(untrustedCapabilities.durable_memory_allowed, false);
 }
 
 function testCapabilityReceipts() {
@@ -319,7 +341,7 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
   const privateReceipt = buildCapabilityReceipt(
-    { channel: "local", runtime_context: { trust_zone: "private_self", purpose: "maintain_private_context" } },
+    { channel: "local", runtime_context: { trusted_local: true, trust_zone: "private_self", purpose: "maintain_private_context" } },
     {
       retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"],
       retrieval_audit: {
@@ -992,6 +1014,35 @@ function testPromptBundleDefaults() {
   else process.env.DIZZY_PROMPT_PACK = oldPack;
 }
 
+function testConstitutionalPromptExpiryFailsClosed() {
+  const originalCwd = process.cwd();
+  const tempRoot = fs.mkdtempSync(path.join(originalCwd, "runtime", "test-expired-constitution-"));
+  const oldPack = process.env.DIZZY_PROMPT_PACK;
+  const oldFiles = process.env.DIZZY_PROMPT_FILES;
+
+  try {
+    delete process.env.DIZZY_PROMPT_PACK;
+    delete process.env.DIZZY_PROMPT_FILES;
+    fs.writeFileSync(
+      path.join(tempRoot, "CONSTITUTION.md"),
+      "---\nexpires_at: 2020-01-01\n---\nExpired constitutional test fixture.\n",
+      "utf8",
+    );
+    process.chdir(tempRoot);
+    assert.throws(
+      () => getPromptSources(),
+      /Constitutional prompt source expired: CONSTITUTION\.md \(2020-01-01\)/,
+    );
+  } finally {
+    process.chdir(originalCwd);
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+    if (oldPack === undefined) delete process.env.DIZZY_PROMPT_PACK;
+    else process.env.DIZZY_PROMPT_PACK = oldPack;
+    if (oldFiles === undefined) delete process.env.DIZZY_PROMPT_FILES;
+    else process.env.DIZZY_PROMPT_FILES = oldFiles;
+  }
+}
+
 function testTrajectoryDistilleryManualPath() {
   const testPath = "runtime/test-trajectories.jsonl";
   fs.rmSync(path.resolve(process.cwd(), testPath), { force: true });
@@ -1146,6 +1197,7 @@ await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
 testContinuityModes();
+testTrustZoneRequiresIngressAuthority();
 testCapabilityReceipts();
 testRetrievalPlan();
 testQueueChannelSanitization();
@@ -1161,6 +1213,7 @@ testMarkdownRetrieverExcludesUntrustedRoots();
 testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
+testConstitutionalPromptExpiryFailsClosed();
 testTrajectoryDistilleryManualPath();
 testMemoryMetabolismReportMode();
 testFrictionLedgerManualPath();
