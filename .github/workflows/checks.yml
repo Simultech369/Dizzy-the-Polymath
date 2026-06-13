@@ -51,7 +51,17 @@ jobs:
         run: npm ci
 
       - name: ${{ matrix.label }}
-        run: ${{ matrix.command }}
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          ${{ matrix.command }} 2>&1 | tee check-output.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            message=$(tail -n 30 check-output.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error title=${{ matrix.label }}::$message"
+          fi
+          exit "$status"
 
   maintenance-summary:
     name: Full maintenance summary
