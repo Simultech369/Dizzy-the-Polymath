@@ -159,6 +159,7 @@ Consequences:
 Decision:
 - Bind the local runtime to loopback by default (`127.0.0.1`).
 - Support optional bearer auth via `DIZZY_AUTH_TOKEN` for cases where the runtime is exposed beyond loopback.
+- Reject browser requests from non-loopback origins by default on loopback bindings; allow deliberate exceptions through `DIZZY_ALLOWED_ORIGINS`.
 
 Rationale:
 - Avoid accidental LAN exposure and drive-by access.
@@ -167,6 +168,7 @@ Rationale:
 Consequences:
 - Default configuration is safe with "no auth" because it is local-only.
 - Setting `DIZZY_AUTH_TOKEN` enforces auth on endpoints. `/health` is unauthenticated only when bound to loopback.
+- CLI and service requests without an `Origin` header remain compatible; browser-origin requests are checked before route handling.
 
 ---
 

@@ -1316,6 +1316,52 @@ async function testRateLimiting() {
   }
 }
 
+async function testLoopbackBrowserOriginGuard() {
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    redisUrl: "",
+    allowedOrigins: "https://trusted.example",
+  });
+
+  try {
+    const port = started.boundPort;
+    const hostile = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://attacker.example" },
+      body: JSON.stringify({ channel: "local", text: "hello" }),
+    });
+    assert.equal(hostile.status, 403);
+    assert.match((await hostile.json()).error, /Browser origin rejected/i);
+
+    const malformed = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "null" },
+      body: JSON.stringify({ channel: "local", text: "hello" }),
+    });
+    assert.equal(malformed.status, 403);
+
+    const localBrowser = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { origin: "http://localhost:5173" },
+    });
+    assert.equal(localBrowser.status, 200);
+    const localHealth = await localBrowser.json();
+    assert.equal(localHealth.browser_origin_guard.enabled, true);
+    assert.equal(localHealth.browser_origin_guard.external_allowlist_configured, true);
+
+    const allowlisted = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { origin: "https://trusted.example" },
+    });
+    assert.equal(allowlisted.status, 200);
+
+    const nonBrowser = await fetch(`http://127.0.0.1:${port}/health`);
+    assert.equal(nonBrowser.status, 200);
+  } finally {
+    await started.stop();
+  }
+}
+
 async function testAdversarialTrustZoneBypass() {
   const auditPath = path.resolve(process.cwd(), "runtime", "audit", "boundary_violations.jsonl");
   fs.rmSync(auditPath, { force: true });
@@ -1452,6 +1498,7 @@ async function testReadContractTool() {
 }
 
 await testRateLimiting();
+await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 
