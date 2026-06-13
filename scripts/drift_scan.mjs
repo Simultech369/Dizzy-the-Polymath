@@ -1,6 +1,21 @@
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
+
+const SCANNER_VERSION = process.env.DIZZY_SCANNER_VERSION || "1.0.0";
+
+function getGitRevision() {
+  if (process.env.DIZZY_GIT_REVISION !== undefined) {
+    return process.env.DIZZY_GIT_REVISION;
+  }
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return null;
+  }
+}
+
 
 const FILES = [
   "DESIGN.md",
@@ -50,9 +65,13 @@ function scanFile(file) {
 const findings = FILES.flatMap(scanFile);
 const out = {
   ok: true,
+  scanner_version: SCANNER_VERSION,
+  repository_revision: getGitRevision(),
   scanned_at: new Date().toISOString(),
   scope: FILES,
   findings,
+  findings_count: findings.length,
+  stable_finding_ids: findings.map((f) => `${f.file}:${f.id}`).sort(),
   surprise_hypotheses: findings
     .filter((f) => f.id === "ambient_paid_continuity" || f.id === "doctrine_classifier")
     .map((f) => ({

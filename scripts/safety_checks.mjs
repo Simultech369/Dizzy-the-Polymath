@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
@@ -1195,6 +1196,54 @@ function testRefinementPreflightContract() {
 }
 
 testRefinementPreflightContract();
+
+function testDriftScanEvidenceContract() {
+  const originalRevision = process.env.DIZZY_GIT_REVISION;
+  const originalScannerVersion = process.env.DIZZY_SCANNER_VERSION;
+
+  try {
+    process.env.DIZZY_GIT_REVISION = "test-revision-A";
+    process.env.DIZZY_SCANNER_VERSION = "9.9.9";
+    const outRaw1 = execSync("node scripts/drift_scan.mjs", { encoding: "utf8" });
+    const report1 = JSON.parse(outRaw1);
+
+    assert.equal(report1.ok, true);
+    assert.equal(report1.scanner_version, "9.9.9");
+    assert.equal(report1.repository_revision, "test-revision-A");
+    assert.ok(report1.scanned_at);
+    assert.ok(Array.isArray(report1.scope));
+    assert.ok(Array.isArray(report1.findings));
+    assert.equal(typeof report1.findings_count, "number");
+    assert.ok(Array.isArray(report1.stable_finding_ids));
+    assert.equal(report1.findings_count, report1.findings.length);
+
+    const outRaw2 = execSync("node scripts/drift_scan.mjs", { encoding: "utf8" });
+    const report2 = JSON.parse(outRaw2);
+    assert.deepEqual(report1.stable_finding_ids, report2.stable_finding_ids);
+
+    process.env.DIZZY_GIT_REVISION = "test-revision-B";
+    const outRaw3 = execSync("node scripts/drift_scan.mjs", { encoding: "utf8" });
+    const report3 = JSON.parse(outRaw3);
+    assert.equal(report3.repository_revision, "test-revision-B");
+    assert.equal(report3.scanner_version, "9.9.9");
+
+    process.env.DIZZY_GIT_REVISION = "test-revision-A";
+    process.env.DIZZY_SCANNER_VERSION = "10.0.0";
+    const outRaw4 = execSync("node scripts/drift_scan.mjs", { encoding: "utf8" });
+    const report4 = JSON.parse(outRaw4);
+    assert.equal(report4.repository_revision, "test-revision-A");
+    assert.equal(report4.scanner_version, "10.0.0");
+
+  } finally {
+    if (originalRevision === undefined) delete process.env.DIZZY_GIT_REVISION;
+    else process.env.DIZZY_GIT_REVISION = originalRevision;
+
+    if (originalScannerVersion === undefined) delete process.env.DIZZY_SCANNER_VERSION;
+    else process.env.DIZZY_SCANNER_VERSION = originalScannerVersion;
+  }
+}
+
+testDriftScanEvidenceContract();
 
 function testConstitutionalPromptExpiryFailsClosed() {
   const originalCwd = process.cwd();

@@ -1,10 +1,10 @@
 ---
 id: U-drift-check-evidence
-status: active
+status: integrated
 tier: 2
 owner_surface: scripts/drift_scan.mjs
 last_reviewed: 2026-06-13
-next_action: Add report metadata for checked revision, checked files, rule-set version, and timestamp without writing ambient state during ordinary scans.
+next_action: None. Maintain drift scan integration in the maintainer flow.
 ---
 
 # Drift Check Evidence
@@ -35,3 +35,9 @@ Each report should expose:
 - Two scans at the same revision and rule set produce equivalent finding IDs.
 - Reports distinguish a new source revision from a new scanner version.
 - Running the scan does not dirty the worktree by default.
+
+## Implemented Integration
+
+- `scripts/drift_scan.mjs` outputs `scanner_version`, `repository_revision`, `findings_count`, and `stable_finding_ids`.
+- Safety check unit tests verify behavior under environment overrides (`DIZZY_GIT_REVISION` and `DIZZY_SCANNER_VERSION`).
+- The scan runs cleanly in memory without modifying source files.
