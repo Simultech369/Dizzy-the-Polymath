@@ -1,15 +1,15 @@
 ---
 id: U-privilege-split
-status: active
+status: integrated
 tier: 2
-owner_surface: lib/dispatch.mjs retrieval boundary
+owner_surface: lib/dispatch.mjs and lib/tools.mjs
 last_reviewed: 2026-06-13
-next_action: Define and test a logical untrusted-context envelope before considering model or process separation.
+next_action: None. Maintain logical boundaries on untrusted inputs.
 ---
 
 # Privilege Split
 
-Status: Strong near-term candidate; start logical, not heavyweight.
+Status: Integrated. A logical untrusted-context envelope (Quarantined Janitor) is implemented.
 
 ## Current Decision
 
