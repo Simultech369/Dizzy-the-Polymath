@@ -8,7 +8,53 @@ on:
       - experiments
 
 jobs:
-  verify:
+  component-checks:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Runtime safety
+            command: npm run check:safety
+          - label: Smoke test
+            command: npm run smoke
+          - label: State sync
+            command: npm run check:state
+          - label: Memory validation
+            command: npm run check:memory
+          - label: Prompt drift
+            command: npm run check:prompt
+          - label: Production readiness
+            command: npm run check:production
+          - label: Queue consistency
+            command: npm run check:next
+          - label: Skill registry
+            command: npm run check:skills
+          - label: Document references
+            command: npm run check:docs
+          - label: Doctrine drift
+            command: npm run drift:scan
+          - label: Connection scan
+            command: npm run connection:scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ${{ matrix.label }}
+        run: ${{ matrix.command }}
+
+  maintenance-summary:
+    name: Full maintenance summary
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
