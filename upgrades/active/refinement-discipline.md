@@ -1,10 +1,10 @@
 ---
 id: U-refinement-discipline
-status: integrated
+status: active
 tier: 2
-owner_surface: OPERATING_LOOP.md
-last_reviewed: 2026-06-01
-next_action: Keep success criteria operational; avoid promoting style micro-rules into constitution.
+owner_surface: OPERATING_LOOP.md and future task preflight helper
+last_reviewed: 2026-06-13
+next_action: Define one compact task-preflight contract and test its skip, clarify, and proceed paths.
 ---
 
 # Refinement Discipline And Success Criteria

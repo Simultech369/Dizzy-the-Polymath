@@ -16,6 +16,10 @@ Rules:
 
 ## Work Queue
 
+- W-0042 [Tier 1]: Implement a shared durable-write privacy and capture gate without doctrine policing (ref upgrades/active/civic-sieve.md).
+- W-0043 [Tier 2]: Define and test the compact refinement preflight contract (ref upgrades/active/refinement-discipline.md).
+- W-0044 [Tier 2]: Add revision and rule-set evidence to report-only drift scans (ref upgrades/active/drift-check-evidence.md).
+- W-0045 [Tier 2]: Strengthen the logical untrusted-context boundary before considering process or model separation (ref upgrades/active/privilege-split.md).
 - W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
 
 ---

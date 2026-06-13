@@ -1,10 +1,10 @@
 ---
 id: U-privilege-split
-status: parked
+status: active
 tier: 2
-owner_surface: future-runtime-safety
-last_reviewed: 2026-06-11
-next_action: Revisit when untrusted external content enters a privileged, tool-capable context.
+owner_surface: lib/dispatch.mjs retrieval boundary
+last_reviewed: 2026-06-13
+next_action: Define and test a logical untrusted-context envelope before considering model or process separation.
 ---
 
 # Privilege Split
@@ -13,7 +13,7 @@ Status: Strong near-term candidate; start logical, not heavyweight.
 
 ## Current Decision
 
-Keep parked. The June 11 experimental Tier 1 promotion was reconsidered and removed because no current ingestion path, incident evidence, or tested boundary contract demonstrates that the activation trigger has been reached.
+Activate only the logical boundary. Retrieved markdown and memory-graph excerpts now enter a tool-capable prompt, so the trigger exists. This does not justify a second model, process, or broad sanitizer architecture.
 
 Fresh review supersedes the older review date without changing the parked disposition.
 

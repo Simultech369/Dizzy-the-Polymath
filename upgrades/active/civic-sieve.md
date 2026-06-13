@@ -1,15 +1,15 @@
 ---
 id: U-civic-sieve
-status: integrated
+status: active
 tier: 1
-owner_surface: MECHANISM_SIEVE.md
-last_reviewed: 2026-06-01
-next_action: Keep as provenance; active mechanism lives in MECHANISM_SIEVE.md and PROMPT_CORE.md.
+owner_surface: future lib/durable_write_policy.mjs
+last_reviewed: 2026-06-13
+next_action: Implement one shared pre-write privacy and capture gate across durable memory writers, with focused tests.
 ---
 
 # Civic Sieve
 
-Status: Accepted as a minimal guard concept; implementation should stay narrow.
+Status: Active implementation item. The mechanism remains narrower than the original civic framing.
 
 ## Purpose
 
@@ -24,6 +24,8 @@ Before durable writes:
 - trust-zone leakage
 - doctrine claims that should remain provisional
 - user-sensitive material that lacks future judgment value
+
+The first implementation must enforce privacy, trust-zone eligibility, sensitivity, and durable-value checks. It must not classify political or civic disagreement as a doctrine violation.
 
 Before public/paid output:
 
