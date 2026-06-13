@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -35,6 +35,19 @@ async function expectReject(fn, pattern) {
   }
   assert.equal(threw, true, "expected rejection");
 }
+
+function testConversationArtifactContainment() {
+  const ownerDir = path.resolve(process.cwd(), "runtime", "test-conversation-artifacts");
+  const malicious = "../../PROMPT_CORE";
+  const key = normalizeConversationKey(malicious);
+  const artifact = conversationArtifactPath(ownerDir, malicious, ".jsonl");
+  assert.equal(key, "prompt_core");
+  assert.equal(path.dirname(artifact), ownerDir);
+  assert.equal(path.basename(artifact), "prompt_core.jsonl");
+  assert.throws(() => conversationArtifactPath(ownerDir, "safe", "../bad"), /Invalid conversation artifact extension/);
+}
+
+testConversationArtifactContainment();
 
 function testLocalSkillRegistry() {
   const registry = discoverLocalSkills();
