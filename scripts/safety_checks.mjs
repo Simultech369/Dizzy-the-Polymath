@@ -776,6 +776,28 @@ Classawarepolicy is a recent generated observation.
   }
 }
 
+function testDailyLogFilenameDecayProvenance() {
+  const dailyPath = path.resolve(process.cwd(), "memory", "2001-02-03-decay-fixture.md");
+  fs.writeFileSync(dailyPath, "# Historical log\n\nDailydecayfixture records an old raw observation.\n", "utf8");
+
+  try {
+    resetMarkdownIndexCacheForTests();
+    const snippets = getRelevantMarkdownSnippets("dailydecayfixture", { k: 8 });
+    const daily = snippets.find((item) => item.path.endsWith("2001-02-03-decay-fixture.md"));
+    assert.ok(daily);
+    assert.equal(daily.kind, "daily_log");
+    assert.equal(daily.decay_policy, "relevance_half_life_180_days");
+    assert.equal(daily.decay_date_source, "daily_log_filename");
+    assert.equal(daily.review_age_days > 3650, true);
+    assert.equal(daily.decay < 0.001, true);
+  } finally {
+    fs.rmSync(dailyPath, { force: true });
+    resetMarkdownIndexCacheForTests();
+  }
+}
+
+testDailyLogFilenameDecayProvenance();
+
 async function testAgentExecuteContinuityLifecycleResponse() {
   const oldBackend = process.env.DIZZY_CHAT_BACKEND;
   const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
