@@ -2,6 +2,7 @@
   "version": 1,
   "reviewed_at": "2026-06-11",
   "default_max_selected": 3,
+  "default_max_bytes": 6000,
   "skills": {
     "agent-relationships": {
       "status": "active",

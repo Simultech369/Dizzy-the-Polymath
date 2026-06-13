@@ -80,6 +80,27 @@ function testLocalSkillRegistry() {
   const unrelated = selectLocalSkills("Tell me a short joke", { trustZone: "private_self" });
   assert.equal(unrelated.selected.length, 0);
 
+  for (const falsePositive of ["This is difficult.", "The superconductor is active.", "This file contains profiles."]) {
+    const selection = selectLocalSkills(falsePositive, { trustZone: "private_self" });
+    assert.equal(selection.selected.length, 0, `unexpected skill match for: ${falsePositive}`);
+  }
+
+  const punctuationMatch = selectLocalSkills("Please inspect the git diff.", { trustZone: "private_self" });
+  assert.deepEqual(punctuationMatch.selected.map((skill) => skill.name), ["git-skill"]);
+
+  const oneExplicit = selectLocalSkills("help", {
+    trustZone: "private_self",
+    runtimeContext: { skills: ["git-skill"] },
+  });
+  const budgetedExplicit = selectLocalSkills("help", {
+    trustZone: "private_self",
+    runtimeContext: { skills: ["git-skill", "database-interface"] },
+    maxBytes: oneExplicit.prompt_bytes,
+  });
+  assert.deepEqual(budgetedExplicit.selected.map((skill) => skill.name), ["git-skill"]);
+  assert.deepEqual(budgetedExplicit.rejected, [{ name: "database-interface", reason: "skill_prompt_byte_budget_exceeded" }]);
+  assert.equal(budgetedExplicit.prompt_bytes <= budgetedExplicit.max_bytes, true);
+
   const receipt = buildCapabilityReceipt({ channel: "local", runtime_context: { trusted_local: true } }, {
     selected_skills: ["git-skill"],
     rejected_skills: [{ name: "not-a-real-skill", reason: "unknown_or_unapproved_skill" }],
