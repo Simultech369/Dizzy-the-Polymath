@@ -1,0 +1,52 @@
+{
+  "capabilities": {
+    "private_self": {
+      "repo_retrieval_allowed": true,
+      "durable_memory_allowed": true,
+      "retention_scope": "local_conversation",
+      "ephemeral_history": false,
+      "expiry_policy": "none"
+    },
+    "trusted_collaborator": {
+      "repo_retrieval_allowed": true,
+      "durable_memory_allowed": true,
+      "retention_scope": "local_conversation",
+      "ephemeral_history": false,
+      "expiry_policy": "none"
+    },
+    "outside_contact": {
+      "repo_retrieval_allowed": false,
+      "durable_memory_allowed": false,
+      "retention_scope": "local_conversation",
+      "ephemeral_history": false,
+      "expiry_policy": "none"
+    },
+    "paid_public": {
+      "repo_retrieval_allowed": false,
+      "durable_memory_allowed": false,
+      "retention_scope": "conversation_only",
+      "ephemeral_history": false,
+      "expiry_policy": "7_days_inactivity_operator_deletable"
+    }
+  },
+  "overrides": [
+    {
+      "condition": {
+        "trust_zone": "paid_public",
+        "continuity_mode_not": "client"
+      },
+      "updates": {
+        "retention_scope": "ephemeral",
+        "ephemeral_history": true,
+        "expiry_policy": "none"
+      }
+    }
+  ],
+  "sieve_rules": {
+    "exit_min_length": 15,
+    "exit_forbidden_keywords": ["none", "no exit", "not allowed", "lock-in", "impossible to leave", "restricted"],
+    "capture_forbidden_mitigations": ["no mitigation", "operator absolute control", "absolute operator ownership"],
+    "wellbeing_bad_metrics": ["tvl", "token price", "speculation", "market cap", "transaction volume", "growth rate"],
+    "wellbeing_good_metrics": ["patients", "access", "stabilized", "waste", "carbon", "well-being", "portability"]
+  }
+}

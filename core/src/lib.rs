@@ -1,12 +1,14 @@
 pub mod trust;
 pub mod decay;
 pub mod sieve;
+pub mod rules;
 
 #[cfg(test)]
 mod tests {
     use super::trust::*;
     use super::decay::*;
     use super::sieve::*;
+    use super::rules::*;
 
     #[test]
     fn test_trust_zone_resolution() {
@@ -171,5 +173,49 @@ mod tests {
         assert_eq!(res_no_appeal.ok, true); // Still ok (warning only)
         assert_eq!(res_no_appeal.warnings.len(), 1);
         assert!(res_no_appeal.warnings[0].contains("lacks explicit dispute appeals"));
+    }
+
+    #[test]
+    fn test_declarative_ruleset() {
+        let ruleset = DeclarativeRuleset::load_default();
+
+        // 1. Verify capabilities evaluation matching trust.rs
+        let caps_private = ruleset.get_capabilities(TrustZone::PrivateSelf, ContinuityMode::Default);
+        assert_eq!(caps_private.repo_retrieval_allowed, true);
+        assert_eq!(caps_private.durable_memory_allowed, true);
+        assert_eq!(caps_private.retention_scope, "local_conversation");
+
+        let caps_paid_default = ruleset.get_capabilities(TrustZone::PaidPublic, ContinuityMode::Default);
+        assert_eq!(caps_paid_default.repo_retrieval_allowed, false);
+        assert_eq!(caps_paid_default.durable_memory_allowed, false);
+        assert_eq!(caps_paid_default.retention_scope, "ephemeral");
+        assert_eq!(caps_paid_default.ephemeral_history, true);
+        assert_eq!(caps_paid_default.expiry_policy, "none");
+
+        let caps_paid_client = ruleset.get_capabilities(TrustZone::PaidPublic, ContinuityMode::Client);
+        assert_eq!(caps_paid_client.retention_scope, "conversation_only");
+        assert_eq!(caps_paid_client.ephemeral_history, false);
+        assert_eq!(caps_paid_client.expiry_policy, "7_days_inactivity_operator_deletable");
+
+        // 2. Verify sieve validation matching sieve.rs
+        let valid = SieveProposal {
+            title: "Fiduciary Commons".to_string(),
+            capability: "Enables distributed pharmacy routing.".to_string(),
+            ownership: "Multi-party cooperative ownership floor.".to_string(),
+            funding: "Subsidized through transaction fees routing surplus.".to_string(),
+            governance: "Liquid democracy rules with arbitration and appeal paths.".to_string(),
+            enforcement: "Graduated sanctions backed by multi-sig lockup.".to_string(),
+            exit: "Portability of all history and keys is guaranteed at any time.".to_string(),
+            capture_risk: "Chokepoints mitigated by decentralized hosting.".to_string(),
+            simplification: "Removes third-party clearing brokers.".to_string(),
+            wellbeing_metrics: "Portability checks and stabilized patient access metrics.".to_string(),
+        };
+        let res_valid = ruleset.validate_sieve(&valid);
+        assert_eq!(res_valid.ok, true);
+
+        let mut bad_exit = valid.clone();
+        bad_exit.exit = "No exit allowed.".to_string();
+        let res_bad_exit = ruleset.validate_sieve(&bad_exit);
+        assert_eq!(res_bad_exit.ok, false);
     }
 }
