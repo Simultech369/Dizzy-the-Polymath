@@ -2,6 +2,7 @@ pub mod trust;
 pub mod decay;
 pub mod sieve;
 pub mod rules;
+pub mod dizzy_core_spec;
 
 #[cfg(test)]
 mod tests {
@@ -217,5 +218,42 @@ mod tests {
         bad_exit.exit = "No exit allowed.".to_string();
         let res_bad_exit = ruleset.validate_sieve(&bad_exit);
         assert_eq!(res_bad_exit.ok, false);
+    }
+
+    #[test]
+    fn test_dizzy_core_spec_equivalence() {
+        use super::dizzy_core_spec;
+
+        // 1. Verify decay spec equivalence
+        let now = 100_000_000_000u64;
+        let ten_days_ms = 10 * 24 * 60 * 60 * 1000;
+        let meta = DocMetadata {
+            memory_class: MemoryClass::ReusablePattern,
+            last_reviewed: None,
+            captured_at: Some(now - ten_days_ms),
+        };
+        let res_base = calculate_decay(&meta, now);
+
+        let spec_meta = dizzy_core_spec::DocMetadata {
+            memory_class: dizzy_core_spec::MemoryClass::ReusablePattern,
+            last_reviewed: None,
+            captured_at: Some(now - ten_days_ms),
+        };
+        let res_spec = dizzy_core_spec::calculate_decay(&spec_meta, now);
+        assert_eq!(res_base.factor, res_spec.factor);
+        assert_eq!(res_base.policy, res_spec.policy);
+
+        // 2. Verify capability ruleset equivalence
+        let ruleset_base = DeclarativeRuleset::load_default();
+        let ruleset_spec = dizzy_core_spec::DeclarativeRuleset::load_default();
+
+        let caps_base = ruleset_base.get_capabilities(TrustZone::PrivateSelf, ContinuityMode::Default);
+        let caps_spec = ruleset_spec.get_capabilities(
+            dizzy_core_spec::TrustZone::PrivateSelf,
+            dizzy_core_spec::ContinuityMode::Default,
+        );
+        assert_eq!(caps_base.repo_retrieval_allowed, caps_spec.repo_retrieval_allowed);
+        assert_eq!(caps_base.durable_memory_allowed, caps_spec.durable_memory_allowed);
+        assert_eq!(caps_base.retention_scope, caps_spec.retention_scope);
     }
 }
