@@ -114,11 +114,8 @@ function createBrowserOriginGuard({ bindHost, allowedOrigins }) {
     }
 
     const normalizedOrigin = origin.origin.toLowerCase();
-    const explicitlyAllowed = allowlist.has(normalizedOrigin);
-    const sameOrigin = normalizedOrigin === `${req.protocol}://${String(req.headers?.host || "").toLowerCase()}`;
-    const allowed = loopbackBinding
-      ? isLoopbackHost(origin.hostname) || explicitlyAllowed
-      : sameOrigin || explicitlyAllowed;
+    const allowed = allowlist.has(normalizedOrigin)
+      || (loopbackBinding && isLoopbackHost(origin.hostname));
 
     if (!allowed) {
       return res.status(403).json({ ok: false, error: "Browser origin rejected" });

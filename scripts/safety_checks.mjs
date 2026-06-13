@@ -1360,6 +1360,33 @@ async function testLoopbackBrowserOriginGuard() {
   } finally {
     await started.stop();
   }
+
+  const remote = await startServer({
+    port: 0,
+    bindHost: "0.0.0.0",
+    authToken: "test-token",
+    redisUrl: "",
+    allowedOrigins: "https://trusted.example",
+  });
+
+  try {
+    const port = remote.boundPort;
+    const spoofedHost = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: {
+        authorization: "Bearer test-token",
+        host: "attacker.example",
+        origin: "https://attacker.example",
+      },
+    });
+    assert.equal(spoofedHost.status, 403);
+
+    const allowed = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { authorization: "Bearer test-token", origin: "https://trusted.example" },
+    });
+    assert.equal(allowed.status, 200);
+  } finally {
+    await remote.stop();
+  }
 }
 
 async function testAdversarialTrustZoneBypass() {
