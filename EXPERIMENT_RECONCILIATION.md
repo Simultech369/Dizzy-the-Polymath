@@ -10,7 +10,7 @@ This file records reconciliation intent. It does not change runtime behavior, co
 
 - Stable branch: `main`
 - Experimental branch: `experiments`
-- Experimental remote tip at review: `6bd5386`
+- Experimental implementation tip reviewed by this note: `5a981fe`
 - The experimental branch must not be merged wholesale.
 - Experimental work remains non-authoritative until promoted through a focused commit with tests.
 - Keep exactly two active branches: `main` and `experiments`. Preserve obsolete unique history as archive tags rather than active branches.
@@ -27,6 +27,35 @@ For each candidate:
 6. Promote with one scoped commit or PR, or leave it experimental with recorded rationale.
 
 No experimental commit receives authority merely because it is pushed, recent, or adjacent to working code.
+
+## Independent Review Snapshot
+
+This snapshot is disclosure, not a preferred verdict. Reviewers should inspect both branches and challenge the framing, severity, omissions, and proposed promotion boundaries rather than treating this ledger as ground truth.
+
+Recently changed on `experiments`:
+
+- Memory decay became class-aware: project decisions and user claims preserve authority, while assistant observations and reusable patterns receive class-specific relevance decay and visible review-age metadata.
+- Root-document ownership migrations were completed, including `HEARTBEAT.md` retirement and the `INTERACTION_NORMS.md` rename, with reference checks and compatibility coverage.
+- Paid/public prompt and retrieval boundaries received additional capability receipts and adversarial safety coverage.
+- Unused ChromaDB and Puppeteer dependency trees were removed.
+- The request phrase guard was renamed and documented as audit telemetry rather than the semantic authorization boundary.
+
+Known unresolved issues and deferred work:
+
+- Time decay was originally specified as report-only, but the experiment now changes retrieval relevance for some memory classes. Whether that is justified, sufficiently bounded, and ready for promotion remains unresolved.
+- The dashboard remains embedded in `agent_server.mjs`; isolation, failure independence, and zone-safe read-only behavior are not yet proven.
+- Prompt overlay expiry remains experimental and lacks complete evidence that constitutional material cannot fail closed or disappear silently.
+- Privilege split and telos/substrate work are parked pending concrete trigger evidence; parking them may be prudent or may conceal a missing boundary.
+- Production-readiness checks verify some wiring more strongly than behavior.
+- `NEXT.md` has no open decisions and only one Tier 3 item, while this ledger still contains material experimental uncertainty. The queue may understate remaining product, security, and promotion work.
+
+Evidence still lacking:
+
+- Comparative retrieval evaluations showing that class-aware decay improves useful ranking without burying relevant observations or overprivileging stale claims.
+- Adversarial tests beyond known phrases and current trust-zone fixtures, including indirect instructions and mixed-trust retrieved content.
+- Failure-injection evidence for dashboard, prompt-overlay, Redis, and optional external-service degradation.
+- Real operator or client workflow evidence showing which experimental mechanisms improve outcomes rather than only internal coherence.
+- A promotion-by-promotion record showing accepted behavior on `main`, rejected behavior, and residual risk.
 
 ## Reconciliation Ledger
 
@@ -150,7 +179,7 @@ Acceptance tests:
 
 ## Time Decay Experiment
 
-Age and authority are different dimensions. Initial decay must be report-only.
+Age and authority are different dimensions. The original plan required initial decay to be report-only. The current experiment goes further by applying class-specific decay to retrieval relevance while preserving authority for project decisions and user claims. That design change is disclosed here as unresolved and must not be promoted without comparative retrieval evidence.
 
 Candidate class behavior:
 
@@ -204,7 +233,7 @@ Implemented on `main`: `npm run check:next` and `npm run maintain` warn when an 
 4. Run focused tests and the full maintenance suite on `experiments`.
 5. Apply only the candidate's focused commits to `main`; never merge `experiments` wholesale.
 6. Run `npm run maintain` on `main` before pushing.
-7. Keep time decay report-only until memory-class policies exist.
+7. Keep class-aware time decay experimental until comparative retrieval evidence justifies its relevance effects and confirms that authority-preserving classes behave as intended.
 8. Keep dashboard, prompt expiry, Heartbeat retirement, and interaction-norm migration experimental until their acceptance gates pass.
 9. Record promote, rework, retain, or reject decisions here.
 
