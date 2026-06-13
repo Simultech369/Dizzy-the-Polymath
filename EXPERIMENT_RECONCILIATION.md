@@ -79,6 +79,7 @@ Evidence still lacking:
 | W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met |
 | W-0041 Telos/Substrate | Parked after fresh review on 2026-06-11 | Activate only after measurable trajectory/compression contracts and documented doctrine failures meet the source note's evidence gate |
 | W-0042 Durable-write policy | Integrated on `experiments` | Shared pre-write gate covers remembered memory, auto-memory candidates, friction, and trajectories; blocked writer tests prove no file is created |
+| W-0043 Refinement preflight | Integrated on `experiments` | Live prompt and operator guidance define tested skip, proceed, and clarify paths without adding a planning subsystem |
 
 ## HEARTBEAT.md Retirement Map
 

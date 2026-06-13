@@ -698,6 +698,27 @@ Consequences:
 
 ---
 
+### D-0035: Task preflight is compact prompt discipline, not a planning subsystem
+
+Decision:
+- For non-trivial tasks, silently identify one completion signal, one to three acceptance checks, and hard constraints or abort conditions.
+- Skip preflight for simple, clear requests.
+- Proceed without a visible planning block when reasonable assumptions resolve minor gaps.
+- Ask at most one targeted question only when missing information materially changes the approach, risk, or irreversible outcome.
+- Use goal, hard constraints, and completion signal as the one-minute fallback.
+
+Rationale:
+- Explicit success criteria improve follow-through, but a runtime planner would duplicate model judgment and add ceremony before evidence of need.
+- Most ambiguity can be resolved through bounded action; unnecessary questions transfer work back to the operator.
+- Keeping criteria internal preserves response economy while making completion more testable.
+
+Consequences:
+- `PROMPT_CORE.md` carries the live contract and `OPERATING_LOOP.md` carries the operator-facing form.
+- Safety checks pin the skip, proceed, clarify, and no-visible-block rules.
+- A coded preflight helper remains deferred until repeated failures demonstrate that prompt and process guidance are insufficient.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

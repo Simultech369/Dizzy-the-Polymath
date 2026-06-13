@@ -1177,6 +1177,25 @@ function testPromptBundleDefaults() {
   else process.env.DIZZY_PROMPT_PACK = oldPack;
 }
 
+function testRefinementPreflightContract() {
+  const promptCore = fs.readFileSync(path.resolve(process.cwd(), "PROMPT_CORE.md"), "utf8");
+  const operatingLoop = fs.readFileSync(path.resolve(process.cwd(), "OPERATING_LOOP.md"), "utf8");
+
+  assert.match(promptCore, /Skip preflight when the request is already simple and clear\./);
+  assert.match(promptCore, /Proceed without displaying a planning block/);
+  assert.match(promptCore, /Ask at most one targeted question only when missing information would materially change/);
+  assert.match(promptCore, /one completion signal/);
+  assert.match(promptCore, /one to three acceptance checks/);
+  assert.match(promptCore, /hard constraint or abort condition/);
+  assert.match(promptCore, /one-minute fallback: goal, hard constraints, completion signal/);
+  assert.match(operatingLoop, /`skip`:/);
+  assert.match(operatingLoop, /`proceed`:/);
+  assert.match(operatingLoop, /`clarify`:/);
+  assert.match(operatingLoop, /Do not display a success-criteria block by default\./);
+}
+
+testRefinementPreflightContract();
+
 function testConstitutionalPromptExpiryFailsClosed() {
   const originalCwd = process.cwd();
   const tempRoot = fs.mkdtempSync(path.join(originalCwd, "runtime", "test-expired-constitution-"));

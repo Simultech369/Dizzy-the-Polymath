@@ -43,6 +43,14 @@ private_self. Goal: decide next repo integration. Constraints: keep changes smal
 
 ## During Work
 
+Use a compact preflight only when the task is non-trivial:
+
+- `skip`: the request is simple and clear
+- `proceed`: silently hold one completion signal, one to three acceptance checks, and any hard constraint or abort condition
+- `clarify`: ask one targeted question only when the missing fact would materially change the approach, risk, or irreversible outcome
+
+Do not display a success-criteria block by default. If refinement takes more than about a minute, fall back to goal, hard constraints, and one completion signal.
+
 Use receipts as evidence, not decoration.
 
 For runtime/client surfaces, inspect:
