@@ -228,6 +228,9 @@ async function testUrlValidation() {
   const validated = await validateExternalUrl("http://127.0.0.1:3000/health");
   assert.equal(validated.url, "http://127.0.0.1:3000/health");
   assert.equal(validated.pinnedAddress, "127.0.0.1");
+  const validatedIpv6 = await validateExternalUrl("http://[::1]/health");
+  assert.equal(validatedIpv6.hostname, "::1");
+  assert.equal(validatedIpv6.pinnedAddress, "::1");
 
   if (oldLocalhost === undefined) delete process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
   else process.env.DIZZY_TOOL_ALLOW_LOCALHOST = oldLocalhost;
