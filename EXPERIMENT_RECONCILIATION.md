@@ -70,6 +70,7 @@ Evidence still lacking:
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary |
+| Retrieved-context instruction boundary | Defense-in-depth experiment | Excerpts cannot close their data containers and are labeled untrusted evidence; prompt formatting is neither authorization nor complete injection prevention |
 | Unused ChromaDB and Puppeteer dependencies | Removed on `experiments` | Re-add only with an executable runtime path, sandbox policy, and integration tests |
 | HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` |
 | GOVERNANCE.md rename to INTERACTION_NORMS.md | Completed on `experiments`; promotion candidate | Namespace migration is complete while `/governance` retains API compatibility |
