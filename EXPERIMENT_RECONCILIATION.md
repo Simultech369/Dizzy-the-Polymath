@@ -66,7 +66,7 @@ Evidence still lacking:
 | BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence |
 | Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible |
-| Drift and memory dashboard | Keep experimental | Extract from `agent_server.mjs`; make read-only; prove private data cannot cross zones |
+| Drift and memory dashboard | Auth-gated experiment | Disabled by default; enabling requires `DIZZY_AUTH_TOKEN`; still extract from `agent_server.mjs` and prove failure independence before promotion |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary |

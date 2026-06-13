@@ -34,15 +34,8 @@ try {
   const gov = await fetch(`http://127.0.0.1:${port}/governance`).then((r) => r.text());
   await must(gov.includes("INTERACTION_NORMS.md"), "governance doc missing");
 
-  const dashHtml = await fetch(`http://127.0.0.1:${port}/dashboard`).then((r) => r.text());
-  await must(dashHtml.includes("Drift & Memory Dashboard"), "dashboard html missing title");
-
-  const dashData = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`).then((r) => r.json());
-  await must(dashData.ok === true && Array.isArray(dashData.prompt_sources) && Array.isArray(dashData.docs), "dashboard data invalid");
-
-  const dashQuery = await fetch(`http://127.0.0.1:${port}/api/dashboard-query?q=apples`).then((r) => r.json());
-  await must(dashQuery.ok === true && Array.isArray(dashQuery.snippets), "dashboard query invalid");
-  await must(dashQuery.snippets.some(s => s.path.includes("calibration-examples.md")), "dashboard query missing calibration doc");
+  const disabledDashboard = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`);
+  await must(disabledDashboard.status === 404, `expected disabled dashboard, got ${disabledDashboard.status}`);
 
   const memoryGraph = await fetch(`http://127.0.0.1:${port}/memory/graph`).then((r) => r.json());
   await must(memoryGraph.ok === true && memoryGraph.mode === "summary", "memory graph summary missing");
@@ -104,7 +97,12 @@ try {
   await fs.promises.rm("runtime/test-smoke-friction.jsonl", { force: true });
 }
 
-const authed = await startServer({ port: 0, redisUrl: "", authToken: "test-token" });
+const authed = await startServer({
+  port: 0,
+  redisUrl: "",
+  authToken: "test-token",
+  dashboardEnabled: true,
+});
 
 try {
   const port = authed.boundPort;
@@ -116,6 +114,25 @@ try {
     headers: { authorization: "Bearer test-token" },
   }).then((r) => r.json());
   await must(authedPrompt.ok === true, "authorized prompt not ok");
+
+  const unauthDashboard = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`);
+  await must(unauthDashboard.status === 401, `expected unauthorized dashboard, got ${unauthDashboard.status}`);
+
+  const dashHtml = await fetch(`http://127.0.0.1:${port}/dashboard`, {
+    headers: { authorization: "Bearer test-token" },
+  }).then((r) => r.text());
+  await must(dashHtml.includes("Drift & Memory Dashboard"), "dashboard html missing title");
+
+  const dashData = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`, {
+    headers: { authorization: "Bearer test-token" },
+  }).then((r) => r.json());
+  await must(dashData.ok === true && Array.isArray(dashData.prompt_sources) && Array.isArray(dashData.docs), "dashboard data invalid");
+
+  const dashQuery = await fetch(`http://127.0.0.1:${port}/api/dashboard-query?q=apples`, {
+    headers: { authorization: "Bearer test-token" },
+  }).then((r) => r.json());
+  await must(dashQuery.ok === true && Array.isArray(dashQuery.snippets), "dashboard query invalid");
+  await must(dashQuery.snippets.some(s => s.path.includes("calibration-examples.md")), "dashboard query missing calibration doc");
 
   const authHealth = await fetch(`http://127.0.0.1:${port}/health`).then((r) => r.json());
   await must(authHealth.ok === true, "health should stay open on loopback binding");

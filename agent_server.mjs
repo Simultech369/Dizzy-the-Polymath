@@ -360,6 +360,9 @@ export async function createRuntime(opts = {}) {
   const queuePrefix = String(opts.queuePrefix ?? process.env.DIZZY_QUEUE_PREFIX ?? "dizzy");
   const rateLimit = getRateLimitConfig(opts);
   const allowedOrigins = opts.allowedOrigins ?? process.env.DIZZY_ALLOWED_ORIGINS ?? "";
+  const dashboardEnabled = opts.dashboardEnabled !== undefined
+    ? Boolean(opts.dashboardEnabled)
+    : parseBool(process.env.DIZZY_DASHBOARD_ENABLED, false);
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
@@ -1001,11 +1004,19 @@ function getDashboardHtml() {
     }
   });
 
-  app.get("/dashboard", (req, res) => {
+  function dashboardAccessGuard(req, res, next) {
+    if (!dashboardEnabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
+    if (!authToken) {
+      return res.status(503).json({ ok: false, error: "Dashboard requires DIZZY_AUTH_TOKEN" });
+    }
+    return next();
+  }
+
+  app.get("/dashboard", dashboardAccessGuard, (req, res) => {
     res.type("text/html").send(getDashboardHtml());
   });
 
-  app.get("/api/dashboard-data", async (req, res) => {
+  app.get("/api/dashboard-data", dashboardAccessGuard, async (req, res) => {
     try {
       const { getPromptSources } = await import("./lib/prompt_bundle.mjs");
       const { getIndex } = await import("./lib/md_retriever.mjs");
@@ -1072,7 +1083,7 @@ function getDashboardHtml() {
     }
   });
 
-  app.get("/api/dashboard-query", (req, res) => {
+  app.get("/api/dashboard-query", dashboardAccessGuard, (req, res) => {
     try {
       const q = String(req.query.q ?? "").trim();
       const snippets = getRelevantMarkdownSnippets(q, { k: 10 });
