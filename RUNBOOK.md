@@ -71,6 +71,8 @@ Defaults:
 
 Optional auth (recommended if you ever bind beyond loopback):
 - set `DIZZY_AUTH_TOKEN` on the server process and also on any client/relay processes
+- any reverse proxy, tunnel, or forwarded request requires `DIZZY_AUTH_TOKEN`, even when the runtime itself receives the connection on loopback
+- preserve standard forwarding headers at the proxy; a proxy that strips them can make remote traffic indistinguishable from a direct local client
 
 ---
 

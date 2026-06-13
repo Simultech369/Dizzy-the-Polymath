@@ -71,6 +71,7 @@ Evidence still lacking:
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary |
 | Retrieved-context instruction boundary | Defense-in-depth experiment | Excerpts cannot close their data containers and are labeled untrusted evidence; prompt formatting is neither authorization nor complete injection prevention |
+| Proxy-shaped loopback requests | Auth required on `experiments` | Any standard forwarding header requires `DIZZY_AUTH_TOKEN`; deployment docs warn that stripped headers defeat origin inference |
 | Unused ChromaDB and Puppeteer dependencies | Removed on `experiments` | Re-add only with an executable runtime path, sandbox policy, and integration tests |
 | Orphan `memory_nodes` vacuum lifecycle | Removed on `experiments` | Reintroduce only with a defined producer, durable owner, lifecycle schema, and acceptance tests; do not mix runtime records into canonical `state.json` |
 | HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` |

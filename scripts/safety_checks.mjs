@@ -1422,6 +1422,44 @@ function testRateLimitBucketPruning() {
 
 testRateLimitBucketPruning();
 
+async function testForwardedRequestsRequireAuthentication() {
+  const unauthenticated = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    redisUrl: "",
+  });
+  try {
+    const blocked = await fetch(`http://127.0.0.1:${unauthenticated.boundPort}/state?zone=private`, {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+    assert.equal(blocked.status, 403);
+    assert.match((await blocked.json()).error, /Forwarded requests require DIZZY_AUTH_TOKEN/i);
+  } finally {
+    await unauthenticated.stop();
+  }
+
+  const authenticated = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "proxy-test-token",
+    redisUrl: "",
+  });
+  try {
+    const allowed = await fetch(`http://127.0.0.1:${authenticated.boundPort}/state?zone=public`, {
+      headers: {
+        authorization: "Bearer proxy-test-token",
+        "x-forwarded-for": "203.0.113.10",
+      },
+    });
+    assert.equal(allowed.status, 200);
+  } finally {
+    await authenticated.stop();
+  }
+}
+
+await testForwardedRequestsRequireAuthentication();
+
 async function testLoopbackBrowserOriginGuard() {
   const started = await startServer({
     port: 0,

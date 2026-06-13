@@ -114,6 +114,20 @@ function normalizeAllowedOrigins(value) {
   return origins;
 }
 
+function createProxyExposureGuard({ authToken }) {
+  return function proxyExposureGuard(req, res, next) {
+    const proxyHeaders = ["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip"];
+    const forwarded = proxyHeaders.some((name) => String(req.headers?.[name] ?? "").trim() !== "");
+    if (forwarded && !authToken) {
+      return res.status(403).json({
+        ok: false,
+        error: "Forwarded requests require DIZZY_AUTH_TOKEN",
+      });
+    }
+    return next();
+  };
+}
+
 function createBrowserOriginGuard({ bindHost, allowedOrigins }) {
   const allowlist = normalizeAllowedOrigins(allowedOrigins);
   const loopbackBinding = isLoopbackHost(bindHost);
@@ -382,6 +396,7 @@ export async function createRuntime(opts = {}) {
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
+  app.use(createProxyExposureGuard({ authToken }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
 
