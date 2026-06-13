@@ -82,6 +82,46 @@ function createRateLimitMiddleware(config) {
   };
 }
 
+function normalizeAllowedOrigins(value) {
+  const values = Array.isArray(value) ? value : String(value || "").split(",");
+  const origins = new Set();
+  for (const raw of values) {
+    const candidate = String(raw || "").trim();
+    if (!candidate) continue;
+    try {
+      origins.add(new URL(candidate).origin.toLowerCase());
+    } catch {
+      // Invalid entries never widen browser access.
+    }
+  }
+  return origins;
+}
+
+function createBrowserOriginGuard({ bindHost, allowedOrigins }) {
+  const allowlist = normalizeAllowedOrigins(allowedOrigins);
+  const loopbackBinding = isLoopbackHost(bindHost);
+
+  return function browserOriginGuard(req, res, next) {
+    const rawOrigin = String(req.headers?.origin || "").trim();
+    if (!rawOrigin) return next();
+
+    let origin;
+    try {
+      origin = new URL(rawOrigin);
+    } catch {
+      return res.status(403).json({ ok: false, error: "Browser origin rejected" });
+    }
+
+    const normalizedOrigin = origin.origin.toLowerCase();
+    const allowed = allowlist.has(normalizedOrigin)
+      || (loopbackBinding && isLoopbackHost(origin.hostname));
+    if (!allowed) {
+      return res.status(403).json({ ok: false, error: "Browser origin rejected" });
+    }
+    return next();
+  };
+}
+
 export function redactTextPayload(text) {
   if (!text) return "";
   let t = String(text);
@@ -315,9 +355,11 @@ export async function createRuntime(opts = {}) {
   const redisUrl = String(opts.redisUrl ?? process.env.REDIS_URL ?? "");
   const queuePrefix = String(opts.queuePrefix ?? process.env.DIZZY_QUEUE_PREFIX ?? "dizzy");
   const rateLimit = getRateLimitConfig(opts);
+  const allowedOrigins = opts.allowedOrigins ?? process.env.DIZZY_ALLOWED_ORIGINS ?? "";
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
+  app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
 
   const runtimeSafety = getRuntimeSafetyConfig();
@@ -365,6 +407,10 @@ export async function createRuntime(opts = {}) {
         configured: Boolean(authToken),
         scheme: authToken ? "bearer" : "none",
         health_exempted: Boolean(authToken) ? isLoopbackHost(bindHost) : true,
+      },
+      browser_origin_guard: {
+        enabled: true,
+        external_allowlist_configured: normalizeAllowedOrigins(allowedOrigins).size > 0,
       },
       redis: {
         configured: Boolean(redisUrl),

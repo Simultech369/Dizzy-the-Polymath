@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, buildCapabilityReceipt, getContinuityMode, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -193,9 +193,23 @@ function testContinuityModes() {
   assert.equal(paidClient.durable_memory_allowed, false);
   assert.equal(paidClient.expiry_policy, "7_days_inactivity_operator_deletable");
 
-  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trust_zone: "private_self" } });
+  const privateSelf = getTrustZoneCapabilities({ runtime_context: { trusted_local: true, trust_zone: "private_self" } });
   assert.equal(privateSelf.repo_retrieval_allowed, true);
   assert.equal(privateSelf.durable_memory_allowed, true);
+}
+
+function testTrustZoneRequiresIngressAuthority() {
+  assert.equal(getTrustZone({ channel: "local", runtime_context: { trusted_local: true } }), "private_self");
+  assert.equal(getTrustZone({ channel: "local", runtime_context: { trusted_local: false } }), "outside_contact");
+  assert.equal(getTrustZone({ channel: "telegram" }), "outside_contact");
+  assert.equal(
+    getTrustZone({ channel: "local", runtime_context: { trusted_local: false, trust_zone: "private_self" } }),
+    "outside_contact",
+  );
+
+  const capabilities = getTrustZoneCapabilities({ channel: "local", runtime_context: { trusted_local: false } });
+  assert.equal(capabilities.repo_retrieval_allowed, false);
+  assert.equal(capabilities.durable_memory_allowed, false);
 }
 
 function testCapabilityReceipts() {
@@ -227,7 +241,7 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
   const privateReceipt = buildCapabilityReceipt(
-    { channel: "local", runtime_context: { trust_zone: "private_self", purpose: "maintain_private_context" } },
+    { channel: "local", runtime_context: { trusted_local: true, trust_zone: "private_self", purpose: "maintain_private_context" } },
     {
       retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"],
       retrieval_audit: {
@@ -1053,6 +1067,7 @@ await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
 testContinuityModes();
+testTrustZoneRequiresIngressAuthority();
 testCapabilityReceipts();
 testRetrievalPlan();
 testQueueChannelSanitization();
@@ -1146,6 +1161,71 @@ async function testRateLimiting() {
     assert.ok(second.headers.get("retry-after"));
   } finally {
     await started.stop();
+  }
+}
+
+async function testBrowserOriginGuard() {
+  const local = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    redisUrl: "",
+    allowedOrigins: "https://trusted.example",
+  });
+
+  try {
+    const port = local.boundPort;
+    const hostile = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://attacker.example" },
+      body: JSON.stringify({ channel: "local", text: "hello" }),
+    });
+    assert.equal(hostile.status, 403);
+
+    const malformed = await fetch(`http://127.0.0.1:${port}/health`, { headers: { origin: "null" } });
+    assert.equal(malformed.status, 403);
+
+    const loopbackOrigin = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { origin: "http://localhost:5173" },
+    });
+    assert.equal(loopbackOrigin.status, 200);
+
+    const allowlisted = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { origin: "https://trusted.example" },
+    });
+    assert.equal(allowlisted.status, 200);
+
+    const nonBrowser = await fetch(`http://127.0.0.1:${port}/health`);
+    assert.equal(nonBrowser.status, 200);
+  } finally {
+    await local.stop();
+  }
+
+  const remote = await startServer({
+    port: 0,
+    bindHost: "0.0.0.0",
+    authToken: "test-token",
+    redisUrl: "",
+    allowedOrigins: "https://trusted.example",
+  });
+
+  try {
+    const port = remote.boundPort;
+    const spoofedHost = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: {
+        authorization: "Bearer test-token",
+        host: "attacker.example",
+        origin: "https://attacker.example",
+      },
+    });
+    assert.equal(spoofedHost.status, 403);
+
+    const allowed = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { authorization: "Bearer test-token", origin: "https://trusted.example" },
+    });
+    assert.equal(allowed.status, 200);
+  } finally {
+    await remote.stop();
   }
 }
 
@@ -1285,6 +1365,7 @@ async function testReadContractTool() {
 }
 
 await testRateLimiting();
+await testBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 
