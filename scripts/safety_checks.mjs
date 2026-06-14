@@ -14,7 +14,8 @@ import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
-import { makeQueueKeys, moveDueDelayed, runWorkerCycle } from "../lib/queue.mjs";
+import { makeQueueKeys, moveDueDelayed, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
+import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
 import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
@@ -878,7 +879,64 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
   };
 }
 
+async function testReconcileBatchIsolation() {
+  const processed = [];
+  const failures = [];
+  const orders = [
+    { order_id: "first" },
+    { order_id: "broken" },
+    { order_id: "last" },
+  ];
+  const results = await reconcileOrderBatch(
+    orders,
+    async (order) => {
+      processed.push(order.order_id);
+      if (order.order_id === "broken") throw new Error("isolated failure");
+    },
+    async (error, order) => failures.push({ error: error.message, order_id: order.order_id }),
+  );
+
+  assert.deepEqual(processed, ["first", "broken", "last"]);
+  assert.deepEqual(failures, [{ error: "isolated failure", order_id: "broken" }]);
+  assert.deepEqual(results.map((result) => result.ok), [true, false, true]);
+
+  const afterReporterFailure = [];
+  await reconcileOrderBatch(
+    orders,
+    async (order) => {
+      afterReporterFailure.push(order.order_id);
+      if (order.order_id === "broken") throw new Error("isolated failure");
+    },
+    async () => {
+      throw new Error("reporter failed");
+    },
+  );
+  assert.deepEqual(afterReporterFailure, ["first", "broken", "last"]);
+}
+
+await testReconcileBatchIsolation();
+
+function testPersistedValueRedaction() {
+  const sanitized = redactPersistedValue({
+    authorization: "Bearer bearer-secret-value",
+    nested: {
+      api_key: "sk-persistedsecret123456789",
+      message: "request failed token=lowercasesecret123",
+    },
+  });
+  const serialized = JSON.stringify(sanitized);
+  assert.doesNotMatch(serialized, /bearer-secret-value|sk-persistedsecret|lowercasesecret/);
+  assert.equal(sanitized.authorization, "[REDACTED]");
+  assert.equal(sanitized.nested.api_key, "[REDACTED]");
+}
+
+testPersistedValueRedaction();
+
 async function testWorkerCycleRetryAndDeath() {
+  const oldDlqDir = process.env.DIZZY_DLQ_DIR;
+  const testDlqDir = path.resolve(process.cwd(), "runtime", "test-dlq-redaction");
+  process.env.DIZZY_DLQ_DIR = testDlqDir;
+  fs.rmSync(testDlqDir, { recursive: true, force: true });
   const keys = {
     ready: "ready",
     delayed: "delayed",
@@ -905,7 +963,7 @@ async function testWorkerCycleRetryAndDeath() {
   ]);
   const retryRedis = makeFakeRedisForQueue(retryJobMap, ["job-retry"]);
   const retryResult = await runWorkerCycle(retryRedis, keys, async () => {
-    const err = new Error("timeout");
+    const err = new Error("timeout API_KEY=retrysecret123456");
     err.code = "ETIMEDOUT";
     throw err;
   });
@@ -913,6 +971,7 @@ async function testWorkerCycleRetryAndDeath() {
   assert.equal(retryJobMap.get(keys.job("job-retry")).status, "retry_scheduled");
   assert.equal(retryJobMap.get(keys.job("job-retry")).retry_count, "1");
   assert.equal(retryRedis.delayed.length, 1);
+  assert.doesNotMatch(retryJobMap.get(keys.job("job-retry")).last_error, /retrysecret/);
 
   const deadJobMap = new Map([
     [keys.job("job-dead"), {
@@ -925,21 +984,37 @@ async function testWorkerCycleRetryAndDeath() {
       max_attempts: "4",
       retry_count: "3",
       max_retries: "3",
-      payload_json: "{}",
-      notify_json: JSON.stringify({ channel: "telegram" }),
+      payload_json: JSON.stringify({ authorization: "Bearer payloadsecret123", nested: { api_key: "sk-payloadsecret123456789" } }),
+      notify_json: JSON.stringify({ channel: "telegram", token: "notifysecret123" }),
       started_at_ms: "",
     }],
   ]);
   const deadRedis = makeFakeRedisForQueue(deadJobMap, ["job-dead"]);
-  const deadResult = await runWorkerCycle(deadRedis, keys, async () => {
-    const err = new Error("timeout");
-    err.code = "ETIMEDOUT";
-    throw err;
-  });
-  assert.equal(deadResult.kind, "dead");
-  assert.equal(deadJobMap.get(keys.job("job-dead")).status, "dead");
-  assert.equal(deadRedis.dlq.includes("job-dead"), true);
-  assert.equal(deadRedis.notify.length, 1);
+  try {
+    const deadResult = await runWorkerCycle(deadRedis, keys, async () => {
+      const err = new Error("timeout Authorization: Bearer errorsecret123");
+      err.code = "ETIMEDOUT";
+      throw err;
+    });
+    assert.equal(deadResult.kind, "dead");
+    const deadJob = deadJobMap.get(keys.job("job-dead"));
+    assert.equal(deadJob.status, "dead");
+    assert.doesNotMatch(deadJob.last_error, /errorsecret/);
+    assert.equal(deadRedis.dlq.includes("job-dead"), true);
+    assert.equal(deadRedis.notify.length, 1);
+
+    const dlqText = fs.readFileSync(deadJob.dead_letter_path, "utf8");
+    const dlqRecord = JSON.parse(dlqText.trim().split(/\r?\n/).at(-1));
+    const serialized = JSON.stringify(dlqRecord);
+    assert.doesNotMatch(serialized, /errorsecret|payloadsecret|notifysecret/);
+    assert.equal(dlqRecord.payload.authorization, "[REDACTED]");
+    assert.equal(dlqRecord.payload.nested.api_key, "[REDACTED]");
+    assert.equal(dlqRecord.notify.token, "[REDACTED]");
+  } finally {
+    fs.rmSync(testDlqDir, { recursive: true, force: true });
+    if (oldDlqDir === undefined) delete process.env.DIZZY_DLQ_DIR;
+    else process.env.DIZZY_DLQ_DIR = oldDlqDir;
+  }
 }
 
 function testRuntimeConfigValidation() {
@@ -1862,8 +1937,14 @@ async function testPrivateReadSurfaces() {
   const headers = { authorization: "Bearer privacy-test-token" };
   try {
     const baseUrl = `http://127.0.0.1:${protectedRuntime.boundPort}`;
-    const graph = await fetch(`${baseUrl}/memory/graph`, { headers });
+    const graph = await fetch(`${baseUrl}/memory/graph?q=memory`, { headers });
     assert.equal(graph.status, 200);
+    const graphBody = await graph.json();
+    assert.equal(graphBody.ok, true);
+    assert.equal(graphBody.mode, "query");
+    for (const doc of graphBody.graph.docs) {
+      assert.equal(Object.hasOwn(doc, "excerpt"), false);
+    }
 
     const dashboard = await fetch(`${baseUrl}/api/dashboard-data`, { headers }).then((r) => r.json());
     assert.equal(dashboard.ok, true);

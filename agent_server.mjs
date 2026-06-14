@@ -1221,13 +1221,17 @@ function getDashboardHtml() {
     try {
       const query = String(req.query.q ?? "").trim();
       if (query) {
+        const graph = getRelevantMemoryGraphContext(query, {
+          k: Math.max(1, Math.min(10, Number(req.query.k ?? 3) || 3)),
+        });
         return res.json({
           ok: true,
           query,
           mode: "query",
-          graph: getRelevantMemoryGraphContext(query, {
-            k: Math.max(1, Math.min(10, Number(req.query.k ?? 3) || 3)),
-          }),
+          graph: {
+            ...graph,
+            docs: graph.docs.map(({ excerpt: _excerpt, ...doc }) => doc),
+          },
         });
       }
       const graph = getMemoryGraph();

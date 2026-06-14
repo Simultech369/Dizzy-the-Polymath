@@ -2,6 +2,8 @@
 import fs from "fs";
 import path from "path";
 import { assessCandidatePayload, buildPreparedCandidatePayload, expectedRequestKey, sanitizeOrderId, stableStringify } from "./lib/order_fulfillment.mjs";
+import { redactSecretMaterial } from "./lib/durable_write_policy.mjs";
+import { reconcileOrderBatch } from "./lib/reconcile_batch.mjs";
 
 const BASE = "https://atelierai.xyz/api";
 const API_KEY = process.env.ATELIER_API_KEY;
@@ -415,11 +417,12 @@ async function main() {
   while (true) {
     try {
       const orders = await pollOrders();
-      for (const order of orders) {
-        await reconcileOrder(order);
-      }
+      await reconcileOrderBatch(orders, reconcileOrder, (error, order) => {
+        const orderId = sanitizeOrderId(order?.order_id || "unknown");
+        console.error(`[reconcile] Order ${orderId} failed: ${redactSecretMaterial(error?.message || error)}`);
+      });
     } catch (e) {
-      console.error("Loop error:", e?.message || e);
+      console.error("Loop error:", redactSecretMaterial(e?.message || e));
     }
 
     if (RUN_ONCE) break;
@@ -428,6 +431,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  console.error(redactSecretMaterial(e?.stack || e?.message || e));
   process.exit(1);
 });
