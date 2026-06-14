@@ -7,7 +7,7 @@ import { ethers } from "ethers";
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { projectPublicState, pruneExpiredRateLimitBuckets, redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
-import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, escapeRetrievedContext, formatExternalError, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
+import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, escapeRetrievedContext, formatExternalError, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, runConversationSerialized, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
@@ -202,6 +202,99 @@ async function testFallbackIncludesCurrentUserTurn() {
     assert.match(out.text, /Fallback response/);
     assert.ok(fallbackRequest);
     assert.equal(fallbackRequest.messages.some((message) => message.role === "user" && message.content === currentText), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    fs.rmSync(conversationDirPath, { recursive: true, force: true });
+    for (const [key, value] of Object.entries(previousEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+async function testConversationSerialization() {
+  const envKeys = [
+    "DIZZY_CHAT_BACKEND",
+    "OPENAI_COMPAT_BASE_URL",
+    "OPENAI_COMPAT_API_KEY",
+    "OPENAI_COMPAT_MODEL",
+    "DIZZY_CONVERSATION_DIR",
+    "DIZZY_AUTO_REMEMBER_ENABLED",
+  ];
+  const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  const conversationDirPath = path.resolve(process.cwd(), "runtime", "test-serialized-conversations");
+  const requests = [];
+  let activeProviderCalls = 0;
+  let peakProviderCalls = 0;
+
+  process.env.DIZZY_CHAT_BACKEND = "openai_compat";
+  process.env.OPENAI_COMPAT_BASE_URL = "https://serialized.test/v1";
+  process.env.OPENAI_COMPAT_API_KEY = "test-serialized-key";
+  process.env.OPENAI_COMPAT_MODEL = "test-serialized-model";
+  process.env.DIZZY_CONVERSATION_DIR = conversationDirPath;
+  process.env.DIZZY_AUTO_REMEMBER_ENABLED = "0";
+  fs.rmSync(conversationDirPath, { recursive: true, force: true });
+
+  globalThis.fetch = async (_url, options = {}) => {
+    const request = JSON.parse(String(options.body || "{}"));
+    requests.push(request);
+    activeProviderCalls += 1;
+    peakProviderCalls = Math.max(peakProviderCalls, activeProviderCalls);
+    const callNumber = requests.length;
+    await new Promise((resolve) => setTimeout(resolve, callNumber === 1 ? 40 : 5));
+    activeProviderCalls -= 1;
+    return new Response(JSON.stringify({ choices: [{ message: { content: `serialized-reply-${callNumber}` } }] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  try {
+    const baseMessage = {
+      channel: "test",
+      runtime_context: { conversation_key: "serialized-conversation" },
+    };
+    const first = handleIncomingMessage({
+      message: { ...baseMessage, text: "SERIALIZED_FIRST_TURN" },
+      enqueue: async () => "unused",
+    });
+    const second = handleIncomingMessage({
+      message: { ...baseMessage, text: "SERIALIZED_SECOND_TURN" },
+      enqueue: async () => "unused",
+    });
+    const [firstOut, secondOut] = await Promise.all([first, second]);
+
+    assert.match(firstOut.text, /serialized-reply-1/);
+    assert.match(secondOut.text, /serialized-reply-2/);
+    assert.equal(peakProviderCalls, 1);
+    assert.equal(requests.length, 2);
+    const secondHistory = requests[1].messages.map((message) => `${message.role}:${message.content}`).join("\n");
+    assert.match(secondHistory, /user:SERIALIZED_FIRST_TURN/);
+    assert.match(secondHistory, /assistant:serialized-reply-1/);
+    assert.match(secondHistory, /user:SERIALIZED_SECOND_TURN/);
+    assert.ok(secondHistory.indexOf("SERIALIZED_FIRST_TURN") < secondHistory.indexOf("serialized-reply-1"));
+    assert.ok(secondHistory.indexOf("serialized-reply-1") < secondHistory.indexOf("SERIALIZED_SECOND_TURN"));
+
+    let activeQueues = 0;
+    let peakQueues = 0;
+    const runParallel = (key) => runConversationSerialized(key, async () => {
+      activeQueues += 1;
+      peakQueues = Math.max(peakQueues, activeQueues);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      activeQueues -= 1;
+    });
+    await Promise.all([runParallel("independent-a"), runParallel("independent-b")]);
+    assert.equal(peakQueues, 2);
+
+    await assert.rejects(
+      runConversationSerialized("queue-recovery", async () => {
+        throw new Error("expected queue task failure");
+      }),
+      /expected queue task failure/,
+    );
+    const recovered = await runConversationSerialized("queue-recovery", async () => "recovered");
+    assert.equal(recovered, "recovered");
   } finally {
     globalThis.fetch = originalFetch;
     fs.rmSync(conversationDirPath, { recursive: true, force: true });
@@ -1587,6 +1680,7 @@ function testFrictionLedgerManualPath() {
 testLocalSkillRegistry();
 testRememberedMemoryProvenance();
 await testFallbackIncludesCurrentUserTurn();
+await testConversationSerialization();
 await testUrlValidation();
 testFulfillmentGating();
 testRemoteMutationGating();
