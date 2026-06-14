@@ -1258,9 +1258,13 @@ async function testClaimRecoveryAfterRedisFailures() {
 await testClaimRecoveryAfterRedisFailures();
 
 async function testSqliteOperationalStore() {
-  const nodeMajor = Number(String(process.versions.node).split(".")[0]);
-  if (nodeMajor < 22) return;
-  const { openOperationalStore } = await import("../lib/sqlite_operational_store.mjs");
+  let openOperationalStore;
+  try {
+    ({ openOperationalStore } = await import("../lib/sqlite_operational_store.mjs"));
+  } catch (error) {
+    if (/node:sqlite|unknown built-in module|unknown builtin module/i.test(String(error?.message || error))) return;
+    throw error;
+  }
   const dbPath = path.resolve(process.cwd(), "runtime", "test-operational-store.sqlite");
   for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${dbPath}${suffix}`, { force: true });
   const store = openOperationalStore(dbPath);
@@ -1299,6 +1303,7 @@ async function testSqliteOperationalStore() {
       throw new Error("injected transaction crash");
     }), /injected transaction crash/);
     assert.equal(store.db.prepare("SELECT COUNT(*) count FROM conversations WHERE conversation_key='rollback-conversation'").get().count, 0);
+    assert.throws(() => store.transaction(async () => "not allowed"), /must be synchronous/);
 
     const created = store.createJob({ jobId: "sqlite-job", effect: "READ", idempotencyKey: "create-sqlite-job" });
     assert.equal(created.status, "queued");
@@ -1338,9 +1343,19 @@ async function testSqliteOperationalStore() {
       toStatus: "queued",
     }), /Invalid job transition/);
     assert.equal(store.integrityCheck(), "ok");
+    const checkpoint = store.checkpoint("TRUNCATE");
+    assert.equal(typeof checkpoint.busy, "number");
   } finally {
     store.close();
     for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+  }
+
+  const corruptPath = path.resolve(process.cwd(), "runtime", "test-corrupt-operational-store.sqlite");
+  fs.writeFileSync(corruptPath, "not a sqlite database", "utf8");
+  try {
+    assert.throws(() => openOperationalStore(corruptPath, { busyTimeoutMs: 50 }), /database|malformed|encrypted/i);
+  } finally {
+    for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${corruptPath}${suffix}`, { force: true });
   }
 }
 
