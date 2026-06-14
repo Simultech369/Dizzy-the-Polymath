@@ -1,7 +1,7 @@
 ﻿import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { assessCandidatePayload, buildPreparedCandidatePayload, expectedRequestKey, sanitizeOrderId, stableStringify } from "./lib/order_fulfillment.mjs";
+import { assessCandidatePayload, buildPreparedCandidatePayload, expectedRequestKey, hasUnresolvedExternalEffect, sanitizeOrderId, stableStringify } from "./lib/order_fulfillment.mjs";
 import { redactSecretMaterial } from "./lib/durable_write_policy.mjs";
 import { reconcileOrderBatch } from "./lib/reconcile_batch.mjs";
 
@@ -99,6 +99,7 @@ function loadArtifacts(orderId) {
     qc: [],
     upload: [],
     delivery: [],
+    pending: [],
     diagnostic: [],
   };
 
@@ -174,6 +175,20 @@ function deriveFacts(order, artifacts) {
     hasUploadForCandidate: Boolean(latestUpload),
     hasDeliveryForUpload: Boolean(latestDelivery),
     latestDelivery,
+    hasUnresolvedUpload: hasUnresolvedExternalEffect({
+      pendingRecords: artifacts.pending,
+      completionRecords: artifacts.upload,
+      operation: "upload",
+      referenceField: "candidate_key",
+      referenceKey: latestCandidate?.key,
+    }),
+    hasUnresolvedDelivery: hasUnresolvedExternalEffect({
+      pendingRecords: artifacts.pending,
+      completionRecords: artifacts.delivery,
+      operation: "deliver",
+      referenceField: "upload_key",
+      referenceKey: latestUpload?.key,
+    }),
     remoteAlreadyDelivered: String(order.status || "").toLowerCase() === "delivered",
   };
 }
@@ -209,7 +224,9 @@ function decideNextAction(facts, policy) {
   if (!facts.latestCandidateMatchesRequest) return { type: "GENERATE", reason: "candidate_stale_for_brief" };
   if (!facts.hasQcForCandidate) return { type: "RUN_QC", reason: "missing_qc" };
   if (facts.hasQcFailForCandidate) return { type: "GENERATE", reason: "qc_failed_try_next_attempt" };
+  if (facts.hasUnresolvedUpload) return { type: "WRITE_DIAGNOSTIC", reason: "ambiguous_upload_requires_review" };
   if (!facts.hasUploadForCandidate) return { type: "UPLOAD", reason: "missing_upload" };
+  if (facts.hasUnresolvedDelivery) return { type: "WRITE_DIAGNOSTIC", reason: "ambiguous_delivery_requires_review" };
   if (!facts.hasDeliveryForUpload) return { type: "DELIVER", reason: "missing_delivery" };
   return { type: "NOOP", reason: "nothing_missing" };
 }
@@ -330,6 +347,12 @@ async function executeAction(order, artifacts, facts, policy, action) {
         }
       }
       {
+        appendArtifact(orderId, "pending", {
+          operation: "upload",
+          candidate_key: facts.latestCandidate.key,
+          request_key: facts.currentRequestKey,
+          replay_policy: "operator_review_required",
+        });
         const uploadResult = await uploadFile(facts.latestCandidate.payload.file_path);
         return appendArtifact(orderId, "upload", {
           candidate_key: facts.latestCandidate.key,
@@ -359,6 +382,12 @@ async function executeAction(order, artifacts, facts, policy, action) {
         }
       }
       {
+        appendArtifact(orderId, "pending", {
+          operation: "deliver",
+          upload_key: facts.latestUpload.key,
+          request_key: facts.currentRequestKey,
+          replay_policy: "operator_review_required",
+        });
         const deliveryResult = await deliver(
           orderId,
           facts.latestUpload.payload.uploaded_url,

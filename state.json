@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-14T22:52:36.655Z",
+  "updated_at": "2026-06-14T23:14:52.837Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -531,6 +531,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "a6de791fda657562cc727b041b22f1f84aa5d42d01a6ce6573e21ec5f0851252"
+    "design_md_sha256": "e17656e5ef249ef9678a61e0f06185d23a3abce50aa88548c577a6aca60dc92e"
   }
 }

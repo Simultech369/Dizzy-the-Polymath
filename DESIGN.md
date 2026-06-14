@@ -144,6 +144,7 @@ Decision:
 - Preserve an event trail via DLQ JSONL + Redis fields; provide a per-channel notification on terminal failure.
 - Claim ready jobs into a processing list and acknowledge them only after a durable terminal or retry transition.
 - On worker restart, requeue interrupted `READ` jobs; fail interrupted non-READ jobs closed because their external effect is unknown.
+- Record upload and delivery intent before external calls; if completion evidence is missing, block automatic replay and require operator reconciliation.
 
 Rationale:
 - Reliability failures are governance failures if they are silent or ambiguous.

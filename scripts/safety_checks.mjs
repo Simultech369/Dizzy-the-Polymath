@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
 import { projectPublicState, pruneExpiredRateLimitBuckets, redactTextPayload, startServer } from "../agent_server.mjs";
-import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
+import { assessCandidatePayload, buildPreparedCandidatePayload, hasUnresolvedExternalEffect } from "../lib/order_fulfillment.mjs";
 import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, escapeRetrievedContext, formatExternalError, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, runConversationSerialized, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
@@ -882,6 +882,28 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
     dlq,
     async zRangeByScore() { return []; },
     async zRem() {},
+    async eval(_script, options) {
+      if (options.keys.length === 1) {
+        const current = jobMap.get(options.keys[0]) ?? {};
+        if (current.claim_owner !== options.arguments[0]) return 0;
+        jobMap.set(options.keys[0], { ...current, claim_expires_at_ms: options.arguments[1] });
+        return 1;
+      }
+      const [readyKey, processingKey] = options.keys;
+      if (readyKey !== "ready" || processingKey !== "processing" || !ready.length) return null;
+      const id = ready.pop();
+      processing.unshift(id);
+      const [jobPrefix, workerId, claimedAt, expiresAt] = options.arguments;
+      const jobKey = `${jobPrefix}${id}`;
+      const current = jobMap.get(jobKey) ?? {};
+      jobMap.set(jobKey, {
+        ...current,
+        claim_owner: workerId,
+        claim_started_at_ms: claimedAt,
+        claim_expires_at_ms: expiresAt,
+      });
+      return id;
+    },
     async lPush(key, ...values) {
       if (key === "ready") ready.unshift(...values);
       else if (key === "processing") processing.unshift(...values);
@@ -973,6 +995,33 @@ function testPersistedValueRedaction() {
 }
 
 testPersistedValueRedaction();
+
+function testExternalEffectAmbiguityGuard() {
+  const pendingUpload = [{ payload: { operation: "upload", candidate_key: "candidate-1" } }];
+  assert.equal(hasUnresolvedExternalEffect({
+    pendingRecords: pendingUpload,
+    completionRecords: [],
+    operation: "upload",
+    referenceField: "candidate_key",
+    referenceKey: "candidate-1",
+  }), true);
+  assert.equal(hasUnresolvedExternalEffect({
+    pendingRecords: pendingUpload,
+    completionRecords: [{ payload: { candidate_key: "candidate-1", uploaded_url: "https://example.test/a" } }],
+    operation: "upload",
+    referenceField: "candidate_key",
+    referenceKey: "candidate-1",
+  }), false);
+  assert.equal(hasUnresolvedExternalEffect({
+    pendingRecords: [{ payload: { operation: "deliver", upload_key: "upload-1" } }],
+    completionRecords: [],
+    operation: "deliver",
+    referenceField: "upload_key",
+    referenceKey: "upload-1",
+  }), true);
+}
+
+testExternalEffectAmbiguityGuard();
 
 async function testWorkerCycleRetryAndDeath() {
   const oldDlqDir = process.env.DIZZY_DLQ_DIR;
@@ -1089,30 +1138,35 @@ async function testClaimRecoveryAfterRedisFailures() {
 
   const claimFailureJobs = new Map([[keys.job("claim-failure"), baseJob("claim-failure")]]);
   const claimFailureRedis = makeFakeRedisForQueue(claimFailureJobs, ["claim-failure"]);
-  const originalHSet = claimFailureRedis.hSet;
-  let failFirstStatusWrite = true;
-  claimFailureRedis.hSet = async (...args) => {
-    if (failFirstStatusWrite) {
-      failFirstStatusWrite = false;
-      throw new Error("redis disconnected after claim");
-    }
-    return originalHSet(...args);
+  claimFailureRedis.eval = async () => {
+    throw new Error("redis disconnected during atomic claim");
   };
   await assert.rejects(
     runWorkerCycle(claimFailureRedis, keys, async () => "unused"),
-    /redis disconnected after claim/,
+    /redis disconnected during atomic claim/,
   );
-  assert.deepEqual(claimFailureRedis.ready, []);
-  assert.deepEqual(claimFailureRedis.processing, ["claim-failure"]);
-  const claimRecovery = await recoverClaimedJobs(claimFailureRedis, keys);
-  assert.equal(claimRecovery.recovered, 1);
-  assert.deepEqual(claimFailureRedis.processing, []);
   assert.deepEqual(claimFailureRedis.ready, ["claim-failure"]);
+  assert.deepEqual(claimFailureRedis.processing, []);
+
+  const activeJobs = new Map([[keys.job("active-claim"), {
+    ...baseJob("active-claim"),
+    status: "running",
+    claim_owner: "worker-a",
+    claim_started_at_ms: "1000",
+    claim_expires_at_ms: "10000",
+  }]]);
+  const activeRedis = makeFakeRedisForQueue(activeJobs);
+  activeRedis.processing.push("active-claim");
+  const activeRecovery = await recoverClaimedJobs(activeRedis, keys, { nowMs: 5000 });
+  assert.deepEqual(activeRecovery, { recovered: 0, dead: 0, cleared: 0 });
+  assert.deepEqual(activeRedis.processing, ["active-claim"]);
+  assert.equal(activeJobs.get(keys.job("active-claim")).status, "running");
 
   const retryJobs = new Map([[keys.job("retry-interrupted"), {
     ...baseJob("retry-interrupted"),
     status: "retry_scheduled",
     next_retry_at_ms: String(Date.now() + 5000),
+    claim_expires_at_ms: "1",
   }]]);
   const retryRedis = makeFakeRedisForQueue(retryJobs);
   retryRedis.processing.push("retry-interrupted");
@@ -1131,6 +1185,7 @@ async function testClaimRecoveryAfterRedisFailures() {
   const mutationJobs = new Map([[keys.job("mutation-interrupted"), {
     ...baseJob("mutation-interrupted", "WRITE"),
     status: "running",
+    claim_expires_at_ms: "1",
   }]]);
   const mutationRedis = makeFakeRedisForQueue(mutationJobs);
   mutationRedis.processing.push("mutation-interrupted");
