@@ -211,19 +211,51 @@ function buildBoundaryViolationReceipt({ reason, req, zone }) {
   };
 }
 
-function filterPrivateKeys(obj) {
-  if (obj === null || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(filterPrivateKeys);
-  }
-  const result = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (key.includes("#private") || key.includes("#private_self")) {
-      continue;
-    }
-    result[key] = filterPrivateKeys(value);
-  }
-  return result;
+function cloneJsonValue(value) {
+  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+}
+
+export function projectPublicState(state) {
+  const governance = state?.governance ?? {};
+  const transparency = governance.transparency ?? {};
+  const principles = governance.principles ?? {};
+  const productKernel = state?.product_kernel ?? {};
+  const constitutionalKernel = state?.constitutional_kernel ?? {};
+  return {
+    schema_version: state?.schema_version,
+    updated_at: state?.updated_at,
+    canonical_source: state?.canonical_source,
+    docs: {
+      primary: state?.docs?.primary,
+      constitutional_kernel: state?.docs?.constitutional_kernel,
+      constitutional_expansion: state?.docs?.constitutional_expansion,
+    },
+    governance: {
+      anchors: cloneJsonValue(governance.anchors ?? []),
+      transparency: {
+        structural_transparency: Boolean(transparency.structural_transparency),
+        operational_confidentiality: Boolean(transparency.operational_confidentiality),
+        public_docs: cloneJsonValue(transparency.public_docs ?? []),
+      },
+      principles: {
+        benkler: cloneJsonValue(principles.benkler ?? []),
+        waldron: cloneJsonValue(principles.waldron ?? []),
+      },
+    },
+    product_kernel: {
+      value: productKernel.value,
+      positive_primitives: cloneJsonValue(productKernel.positive_primitives ?? []),
+      day_1: productKernel.day_1,
+      week_2: productKernel.week_2,
+      month_3: productKernel.month_3,
+      acceptance_checks: cloneJsonValue(productKernel.acceptance_checks ?? []),
+    },
+    constitutional_kernel: {
+      file: constitutionalKernel.file,
+      expansion_file: constitutionalKernel.expansion_file,
+      non_negotiables: cloneJsonValue(constitutionalKernel.non_negotiables ?? []),
+    },
+  };
 }
 
 export function loadStateConfig(zone) {
@@ -233,7 +265,7 @@ export function loadStateConfig(zone) {
   const parsed = JSON.parse(raw);
 
   if (zone === "public") {
-    return filterPrivateKeys(parsed);
+    return projectPublicState(parsed);
   }
   return parsed;
 }
@@ -393,6 +425,9 @@ export async function createRuntime(opts = {}) {
   const dashboardEnabled = opts.dashboardEnabled !== undefined
     ? Boolean(opts.dashboardEnabled)
     : parseBool(process.env.DIZZY_DASHBOARD_ENABLED, false);
+  const memoryGraphEnabled = opts.memoryGraphEnabled !== undefined
+    ? Boolean(opts.memoryGraphEnabled)
+    : parseBool(process.env.DIZZY_MEMORY_GRAPH_ENABLED, false);
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
@@ -946,7 +981,6 @@ function getDashboardHtml() {
                   <span class="metric-value">\${decayPct}% (\${Math.round(d.ageInDays)}d old)</span>
                 </div>
               </div>
-              <div class="doc-excerpt">\${escapeHtml(d.excerpt)}</div>
             </div>
           \`;
         }).join('');
@@ -990,7 +1024,6 @@ function getDashboardHtml() {
             <tr>
               <td>
                 <span class="file-path">\${s.path}</span>
-                <div class="doc-excerpt" style="margin-top: 0.25rem; font-size: 0.8rem;">\${escapeHtml(s.excerpt)}</div>
               </td>
               <td>\${confidencePct}%</td>
               <td>\${decayPct}%</td>
@@ -1078,10 +1111,10 @@ function getDashboardHtml() {
             if (frac) {
               const num = Number(frac[1]);
               const den = Number(frac[2]);
-              if (den > 0) confidence = num / den;
+              if (den > 0) confidence = Math.max(0, Math.min(1, num / den));
             } else {
               const n = Number(s);
-              if (Number.isFinite(n)) confidence = n;
+              if (Number.isFinite(n)) confidence = Math.max(0, Math.min(1, n));
             }
           }
         }
@@ -1092,9 +1125,6 @@ function getDashboardHtml() {
           confidence,
           decay,
           ageInDays,
-          signals: d.signals,
-          frontmatter: d.frontmatter,
-          excerpt: d.excerpt,
         };
       });
 
@@ -1118,7 +1148,18 @@ function getDashboardHtml() {
     try {
       const q = String(req.query.q ?? "").trim();
       const snippets = getRelevantMarkdownSnippets(q, { k: 10 });
-      res.json({ ok: true, query: q, snippets });
+      res.json({
+        ok: true,
+        query: q,
+        snippets: snippets.map((snippet) => ({
+          path: snippet.path,
+          kind: snippet.kind,
+          confidence: snippet.confidence,
+          decay: snippet.decay,
+          score: snippet.score,
+          reasons: snippet.reasons,
+        })),
+      });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e?.message ?? e) });
     }
@@ -1168,7 +1209,15 @@ function getDashboardHtml() {
     }
   });
 
-  app.get("/memory/graph", async (req, res) => {
+  function memoryGraphAccessGuard(req, res, next) {
+    if (!memoryGraphEnabled) return res.status(404).json({ ok: false, error: "Memory graph disabled" });
+    if (!isLoopbackRemoteAddress(req.socket?.remoteAddress) && !authToken) {
+      return res.status(403).json({ ok: false, error: "Memory graph requires local access or authentication" });
+    }
+    return next();
+  }
+
+  app.get("/memory/graph", memoryGraphAccessGuard, async (req, res) => {
     try {
       const query = String(req.query.q ?? "").trim();
       if (query) {

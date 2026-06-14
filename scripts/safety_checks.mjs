@@ -5,7 +5,7 @@ import { execSync } from "child_process";
 import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
-import { pruneExpiredRateLimitBuckets, redactTextPayload, startServer } from "../agent_server.mjs";
+import { projectPublicState, pruneExpiredRateLimitBuckets, redactTextPayload, startServer } from "../agent_server.mjs";
 import { assessCandidatePayload, buildPreparedCandidatePayload } from "../lib/order_fulfillment.mjs";
 import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, escapeRetrievedContext, formatExternalError, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
@@ -102,6 +102,47 @@ function testExternalErrorRedaction() {
 }
 
 testExternalErrorRedaction();
+
+function testPublicStateProjection() {
+  const projected = projectPublicState({
+    schema_version: 2,
+    updated_at: "2026-06-14T00:00:00.000Z",
+    canonical_source: "DESIGN.md",
+    docs: {
+      primary: "DESIGN.md",
+      constitutional_kernel: "CONSTITUTIONAL_KERNEL.md",
+      constitutional_expansion: "CONSTITUTION.md",
+      internal_notes: "SECRET.md",
+    },
+    governance: {
+      anchors: ["public-anchor"],
+      runtime_constitution: { secret: "runtime-private-sentinel" },
+      transparency: {
+        structural_transparency: true,
+        operational_confidentiality: true,
+        public_docs: ["INTERACTION_NORMS.md"],
+        internal_docs: ["private-doc-sentinel"],
+      },
+      principles: { test: ["public-principle"] },
+    },
+    product_kernel: { value: "public-value", future_private_field: "nested-future-private-sentinel" },
+    constitutional_kernel: {
+      file: "CONSTITUTIONAL_KERNEL.md",
+      expansion_file: "CONSTITUTION.md",
+      non_negotiables: ["public-rule"],
+      authority_note: "internal-authority-sentinel",
+    },
+    "Secrets#PRIVATE": { token: "mixed-case-private-sentinel" },
+    unknown_future_section: { value: "future-private-sentinel" },
+  });
+
+  assert.equal(projected.product_kernel.value, "public-value");
+  assert.deepEqual(projected.governance.transparency.public_docs, ["INTERACTION_NORMS.md"]);
+  const serialized = JSON.stringify(projected);
+  assert.doesNotMatch(serialized, /private-sentinel|internal-authority-sentinel|runtime-private-sentinel|private-doc-sentinel|future-private-sentinel/);
+}
+
+testPublicStateProjection();
 
 async function testFallbackIncludesCurrentUserTurn() {
   const envKeys = [
@@ -1701,6 +1742,55 @@ async function testForwardedRequestsRequireAuthentication() {
 
 await testForwardedRequestsRequireAuthentication();
 
+async function testPrivateReadSurfaces() {
+  const closed = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    redisUrl: "",
+  });
+  try {
+    const graph = await fetch(`http://127.0.0.1:${closed.boundPort}/memory/graph`);
+    assert.equal(graph.status, 404);
+    assert.match((await graph.json()).error, /Memory graph disabled/i);
+  } finally {
+    await closed.stop();
+  }
+
+  const protectedRuntime = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "privacy-test-token",
+    redisUrl: "",
+    dashboardEnabled: true,
+    memoryGraphEnabled: true,
+  });
+  const headers = { authorization: "Bearer privacy-test-token" };
+  try {
+    const baseUrl = `http://127.0.0.1:${protectedRuntime.boundPort}`;
+    const graph = await fetch(`${baseUrl}/memory/graph`, { headers });
+    assert.equal(graph.status, 200);
+
+    const dashboard = await fetch(`${baseUrl}/api/dashboard-data`, { headers }).then((r) => r.json());
+    assert.equal(dashboard.ok, true);
+    for (const doc of dashboard.docs) {
+      assert.equal(Object.hasOwn(doc, "excerpt"), false);
+      assert.equal(Object.hasOwn(doc, "frontmatter"), false);
+      assert.equal(Object.hasOwn(doc, "signals"), false);
+    }
+
+    const query = await fetch(`${baseUrl}/api/dashboard-query?q=memory`, { headers }).then((r) => r.json());
+    assert.equal(query.ok, true);
+    for (const snippet of query.snippets) {
+      assert.equal(Object.hasOwn(snippet, "excerpt"), false);
+    }
+  } finally {
+    await protectedRuntime.stop();
+  }
+}
+
+await testPrivateReadSurfaces();
+
 async function testLoopbackBrowserOriginGuard() {
   const started = await startServer({
     port: 0,
@@ -1802,13 +1892,15 @@ async function testAdversarialTrustZoneBypass() {
       assert.equal(resStatePub.status, 200);
       const jsonStatePub = await resStatePub.json();
       assert.equal(jsonStatePub.ok, true);
-      assert.equal(jsonStatePub.state.public_key, "test_public_value");
+      assert.equal(jsonStatePub.state.public_key, undefined);
+      assert.equal(jsonStatePub.state.canonical_source, parsedState.canonical_source);
       assert.equal(jsonStatePub.state["secrets#private"], undefined);
 
       const resStatePriv = await fetch(`http://127.0.0.1:${port}/state?zone=private`);
       assert.equal(resStatePriv.status, 200);
       const jsonStatePriv = await resStatePriv.json();
       assert.equal(jsonStatePriv.ok, true);
+      assert.equal(jsonStatePriv.state.public_key, "test_public_value");
       assert.equal(jsonStatePriv.state["secrets#private"]["api_key#private_self"], "test_private_value");
 
       const resInject = await fetch(`http://127.0.0.1:${port}/agent/execute`, {

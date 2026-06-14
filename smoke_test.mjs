@@ -16,7 +16,7 @@ delete process.env.OPENAI_COMPAT_MODEL;
 process.env.DIZZY_TRAJECTORY_PATH = "runtime/test-smoke-trajectories.jsonl";
 process.env.DIZZY_FRICTION_PATH = "runtime/test-smoke-friction.jsonl";
 
-const started = await startServer({ port: 0, redisUrl: "" });
+const started = await startServer({ port: 0, redisUrl: "", memoryGraphEnabled: true });
 
 try {
   const port = started.boundPort;

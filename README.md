@@ -26,7 +26,7 @@ The repo is transparent without turning every working note into doctrine: the ru
 
 | Surface | Proof |
 | --- | --- |
-| Local HTTP runtime | `/health`, `/prompt`, `/governance`, `/memory/graph` |
+| Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | Prompt governance | Prompt sources are loaded through a scoped bundle and budget checks |
 | Bounded memory | Retrieval is scoped by trust zone and allowed surfaces |
 | Paid/public mode | Defaults to ephemeral continuity unless explicitly enabled |
@@ -64,11 +64,14 @@ Run the server:
 node .\agent_server.mjs
 ```
 
+To expose the local memory graph for an operator session, set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server. It is disabled by default and remote access still requires runtime authentication.
+
 In another terminal, inspect the local runtime:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt
+# Available only when DIZZY_MEMORY_GRAPH_ENABLED=1:
 Invoke-RestMethod http://127.0.0.1:3000/memory/graph
 ```
 
@@ -168,7 +171,7 @@ These are free and easy, but should be added only when the public account/repo d
 
 - GitHub Actions status badge for the verification workflow
 - Profile README surface in [`PROFILE_README.md`](PROFILE_README.md) for `Simultech369/Simultech369`
-- Public demo GIF showing `/health`, `/prompt`, and `/memory/graph`
+- Public demo GIF showing `/health`, `/prompt`, and an explicitly enabled local `/memory/graph`
 - GitHub Readme Stats card for the operator/profile README
 - GitHub Profile Trophy card for the profile README
 - Contribution graph animation for the profile README
