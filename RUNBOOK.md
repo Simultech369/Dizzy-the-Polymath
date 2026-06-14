@@ -67,12 +67,15 @@ In one terminal:
 
 Defaults:
 - binds to `127.0.0.1` (override with `DIZZY_BIND_HOST`)
+- defaults to `DIZZY_DEPLOYMENT_MODE=direct_local`; use `proxied` behind a reverse proxy or tunnel, and `hosted` for direct non-loopback exposure
+- defaults to `DIZZY_PUBLIC_SURFACES=closed`; use `discovery` only when profile, services, portfolio, logo, and governance should remain anonymously readable
 - structural transparency doc: `GET /governance`
 
 Optional auth (recommended if you ever bind beyond loopback):
 - set `DIZZY_AUTH_TOKEN` on the server process and also on any client/relay processes
-- any reverse proxy, tunnel, or forwarded request requires `DIZZY_AUTH_TOKEN`, even when the runtime itself receives the connection on loopback
-- preserve standard forwarding headers at the proxy; a proxy that strips them can make remote traffic indistinguishable from a direct local client
+- `proxied` and `hosted` modes require `DIZZY_AUTH_TOKEN`, even when the runtime itself receives the connection on loopback
+- `direct_local` rejects forwarding headers because their presence contradicts the declared deployment boundary
+- preserve standard forwarding headers for auditability; `proxied` mode still requires authentication if a proxy strips them
 
 ---
 

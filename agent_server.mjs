@@ -114,16 +114,17 @@ function normalizeAllowedOrigins(value) {
   return origins;
 }
 
-function createProxyExposureGuard({ authToken }) {
+function createProxyExposureGuard({ authToken, deploymentMode }) {
   return function proxyExposureGuard(req, res, next) {
     const proxyHeaders = ["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip"];
     const forwarded = proxyHeaders.some((name) => String(req.headers?.[name] ?? "").trim() !== "");
-    if (forwarded && !authToken) {
+    if (forwarded && deploymentMode === "direct_local") {
       return res.status(403).json({
         ok: false,
-        error: "Forwarded requests require DIZZY_AUTH_TOKEN",
+        error: "Forwarded requests are disabled in direct_local mode",
       });
     }
+    if (forwarded && !authToken) return res.status(403).json({ ok: false, error: "Forwarded requests require DIZZY_AUTH_TOKEN" });
     return next();
   };
 }
@@ -422,6 +423,8 @@ export async function createRuntime(opts = {}) {
   const queuePrefix = String(opts.queuePrefix ?? process.env.DIZZY_QUEUE_PREFIX ?? "dizzy");
   const rateLimit = getRateLimitConfig(opts);
   const allowedOrigins = opts.allowedOrigins ?? process.env.DIZZY_ALLOWED_ORIGINS ?? "";
+  const deploymentMode = String(opts.deploymentMode ?? process.env.DIZZY_DEPLOYMENT_MODE ?? "direct_local").trim().toLowerCase();
+  const publicSurfaceMode = String(opts.publicSurfaceMode ?? process.env.DIZZY_PUBLIC_SURFACES ?? "closed").trim().toLowerCase();
   const dashboardEnabled = opts.dashboardEnabled !== undefined
     ? Boolean(opts.dashboardEnabled)
     : parseBool(process.env.DIZZY_DASHBOARD_ENABLED, false);
@@ -431,17 +434,31 @@ export async function createRuntime(opts = {}) {
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
-  app.use(createProxyExposureGuard({ authToken }));
+  app.use(createProxyExposureGuard({ authToken, deploymentMode }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
 
   const runtimeSafety = getRuntimeSafetyConfig();
-  const safetyDiagnostics = assertRuntimeSafetyConfig({ ...runtimeSafety, bindHost, authTokenConfigured: Boolean(authToken) });
+  const safetyDiagnostics = assertRuntimeSafetyConfig({
+    ...runtimeSafety,
+    bindHost,
+    authTokenConfigured: Boolean(authToken),
+    deploymentMode,
+    publicSurfaceMode,
+  });
 
   if (authToken) {
+    const anonymousDiscoveryRoutes = new Set([
+      "/agent/profile",
+      "/agent/services",
+      "/agent/portfolio",
+      "/assets/logo",
+      "/governance",
+    ]);
     app.use((req, res, next) => {
       // Health can remain open only on loopback bindings.
       if (req.path === "/health" && isLoopbackHost(bindHost)) return next();
+      if (publicSurfaceMode === "discovery" && anonymousDiscoveryRoutes.has(req.path)) return next();
 
       const auth = String(req.headers?.authorization ?? "");
       const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
@@ -480,6 +497,10 @@ export async function createRuntime(opts = {}) {
         configured: Boolean(authToken),
         scheme: authToken ? "bearer" : "none",
         health_exempted: Boolean(authToken) ? isLoopbackHost(bindHost) : true,
+      },
+      deployment: {
+        mode: deploymentMode,
+        public_surfaces: publicSurfaceMode,
       },
       browser_origin_guard: {
         enabled: true,
@@ -522,7 +543,9 @@ export async function createRuntime(opts = {}) {
     const zone = rawZone === "private" ? "private" : "public";
     const isLocal = isLoopbackRemoteAddress(req.socket?.remoteAddress);
 
-    if (zone === "private" && !isLocal) {
+    const directLocalPrivateAccess = deploymentMode === "direct_local" && isLocal;
+    const authenticatedDeployment = ["proxied", "hosted"].includes(deploymentMode) && Boolean(authToken);
+    if (zone === "private" && !directLocalPrivateAccess && !authenticatedDeployment) {
       return res.status(403).json({ ok: false, error: "Access denied to private state" });
     }
 

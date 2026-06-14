@@ -158,7 +158,9 @@ Consequences:
 
 Decision:
 - Bind the local runtime to loopback by default (`127.0.0.1`).
-- Support optional bearer auth via `DIZZY_AUTH_TOKEN` for cases where the runtime is exposed beyond loopback.
+- Declare exposure with `DIZZY_DEPLOYMENT_MODE`: `direct_local` for genuine loopback use, `proxied` for reverse-proxy or tunnel ingress, and `hosted` for direct non-loopback exposure.
+- Require bearer auth via `DIZZY_AUTH_TOKEN` in `proxied` and `hosted` modes. `direct_local` rejects forwarding headers because they contradict the declared boundary.
+- Keep anonymous informational routes closed when auth is configured unless `DIZZY_PUBLIC_SURFACES=discovery` intentionally exposes profile, services, portfolio, logo, and governance.
 - Treat browser origin as an explicit deployment boundary: loopback origins are accepted only on loopback bindings, and other browser origins require `DIZZY_ALLOWED_ORIGINS`.
 
 Rationale:
@@ -167,7 +169,8 @@ Rationale:
 
 Consequences:
 - Default configuration is safe with "no auth" because it is local-only.
-- Setting `DIZZY_AUTH_TOKEN` enforces auth on endpoints. `/health` is unauthenticated only when bound to loopback.
+- Setting `DIZZY_AUTH_TOKEN` enforces auth on endpoints except explicitly selected discovery routes. `/health` is unauthenticated only when bound to loopback.
+- A proxy that strips forwarding headers cannot gain local privileges when the runtime is correctly declared `proxied`, because authentication remains mandatory independent of socket address.
 - Requests without an `Origin` header remain compatible with CLI and service clients; origin checks do not replace authentication or configure CORS.
 
 ---

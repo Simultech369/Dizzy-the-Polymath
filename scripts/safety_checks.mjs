@@ -1021,6 +1021,8 @@ function testRuntimeConfigValidation() {
   const result = validateRuntimeSafetyConfig({
     bindHost: "0.0.0.0",
     authTokenConfigured: false,
+    deploymentMode: "hosted",
+    publicSurfaceMode: "closed",
     chatBackend: "gemini",
     toolMode: "auto",
       allowRemoteMutations: false,
@@ -1034,6 +1036,8 @@ function testRuntimeConfigValidation() {
     assertRuntimeSafetyConfig({
       bindHost: "127.0.0.1",
       authTokenConfigured: false,
+      deploymentMode: "direct_local",
+      publicSurfaceMode: "closed",
       chatBackend: "",
       toolMode: "inline",
       allowRemoteMutations: false,
@@ -1041,6 +1045,16 @@ function testRuntimeConfigValidation() {
       telegramStartupMessage: false,
     });
   });
+
+  const proxiedWithoutAuth = validateRuntimeSafetyConfig({
+    bindHost: "127.0.0.1",
+    authTokenConfigured: false,
+    deploymentMode: "proxied",
+    publicSurfaceMode: "closed",
+    chatBackend: "",
+    toolMode: "inline",
+  });
+  assert.match(proxiedWithoutAuth.errors.join(" "), /DIZZY_AUTH_TOKEN.*proxied/i);
 }
 
 function testModelRoutingRoles() {
@@ -1885,9 +1899,28 @@ async function testForwardedRequestsRequireAuthentication() {
       headers: { "x-forwarded-for": "203.0.113.10" },
     });
     assert.equal(blocked.status, 403);
-    assert.match((await blocked.json()).error, /Forwarded requests require DIZZY_AUTH_TOKEN/i);
+    assert.match((await blocked.json()).error, /disabled in direct_local mode/i);
   } finally {
     await unauthenticated.stop();
+  }
+
+  const authenticatedDirect = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "direct-test-token",
+    redisUrl: "",
+  });
+  try {
+    const blocked = await fetch(`http://127.0.0.1:${authenticatedDirect.boundPort}/state?zone=private`, {
+      headers: {
+        authorization: "Bearer direct-test-token",
+        "x-forwarded-for": "203.0.113.10",
+      },
+    });
+    assert.equal(blocked.status, 403);
+    assert.match((await blocked.json()).error, /disabled in direct_local mode/i);
+  } finally {
+    await authenticatedDirect.stop();
   }
 
   const authenticated = await startServer({
@@ -1895,6 +1928,7 @@ async function testForwardedRequestsRequireAuthentication() {
     bindHost: "127.0.0.1",
     authToken: "proxy-test-token",
     redisUrl: "",
+    deploymentMode: "proxied",
   });
   try {
     const allowed = await fetch(`http://127.0.0.1:${authenticated.boundPort}/state?zone=public`, {
@@ -1910,6 +1944,47 @@ async function testForwardedRequestsRequireAuthentication() {
 }
 
 await testForwardedRequestsRequireAuthentication();
+
+async function testExplicitPublicSurfacePolicy() {
+  const closed = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "surface-test-token",
+    redisUrl: "",
+    publicSurfaceMode: "closed",
+  });
+  try {
+    const profile = await fetch(`http://127.0.0.1:${closed.boundPort}/agent/profile`);
+    assert.equal(profile.status, 401);
+  } finally {
+    await closed.stop();
+  }
+
+  const discovery = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "surface-test-token",
+    redisUrl: "",
+    publicSurfaceMode: "discovery",
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${discovery.boundPort}`;
+    const profile = await fetch(`${baseUrl}/agent/profile`);
+    assert.equal(profile.status, 200);
+    const governance = await fetch(`${baseUrl}/governance`);
+    assert.equal(governance.status, 200);
+    const privateState = await fetch(`${baseUrl}/state?zone=private`);
+    assert.equal(privateState.status, 401);
+    const authenticatedState = await fetch(`${baseUrl}/state?zone=private`, {
+      headers: { authorization: "Bearer surface-test-token" },
+    });
+    assert.equal(authenticatedState.status, 200);
+  } finally {
+    await discovery.stop();
+  }
+}
+
+await testExplicitPublicSurfacePolicy();
 
 async function testPrivateReadSurfaces() {
   const closed = await startServer({
@@ -2016,6 +2091,7 @@ async function testLoopbackBrowserOriginGuard() {
     bindHost: "0.0.0.0",
     authToken: "test-token",
     redisUrl: "",
+    deploymentMode: "hosted",
     allowedOrigins: "https://trusted.example",
   });
 
