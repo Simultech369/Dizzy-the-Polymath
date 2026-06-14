@@ -14,7 +14,7 @@ import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
-import { makeQueueKeys, moveDueDelayed, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
+import { makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
@@ -160,7 +160,7 @@ async function testFallbackIncludesCurrentUserTurn() {
   const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
   const originalFetch = globalThis.fetch;
   const conversationDirPath = path.resolve(process.cwd(), "runtime", "test-fallback-conversations");
-  let fallbackRequest = null;
+  const fallbackRequests = [];
 
   process.env.DIZZY_CHAT_BACKEND = "gemini";
   process.env.GEMINI_API_KEY = "test-gemini-key";
@@ -175,34 +175,56 @@ async function testFallbackIncludesCurrentUserTurn() {
 
   globalThis.fetch = async (url, options = {}) => {
     if (String(url).includes("generativelanguage.googleapis.com")) {
-      return new Response(JSON.stringify({ error: { message: "primary unavailable" } }), {
-        status: 503,
+      const request = JSON.parse(String(options.body || "{}"));
+      const text = JSON.stringify(request);
+      if (text.includes("NETWORK_FAILURE")) throw new Error("network failed token=networksecret123");
+      const status = text.includes("STATUS_429") ? 429
+        : text.includes("STATUS_500") ? 500
+          : text.includes("STATUS_400") ? 400
+            : 503;
+      return new Response(JSON.stringify({ error: { message: "primary unavailable", token: "bodysecret123" } }), {
+        status,
         headers: { "content-type": "application/json" },
       });
     }
-    fallbackRequest = JSON.parse(String(options.body || "{}"));
-    return new Response(JSON.stringify({ choices: [{ message: { content: "Fallback response" } }] }), {
+    const fallbackRequest = JSON.parse(String(options.body || "{}"));
+    fallbackRequests.push(fallbackRequest);
+    return new Response(JSON.stringify({ choices: [{ message: { content: `Fallback response ${fallbackRequests.length}` } }] }), {
       status: 200,
       headers: { "content-type": "application/json" },
     });
   };
 
   try {
-    const currentText = "CURRENT_FALLBACK_TURN_SENTINEL";
-    const out = await handleIncomingMessage({
+    const fallbackCases = ["STATUS_429", "STATUS_500", "STATUS_503", "NETWORK_FAILURE"];
+    for (const [index, currentText] of fallbackCases.entries()) {
+      const out = await handleIncomingMessage({
+        message: {
+          channel: "local",
+          text: currentText,
+          runtime_context: {
+            trusted_local: true,
+            conversation_key: `fallback-current-turn-${index}`,
+          },
+        },
+        enqueue: async () => "unused",
+      });
+      assert.match(out.text, /Fallback response/);
+      assert.equal(fallbackRequests.at(-1).messages.some((message) => message.role === "user" && message.content === currentText), true);
+    }
+    assert.equal(fallbackRequests.length, fallbackCases.length);
+
+    const permanentFailure = await handleIncomingMessage({
       message: {
         channel: "local",
-        text: currentText,
-        runtime_context: {
-          trusted_local: true,
-          conversation_key: "fallback-current-turn",
-        },
+        text: "STATUS_400",
+        runtime_context: { trusted_local: true, conversation_key: "fallback-permanent-failure" },
       },
       enqueue: async () => "unused",
     });
-    assert.match(out.text, /Fallback response/);
-    assert.ok(fallbackRequest);
-    assert.equal(fallbackRequest.messages.some((message) => message.role === "user" && message.content === currentText), true);
+    assert.match(permanentFailure.text, /Gemini chat error: Gemini HTTP 400/);
+    assert.doesNotMatch(permanentFailure.text, /bodysecret123|primary unavailable/);
+    assert.equal(fallbackRequests.length, fallbackCases.length);
   } finally {
     globalThis.fetch = originalFetch;
     fs.rmSync(conversationDirPath, { recursive: true, force: true });
@@ -726,6 +748,7 @@ function testRetrievalPlan() {
 
 function testQueueChannelSanitization() {
   const keys = makeQueueKeys("dizzy");
+  assert.equal(keys.processing, "dizzy:queue:processing");
   assert.equal(keys.notify("Telegram / Ops"), "dizzy:queue:notify:telegram_ops");
 
   const routed = routeIncomingMessage({
@@ -846,12 +869,14 @@ async function testPaidPublicCannotCaptureTrajectories() {
 
 function makeFakeRedisForQueue(jobMap, queueIds = []) {
   const ready = [...queueIds];
+  const processing = [];
   const delayed = [];
   const notify = [];
   const dlq = [];
 
   return {
     ready,
+    processing,
     delayed,
     notify,
     dlq,
@@ -859,12 +884,29 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
     async zRem() {},
     async lPush(key, ...values) {
       if (key === "ready") ready.unshift(...values);
+      else if (key === "processing") processing.unshift(...values);
       else if (key === "dlq") dlq.unshift(...values);
       else if (key === "notify:telegram") notify.unshift(...values);
     },
     async brPop() {
       if (!ready.length) return null;
       return { key: "ready", element: ready.pop() };
+    },
+    async brPopLPush() {
+      if (!ready.length) return null;
+      const id = ready.pop();
+      processing.unshift(id);
+      return id;
+    },
+    async lRange(key) {
+      return key === "processing" ? [...processing] : [];
+    },
+    async lRem(key, _count, value) {
+      if (key !== "processing") return 0;
+      const index = processing.indexOf(value);
+      if (index < 0) return 0;
+      processing.splice(index, 1);
+      return 1;
     },
     async hGetAll(key) {
       return jobMap.get(key) ?? {};
@@ -939,6 +981,7 @@ async function testWorkerCycleRetryAndDeath() {
   fs.rmSync(testDlqDir, { recursive: true, force: true });
   const keys = {
     ready: "ready",
+    processing: "processing",
     delayed: "delayed",
     dlq: "dlq",
     notify: () => "notify:telegram",
@@ -971,6 +1014,7 @@ async function testWorkerCycleRetryAndDeath() {
   assert.equal(retryJobMap.get(keys.job("job-retry")).status, "retry_scheduled");
   assert.equal(retryJobMap.get(keys.job("job-retry")).retry_count, "1");
   assert.equal(retryRedis.delayed.length, 1);
+  assert.deepEqual(retryRedis.processing, []);
   assert.doesNotMatch(retryJobMap.get(keys.job("job-retry")).last_error, /retrysecret/);
 
   const deadJobMap = new Map([
@@ -1002,6 +1046,7 @@ async function testWorkerCycleRetryAndDeath() {
     assert.doesNotMatch(deadJob.last_error, /errorsecret/);
     assert.equal(deadRedis.dlq.includes("job-dead"), true);
     assert.equal(deadRedis.notify.length, 1);
+    assert.deepEqual(deadRedis.processing, []);
 
     const dlqText = fs.readFileSync(deadJob.dead_letter_path, "utf8");
     const dlqRecord = JSON.parse(dlqText.trim().split(/\r?\n/).at(-1));
@@ -1016,6 +1061,90 @@ async function testWorkerCycleRetryAndDeath() {
     else process.env.DIZZY_DLQ_DIR = oldDlqDir;
   }
 }
+
+async function testClaimRecoveryAfterRedisFailures() {
+  const keys = {
+    ready: "ready",
+    processing: "processing",
+    delayed: "delayed",
+    dlq: "dlq",
+    notify: () => "notify:telegram",
+    job: (id) => `job:${id}`,
+  };
+  const baseJob = (id, effect = "READ") => ({
+    id,
+    status: "queued",
+    type: "tool",
+    tool: "http_get",
+    effect,
+    attempts: "0",
+    max_attempts: "4",
+    retry_count: "0",
+    max_retries: "3",
+    payload_json: "{}",
+    notify_json: "",
+    started_at_ms: "",
+    next_retry_at_ms: "",
+  });
+
+  const claimFailureJobs = new Map([[keys.job("claim-failure"), baseJob("claim-failure")]]);
+  const claimFailureRedis = makeFakeRedisForQueue(claimFailureJobs, ["claim-failure"]);
+  const originalHSet = claimFailureRedis.hSet;
+  let failFirstStatusWrite = true;
+  claimFailureRedis.hSet = async (...args) => {
+    if (failFirstStatusWrite) {
+      failFirstStatusWrite = false;
+      throw new Error("redis disconnected after claim");
+    }
+    return originalHSet(...args);
+  };
+  await assert.rejects(
+    runWorkerCycle(claimFailureRedis, keys, async () => "unused"),
+    /redis disconnected after claim/,
+  );
+  assert.deepEqual(claimFailureRedis.ready, []);
+  assert.deepEqual(claimFailureRedis.processing, ["claim-failure"]);
+  const claimRecovery = await recoverClaimedJobs(claimFailureRedis, keys);
+  assert.equal(claimRecovery.recovered, 1);
+  assert.deepEqual(claimFailureRedis.processing, []);
+  assert.deepEqual(claimFailureRedis.ready, ["claim-failure"]);
+
+  const retryJobs = new Map([[keys.job("retry-interrupted"), {
+    ...baseJob("retry-interrupted"),
+    status: "retry_scheduled",
+    next_retry_at_ms: String(Date.now() + 5000),
+  }]]);
+  const retryRedis = makeFakeRedisForQueue(retryJobs);
+  retryRedis.processing.push("retry-interrupted");
+  const retryRecovery = await recoverClaimedJobs(retryRedis, keys);
+  assert.equal(retryRecovery.recovered, 1);
+  assert.equal(retryRedis.delayed.some((entry) => entry.entries.some((item) => item.value === "retry-interrupted")), true);
+  assert.deepEqual(retryRedis.processing, []);
+
+  const completedJobs = new Map([[keys.job("completed-stale"), { ...baseJob("completed-stale"), status: "succeeded" }]]);
+  const completedRedis = makeFakeRedisForQueue(completedJobs);
+  completedRedis.processing.push("completed-stale");
+  const completedRecovery = await recoverClaimedJobs(completedRedis, keys);
+  assert.equal(completedRecovery.cleared, 1);
+  assert.deepEqual(completedRedis.processing, []);
+
+  const mutationJobs = new Map([[keys.job("mutation-interrupted"), {
+    ...baseJob("mutation-interrupted", "WRITE"),
+    status: "running",
+  }]]);
+  const mutationRedis = makeFakeRedisForQueue(mutationJobs);
+  mutationRedis.processing.push("mutation-interrupted");
+  const mutationRecovery = await recoverClaimedJobs(mutationRedis, keys);
+  assert.equal(mutationRecovery.dead, 1);
+  assert.equal(mutationJobs.get(keys.job("mutation-interrupted")).status, "dead");
+  assert.equal(mutationJobs.get(keys.job("mutation-interrupted")).last_retry_reason, "worker_interrupted_unknown_effect");
+  assert.equal(mutationRedis.dlq.includes("mutation-interrupted"), true);
+  assert.equal(mutationRedis.notify.length, 1);
+  assert.equal(JSON.parse(mutationRedis.notify[0]).recovered_after_worker_interruption, true);
+  assert.deepEqual(mutationRedis.processing, []);
+}
+
+await testClaimRecoveryAfterRedisFailures();
 
 function testRuntimeConfigValidation() {
   const result = validateRuntimeSafetyConfig({

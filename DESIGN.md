@@ -142,6 +142,8 @@ Consequences:
 Decision:
 - Use a simple, auditable job lifecycle: `queued -> running -> succeeded | retry_scheduled | dead`.
 - Preserve an event trail via DLQ JSONL + Redis fields; provide a per-channel notification on terminal failure.
+- Claim ready jobs into a processing list and acknowledge them only after a durable terminal or retry transition.
+- On worker restart, requeue interrupted `READ` jobs; fail interrupted non-READ jobs closed because their external effect is unknown.
 
 Rationale:
 - Reliability failures are governance failures if they are silent or ambiguous.
