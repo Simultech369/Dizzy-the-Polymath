@@ -185,7 +185,9 @@ Optional: automatic chat fallback (keep Gemini as primary)
 - `OPENAI_COMPAT_BASE_URL=...` (example: Groq OpenAI-compatible base URL, or a local Ollama/vLLM base URL)
 - `OPENAI_COMPAT_API_KEY=...` (if required by the endpoint; local may be blank)
 - `OPENAI_COMPAT_MODEL=...`
-- `DIZZY_FALLBACK_MAX_CALLS_PER_HOUR=10` (optional safety cap to avoid surprise costs during outages)
+- `DIZZY_FALLBACK_MAX_CALLS_PER_HOUR=10` (optional global safety cap across all conversations)
+- `DIZZY_FALLBACK_MAX_CALLS_PER_CONVERSATION_HOUR=3` (optional fairness cap for one conversation)
+- DLQ JSONL is a redacted diagnostic record, not a directly replayable job archive; replays must reconstruct credentials from approved runtime configuration.
 - Optional: reduce fallback token burn (useful for free tiers):
   - `OPENAI_COMPAT_MAX_TOKENS=500` (caps fallback completion length)
   - `DIZZY_FALLBACK_MAX_TURNS=6` (sends fewer recent turns on fallback)

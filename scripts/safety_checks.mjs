@@ -155,11 +155,14 @@ async function testFallbackIncludesCurrentUserTurn() {
     "OPENAI_COMPAT_API_KEY",
     "OPENAI_COMPAT_MODEL",
     "DIZZY_FALLBACK_MAX_CALLS_PER_HOUR",
+    "DIZZY_FALLBACK_MAX_CALLS_PER_CONVERSATION_HOUR",
+    "DIZZY_FALLBACK_USAGE_DIR",
     "DIZZY_CONVERSATION_DIR",
   ];
   const previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
   const originalFetch = globalThis.fetch;
   const conversationDirPath = path.resolve(process.cwd(), "runtime", "test-fallback-conversations");
+  const fallbackUsageDirPath = path.resolve(process.cwd(), "runtime", "test-fallback-usage");
   const fallbackRequests = [];
 
   process.env.DIZZY_CHAT_BACKEND = "gemini";
@@ -170,8 +173,11 @@ async function testFallbackIncludesCurrentUserTurn() {
   process.env.OPENAI_COMPAT_API_KEY = "test-fallback-key";
   process.env.OPENAI_COMPAT_MODEL = "test-fallback-model";
   process.env.DIZZY_FALLBACK_MAX_CALLS_PER_HOUR = "0";
+  process.env.DIZZY_FALLBACK_MAX_CALLS_PER_CONVERSATION_HOUR = "0";
+  process.env.DIZZY_FALLBACK_USAGE_DIR = fallbackUsageDirPath;
   process.env.DIZZY_CONVERSATION_DIR = conversationDirPath;
   fs.rmSync(conversationDirPath, { recursive: true, force: true });
+  fs.rmSync(fallbackUsageDirPath, { recursive: true, force: true });
 
   globalThis.fetch = async (url, options = {}) => {
     if (String(url).includes("generativelanguage.googleapis.com")) {
@@ -225,9 +231,32 @@ async function testFallbackIncludesCurrentUserTurn() {
     assert.match(permanentFailure.text, /Gemini chat error: Gemini HTTP 400/);
     assert.doesNotMatch(permanentFailure.text, /bodysecret123|primary unavailable/);
     assert.equal(fallbackRequests.length, fallbackCases.length);
+
+    fs.rmSync(fallbackUsageDirPath, { recursive: true, force: true });
+    process.env.DIZZY_FALLBACK_MAX_CALLS_PER_HOUR = "1";
+    process.env.DIZZY_FALLBACK_MAX_CALLS_PER_CONVERSATION_HOUR = "10";
+    const firstGlobal = await handleIncomingMessage({
+      message: {
+        channel: "local",
+        text: "STATUS_503 GLOBAL_FIRST",
+        runtime_context: { trusted_local: true, conversation_key: "global-cap-a" },
+      },
+      enqueue: async () => "unused",
+    });
+    assert.match(firstGlobal.text, /Fallback response/);
+    const blockedGlobal = await handleIncomingMessage({
+      message: {
+        channel: "local",
+        text: "STATUS_503 GLOBAL_SECOND",
+        runtime_context: { trusted_local: true, conversation_key: "global-cap-b" },
+      },
+      enqueue: async () => "unused",
+    });
+    assert.match(blockedGlobal.text, /global limit reached: 1\/1/i);
   } finally {
     globalThis.fetch = originalFetch;
     fs.rmSync(conversationDirPath, { recursive: true, force: true });
+    fs.rmSync(fallbackUsageDirPath, { recursive: true, force: true });
     for (const [key, value] of Object.entries(previousEnv)) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
@@ -986,10 +1015,11 @@ function testPersistedValueRedaction() {
     nested: {
       api_key: "sk-persistedsecret123456789",
       message: "request failed token=lowercasesecret123",
+      headers: "cookie=sessionsecret123 authorization=plainsecret123 credential=credentialsecret123 passwd=passwdsecret123",
     },
   });
   const serialized = JSON.stringify(sanitized);
-  assert.doesNotMatch(serialized, /bearer-secret-value|sk-persistedsecret|lowercasesecret/);
+  assert.doesNotMatch(serialized, /bearer-secret-value|sk-persistedsecret|lowercasesecret|sessionsecret|plainsecret|credentialsecret|passwdsecret/);
   assert.equal(sanitized.authorization, "[REDACTED]");
   assert.equal(sanitized.nested.api_key, "[REDACTED]");
 }
@@ -1036,6 +1066,32 @@ async function testWorkerCycleRetryAndDeath() {
     notify: () => "notify:telegram",
     job: (id) => `job:${id}`,
   };
+
+  const successJobMap = new Map([
+    [keys.job("job-success"), {
+      id: "job-success",
+      status: "queued",
+      type: "tool",
+      tool: "http_get",
+      effect: "READ",
+      attempts: "0",
+      max_attempts: "4",
+      retry_count: "0",
+      max_retries: "3",
+      payload_json: "{}",
+      notify_json: "",
+      started_at_ms: "",
+    }],
+  ]);
+  const successRedis = makeFakeRedisForQueue(successJobMap, ["job-success"]);
+  const successResult = await runWorkerCycle(successRedis, keys, async () => ({
+    ok: true,
+    authorization: "Bearer successsecret123",
+    nested: { credential: "credentialsecret123" },
+  }));
+  assert.equal(successResult.kind, "succeeded");
+  const persistedResult = successJobMap.get(keys.job("job-success")).result_json;
+  assert.doesNotMatch(persistedResult, /successsecret|credentialsecret/);
 
   const retryJobMap = new Map([
     [keys.job("job-retry"), {
