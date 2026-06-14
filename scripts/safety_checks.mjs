@@ -1146,6 +1146,95 @@ async function testClaimRecoveryAfterRedisFailures() {
 
 await testClaimRecoveryAfterRedisFailures();
 
+async function testSqliteOperationalStore() {
+  const nodeMajor = Number(String(process.versions.node).split(".")[0]);
+  if (nodeMajor < 22) return;
+  const { openOperationalStore } = await import("../lib/sqlite_operational_store.mjs");
+  const dbPath = path.resolve(process.cwd(), "runtime", "test-operational-store.sqlite");
+  for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+  const store = openOperationalStore(dbPath);
+  try {
+    assert.equal(String(store.db.prepare("PRAGMA journal_mode").get().journal_mode).toLowerCase(), "wal");
+    assert.equal(store.db.prepare("PRAGMA foreign_keys").get().foreign_keys, 1);
+
+    const first = store.appendConversationExchange({
+      conversationKey: "sqlite-conversation",
+      userText: "first user turn",
+      assistantText: "first assistant turn",
+    });
+    assert.equal(first.user_sequence, 1);
+    assert.equal(first.assistant_sequence, 2);
+    const second = store.appendConversationExchange({
+      conversationKey: "sqlite-conversation",
+      userText: "second user turn",
+      assistantText: "second assistant turn",
+    });
+    assert.equal(second.user_sequence, 3);
+    assert.deepEqual(
+      store.getConversationEvents("sqlite-conversation").map((event) => `${event.sequence}:${event.role}:${event.text}`),
+      [
+        "1:user:first user turn",
+        "2:assistant:first assistant turn",
+        "3:user:second user turn",
+        "4:assistant:second assistant turn",
+      ],
+    );
+
+    assert.throws(() => store.transaction(() => {
+      store.db.prepare(`
+        INSERT INTO conversations(conversation_key, next_sequence, created_at, updated_at)
+        VALUES ('rollback-conversation', 1, 'now', 'now')
+      `).run();
+      throw new Error("injected transaction crash");
+    }), /injected transaction crash/);
+    assert.equal(store.db.prepare("SELECT COUNT(*) count FROM conversations WHERE conversation_key='rollback-conversation'").get().count, 0);
+
+    const created = store.createJob({ jobId: "sqlite-job", effect: "READ", idempotencyKey: "create-sqlite-job" });
+    assert.equal(created.status, "queued");
+    const running = store.transitionJob({
+      jobId: "sqlite-job",
+      fromStatus: "queued",
+      toStatus: "running",
+      reason: "claimed",
+      idempotencyKey: "sqlite-job-running",
+    });
+    assert.equal(running.status, "running");
+    assert.equal(running.version, 1);
+    const duplicate = store.transitionJob({
+      jobId: "sqlite-job",
+      fromStatus: "queued",
+      toStatus: "running",
+      reason: "duplicate delivery",
+      idempotencyKey: "sqlite-job-running",
+    });
+    assert.equal(duplicate.status, "running");
+    assert.equal(store.db.prepare("SELECT COUNT(*) count FROM job_events WHERE job_id='sqlite-job'").get().count, 2);
+    store.createJob({ jobId: "sqlite-job-two", effect: "READ", idempotencyKey: "create-sqlite-job-two" });
+    assert.throws(() => store.transitionJob({
+      jobId: "sqlite-job-two",
+      fromStatus: "queued",
+      toStatus: "running",
+      idempotencyKey: "sqlite-job-running",
+    }), /Idempotency key conflict/);
+    assert.throws(() => store.transitionJob({
+      jobId: "sqlite-job",
+      fromStatus: "queued",
+      toStatus: "dead",
+    }), /transition conflict/i);
+    assert.throws(() => store.transitionJob({
+      jobId: "sqlite-job",
+      fromStatus: "running",
+      toStatus: "queued",
+    }), /Invalid job transition/);
+    assert.equal(store.integrityCheck(), "ok");
+  } finally {
+    store.close();
+    for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+  }
+}
+
+await testSqliteOperationalStore();
+
 function testRuntimeConfigValidation() {
   const result = validateRuntimeSafetyConfig({
     bindHost: "0.0.0.0",

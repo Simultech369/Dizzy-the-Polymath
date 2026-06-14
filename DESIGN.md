@@ -724,6 +724,26 @@ Consequences:
 
 ---
 
+### D-0036: SQLite is an experimental operational sidecar, not memory authority
+
+Decision:
+- Prototype device-local operational state with SQLite for transactional conversation exchanges and legible job transitions.
+- Keep Markdown, JSONL exports, and Git-tracked governance as their existing authorities during the experiment.
+- Do not wire live dual writes until crash behavior, exportability, runtime support, and migration complexity receive independent review.
+- Use strict schemas, foreign keys, bounded lock waits, WAL on local disks, explicit transactions, and idempotency keys.
+
+Rationale:
+- JSONL remains useful for evidence and export, but it cannot atomically enforce multi-record invariants or compare-and-set state transitions.
+- SQLite matches the local-first, low-writer-concurrency runtime, while a networked or multi-host deployment would require a different database boundary.
+- Node's built-in `node:sqlite` is still marked experimental in the current runtime, so the prototype must remain reversible and non-authoritative.
+
+Consequences:
+- `lib/sqlite_operational_store.mjs` is exercised by safety tests but is not opened by the live server or worker.
+- Promotion requires an explicit follow-up decision after the next independent review.
+- The database file must remain on the same host and must not be placed on a network filesystem.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

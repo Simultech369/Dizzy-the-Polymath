@@ -16,12 +16,13 @@ Rules:
 
 ## Work Queue
 
-- W-0036 [Tier 3]: Evaluate an optional local memory sidecar only after local markdown/JSONL contracts hit a concrete limit.
+(none)
 
 ---
 
 ## Completed
 
+- W-0036: Evaluated a bounded SQLite operational sidecar after queue recovery and multi-record conversation ordering exposed concrete JSONL limits; kept it non-authoritative pending independent review (D-0036).
 - W-0045: Strengthened the logical untrusted-context boundary by introducing `lib/janitor.mjs` to strip/neutralize instruction triggers, escape HTML/XML tag markers, and wrap untrusted inputs in a strict XML envelope.
 - W-0044: Added checked repository revision, scanner version, check timestamp, findings count, and stable finding IDs to drift scans, with safety tests checking simulated overrides.
 - W-0043: Added a compact live task-preflight contract with tested skip, proceed, and clarify paths; success criteria stay internal by default and refinement falls back after one minute instead of becoming planning theater.

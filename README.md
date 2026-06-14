@@ -58,6 +58,8 @@ Install dependencies:
 npm install
 ```
 
+The main runtime supports Node.js 18+. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
+
 Run the server:
 
 ```powershell
