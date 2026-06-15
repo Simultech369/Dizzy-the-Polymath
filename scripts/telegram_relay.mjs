@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { assertRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 
 function env(name, fallback = "") {
@@ -261,6 +262,7 @@ async function processTelegramUpdate({
   headers,
   allowSet,
   allowAutoBind,
+  autoBindNonce,
   loggedMismatchRef,
   pollJob,
   jobTimeoutMs,
@@ -282,6 +284,10 @@ async function processTelegramUpdate({
       if (debug) console.log(`[telegram_relay] auto-bind skip non-private chat_id=${chatId} type=${chatType}`);
       return;
     }
+    if (text !== `/bind ${autoBindNonce}`) {
+      if (debug) console.log(`[telegram_relay] auto-bind expected "/bind ${autoBindNonce}" but got "${text}"`);
+      return;
+    }
     allowSet.add(chatId);
     console.log(`[telegram_relay] auto-bound allow_chat=${chatId}`);
     await telegramSendMessage({
@@ -289,6 +295,7 @@ async function processTelegramUpdate({
       chatId,
       text: `Bound this DM as allow_chat=${chatId}. Persist it by setting TELEGRAM_CHAT_ID=${chatId}.`,
     });
+    return;
   }
 
   if (!allowSet.has(chatId)) {
@@ -430,6 +437,13 @@ async function main() {
   let allowSet = new Set(allowChatIds.map(String));
   const primaryAllowChat = allowChatIds.length ? allowChatIds[0] : "";
 
+  let autoBindNonce = "";
+  if (allowAutoBind && !allowSet.size) {
+    autoBindNonce = crypto.randomBytes(4).toString("hex");
+    console.log(`[telegram_relay] AUTO_BIND_NONCE=${autoBindNonce}`);
+    console.log(`[telegram_relay] To bind this bot, send "/bind ${autoBindNonce}" from your private chat.`);
+  }
+
   console.log(
     `[telegram_relay] base=${baseUrl} allow_chat=${allowChatIds.length ? allowChatIds.join(",") : "(auto)"} offset=${offset || 0} poll_job=${pollJob ? "1" : "0"}`,
   );
@@ -441,14 +455,14 @@ async function main() {
       if (primaryAllowChat) {
         await telegramSendMessage({ token, chatId: primaryAllowChat, text: "Dizzy relay online. Send /help." });
       } else if (allowAutoBind) {
-        console.log("[telegram_relay] auto-bind enabled; waiting for first inbound message to bind chat id.");
+        console.log(`[telegram_relay] auto-bind enabled; waiting for /bind ${autoBindNonce} in a private chat.`);
       }
     } catch (e) {
       const body = e?.body ? ` body=${String(e.body)}` : "";
       console.error(`[telegram_relay] startup send error: ${String(e?.message ?? e)}${body}`);
     }
   } else if (allowAutoBind) {
-    console.log("[telegram_relay] auto-bind enabled; waiting for first inbound message to bind chat id.");
+    console.log(`[telegram_relay] auto-bind enabled; waiting for /bind ${autoBindNonce} in a private chat.`);
   }
 
   // eslint-disable-next-line no-constant-condition
@@ -486,6 +500,7 @@ async function main() {
           headers,
           allowSet,
           allowAutoBind,
+          autoBindNonce,
           loggedMismatchRef,
           pollJob,
           jobTimeoutMs,

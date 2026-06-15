@@ -135,7 +135,7 @@ async function main() {
   const pollMs = Math.max(250, Number(env("DIZZY_DRAIN_INTERVAL_MS", "5000")) || 5000);
   const runOnce = env("DIZZY_DRAIN_ONCE", "") === "1";
 
-  const authToken = normalizeEnvValue(env("DIZZY_AUTH_TOKEN", ""));
+  const authToken = normalizeEnvValue(env("DIZZY_NOTIFY_TOKEN", env("DIZZY_AUTH_TOKEN", "")));
   const token = normalizeEnvValue(env("TELEGRAM_BOT_TOKEN", ""));
   const chatId = normalizeEnvValue(env("TELEGRAM_CHAT_ID", ""));
 
@@ -154,7 +154,7 @@ async function main() {
   while (true) {
     let batch;
     try {
-      batch = await fetchJson(`${baseUrl}/notify/${encodeURIComponent(channel)}?limit=${limit}`, headers, 15000);
+      batch = await fetchJson(`${baseUrl}/notify/${encodeURIComponent(channel)}?limit=${limit}&peek=1`, headers, 15000);
     } catch (e) {
       console.error(`[telegram_drain] notify fetch error: ${String(e?.message ?? e)}`);
       if (runOnce) process.exit(1);
@@ -169,16 +169,48 @@ async function main() {
       continue;
     }
 
+    const deliveredReceipts = [];
     for (const n of notifications) {
       const text = formatNotification(n);
       try {
         await telegramSendMessage({ token, chatId, text });
+        if (n.ack_receipt) deliveredReceipts.push(String(n.ack_receipt));
       } catch (e) {
         const msg = String(e?.message ?? e);
         console.error(`[telegram_drain] send error: ${msg}`);
         appendJsonl(failedLog, { at: nowIso(), error: msg, notification: n });
+        break;
       }
       await sleep(250);
+    }
+
+    if (!deliveredReceipts.length) {
+      if (runOnce) process.exitCode = 1;
+      await sleep(pollMs);
+      if (runOnce) return;
+      continue;
+    }
+
+    const ackUrl = `${baseUrl}/notify/${encodeURIComponent(channel)}/ack`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const ackRes = await fetch(ackUrl, {
+        method: "POST",
+        headers: {
+          ...headers,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ receipts: deliveredReceipts }),
+        signal: ctrl.signal,
+      });
+      if (!ackRes.ok) {
+        console.error(`[telegram_drain] ack error: HTTP ${ackRes.status}`);
+      }
+    } catch (e) {
+      console.error(`[telegram_drain] ack network error: ${String(e?.message ?? e)}`);
+    } finally {
+      clearTimeout(t);
     }
 
     if (runOnce) return;

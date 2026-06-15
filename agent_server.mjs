@@ -1,8 +1,9 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
-import { connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
+import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
 import { buildClientConversationKey, deleteClientContinuity, executionHistoryPath, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
@@ -25,6 +26,24 @@ function isLoopbackRemoteAddress(address) {
   return value === "127.0.0.1"
     || value === "::1"
     || value === "::ffff:127.0.0.1";
+}
+
+function normalizeIp(ip) {
+  if (!ip) return "";
+  let s = String(ip).trim().toLowerCase();
+  if (s.startsWith("::ffff:")) {
+    s = s.substring(7);
+  }
+  if (s === "::1") return "127.0.0.1";
+  if (s === "localhost") return "127.0.0.1";
+  return s;
+}
+
+function tokensEqual(candidate, expected) {
+  if (!candidate || !expected) return false;
+  const left = Buffer.from(String(candidate));
+  const right = Buffer.from(String(expected));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
 function parseBool(value, fallback = false) {
@@ -431,6 +450,16 @@ export async function createRuntime(opts = {}) {
   const memoryGraphEnabled = opts.memoryGraphEnabled !== undefined
     ? Boolean(opts.memoryGraphEnabled)
     : parseBool(process.env.DIZZY_MEMORY_GRAPH_ENABLED, false);
+  const enforceIdentityHeaders = opts.enforceIdentityHeaders !== undefined
+    ? Boolean(opts.enforceIdentityHeaders)
+    : parseBool(process.env.DIZZY_ENFORCE_IDENTITY_HEADERS, false);
+  const executeToken = String(opts.executeToken ?? process.env.DIZZY_EXECUTE_TOKEN ?? "").trim();
+  const notifyToken = String(opts.notifyToken ?? process.env.DIZZY_NOTIFY_TOKEN ?? "").trim();
+  const trustedProxiesInput = opts.trustedProxies ?? process.env.DIZZY_TRUSTED_PROXIES ?? "";
+  const trustedProxies = String(trustedProxiesInput)
+    .split(",")
+    .map(normalizeIp)
+    .filter(Boolean);
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
@@ -447,7 +476,18 @@ export async function createRuntime(opts = {}) {
     publicSurfaceMode,
   });
 
-  if (authToken) {
+  if (enforceIdentityHeaders && deploymentMode !== "proxied") {
+    throw new Error("DIZZY_ENFORCE_IDENTITY_HEADERS=1 requires DIZZY_DEPLOYMENT_MODE=proxied.");
+  }
+  if (enforceIdentityHeaders && trustedProxies.length === 0) {
+    throw new Error("DIZZY_ENFORCE_IDENTITY_HEADERS=1 requires DIZZY_TRUSTED_PROXIES.");
+  }
+  if ((executeToken || notifyToken) && !authToken) {
+    throw new Error("DIZZY_AUTH_TOKEN is required when scoped API tokens are configured.");
+  }
+
+  const hasAnyToken = Boolean(authToken || executeToken || notifyToken);
+  if (hasAnyToken) {
     const anonymousDiscoveryRoutes = new Set([
       "/agent/profile",
       "/agent/services",
@@ -464,7 +504,24 @@ export async function createRuntime(opts = {}) {
       const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
       const headerToken = bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim();
 
-      if (headerToken && headerToken === authToken) return next();
+      if (!headerToken) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+      }
+
+      // Check master authToken first (gives full access to everything)
+      if (tokensEqual(headerToken, authToken)) return next();
+
+      // Check scoped /agent/execute token
+      if (req.path === "/agent/execute" && tokensEqual(headerToken, executeToken)) {
+        return next();
+      }
+
+      // Check scoped /notify routes token (accepts /notify/... or /notify/.../ack)
+      const isNotifyRoute = req.path === "/notify" || req.path.startsWith("/notify/");
+      if (isNotifyRoute && tokensEqual(headerToken, notifyToken)) {
+        return next();
+      }
+
       res.status(401).json({ ok: false, error: "Unauthorized" });
     });
   }
@@ -966,8 +1023,8 @@ function getDashboardHtml() {
         const promptList = document.getElementById('prompt-sources-list');
         promptList.innerHTML = data.prompt_sources.map(s => \`
           <li class="prompt-item">
-            <span class="prompt-path">\${s.path}</span>
-            <span class="badge \${s.role === 'constitutional' ? 'badge-primary' : 'badge-amber'}">\${s.role}</span>
+            <span class="prompt-path">\${escapeHtml(s.path)}</span>
+            <span class="badge \${escapeHtml(s.role) === 'constitutional' ? 'badge-primary' : 'badge-amber'}">\${escapeHtml(s.role)}</span>
           </li>
         \`).join('');
 
@@ -985,8 +1042,8 @@ function getDashboardHtml() {
           return \`
             <div class="doc-item">
               <div class="doc-header">
-                <span class="doc-path">\${d.relPath}</span>
-                <span class="badge badge-primary">\${d.kind}</span>
+                <span class="doc-path">\${escapeHtml(d.relPath)}</span>
+                <span class="badge badge-primary">\${escapeHtml(d.kind)}</span>
               </div>
               <div class="doc-metrics">
                 <div class="doc-metric">
@@ -1041,12 +1098,12 @@ function getDashboardHtml() {
         body.innerHTML = data.snippets.map(s => {
           const confidencePct = Math.round((s.confidence ?? 1.0) * 100);
           const decayPct = Math.round((s.decay ?? 1.0) * 100);
-          const reasonsHtml = s.reasons.map(r => \`<span class="badge badge-amber" style="margin-right: 0.25rem;">\${r}</span>\`).join('');
+          const reasonsHtml = s.reasons.map(r => \`<span class="badge badge-amber" style="margin-right: 0.25rem;">\${escapeHtml(r)}</span>\`).join('');
           
           return \`
             <tr>
               <td>
-                <span class="file-path">\${s.path}</span>
+                <span class="file-path">\${escapeHtml(s.path)}</span>
               </td>
               <td>\${confidencePct}%</td>
               <td>\${decayPct}%</td>
@@ -1056,13 +1113,13 @@ function getDashboardHtml() {
           \`;
         }).join('');
       } catch (e) {
-        body.innerHTML = \`<tr><td colspan="5" style="text-align: center; color: var(--rose);">Error running query: \${e.message}</td></tr>\`;
+        body.innerHTML = \`<tr><td colspan="5" style="text-align: center; color: var(--rose);">Error running query: \${escapeHtml(e.message)}</td></tr>\`;
       }
     }
 
     function escapeHtml(text) {
       if (!text) return '';
-      return text
+      return String(text)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -1354,24 +1411,21 @@ function getDashboardHtml() {
     }
   });
 
-  // Notifications endpoint (best-effort). Clients can poll and deliver to the messaging surface.
+  // Notification reads are non-destructive; clients acknowledge exact receipts after delivery.
   app.get("/notify/:channel", async (req, res) => {
     try {
       if (!redisReady) return res.status(503).json({ ok: false, error: "Redis not ready" });
       const channel = normalizeIdentifier(req.params.channel || "local", "local");
       const limit = Math.max(1, Math.min(200, Number(req.query.limit || 50)));
       const key = queueKeys.notify(channel);
-
       const items = await redis.lRange(key, 0, limit - 1);
-      if (items.length) {
-        await redis.lTrim(key, items.length, -1);
-      }
 
       const notifications = items.map((s) => {
+        const ackReceipt = crypto.createHash("sha1").update(s).digest("hex");
         try {
-          return JSON.parse(s);
+          return { ...JSON.parse(s), ack_receipt: ackReceipt };
         } catch {
-          return { kind: "raw", raw: s };
+          return { kind: "raw", raw: s, ack_receipt: ackReceipt };
         }
       });
 
@@ -1381,9 +1435,40 @@ function getDashboardHtml() {
     }
   });
 
+  app.post("/notify/:channel/ack", async (req, res) => {
+    try {
+      if (!redisReady) return res.status(503).json({ ok: false, error: "Redis not ready" });
+      const channel = normalizeIdentifier(req.params.channel || "local", "local");
+      const receipts = Array.isArray(req.body?.receipts) ? req.body.receipts : [];
+      const key = queueKeys.notify(channel);
+      const acknowledged = await acknowledgeNotifications(redis, key, receipts);
+      res.json({ ok: true, channel, acknowledged });
+    } catch (e) {
+      if (e?.code === "NOTIFY_ACK_CONFLICT") {
+        return res.status(409).json({ ok: false, error: String(e.message) });
+      }
+      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+    }
+  });
+
   // POST /agent/execute delegates to dispatch for now.
   app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res) => {
-    const { brief, service_id, client_id } = req.body ?? {};
+    const { brief } = req.body ?? {};
+    let client_id = req.body?.client_id;
+    let service_id = req.body?.service_id;
+
+    if (enforceIdentityHeaders) {
+      const clientIp = normalizeIp(req.socket?.remoteAddress || req.ip);
+      const headersTrusted = trustedProxies.includes(clientIp);
+      if (headersTrusted) {
+        client_id = req.header("x-dizzy-client-id");
+        service_id = req.header("x-dizzy-service-id");
+      } else {
+        client_id = undefined;
+        service_id = undefined;
+      }
+    }
+
     const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";
     if (continuityAllowed && (!String(client_id ?? "").trim() || !String(service_id ?? "").trim())) {
@@ -1392,7 +1477,7 @@ function getDashboardHtml() {
         error: "continuity_mode=client requires client_id and service_id",
       });
     }
-    const conversationKey = buildExecuteConversationKey(req.body ?? {});
+    const conversationKey = buildExecuteConversationKey({ ...req.body, client_id, service_id });
     const runtimeContext = {
       trust_zone: "paid_public",
       continuity_mode: continuityAllowed ? "client" : "ephemeral",
