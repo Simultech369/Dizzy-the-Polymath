@@ -55,6 +55,7 @@ Notes:
 - The launcher waits for `GET /health` before starting the relay (prevents “Dispatch error: fetch failed” when the server isn’t up yet).
 - By default, the launcher computes `DIZZY_BASE_URL` from `PORT` and ignores any pre-set `DIZZY_BASE_URL`. To override intentionally, set `DIZZY_BASE_URL_OVERRIDE=1`.
 - By default, the relay does not send an unsolicited Telegram startup message. Set `TELEGRAM_SEND_STARTUP_MESSAGE=1` if you want that behavior.
+- `TELEGRAM_ALLOW_AUTO_BIND=1` prints a one-time nonce; the first private chat must send `/bind <nonce>` before it is accepted.
 - In Telegram, use `/help`, `/governance`, `/health`.
 
 ---
@@ -76,6 +77,9 @@ Optional auth (recommended if you ever bind beyond loopback):
 - `proxied` and `hosted` modes require `DIZZY_AUTH_TOKEN`, even when the runtime itself receives the connection on loopback
 - `direct_local` rejects forwarding headers because their presence contradicts the declared deployment boundary
 - preserve standard forwarding headers for auditability; `proxied` mode still requires authentication if a proxy strips them
+- set `DIZZY_ENFORCE_IDENTITY_HEADERS=1` in `proxied` mode to ignore body-supplied `client_id` and `service_id` and read them from `X-Dizzy-Client-Id` and `X-Dizzy-Service-Id`
+- identity-header enforcement fails startup unless `DIZZY_TRUSTED_PROXIES` names the proxy socket IPs allowed to supply those headers (for example `127.0.0.1,10.0.0.1`)
+- set `DIZZY_EXECUTE_TOKEN` and/or `DIZZY_NOTIFY_TOKEN` alongside `DIZZY_AUTH_TOKEN` to restrict API callers to `/agent/execute` or `/notify`; scoped-token configuration fails startup without the master token
 
 ---
 
@@ -100,6 +104,20 @@ If you don’t want Redis right now:
 - Localhost/private-network fetches are denied by default. Only opt in with `DIZZY_TOOL_ALLOW_LOCALHOST=1` and/or `DIZZY_TOOL_ALLOW_PRIVATE_NET=1` when you explicitly need them.
 - Redirects are manually validated and capped (`DIZZY_TOOL_MAX_REDIRECTS`, default `3`) so an external URL cannot silently bounce into your local network.
 - File-mutating chat commands from Telegram (`/remember`, `/memory_review`, `/improve`, `/apply`) are denied by default. Set `DIZZY_ALLOW_REMOTE_MUTATIONS=1` only if you intentionally want Telegram to be allowed to write local state.
+
+---
+
+## Runtime snapshots and JSONL repair
+
+Stop the server, worker, and relay before backup or restore so the snapshot has no active writers.
+
+- `node .\scripts\backup_restore.mjs backup [destination-directory]` copies `runtime/` into a new directory and refuses to overwrite an existing destination.
+- `node .\scripts\backup_restore.mjs restore <snapshot-directory>` renames the current runtime into `backups/` before copying the snapshot. If copying fails, it restores the original runtime.
+- `node .\scripts\backup_restore.mjs repair [file-or-directory]` repairs only a malformed final JSONL record and preserves the original beside it as a timestamped `.bak` file. It refuses corruption found earlier in a file.
+
+Snapshots can contain private conversation and execution data. Protect them like the live runtime directory.
+
+SQLite remains an experimental, non-authoritative prototype. The snapshot command checkpoints a prototype database when present, but `DIZZY_OPERATIONAL_STORE=sqlite` is not a supported runtime mode.
 
 ---
 
@@ -137,7 +155,7 @@ In a fourth terminal:
 
 Notes:
 - This surfaces `/notify/:channel` messages (currently terminal failures: `kind=job_dead`).
-- Set `DIZZY_AUTH_TOKEN` here too if auth is enabled.
+- Set `DIZZY_AUTH_TOKEN` or `DIZZY_NOTIFY_TOKEN` here too if auth is enabled.
 
 ---
 

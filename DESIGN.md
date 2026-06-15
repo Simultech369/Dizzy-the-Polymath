@@ -142,6 +142,7 @@ Consequences:
 Decision:
 - Use a simple, auditable job lifecycle: `queued -> running -> succeeded | retry_scheduled | dead`.
 - Preserve an event trail via DLQ JSONL + Redis fields; provide a per-channel notification on terminal failure.
+- Read notifications non-destructively and acknowledge only an exact observed queue prefix after downstream delivery succeeds.
 - Claim ready jobs into a processing list and acknowledge them only after a durable terminal or retry transition.
 - On worker restart, requeue interrupted `READ` jobs; fail interrupted non-READ jobs closed because their external effect is unknown.
 - Record upload and delivery intent before external calls; if completion evidence is missing, block automatic replay and require operator reconciliation.
@@ -165,6 +166,8 @@ Decision:
 - Require bearer auth via `DIZZY_AUTH_TOKEN` in `proxied` and `hosted` modes. `direct_local` rejects forwarding headers because they contradict the declared boundary.
 - Keep anonymous informational routes closed when auth is configured unless `DIZZY_PUBLIC_SURFACES=discovery` intentionally exposes profile, services, portfolio, logo, and governance.
 - Treat browser origin as an explicit deployment boundary: loopback origins are accepted only on loopback bindings, and other browser origins require `DIZZY_ALLOWED_ORIGINS`.
+- Allow separate execute and notification credentials only alongside the master token; scoped credentials cannot access administrative routes.
+- When paid/client identity comes from proxy headers, require `proxied` mode and an explicit trusted proxy socket address. Body-supplied identity is ignored in that mode.
 
 Rationale:
 - Avoid accidental LAN exposure and drive-by access.
@@ -175,6 +178,7 @@ Consequences:
 - Setting `DIZZY_AUTH_TOKEN` enforces auth on endpoints except explicitly selected discovery routes. `/health` is unauthenticated only when bound to loopback.
 - A proxy that strips forwarding headers cannot gain local privileges when the runtime is correctly declared `proxied`, because authentication remains mandatory independent of socket address.
 - Requests without an `Origin` header remain compatible with CLI and service clients; origin checks do not replace authentication or configure CORS.
+- Trusted identity headers fail closed when the direct peer is not an explicitly configured proxy.
 
 ---
 
@@ -731,7 +735,7 @@ Decision:
 - Prototype device-local operational state with SQLite for transactional conversation exchanges and legible job transitions.
 - Keep Markdown, JSONL exports, and Git-tracked governance as their existing authorities during the experiment.
 - Do not wire live dual writes until crash behavior, exportability, runtime support, and migration complexity receive independent review.
-- Use strict schemas, foreign keys, bounded lock waits, WAL on local disks, explicit transactions, and idempotency keys.
+- Use strict schemas, foreign keys, bounded lock waits, WAL with `synchronous=NORMAL` on local disks, explicit transactions, and idempotency keys.
 
 Rationale:
 - JSONL remains useful for evidence and export, but it cannot atomically enforce multi-record invariants or compare-and-set state transitions.
@@ -753,6 +757,7 @@ Consequences:
   - Telegram (primary): `scripts/telegram_relay.mjs` for inbound + replies; `scripts/telegram_notify_drain.mjs` for `/notify/:channel` delivery.
 - Notification behavior:
   - Terminal failures: queue emits `kind=job_dead` -> `/notify/:channel` -> Telegram notify drain.
+  - Polling is non-destructive; the drain acknowledges exact receipts only after successful Telegram delivery, so failures may duplicate but do not silently discard notifications.
   - Tool results: optional polling via `TELEGRAM_POLL_JOB_RESULTS=1` in the relay.
 
 ### 3.2 Queue / Jobs

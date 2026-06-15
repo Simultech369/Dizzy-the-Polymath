@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
@@ -14,7 +15,8 @@ import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
-import { makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
+import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
+import { backupRuntime, repairJsonlFile, restoreRuntime } from "./backup_restore.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
@@ -937,7 +939,13 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
       if (key === "ready") ready.unshift(...values);
       else if (key === "processing") processing.unshift(...values);
       else if (key === "dlq") dlq.unshift(...values);
-      else if (key === "notify:telegram") notify.unshift(...values);
+      else if (key.includes("notify")) notify.unshift(...values);
+    },
+    async rPush(key, ...values) {
+      if (key === "ready") ready.push(...values);
+      else if (key === "processing") processing.push(...values);
+      else if (key === "dlq") dlq.push(...values);
+      else if (key.includes("notify")) notify.push(...values);
     },
     async brPop() {
       if (!ready.length) return null;
@@ -1271,6 +1279,7 @@ async function testSqliteOperationalStore() {
   try {
     assert.equal(String(store.db.prepare("PRAGMA journal_mode").get().journal_mode).toLowerCase(), "wal");
     assert.equal(store.db.prepare("PRAGMA foreign_keys").get().foreign_keys, 1);
+    assert.equal(store.db.prepare("PRAGMA synchronous").get().synchronous, 1);
 
     const first = store.appendConversationExchange({
       conversationKey: "sqlite-conversation",
@@ -2596,9 +2605,241 @@ async function testReadContractTool() {
   }
 }
 
+async function testNewHardeningFeatures() {
+  console.log("Running new hardening features safety tests...");
+
+  const recoveryRoot = path.resolve(process.cwd(), "runtime", `test-recovery-${process.pid}`);
+  const liveRuntime = path.join(recoveryRoot, "live");
+  const snapshot = path.join(recoveryRoot, "snapshot");
+  const backups = path.join(recoveryRoot, "backups");
+  fs.mkdirSync(liveRuntime, { recursive: true });
+  fs.writeFileSync(path.join(liveRuntime, "events.jsonl"), '{"a":1}\n{"b":2}\n{"c":', "utf8");
+  const repair = repairJsonlFile(path.join(liveRuntime, "events.jsonl"));
+  assert.equal(repair.repaired, true);
+  assert.equal(fs.existsSync(repair.backupPath), true);
+  assert.equal(fs.readFileSync(path.join(liveRuntime, "events.jsonl"), "utf8"), '{"a":1}\n{"b":2}\n');
+  fs.writeFileSync(path.join(liveRuntime, "interior.jsonl"), '{"a":1}\nnot-json\n{"b":2}\n', "utf8");
+  assert.throws(() => repairJsonlFile(path.join(liveRuntime, "interior.jsonl")), /not limited to the final/);
+
+  await backupRuntime({ runtimeDir: liveRuntime, destination: snapshot });
+  fs.writeFileSync(path.join(liveRuntime, "current.txt"), "old", "utf8");
+  const restored = restoreRuntime({ sourceDir: snapshot, runtimeDir: liveRuntime, recoveryRoot: backups });
+  assert.equal(fs.existsSync(restored.recoveryPath), true);
+  assert.equal(fs.readFileSync(path.join(restored.recoveryPath, "current.txt"), "utf8"), "old");
+  assert.equal(fs.existsSync(path.join(liveRuntime, "current.txt")), false);
+  fs.writeFileSync(path.join(liveRuntime, "rollback.txt"), "preserve", "utf8");
+  assert.throws(() => restoreRuntime({
+    sourceDir: snapshot,
+    runtimeDir: liveRuntime,
+    recoveryRoot: backups,
+    copyRuntime() {
+      throw new Error("injected restore copy failure");
+    },
+  }), /injected restore copy failure/);
+  assert.equal(fs.readFileSync(path.join(liveRuntime, "rollback.txt"), "utf8"), "preserve");
+  fs.rmSync(recoveryRoot, { recursive: true, force: true });
+
+  const queued = [JSON.stringify({ notification_id: "one" }), JSON.stringify({ notification_id: "two" })];
+  const fakeNotificationRedis = {
+    async eval(_script, { arguments: args }) {
+      const receipts = JSON.parse(args[0]);
+      const actual = queued.slice(0, receipts.length).map((item) => crypto.createHash("sha1").update(item).digest("hex"));
+      if (actual.length !== receipts.length) return -1;
+      if (actual.some((receipt, index) => receipt !== receipts[index])) return -2;
+      queued.splice(0, receipts.length);
+      return receipts.length;
+    },
+  };
+  const firstReceipt = crypto.createHash("sha1").update(queued[0]).digest("hex");
+  assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 1);
+  await assert.rejects(() => acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), /queue head changed/);
+  assert.equal(queued.length, 1);
+  console.log("-> Recovery and notification acknowledgement checks passed");
+
+  // Start server with custom auth configuration for identity headers and scoped tokens
+  const port = 3457;
+  process.env.DIZZY_ENFORCE_IDENTITY_HEADERS = "1";
+  process.env.DIZZY_DEPLOYMENT_MODE = "proxied";
+  process.env.DIZZY_AUTH_TOKEN = "master-token";
+  process.env.DIZZY_EXECUTE_TOKEN = "exec-token";
+  process.env.DIZZY_NOTIFY_TOKEN = "notif-token";
+  process.env.DIZZY_DASHBOARD_ENABLED = "1";
+
+  await assert.rejects(() => startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "master-token",
+    deploymentMode: "proxied",
+    enforceIdentityHeaders: true,
+    trustedProxies: "",
+  }), /requires DIZZY_TRUSTED_PROXIES/);
+  await assert.rejects(() => startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "",
+    deploymentMode: "direct_local",
+    enforceIdentityHeaders: false,
+    executeToken: "exec-token",
+    notifyToken: "",
+  }), /DIZZY_AUTH_TOKEN is required when scoped API tokens are configured/);
+
+  const started = await startServer({
+    port,
+    bindHost: "127.0.0.1",
+    authToken: "master-token",
+    deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
+  });
+
+  try {
+    // 2. Dashboard XSS Escaping check
+    const dashRes = await fetch(`http://127.0.0.1:${port}/dashboard`, {
+      headers: { authorization: "Bearer master-token" },
+    });
+    const dashHtml = await dashRes.text();
+    assert.equal(dashHtml.includes("escapeHtml(s.path)"), true);
+    assert.equal(dashHtml.includes("escapeHtml(d.relPath)"), true);
+    console.log("-> Dashboard HTML XSS escaping check passed");
+
+    // 3. Scoped Identity Headers check
+    const historyFile = path.resolve(process.cwd(), "runtime", "execution_history.jsonl");
+    fs.rmSync(historyFile, { force: true });
+
+    // Send request with body identities and header identities
+    const execRes = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer exec-token",
+        "X-Dizzy-Client-Id": "trusted-client",
+        "X-Dizzy-Service-Id": "trusted-service",
+      },
+      body: JSON.stringify({
+        brief: "hello",
+        continuity_mode: "client",
+        client_id: "spoofed-client",
+        service_id: "spoofed-service",
+      }),
+    });
+    assert.equal(execRes.status, 200);
+
+    const historyContent = fs.readFileSync(historyFile, "utf8").trim().split("\n");
+    const lastEntry = JSON.parse(historyContent[historyContent.length - 1]);
+    assert.equal(lastEntry.client_id, "trusted-client");
+    assert.equal(lastEntry.service_id, "trusted-service");
+    console.log("-> Scoped identity headers enforcement passed");
+
+    // 3b. Scoped Identity Headers Trust Verification check
+    const proxyPort = 3458;
+    const startedProxy = await startServer({
+      port: proxyPort,
+      bindHost: "127.0.0.1",
+      authToken: "master-token",
+      deploymentMode: "proxied",
+      enforceIdentityHeaders: true,
+      trustedProxies: "192.168.1.100", // Non-matching IP
+    });
+
+    try {
+      const untrustedRes = await fetch(`http://127.0.0.1:${proxyPort}/agent/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer exec-token",
+          "X-Dizzy-Client-Id": "trusted-client",
+          "X-Dizzy-Service-Id": "trusted-service",
+        },
+        body: JSON.stringify({
+          brief: "hello",
+          continuity_mode: "client",
+        }),
+      });
+      assert.equal(untrustedRes.status, 400);
+    } finally {
+      await startedProxy.stop();
+    }
+
+    const startedProxyMatch = await startServer({
+      port: proxyPort,
+      bindHost: "127.0.0.1",
+      authToken: "master-token",
+      deploymentMode: "proxied",
+      enforceIdentityHeaders: true,
+      trustedProxies: "127.0.0.1", // Matching IP
+    });
+
+    try {
+      const trustedRes = await fetch(`http://127.0.0.1:${proxyPort}/agent/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer exec-token",
+          "X-Dizzy-Client-Id": "trusted-client",
+          "X-Dizzy-Service-Id": "trusted-service",
+        },
+        body: JSON.stringify({
+          brief: "hello",
+          continuity_mode: "client",
+        }),
+      });
+      assert.equal(trustedRes.status, 200);
+      console.log("-> Scoped identity headers proxy IP trust verification checks passed");
+    } finally {
+      await startedProxyMatch.stop();
+    }
+
+    // 4. Scoped API Access Tokens check
+    const r1 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: "Bearer exec-token" },
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.equal(r1.status, 200);
+
+    const r2 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: "Bearer notif-token" },
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.equal(r2.status, 401);
+
+    const r3 = await fetch(`http://127.0.0.1:${port}/notify/telegram?peek=1`, {
+      headers: { authorization: "Bearer notif-token" },
+    });
+    assert.equal(r3.status, 503);
+
+    const r4 = await fetch(`http://127.0.0.1:${port}/notify/telegram?peek=1`, {
+      headers: { authorization: "Bearer exec-token" },
+    });
+    assert.equal(r4.status, 401);
+
+    const r5 = await fetch(`http://127.0.0.1:${port}/state`, {
+      headers: { authorization: "Bearer exec-token" },
+    });
+    assert.equal(r5.status, 401);
+
+    const r6 = await fetch(`http://127.0.0.1:${port}/state`, {
+      headers: { authorization: "Bearer master-token" },
+    });
+    assert.equal(r6.status, 200);
+    console.log("-> Scoped API access tokens boundary checks passed");
+
+  } finally {
+    await started.stop();
+    delete process.env.DIZZY_ENFORCE_IDENTITY_HEADERS;
+    delete process.env.DIZZY_DEPLOYMENT_MODE;
+    delete process.env.DIZZY_AUTH_TOKEN;
+    delete process.env.DIZZY_EXECUTE_TOKEN;
+    delete process.env.DIZZY_NOTIFY_TOKEN;
+    delete process.env.DIZZY_DASHBOARD_ENABLED;
+  }
+
+}
+
 await testRateLimiting();
 await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
+await testNewHardeningFeatures();
 
 console.log("SAFETY_CHECKS_OK");
