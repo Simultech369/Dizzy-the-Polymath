@@ -15,7 +15,7 @@ import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
-import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
+import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle, enqueueJob } from "../lib/queue.mjs";
 import { backupRuntime, repairJsonlFile, restoreRuntime, verifySnapshotManifest } from "./backup_restore.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
@@ -2887,10 +2887,182 @@ async function testNewHardeningFeatures() {
 
 }
 
+async function testQueueIdempotency() {
+  console.log("Running queue enqueuing idempotency checks...");
+
+  const jobMap = new Map();
+  const ready = [];
+  const idemMap = new Map();
+
+  const keys = makeQueueKeys("dizzy-test");
+
+  const fakeRedis = {
+    async hSet(key, patch) {
+      const current = jobMap.get(key) ?? {};
+      jobMap.set(key, { ...current, ...patch });
+    },
+    async lPush(key, id) {
+      if (key === keys.ready) ready.unshift(id);
+    },
+    async eval(script, { keys: evalKeys, arguments: args }) {
+      const readyKey = evalKeys[0];
+      const jobKey = evalKeys[1];
+      const idemKey = evalKeys[2];
+      const hasIdem = args[0] === "1";
+      const id = args[1];
+      const expireSeconds = args[2];
+
+      if (hasIdem) {
+        if (idemMap.has(idemKey)) {
+          return [idemMap.get(idemKey), 0];
+        }
+        idemMap.set(idemKey, id);
+      }
+
+      if (args.length < 3 || (args.length - 3) % 2 !== 0) {
+        throw new Error("ERR Invalid ARGV structure");
+      }
+
+      const job = {};
+      for (let i = 3; i < args.length; i += 2) {
+        job[args[i]] = args[i + 1];
+      }
+      jobMap.set(jobKey, job);
+      ready.unshift(id);
+      return [id, 1];
+    }
+  };
+
+  // Test 1: Enqueue without idempotency key
+  const id1 = await enqueueJob(fakeRedis, keys, { url: "http://example.com" }, { type: "tool", tool: "http_get" });
+  assert.ok(id1);
+  assert.equal(typeof id1, "string");
+  assert.equal(ready.length, 1);
+  assert.equal(ready[0], id1);
+  assert.equal(jobMap.get(keys.job(id1)).tool, "http_get");
+
+  // Reset ready and jobMap for the next test
+  ready.length = 0;
+  jobMap.clear();
+
+  // Test 2: Enqueue with idempotency key
+  const opts = { type: "tool", tool: "http_get", idempotencyKey: "idem-key-1" };
+  const res2_1 = await enqueueJob(fakeRedis, keys, { url: "http://example.com" }, opts);
+  assert.ok(Array.isArray(res2_1));
+  const id2_1 = res2_1[0];
+  const created2_1 = res2_1[1];
+  assert.equal(created2_1, 1);
+  assert.equal(ready.length, 1);
+  assert.equal(ready[0], id2_1);
+  assert.equal(idemMap.get(keys.idempotency("idem-key-1")), id2_1);
+
+  // Submit twice with same idempotency key
+  const res2_2 = await enqueueJob(fakeRedis, keys, { url: "http://example.com" }, opts);
+  assert.ok(Array.isArray(res2_2));
+  const id2_2 = res2_2[0];
+  const created2_2 = res2_2[1];
+  assert.equal(id2_2, id2_1);
+  assert.equal(created2_2, 0);
+  assert.equal(ready.length, 1);
+
+  // Test 3: Different actor + same header creates different job
+  const scopedKey1 = "route:/agent/execute|client:client-a|service:none|key:header-1";
+  const scopedKey2 = "route:/agent/execute|client:client-b|service:none|key:header-1";
+  
+  const res3_1 = await enqueueJob(fakeRedis, keys, { url: "http://example.com" }, { ...opts, idempotencyKey: scopedKey1 });
+  const res3_2 = await enqueueJob(fakeRedis, keys, { url: "http://example.com" }, { ...opts, idempotencyKey: scopedKey2 });
+  assert.ok(res3_1[0] !== res3_2[0]);
+  assert.equal(res3_1[1], 1);
+  assert.equal(res3_2[1], 1);
+
+  // Test 4: Enqueue with different payload, same key
+  const res4_1 = await enqueueJob(fakeRedis, keys, { url: "http://other.com" }, { ...opts, idempotencyKey: "idem-key-2" });
+  const res4_2 = await enqueueJob(fakeRedis, keys, { url: "http://different.com" }, { ...opts, idempotencyKey: "idem-key-2" });
+  assert.equal(res4_1[0], res4_2[0]);
+  assert.equal(res4_2[1], 0);
+
+  // HTTP boundary checks
+  const port = 3459;
+  const started = await startServer({
+    port,
+    bindHost: "127.0.0.1",
+    authToken: "master-token",
+    deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
+  });
+
+  try {
+    // 1. Invalid Idempotency-Key format check (spaces, invalid chars, too long)
+    const badRes1 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer master-token",
+        "Idempotency-Key": "invalid key with spaces",
+      },
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.equal(badRes1.status, 400);
+
+    const badRes2 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer master-token",
+        "Idempotency-Key": "a".repeat(129),
+      },
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.equal(badRes2.status, 400);
+
+    // 2. Valid format check
+    const goodRes = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer master-token",
+        "Idempotency-Key": "valid-key-123_abc",
+      },
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.ok(goodRes.status !== 400);
+
+    // Test tool enqueue route format validation on /dispatch/incoming
+    const badDispatch = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer master-token",
+        "Idempotency-Key": "invalid key with spaces",
+      },
+      body: JSON.stringify({ text: "tool:http_get http://test.com" }),
+    });
+    assert.equal(badDispatch.status, 400);
+
+    const goodDispatch = await fetch(`http://127.0.0.1:${port}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: "Bearer master-token",
+        "Idempotency-Key": "valid-key-123",
+      },
+      body: JSON.stringify({ text: "tool:http_get http://test.com" }),
+    });
+    assert.ok(goodDispatch.status !== 400);
+
+    console.log("-> HTTP Idempotency-Key validation checks passed");
+  } finally {
+    await started.stop();
+  }
+
+  console.log("-> Queue enqueuing idempotency checks passed");
+}
+
 await testRateLimiting();
 await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 await testNewHardeningFeatures();
+await testQueueIdempotency();
 
 console.log("SAFETY_CHECKS_OK");

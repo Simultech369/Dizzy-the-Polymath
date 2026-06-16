@@ -1375,22 +1375,46 @@ function getDashboardHtml() {
     });
   });
 
-  async function enqueueTool({ tool, payload, effect, notify }) {
+  async function enqueueTool({ tool, payload, effect, notify, idempotencyKey }) {
     if (!redisReady) {
       throw new Error("Redis not ready. Set REDIS_URL and run Redis.");
     }
     const maxRetries = Number(process.env.DIZZY_MAX_RETRIES || 3);
-    return enqueueJob(redis, queueKeys, payload, { type: "tool", tool, effect, maxRetries, notify });
+    const result = await enqueueJob(redis, queueKeys, payload, {
+      type: "tool",
+      tool,
+      effect,
+      maxRetries,
+      notify,
+      idempotencyKey,
+    });
+    if (Array.isArray(result)) {
+      return { jobId: result[0], deduplicated: result[1] === 0 };
+    }
+    return { jobId: result, deduplicated: false };
   }
 
   // Single dispatch path (Telegram/model wiring can call this later).
   app.post("/dispatch/incoming", requestBoundaryAuditGuard, async (req, res) => {
     try {
+      const rawIdempotencyKey = req.header("idempotency-key");
+      let idempotencyKey = undefined;
+      if (rawIdempotencyKey !== undefined) {
+        const trimmed = rawIdempotencyKey.trim();
+        if (!trimmed || trimmed.length > 128 || !/^[!-~]{1,128}$/.test(trimmed)) {
+          return res.status(400).json({ ok: false, error: "Invalid Idempotency-Key header format" });
+        }
+        const channel = normalizeIdentifier(req.body?.channel ?? "local", "local");
+        const from = req.body?.from != null ? normalizeIdentifier(req.body.from, "anon") : "anon";
+        idempotencyKey = `route:/dispatch/incoming|channel:${channel}|from:${from}|key:${trimmed}`;
+      }
+
       const message = buildIncomingMessage(req.body, req, { channel: "local" });
 
       const out = await handleIncomingMessage({
         message,
-        enqueue: enqueueTool,
+        enqueue: ({ tool, payload, effect, notify }) =>
+          enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
       });
 
       res.json({ ok: true, ...out });
@@ -1483,6 +1507,18 @@ function getDashboardHtml() {
       continuity_mode: continuityAllowed ? "client" : "ephemeral",
       conversation_key: conversationKey,
     };
+    const rawIdempotencyKey = req.header("idempotency-key");
+    let idempotencyKey = undefined;
+    if (rawIdempotencyKey !== undefined) {
+      const trimmed = rawIdempotencyKey.trim();
+      if (!trimmed || trimmed.length > 128 || !/^[!-~]{1,128}$/.test(trimmed)) {
+        return res.status(400).json({ ok: false, error: "Invalid Idempotency-Key header format" });
+      }
+      const clientId = client_id ? client_id : "anon";
+      const serviceId = service_id ? service_id : "none";
+      idempotencyKey = `route:/agent/execute|client:${clientId}|service:${serviceId}|key:${trimmed}`;
+    }
+
     try {
       pruneExpiredClientContinuity();
       const message = buildIncomingMessage(
@@ -1497,7 +1533,8 @@ function getDashboardHtml() {
       const capabilities = getTrustZoneCapabilities(message, "paid_public");
       const out = await handleIncomingMessage({
         message,
-        enqueue: enqueueTool,
+        enqueue: ({ tool, payload, effect, notify }) =>
+          enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
       });
       const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
       if (capabilities.retention_scope !== "ephemeral") {
