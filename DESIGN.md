@@ -749,6 +749,30 @@ Consequences:
 
 ---
 
+### D-0037: Operational authority changes require an explicit pivot path
+
+Decision:
+- Treat Redis as the current live queue authority and SQLite as a v0 smoke-test prototype.
+- Any future pivot must name exactly one authoritative operational store for each state class before implementation:
+  - queue/job state
+  - notification delivery state
+  - conversation continuity
+  - durable memory/governance
+- A Redis deprecation path, or a SQLite deprecation path, must include export, rollback, migration, crash-recovery, and operator verification steps.
+- Experimental features must remain framed as `v0 smoke test`, `prototype`, or `planning candidate` until their promotion evidence is present.
+
+Rationale:
+- Dual authorities create reliability and governance ambiguity even when each store is locally reasonable.
+- A local-first system can borrow agent-native patterns without inheriting trading-agent or onchain execution assumptions.
+- Clear deprecation paths prevent "bug as feature" flexibility from turning into silent architectural drift.
+
+Consequences:
+- Redis remains authoritative for live jobs until a separate decision promotes a replacement.
+- SQLite promotion requires a migration/deprecation plan, not just passing unit tests.
+- Time-bounded and parameter-bounded capability ideas may inform future scoped tokens, but EIP-712 or signed delegated execution is out of scope unless Dizzy begins handling user funds, wallets, or onchain actions.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
