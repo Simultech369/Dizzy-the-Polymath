@@ -10,6 +10,7 @@ import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { getRelevantMarkdownSnippets } from "./lib/md_retriever.mjs";
+import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 
 function isMainModule() {
   try {
@@ -327,11 +328,9 @@ function requestBoundaryAuditGuard(req, res, next) {
   }
 
   if (violation) {
-    const auditDir = path.resolve(process.cwd(), "runtime", "audit");
-    fs.mkdirSync(auditDir, { recursive: true });
-    const receiptPath = path.join(auditDir, "boundary_violations.jsonl");
+    const receiptPath = path.resolve(process.cwd(), "runtime", "audit", "boundary_violations.jsonl");
     const receipt = buildBoundaryViolationReceipt({ reason, req, zone });
-    fs.appendFileSync(receiptPath, `${JSON.stringify(receipt)}\n`, "utf8");
+    durableAppendJsonl(receiptPath, receipt);
     return res.status(403).json({
       ok: false,
       error: "Boundary violation detected",
@@ -378,11 +377,6 @@ function randomSuffix() {
 
 function normalizeMeta(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-
-function appendJsonl(filePath, obj) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.appendFileSync(filePath, `${JSON.stringify(obj)}\n`, "utf8");
 }
 
 function buildExecuteConversationKey(body = {}) {
@@ -1507,7 +1501,7 @@ function getDashboardHtml() {
       });
       const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
       if (capabilities.retention_scope !== "ephemeral") {
-        appendJsonl(executionHistoryPath(), {
+        durableAppendJsonl(executionHistoryPath(), {
           t: new Date().toISOString(),
           route: "/agent/execute",
           trust_zone: "paid_public",

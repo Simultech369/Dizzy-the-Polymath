@@ -1,5 +1,5 @@
-import fs from "fs";
 import path from "path";
+import { durableAppendJsonl } from "../lib/durable_write_policy.mjs";
 
 function env(name, fallback = "") {
   const v = process.env[name];
@@ -28,13 +28,8 @@ function safeJsonParse(text) {
   }
 }
 
-function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
 function appendJsonl(filePath, obj) {
-  ensureDir(path.dirname(filePath));
-  fs.appendFileSync(filePath, `${JSON.stringify(obj)}\n`, "utf8");
+  durableAppendJsonl(filePath, obj);
 }
 
 function truncate(s, max = 1800) {

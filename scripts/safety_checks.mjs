@@ -28,7 +28,7 @@ import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_consistency.mjs";
 import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "../lib/skill_registry.mjs";
-import { assessDurableWrite, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
+import { assessDurableWrite, durableAppendJsonl, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
 import { sanitizeUntrustedInput } from "../lib/janitor.mjs";
 
 async function expectReject(fn, pattern) {
@@ -60,6 +60,13 @@ function testDurableWritePolicy() {
     payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
   }).reason, "secret_material_detected");
   assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
+  const durableAppendPath = path.resolve(process.cwd(), "runtime", "test-durable-append.jsonl");
+  fs.rmSync(durableAppendPath, { force: true });
+  durableAppendJsonl(durableAppendPath, { a: 1 });
+  durableAppendJsonl(durableAppendPath, { b: 2 });
+  const durableAppendLines = fs.readFileSync(durableAppendPath, "utf8").trim().split(/\r?\n/);
+  assert.deepEqual(durableAppendLines.map((line) => JSON.parse(line)), [{ a: 1 }, { b: 2 }]);
+  fs.rmSync(durableAppendPath, { force: true });
   assert.equal(assessDurableWrite({
     kind: "memory",
     trustZone: "private_self",
