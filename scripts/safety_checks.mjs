@@ -16,7 +16,7 @@ import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
 import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle } from "../lib/queue.mjs";
-import { backupRuntime, repairJsonlFile, restoreRuntime } from "./backup_restore.mjs";
+import { backupRuntime, repairJsonlFile, restoreRuntime, verifySnapshotManifest } from "./backup_restore.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
@@ -923,10 +923,11 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
       const [readyKey, processingKey] = options.keys;
       if (readyKey !== "ready" || processingKey !== "processing" || !ready.length) return null;
       const id = ready.pop();
-      processing.unshift(id);
       const [jobPrefix, workerId, claimedAt, expiresAt] = options.arguments;
       const jobKey = `${jobPrefix}${id}`;
       const current = jobMap.get(jobKey) ?? {};
+      if (current.status !== "queued") return null;
+      processing.unshift(id);
       jobMap.set(jobKey, {
         ...current,
         claim_owner: workerId,
@@ -1211,6 +1212,18 @@ async function testClaimRecoveryAfterRedisFailures() {
   );
   assert.deepEqual(claimFailureRedis.ready, ["claim-failure"]);
   assert.deepEqual(claimFailureRedis.processing, []);
+
+  const staleReadyJobs = new Map([[
+    keys.job("stale-ready-running"),
+    { ...baseJob("stale-ready-running"), status: "running", claim_owner: "other-worker" },
+  ]]);
+  const staleReadyRedis = makeFakeRedisForQueue(staleReadyJobs, ["stale-ready-running"]);
+  const staleReadyResult = await runWorkerCycle(staleReadyRedis, keys, async () => {
+    throw new Error("stale ready entry should not execute");
+  });
+  assert.equal(staleReadyResult.kind, "idle");
+  assert.deepEqual(staleReadyRedis.processing, []);
+  assert.equal(staleReadyJobs.get(keys.job("stale-ready-running")).claim_owner, "other-worker");
 
   const activeJobs = new Map([[keys.job("active-claim"), {
     ...baseJob("active-claim"),
@@ -2466,6 +2479,29 @@ async function testLoopbackBrowserOriginGuard() {
   } finally {
     await remote.stop();
   }
+
+  const proxied = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "test-token",
+    redisUrl: "",
+    deploymentMode: "proxied",
+    trustedProxies: "10.0.0.10",
+  });
+
+  try {
+    const port = proxied.boundPort;
+    const untrustedForwarded = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: {
+        authorization: "Bearer test-token",
+        "x-forwarded-for": "203.0.113.5",
+      },
+    });
+    assert.equal(untrustedForwarded.status, 403);
+    assert.match((await untrustedForwarded.json()).error, /untrusted proxy/i);
+  } finally {
+    await proxied.stop();
+  }
 }
 
 async function testAdversarialTrustZoneBypass() {
@@ -2622,11 +2658,16 @@ async function testNewHardeningFeatures() {
   assert.throws(() => repairJsonlFile(path.join(liveRuntime, "interior.jsonl")), /not limited to the final/);
 
   await backupRuntime({ runtimeDir: liveRuntime, destination: snapshot });
+  assert.doesNotThrow(() => verifySnapshotManifest(snapshot));
   fs.writeFileSync(path.join(liveRuntime, "current.txt"), "old", "utf8");
   const restored = restoreRuntime({ sourceDir: snapshot, runtimeDir: liveRuntime, recoveryRoot: backups });
   assert.equal(fs.existsSync(restored.recoveryPath), true);
   assert.equal(fs.readFileSync(path.join(restored.recoveryPath, "current.txt"), "utf8"), "old");
   assert.equal(fs.existsSync(path.join(liveRuntime, "current.txt")), false);
+  fs.writeFileSync(path.join(snapshot, "events.jsonl"), '{"tampered":true}\n', "utf8");
+  assert.throws(() => restoreRuntime({ sourceDir: snapshot, runtimeDir: liveRuntime, recoveryRoot: backups }), /hash mismatch/);
+  fs.rmSync(snapshot, { recursive: true, force: true });
+  await backupRuntime({ runtimeDir: liveRuntime, destination: snapshot });
   fs.writeFileSync(path.join(liveRuntime, "rollback.txt"), "preserve", "utf8");
   assert.throws(() => restoreRuntime({
     sourceDir: snapshot,

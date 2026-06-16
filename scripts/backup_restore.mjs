@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
+import crypto from "crypto";
+
+const MANIFEST_FILE = "manifest.json";
 
 function timestamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
@@ -22,6 +25,70 @@ Usage:
   node scripts/backup_restore.mjs restore <snapshot-directory>
   node scripts/backup_restore.mjs repair [jsonl-file-or-directory]
 `);
+}
+
+function walkFiles(rootDir) {
+  const root = path.resolve(rootDir);
+  const files = [];
+  function walk(current) {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile()) {
+        const relPath = path.relative(root, fullPath).replace(/\\/g, "/");
+        if (relPath !== MANIFEST_FILE) files.push(relPath);
+      }
+    }
+  }
+  walk(root);
+  return files.sort();
+}
+
+function fileSha256(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+export function buildSnapshotManifest(snapshotDir) {
+  const root = path.resolve(snapshotDir);
+  const files = {};
+  for (const relPath of walkFiles(root)) {
+    files[relPath] = fileSha256(path.join(root, relPath));
+  }
+  return {
+    version: 1,
+    created_at: new Date().toISOString(),
+    files,
+  };
+}
+
+export function writeSnapshotManifest(snapshotDir) {
+  const root = path.resolve(snapshotDir);
+  const manifest = buildSnapshotManifest(root);
+  fs.writeFileSync(path.join(root, MANIFEST_FILE), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  return manifest;
+}
+
+export function verifySnapshotManifest(snapshotDir) {
+  const root = path.resolve(snapshotDir);
+  const manifestPath = path.join(root, MANIFEST_FILE);
+  if (!fs.existsSync(manifestPath)) throw new Error(`Snapshot missing ${MANIFEST_FILE}`);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  if (manifest?.version !== 1 || !manifest.files || typeof manifest.files !== "object") {
+    throw new Error("Snapshot manifest is invalid");
+  }
+  const expected = Object.keys(manifest.files).sort();
+  const actual = walkFiles(root);
+  if (actual.length !== expected.length || actual.some((relPath, index) => relPath !== expected[index])) {
+    throw new Error("Snapshot manifest file list mismatch");
+  }
+  for (const relPath of expected) {
+    const actualHash = fileSha256(path.join(root, relPath));
+    if (actualHash !== manifest.files[relPath]) {
+      throw new Error(`Snapshot manifest hash mismatch: ${relPath}`);
+    }
+  }
+  return manifest;
 }
 
 export function repairJsonlFile(filePath) {
@@ -96,6 +163,7 @@ export async function backupRuntime({
 
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.cpSync(source, target, { recursive: true, errorOnExist: true, force: false });
+  writeSnapshotManifest(target);
   return target;
 }
 
@@ -112,6 +180,7 @@ export function restoreRuntime({
     throw new Error(`Snapshot directory not found: ${source}`);
   }
   if (isWithin(source, target)) throw new Error("Restore source cannot be inside the runtime directory.");
+  verifySnapshotManifest(source);
 
   const recoveryPath = path.resolve(recoveryRoot, `pre-restore-${timestamp()}`);
   if (fs.existsSync(recoveryPath)) throw new Error(`Recovery path already exists: ${recoveryPath}`);

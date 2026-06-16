@@ -112,7 +112,8 @@ If you don’t want Redis right now:
 Stop the server, worker, and relay before backup or restore so the snapshot has no active writers.
 
 - `node .\scripts\backup_restore.mjs backup [destination-directory]` copies `runtime/` into a new directory and refuses to overwrite an existing destination.
-- `node .\scripts\backup_restore.mjs restore <snapshot-directory>` renames the current runtime into `backups/` before copying the snapshot. If copying fails, it restores the original runtime.
+- Backups include a `manifest.json` with SHA-256 hashes for every copied file.
+- `node .\scripts\backup_restore.mjs restore <snapshot-directory>` verifies the manifest, then renames the current runtime into `backups/` before copying the snapshot. If copying fails, it restores the original runtime.
 - `node .\scripts\backup_restore.mjs repair [file-or-directory]` repairs only a malformed final JSONL record and preserves the original beside it as a timestamped `.bak` file. It refuses corruption found earlier in a file.
 
 Snapshots can contain private conversation and execution data. Protect them like the live runtime directory.

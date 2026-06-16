@@ -133,7 +133,7 @@ function normalizeAllowedOrigins(value) {
   return origins;
 }
 
-function createProxyExposureGuard({ authToken, deploymentMode }) {
+function createProxyExposureGuard({ authToken, deploymentMode, trustedProxies = [] }) {
   return function proxyExposureGuard(req, res, next) {
     const proxyHeaders = ["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip"];
     const forwarded = proxyHeaders.some((name) => String(req.headers?.[name] ?? "").trim() !== "");
@@ -142,6 +142,12 @@ function createProxyExposureGuard({ authToken, deploymentMode }) {
         ok: false,
         error: "Forwarded requests are disabled in direct_local mode",
       });
+    }
+    if (forwarded && trustedProxies.length > 0) {
+      const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
+      if (!trustedProxies.includes(remote)) {
+        return res.status(403).json({ ok: false, error: "Forwarded request from untrusted proxy" });
+      }
     }
     if (forwarded && !authToken) return res.status(403).json({ ok: false, error: "Forwarded requests require DIZZY_AUTH_TOKEN" });
     return next();
@@ -463,7 +469,7 @@ export async function createRuntime(opts = {}) {
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
-  app.use(createProxyExposureGuard({ authToken, deploymentMode }));
+  app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
 
