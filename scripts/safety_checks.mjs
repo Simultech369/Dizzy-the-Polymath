@@ -2699,6 +2699,9 @@ async function testNewHardeningFeatures() {
     },
   };
   const firstReceipt = crypto.createHash("sha1").update(queued[0]).digest("hex");
+  const secondReceipt = crypto.createHash("sha1").update(queued[1]).digest("hex");
+  await assert.rejects(() => acknowledgeNotifications(fakeNotificationRedis, "notify:test", [secondReceipt]), /queue head changed/);
+  assert.equal(queued.length, 2);
   assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 1);
   await assert.rejects(() => acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), /queue head changed/);
   assert.equal(queued.length, 1);

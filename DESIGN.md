@@ -758,6 +758,7 @@ Consequences:
 - Notification behavior:
   - Terminal failures: queue emits `kind=job_dead` -> `/notify/:channel` -> Telegram notify drain.
   - Polling is non-destructive; the drain acknowledges exact receipts only after successful Telegram delivery, so failures may duplicate but do not silently discard notifications.
+  - Acknowledgment is exact-prefix based: later notifications are not removed ahead of a failed head item. This preserves ordered at-least-once delivery over out-of-order deletion.
   - Tool results: optional polling via `TELEGRAM_POLL_JOB_RESULTS=1` in the relay.
 
 ### 3.2 Queue / Jobs
