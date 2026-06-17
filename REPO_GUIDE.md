@@ -66,9 +66,6 @@ That path is enough to understand the current system. The rest is detail.
 ## Workshop And Provenance
 
 - [upgrades/active/](upgrades/active/): current candidates and accepted implementation notes.
-- [upgrades/council/](upgrades/council/): cross-model review prompts and synthesis.
-- [upgrades/provenance/](upgrades/provenance/): older scans and source trails.
-- [upgrades/external-projects/](upgrades/external-projects/): comparison briefs for adjacent projects.
 
 Planning notes do not govern runtime behavior until they are deliberately moved into live docs, prompt-pack files, tests, or code.
 
