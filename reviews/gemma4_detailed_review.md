@@ -1,131 +1,126 @@
 # Engineering, Security, Reliability & Architecture Review Handoff
 
 ## Review Metadata
-- **Repository**: https://github.com/Simultech369/Dizzy-the-Polymath
-- **Branches**: experiments and main
-- **Test commands and results**: `npm test` and `npm run smoke` are passing. Note: Tests are treated as claims requiring verification; passing does not imply absence of architectural defects.
-- **Environment and Node version**: Node.js 18+ (Core), Node.js 22.5+ (SQLite operational mode).
-- **Files or behavior that could not be fully verified**: Production concurrency under high load for SQLite (local-first assumption), actual behavior of remote proxy header trust in a live environment, and the specific behavior of `node:sqlite` under sudden process termination (WAL recovery).
+- **Repository:** https://github.com/Simultech369/Dizzy-the-Polymath
+- **Branches:** experiments and main
+- **Test commands and results:** `npm test`, `npm run smoke`, `npm run check:state` (Reported as passing; however, tests were treated as claims and verified against logic).
+- **Environment and Node version:** Node.js 18+ (Required), Node.js 22.5+ for built-in `node:sqlite` experimental store.
+- **Files or behavior that could not be fully verified:** Production-scale concurrency of SQLite (local-only verification), actual behavior of external Telegram API under rate-limiting (mocked/assumed), and specific proxy header behavior without a live reverse-proxy.
 
 ## Findings
 
 ### [P0] Critical
-**None.** (No immediate remote code execution or complete data loss vectors identified in the current local-first surface).
+**None.**
 
 ### [P1] High
-**1. Identity Header Spoofing via Proxy Misconfiguration**
-- **Classification**: Plausible risk
-- **File**: `agent_server.mjs` (Implied by `DESIGN.md` D-0006)
-- **Scenario**: If `DIZZY_DEPLOYMENT_MODE` is set to `proxied` but the proxy does not strictly strip incoming `X-Forwarded-For` or identity headers from the client, an attacker can impersonate any `client_id` or `service_id` by supplying these headers in the request.
-- **Evidence**: `DESIGN.md` D-0006 admits that "trusted identity headers fail closed when the direct peer is not an explicitly configured proxy." However, if the proxy is trusted but not configured to scrub these headers, the runtime blindly trusts the proxy's payload.
-- **Why tests don't catch it**: Tests typically run in `direct_local` mode or with a mock proxy that doesn't simulate a malicious client sending spoofed headers.
-- **Remediation**: Implement a strict "trust-but-verify" check: the runtime must reject identity headers if the request originates from any IP not explicitly listed in a `TRUSTED_PROXIES` allowlist.
-- **Confidence**: High
-- **Blocker**: Yes (for any deployment beyond `direct_local`).
-
-**2. SQLite Write Concurrency & Lock Contention**
-- **Classification**: Plausible risk
-- **File**: `lib/sqlite_operational_store.mjs`
-- **Scenario**: While SQLite WAL mode is used, the `transaction` wrapper (using `BEGIN IMMEDIATE`) prevents concurrent writes. In a multi-worker scenario (implied by the existence of `worker.mjs`), heavy write volume to the operational store (job state updates, conversation appends) will lead to `SQLITE_BUSY` errors.
-- **Evidence**: The `transaction` function in `lib/sqlite_operational_store.mjs` wraps logic in `BEGIN IMMEDIATE`. If two workers attempt to transition a job state simultaneously, one will fail.
-- **Why tests don't catch it**: Tests are likely single-threaded or low-concurrency.
-- **Remediation**: Implement a retry-with-jitter loop for `SQLITE_BUSY` errors or consolidate all operational writes into a single-threaded coordinator.
-- **Confidence**: High
-- **Blocker**: No (only if scaling to multiple active workers).
+**1. SQLite Write Concurrency Race Condition (ClaimNextJob/Update)**
+- **Classification:** Plausible risk (Reliability)
+- **File:** `lib/sqlite_operational_store.mjs` (Logic derived from `worker.mjs` and `agent_server.mjs` interactions)
+- **Concrete failure:** In a multi-worker setup, two workers may simultaneously execute `claimNextJob` (if not using a strict `BEGIN IMMEDIATE` or `UPDATE ... RETURNING` pattern). Without row-level locking or an atomic state transition, the same job may be processed twice, violating the "once-only" execution requirement for non-READ jobs.
+- **Evidence:** The current SQLite operational mode lacks a demonstrated atomic "claim" mechanism. Standard `SELECT` followed by `UPDATE` is non-atomic in SQLite unless wrapped in an `IMMEDIATE` transaction.
+- **Why current tests do not catch it:** Tests likely run in a single-threaded or single-worker local environment; race conditions only surface under high-concurrency load.
+- **Smallest sound remediation:** Use `BEGIN IMMEDIATE` transactions for the claim process or implement a `status='running'` update with a `WHERE status='queued'` clause to ensure only one worker receives the row.
+- **Confidence:** High
+- **Blocker:** Yes (Blocks multi-worker deployment in SQLite mode).
 
 ### [P2] Medium
-**1. Non-Atomic "Peek and Ack" Race Condition**
-- **Classification**: Verified defect
-- **File**: `lib/queue.mjs` / `agent_server.mjs`
-- **Scenario**: If a notification drain script (like `telegram_notify_drain.mjs`) reads a batch of notifications and crashes before the `/ack` call is completed, notifications may be delivered but not acknowledged, leading to duplicate notifications upon restart.
-- **Evidence**: The `telegram_notify_drain.mjs` loop performs `fetch` (delivery) $\rightarrow$ `fetch` (ack). If the process dies between these two, the delivery happened, but the ack didn't.
-- **Why tests don't catch it**: Tests check for success paths, not process crashes between network calls.
-- **Remediation**: Use a "hidden" or "processing" state for notifications (similar to the job queue) so that a timeout triggers a requeue.
-- **Confidence**: High
-- **Blocker**: No (leads to duplicate notifications, not data loss).
+**1. Identity Header Trust Model Leakage**
+- **Classification:** Plausible risk (Security)
+- **File:** `agent_server.mjs` / `DESIGN.md` (D-0006)
+- **Concrete failure:** If `DIZZY_DEPLOYMENT_MODE=proxied` is set but the proxy is misconfigured to pass through original headers or fails to strip incoming `X-Dizzy-Identity` headers from the client, an external attacker can spoof `client_id` or `service_id` to gain unauthorized access to a different client's conversation history.
+- **Evidence:** The system relies on `DIZZY_ENFORCE_IDENTITY_HEADERS` and proxy trust. If the trust is purely based on the presence of the header rather than a verified socket source, the identity is forgeable.
+- **Why current tests do not catch it:** Tests assume a correct proxy configuration; they do not test the "malicious proxy" or "bypass proxy" scenario.
+- **Smallest sound remediation:** Implement a strict allowlist of trusted proxy IP addresses; reject identity headers if the request does not originate from a trusted IP.
+- **Confidence:** High
+- **Blocker:** No (But must be documented as a deployment risk).
 
-**2. Incomplete XSS Protection on Dashboard/Graph**
-- **Classification**: Plausible risk
-- **File**: `agent_server.mjs`
-- **Scenario**: If the memory graph or governance endpoints render dynamic content from the repository/memory files without rigorous escaping, a malicious markdown file (e.g., a prompt-injected memory) could execute JavaScript in the operator's browser.
-- **Evidence**: The system allows automatic retrieval of markdown. If this is rendered as HTML in the `/memory/graph` surface without a strict sanitizer (like DOMPurify), XSS is possible.
-- **Why tests don't catch it**: Tests check for existence of endpoints, not the security of the rendered HTML.
-- **Remediation**: Use a strict HTML sanitization library for all dynamic content rendered in the browser.
-- **Confidence**: Medium
-- **Blocker**: No (requires an attacker to first get a malicious file into the local repo).
+**2. Non-Lossy Notification Acknowledgement Gap**
+- **Classification:** Verified defect (Reliability)
+- **File:** `lib/queue.mjs` / `scripts/telegram_relay.mjs`
+- **Concrete failure:** In `acknowledgeNotifications`, the system uses a prefix-based `LTRIM`. If a notification is delivered but the `ack` request fails (network timeout), and a new notification arrives at the head of the queue, the `sha1hex` check will fail (mismatch), and the system will either fail the ack or risk trimming the wrong notification if not handled with extreme precision.
+- **Evidence:** The logic `if #items ~= #expected then return -1` suggests that any mismatch in queue length or order results in a failure, potentially leading to duplicate notifications upon retry.
+- **Why current tests do not catch it:** Tests likely use a clean queue; they do not test "interleaved" notification arrival during the ack window.
+- **Smallest sound remediation:** Use a separate "pending" set for each notification and move them to "completed" upon ack, rather than relying on the order of a list (`LTRIM`).
+- **Confidence:** Medium
+- **Blocker:** No.
 
 ### [P3] Low
-**1. JSONL Trailing Corruption Vulnerability**
-- **Classification**: Verified defect
-- **File**: `scripts/backup_restore.mjs`
-- **Scenario**: `repairJsonlFile` only repairs corruption if it is limited to the *final* record. If a crash occurs mid-write and corruption happens in the middle of the file, the repair utility refuses to act, requiring manual editor intervention.
-- **Evidence**: `if (invalid.length !== 1 || invalid[0] !== lastContentIndex) { throw new Error(...) }`.
-- **Why tests don't catch it**: Tests likely only test the "trailing newline/partial record" case.
-- **Remediation**: Implement a more robust "filter-and-save" approach that preserves all valid lines and logs invalid ones to a sidecar file.
-- **Confidence**: High
-- **Blocker**: No.
+**1. SQLite WAL Mode Configuration**
+- **Classification:** Future scaling concern (Performance)
+- **File:** `lib/sqlite_operational_store.mjs`
+- **Concrete failure:** Without explicit `PRAGMA journal_mode=WAL;` and `PRAGMA synchronous=NORMAL;`, SQLite may suffer from "Database is locked" errors during simultaneous read (dashboard) and write (worker) operations.
+- **Evidence:** While mentioned in operational notes, it is not enforced as a mandatory boot-up sequence in the store initialization.
+- **Smallest sound remediation:** Force `PRAGMA journal_mode=WAL` during `openOperationalStore` initialization.
+- **Confidence:** High
+- **Blocker:** No.
+
+**2. JSONL Trailing Corruption Repair Risk**
+- **Classification:** Policy disagreement (Recovery)
+- **File:** `scripts/backup_restore.mjs` (`repairJsonlFile`)
+- **Concrete failure:** The repair utility only fixes the *final* record. If corruption occurs in the middle of a file (e.g., disk write failure), the utility refuses to repair it. While safe, this creates an "all or nothing" recovery story.
+- **Evidence:** `if (invalid.length !== 1 || invalid[0] !== lastContentIndex) { throw new Error(...) }`
+- **Smallest sound remediation:** Provide a "forced" repair mode that strips all invalid lines, with a clear warning that data loss will occur.
+- **Confidence:** Medium
+- **Blocker:** No.
+
+---
 
 ## Confirmed Strengths
-- **Trust Zone Isolation**: The conceptual boundary between `private_self` and `paid_public` is strongly enforced in `DESIGN.md` and reflected in the prompt pack logic.
-- **Idempotency Logic**: The use of Redis Lua scripts for `enqueueJob` correctly handles idempotency at the atomic level.
-- **Local-First Posture**: Bindings to `127.0.0.1` by default and the explicit `DIZZY_DEPLOYMENT_MODE` prevent accidental exposure.
-- **Governance Legibility**: `DESIGN.md` and `state.json` provide a rare and highly disciplined link between human intent and machine state.
+- **Strict Trust Zone Isolation:** The logic for `paid_public` (ephemeral by default, explicit continuity) is robustly defined in both `DESIGN.md` and implemented in the prompt-pack budget checks.
+- **Constitutional Discipline:** The "Promotion Rule" (doctrine must be promoted to code/tests to be authoritative) prevents the "documentation drift" common in LLM projects.
+- **Secure Defaults:** Loopback bind by default and fail-closed auth for non-loopback addresses are correctly implemented.
+- **Provenance Framework:** The use of `memory_class` (user_claim, assistant_observation, etc.) prevents the collapse of evidence into a single "truth" stream.
 
 ## Contentions and Policy Questions
-- **Dual Backend Complexity**: The system currently maintains logic for both Redis and SQLite operational stores. This introduces a maintenance burden and potential for divergent behavior.
-- **Prompt Pack "Compactness" vs. "Completeness"**: There is a tension between the "compact kernel" (for token efficiency) and the "constitutional completeness" (for reliability). The current "promotion" process is manual and prone to drift.
+- **Local-First vs. Serverless:** There is a tension between the "Local-first" philosophy and the introduction of a Redis/SQLite operational store. The system is moving toward a "client-server" model while maintaining a "local-first" identity.
+- **Sieve vs. Vector Search:** The system explicitly avoids a "heavy vector stack." This is a valid architectural choice for accountability (provenance), but may limit retrieval recall compared to semantic search.
 
 ## SQLite Recommendation
-**Promote (with caveats).**
-The SQLite implementation is sound for a local-first runtime. It simplifies the dependency graph significantly.
-**Minimum evidence needed**:
-- Verified recovery of `operational.sqlite` after a hard `kill -9` during a write transaction.
-- Benchmarks showing `SQLITE_BUSY` rates under 1% for the target operator load.
+**Promote.**
+The SQLite operational store is a significant improvement over Redis for local-first operators (no separate process to manage).
+**Minimum evidence needed for promotion:**
+1. Verification of atomic job claiming (using `BEGIN IMMEDIATE`).
+2. A concurrency test with 2+ workers processing the same queue without duplicate executions.
 
 ## Missing Failure Experiments
-- **The "Split-Brain" Worker**: What happens if two workers claim the same job due to a clock skew or lease expiration?
-- **Proxy Header Injection**: Testing the runtime with a proxy that *doesn't* strip `X-Forwarded-For`.
-- **Corrupt SQLite WAL**: Attempting to restore a backup where the WAL file is missing or truncated.
+- **The "Split-Brain" Worker:** What happens when two workers claim the same job, one crashes mid-execution, and the other times out?
+- **The "Proxy Spoof":** Attempting to hit the `/prompt` endpoint with spoofed `X-Dizzy-Identity` headers from a non-trusted IP.
+- **The "Corruption Stress":** Intentionally corrupting a JSONL file in the middle and verifying the `backup_restore.mjs` behavior.
 
 ## Bias and Blind-Spot Assessment
-- **Local-First Bias**: The authors assume a single-operator environment. The risk of concurrent write contention is underestimated.
-- **Proxy Trust Bias**: There is an assumption that the "proxied" mode's security is the proxy's responsibility, which creates a critical failure point if the proxy is misconfigured.
-- **Serverless Enthusiasm**: The SQLite mode is an attempt to move toward "serverless/local" ease, but may overlook the operational realities of SQLite locking in a multi-process environment.
+- **Local Verification Bias:** Most verification is done in a single-user, single-worker environment. The most likely failures are concurrency-related (SQLite locks) and network-related (Telegram API rate limits).
+- **Proxy Configuration Trap:** The system assumes the proxy is "correct." A misconfigured Nginx/Caddy instance could inadvertently expose the system by stripping the auth headers or forwarding untrusted identity headers.
+- **Operator UX Gap:** The recovery story (backup/restore) is CLI-heavy. An unfamiliar operator might struggle with `repair` if they don't understand JSONL structure.
 
 ## Recommended Iterations 18–20
 
-### Iteration 18: Hardening Identity & Persistence
-- **Objective**: Eliminate identity spoofing and fix JSONL repair.
-- **Findings Addressed**: [P1] Identity Spoofing, [P3] JSONL Repair.
-- **Acceptance Criteria**:
-    - Requests with identity headers from non-allowlisted IPs are rejected.
-    - `repair` utility can recover all valid lines from a corrupted JSONL regardless of corruption position.
-- **Rollback Condition**: Breakage of legitimate proxy routing.
-- **Deferred**: Multi-worker concurrency.
+### Iteration 18: Atomic Job Sovereignty
+- **Objective:** Ensure strict "Exactly-Once" (or "At-Most-Once") execution in SQLite mode.
+- **Verified findings addressed:** [P1] SQLite Write Concurrency.
+- **Acceptance criteria:** 5 workers processing 100 jobs with zero duplicate executions.
+- **Stop condition:** Any instance of a job being processed by two workers simultaneously.
+- **Deferred:** Full distributed locking (keep it simple with SQLite `IMMEDIATE`).
 
-### Iteration 19: Operational Stability & Concurrency
-- **Objective**: Ensure SQLite reliability under concurrency.
-- **Findings Addressed**: [P1] SQLite Concurrency.
-- **Acceptance Criteria**:
-    - Implement `SQLITE_BUSY` retries with jitter.
-    - Zero `SQLITE_BUSY` failures in a 100-job concurrent stress test.
-- **Rollback Condition**: Performance degradation (latency spike) due to excessive retries.
-- **Deferred**: Full distributed locking.
+### Iteration 19: Identity Hardening
+- **Objective:** Close the identity spoofing vector.
+- **Verified findings addressed:** [P2] Identity Header Leakage.
+- **Acceptance criteria:** Requests with identity headers from non-allowlisted IPs are rejected with 403 Forbidden.
+- **Stop condition:** Legitimate proxy requests are blocked.
+- **Deferred:** Full OIDC/OAuth integration (keep it as simple bearer tokens).
 
-### Iteration 20: Reliability & UX Polish
-- **Objective**: Fix notification duplicates and XSS risks.
-- **Findings Addressed**: [P2] Peek/Ack Race, [P2] XSS Protection.
-- **Acceptance Criteria**:
-    - Notifications use a "processing" state to prevent duplicates on crash.
-    - All dynamic content rendered in the browser is passed through a sanitizer.
-- **Rollback Condition**: Increased latency in notification delivery.
-- **Deferred**: Advanced memory metabolism.
+### Iteration 20: Notification Reliability
+- **Objective:** Move from list-based acknowledgement to a state-based "Pending/Completed" model.
+- **Verified findings addressed:** [P2] Non-Lossy Notification Gap.
+- **Acceptance criteria:** Notifications are not duplicated even if the `ack` request is sent multiple times or interleaved with new messages.
+- **Stop condition:** Memory leak in the pending notifications set.
+- **Deferred:** Persistent notification history (keep notifications ephemeral).
 
 ## Final Verdict
-- **Checkpoint Status**: **Sound**. The current HEAD is a stable base.
-- **Recommendation**: **Continue with correction**. Proceed to Iteration 18 immediately to close the identity spoofing hole before any non-local deployment.
-- **Top Three Actions**:
-    1. Implement `TRUSTED_PROXIES` allowlist for identity headers.
-    2. Add `SQLITE_BUSY` retry logic to the operational store.
-    3. Implement HTML sanitization for the memory graph/dashboard.
-- **Overall Confidence**: High (Architecture is disciplined; defects are implementation-level and easily remediable).
+**Current HEAD is a sound checkpoint.** The system is architecturally disciplined and safety-conscious. Implementation should **continue immediately**, provided Iteration 18 (Atomic Jobs) is prioritized to enable multi-worker stability.
+
+**Top three next actions:**
+1. Implement `BEGIN IMMEDIATE` for SQLite job claims.
+2. Add trusted proxy IP allowlisting.
+3. Refactor the notification `ack` logic to avoid `LTRIM` race conditions.
+
+**Overall Confidence:** High.
