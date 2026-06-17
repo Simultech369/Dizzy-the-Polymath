@@ -29,6 +29,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `AGENTS.md`
 - `BOOTSTRAP.md`
 - `.editorconfig`
+- `.env`
 - `.env.example`
 - `.gitattributes`
 - `.gitignore`

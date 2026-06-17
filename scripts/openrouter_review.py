@@ -34,8 +34,30 @@ DEFAULT_FILES = [
     "PROMPT_PACKS.md",
     "PROMPT_CORE.md",
     "PROMPT_MODES.md",
-    "CONSTITUTION.md"
+    "CONSTITUTION.md",
+    "lib/queue.mjs",
+    "lib/sqlite_operational_store.mjs",
+    "scripts/telegram_notify_drain.mjs",
+    "scripts/telegram_relay.mjs",
+    "scripts/backup_restore.mjs",
+    "state.json"
 ]
+
+def load_env(repo_root):
+    env_path = os.path.join(repo_root, ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    # Set env var if not already set by system environment
+                    if key not in os.environ:
+                        os.environ[key] = value
 
 def main():
     parser = argparse.ArgumentParser(description="Run an independent code/doctrine review of the Dizzy repository using OpenRouter.")
@@ -51,6 +73,7 @@ def main():
 
     # Find repository root directory
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_env(repo_root)
 
     # Assemble and validate file list
     files_to_read = []
@@ -87,47 +110,55 @@ def main():
     model = args.model or os.environ.get("OPENAI_COMPAT_MODEL") or "openrouter/free"
 
     # Assemble system prompt
-    system_prompt = """You are an independent, highly critical senior software architect and governance auditor.
-Your task is to review the codebase and documentation of the 'Dizzy' repository and perform a thorough doctrine-and-code compliance review.
+    system_prompt = """You are an independent senior software engineering, security, reliability, privacy, and architecture reviewer.
+Perform a strict, comprehensive review of the Dizzy repository.
 
-Dizzy is a session-instantiated reasoning system with written continuity. It has a strict Constitutional Kernel, defined file roles, and specific rules about how experimental features are promoted, how memory is metabolized, and how trust zones are maintained.
+Repository: https://github.com/Simultech369/Dizzy-the-Polymath
+Branches: experiments and main
+Treat tests as claims requiring verification. Do not assume recommendations are correct merely because the test suite passes.
+Do NOT attempt to modify the repository.
 
-Review the provided repository contents and identify issues across:
-1. **Scope Separation / Scoped Enqueueing**:
-   - Ensure same key + different client/service does not deduplicate (scoped separation).
-   - Ensure experimental work is promoted only as small, reviewed, independently tested mechanisms.
-2. **Clean Naming & Labeling**:
-   - Verify that all traces of 'a0x' language have been removed.
-   - Verify that 'W-0044' and 'W-0045' numbering prefixes have been scrubbed from code comments, documentation, and references in favor of clear descriptive names.
-   - Check for other annoying hardcoded prefixes, tracking IDs, or planning theater.
-3. **Public vs. Private Isolation**:
-   - Ensure local-only directories (like `handoff/`) are gitignored and not committed.
-   - Ensure public/client-facing surfaces do not leak private memory, operator calibration, or sensitive context.
-4. **Code vs. Doctrine Drift**:
-   - Verify if the runtime code enforces what the documents claim.
-   - Are there docs claiming behavior that the runtime code does not enforce?
-5. **Memory Ownership & Mutation Safety**:
-   - Verify that memory-like durable surfaces have declared owners.
-   - Look for code paths mutating memory or state without clear ownership.
-6. **Invariants and Queue/Runtime safety**:
-   - Check the dispatching and worker layers for Redis Lua errors, duplicate ready entries, or missing job mappings.
-   - Ensure robustness of job/idempotency mapping TTLs and schema validations.
-7. **External Project References**:
-   - Ensure external project patterns or references (e.g. Memory OS, Samantha, Icarus, Agent OSS) are consolidated only within `REFERENCE_PATTERNS.md` or design pointers in `DESIGN.md`.
+IMPORTANT REVIEW METHOD:
+1. Inspect the complete repository files provided.
+2. Read relevant code, not only immediate lines.
+3. Treat tests as claims requiring verification.
+4. Distinguish: Verified defect, Plausible risk, Policy disagreement, Future scaling concern, Intentional and adequately documented tradeoff.
+5. Look for problems outside the diff that become relevant because of proposed changes.
+6. Do not let specific focus areas prevent you from finding unrelated material defects.
 
-Output Shape:
-- Start directly with 'Findings:' (findings first).
-- For each issue:
-  * severity: (Critical / Warning / Info)
-  * file and line: (when available)
-  * concrete failure mode: (detailed explanation of the bug or policy violation)
-  * suggested fix: (concrete code/doc change)
-- Then provide:
-  * open questions
-  * test gaps
-  * short summary of recommendations
+PRIMARY AREAS TO INSPECT:
+A. Non-Lossy Notifications & Queue Durability (lib/queue.mjs, agent_server.mjs, scripts/telegram_notify_drain.mjs):
+   - Examine rPush vs lPush behavior, peek/ack endpoints, race conditions on batch trims, notification loss under failure, and Telegram drain safety.
+B. Dashboard Security (agent_server.mjs):
+   - Examine XSS escaping coverage, client-side vs server-side protection, and rendering of dynamic repository/metadata content.
+C. Identity & Authentication Hardening (agent_server.mjs, RUNBOOK.md):
+   - Examine DIZZY_ENFORCE_IDENTITY_HEADERS, scoped tokens (DIZZY_EXECUTE_TOKEN, DIZZY_NOTIFY_TOKEN, DIZZY_AUTH_TOKEN), proxy header trust model, and routing isolation.
+D. Telegram Relay Security (scripts/telegram_relay.mjs):
+   - Examine AUTO_BIND_NONCE generation and binding logic.
+E. SQLite Serverless Operational Mode (lib/sqlite_operational_store.mjs, agent_server.mjs, worker.mjs):
+   - Examine full job schema, transaction safety, claimNextJob, appendConversationEvent, recovery of stale jobs, concurrency behavior, WAL configuration, and migration story from Redis.
+F. Backup, Restore & Repair (scripts/backup_restore.mjs, JSONL handling paths):
+   - Examine backup (WAL flush), restore safety, repair of trailing corruption, and overall recovery story.
+G. Continued Core Areas (Reconciliation, Provider Fallback, Public/Private Policy, Secret Handling, Memory Graph):
+   - Re-validate invariants from prior reviews now that SQLite is optionally live and new auth surfaces exist.
+H. Documentation and Architecture Direction (DESIGN.md, RUNBOOK.md, NEXT.md, README.md, MEMORY_OWNERSHIP.md, state.json).
 
-Be extremely direct, concise, and focused on technical/doctrinal accuracy. Do not use generic filler language or conversational preambles."""
+BIAS AND BLIND-SPOT ANALYSIS:
+Explicitly evaluate these possible biases:
+- Repository consistency mistaken for reliability.
+- Local verification vs production concurrency (especially SQLite).
+- Proxy configuration traps.
+- Serverless enthusiasm vs multi-worker realities.
+- Backup/repair operator UX.
+- Complexity growth from dual backends.
+Ask yourself:
+- What important failure would these authors be least likely to test?
+- What happens with two workers in SQLite mode under crashes?
+- What happens on proxy misconfiguration with identity headers?
+- Where do multiple authorities still exist?
+- What would surprise an unfamiliar operator during recovery?
+
+Ensure your output matches the requested Markdown Handoff format exactly."""
 
     # Read file content and assemble user message
     user_content_parts = ["Below is the context of the Dizzy repository files under review:\n\n"]
@@ -143,6 +174,63 @@ Be extremely direct, concise, and focused on technical/doctrinal accuracy. Do no
             print(f"Error reading file '{f}': {e}", file=sys.stderr)
 
     user_content = "".join(user_content_parts)
+    
+    # Append instructions at the end to prevent prompt dilution in long context
+    user_content += "\n\n=== END OF FILE CONTEXT ===\n\n"
+    user_content += "Based on the repository files provided above, perform the strict, critical audit now.\n"
+    user_content += "OUTPUT FORMAT:\n"
+    user_content += "Create a complete Markdown handoff suitable for giving directly to Codex.\n"
+    user_content += "Title: # Engineering, Security, Reliability & Architecture Review Handoff\n\n"
+    user_content += "Include the following sections:\n"
+    user_content += "## Review Metadata\n"
+    user_content += "- Repository: https://github.com/Simultech369/Dizzy-the-Polymath\n"
+    user_content += "- Branches: experiments and main\n"
+    user_content += "- Test commands and results: (npm test and npm run maintain, which are passing)\n"
+    user_content += "- Environment and Node version\n"
+    user_content += "- Files or behavior that could not be fully verified\n\n"
+    user_content += "## Findings\n"
+    user_content += "Order findings by severity:\n"
+    user_content += "### [P0] Critical\n"
+    user_content += "### [P1] High\n"
+    user_content += "### [P2] Medium\n"
+    user_content += "### [P3] Low\n\n"
+    user_content += "For every finding provide:\n"
+    user_content += "- Short title\n"
+    user_content += "- Classification: verified defect, plausible risk, policy disagreement, or future concern\n"
+    user_content += "- File and line reference\n"
+    user_content += "- Concrete failure or attack scenario\n"
+    user_content += "- Evidence or reproduction steps\n"
+    user_content += "- Why current tests do not catch it\n"
+    user_content += "- Smallest sound remediation\n"
+    user_content += "- Confidence: high, medium, or low\n"
+    user_content += "- Whether it should block further implementation\n\n"
+    user_content += "If no findings exist at a severity, explicitly say 'None.'\n\n"
+    user_content += "## Confirmed Strengths\n\n"
+    user_content += "## Contentions and Policy Questions\n\n"
+    user_content += "## SQLite Recommendation\n"
+    user_content += "(Choose one: Promote / Revise and retest / Keep experimental / Delete. Explain and specify minimum evidence needed.)\n\n"
+    user_content += "## Missing Failure Experiments\n\n"
+    user_content += "## Bias and Blind-Spot Assessment\n\n"
+    user_content += "## Recommended Iterations 18–20\n"
+    user_content += "For each iteration include:\n"
+    user_content += "- Objective\n"
+    user_content += "- Verified findings addressed\n"
+    user_content += "- Acceptance criteria\n"
+    user_content += "- Stop or rollback condition\n"
+    user_content += "- What should remain explicitly deferred\n\n"
+    user_content += "## Final Verdict\n"
+    user_content += "- Whether current HEAD is a sound checkpoint\n"
+    user_content += "- Whether implementation should continue immediately or pause for correction\n"
+    user_content += "- Top three next actions\n"
+    user_content += "- Overall confidence\n\n"
+    user_content += "REVIEW DISCIPLINE:\n"
+    user_content += "- Do not report style preferences as defects.\n"
+    user_content += "- Do not claim exploitation without a credible path.\n"
+    user_content += "- Do not assume tests prove their own adequacy.\n"
+    user_content += "- Clearly label inferences.\n"
+    user_content += "- Prefer minimal, reversible remediation.\n"
+    user_content += "- Recommend deletion when complexity does not earn its cost.\n"
+    user_content += "- Include 'no material issue found' for areas you examined successfully.\n"
 
     print(f"Loaded {len(valid_files)} files.")
     print(f"Total character count: {total_chars} (~{total_chars // 4} tokens).")
@@ -190,13 +278,18 @@ Be extremely direct, concise, and focused on technical/doctrinal accuracy. Do no
                         break
                     try:
                         data_json = json.loads(data_str)
-                        choice = data_json.get("choices", [{}])[0]
-                        delta = choice.get("delta", {})
-                        content_part = delta.get("content", "")
-                        if content_part:
-                            print(content_part, end="", flush=True)
-                            output_buffer.append(content_part)
-                    except json.JSONDecodeError:
+                        if "error" in data_json:
+                            print(f"\nAPI Error: {data_json['error']}", file=sys.stderr)
+                            break
+                        choices = data_json.get("choices", [])
+                        if choices:
+                            choice = choices[0]
+                            delta = choice.get("delta", {})
+                            content_part = delta.get("content", "")
+                            if content_part:
+                                print(content_part, end="", flush=True)
+                                output_buffer.append(content_part)
+                    except Exception:
                         pass
             print() # Ending newline
     except urllib.error.HTTPError as e:
