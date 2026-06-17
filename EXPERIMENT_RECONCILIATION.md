@@ -81,6 +81,7 @@ Evidence still lacking:
 | W-0042 Durable-write policy | Integrated on `experiments` | Shared pre-write gate covers remembered memory, auto-memory candidates, friction, and trajectories; blocked writer tests prove no file is created |
 | W-0043 Refinement preflight | Integrated on `experiments` | Live prompt and operator guidance define tested skip, proceed, and clarify paths without adding a planning subsystem |
 | Queue Enqueue Idempotency Key | Integrated on `main` | Atomic Redis Lua script returning `[jobId, created]`, route/actor scoping, header validation (`^[!-~]{1,128}$`), JS positive integer expiry check, tested in `safety_checks.mjs` and verified with `maintain`. Dependency/API impact: runtime dependency (redis). |
+| Dependency/API drift gate | Integrated on `experiments` | `DEPENDENCY_GOVERNANCE.md`, `scripts/dependency_api_drift_check.mjs`, CI, and `maintain` require dependency/API impact classification and env-only provider keys for OpenRouter review. Dependency/API impact: external_contract (OpenRouter review utility), runtime_dependency (maintenance/CI gate). |
 
 ## HEARTBEAT.md Retirement Map
 

@@ -16,6 +16,12 @@ const ACTIVE_DIRS = ["context-packs", "identity/personas", "skills"];
 const RETIRED_REFERENCES = ["HEARTBEAT.md", "GOVERNANCE.md"];
 const RETIRED_REFERENCE_ALLOWLIST = new Set(["EXPERIMENT_RECONCILIATION.md"]);
 
+function hasStandaloneFileReference(text, fileName) {
+  const escaped = fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|[^A-Za-z0-9_-])${escaped}([^A-Za-z0-9_-]|$)`);
+  return pattern.test(text);
+}
+
 function toRepoPath(filePath) {
   return path.relative(ROOT, filePath).replace(/\\/g, "/");
 }
@@ -65,7 +71,7 @@ for (const abs of listMarkdownFiles()) {
 
   if (!RETIRED_REFERENCE_ALLOWLIST.has(rel)) {
     for (const retired of RETIRED_REFERENCES) {
-      if (text.includes(retired)) issues.push(`${rel}: live reference to retired ${retired}`);
+      if (hasStandaloneFileReference(text, retired)) issues.push(`${rel}: live reference to retired ${retired}`);
     }
   }
 

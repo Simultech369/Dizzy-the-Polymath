@@ -25,9 +25,10 @@ Read in this order:
 5. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - how values become ownership, governance, enforcement, exit, and capability mechanisms.
 6. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms, with files and failure modes.
 7. [FILE_ROLES.md](FILE_ROLES.md) - root-file authority and role map.
-8. [OPERATING_LOOP.md](OPERATING_LOOP.md) - day-to-day operator workflow.
-9. [RUNBOOK.md](RUNBOOK.md) - practical operation.
-10. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
+8. [DEPENDENCY_GOVERNANCE.md](DEPENDENCY_GOVERNANCE.md) - dependency/API drift gate and provider-key handling.
+9. [OPERATING_LOOP.md](OPERATING_LOOP.md) - day-to-day operator workflow.
+10. [RUNBOOK.md](RUNBOOK.md) - practical operation.
+11. [upgrades/README.md](upgrades/README.md) - planning lane and current candidates.
 
 That path is enough to understand the current system. The rest is detail.
 
@@ -85,6 +86,7 @@ node .\scripts\safety_checks.mjs
 node .\smoke_test.mjs
 node .\scripts\sync_state.mjs --check
 node .\scripts\memory_validate.mjs
+node .\scripts\dependency_api_drift_check.mjs
 ```
 
 If `DESIGN.md` changed, run:

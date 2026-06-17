@@ -45,6 +45,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "dependencies",
+    label: "Dependency/API drift gate",
+    command: ["node", "scripts/dependency_api_drift_check.mjs"],
+    severity: "yellow",
+  },
+  {
     id: "next",
     label: "NEXT.md upgrade consistency",
     command: ["node", "scripts/next_consistency_check.mjs"],

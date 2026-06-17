@@ -187,6 +187,7 @@ The integrated project gate lives in [`PRODUCTION_READINESS.md`](PRODUCTION_READ
 
 ```powershell
 npm run check:production
+npm run check:dependencies
 ```
 
 | Area | Requirement |
@@ -199,6 +200,7 @@ npm run check:production
 | Rate limiting | Public, auth, and expensive routes have per-IP or per-user limits; abuse limits fail closed without leaking private state |
 | Caching | Static assets are cacheable, sensitive responses are not cached publicly, and cache invalidation is explicit for user-specific data |
 | Scaling | Runtime has documented resource assumptions, queue/backpressure behavior, horizontal-scaling constraints, and failure modes for Redis/database/provider outages |
+| Dependency/API drift | Dependency, lockfile, runtime, provider, and external API contract changes are classified before promotion; provider keys stay in environment variables, not CLI args |
 | Error tracking | Server and client errors are captured with environment, release, and request context, while secrets and private user content are scrubbed |
 | Accessibility / ADA | Public UI targets WCAG 2.2 AA; legal/procurement-sensitive surfaces verify at least WCAG 2.1 AA, with keyboard navigation, semantic HTML, labels, focus states, contrast, alt text, reduced-motion support, and screen-reader checks |
 

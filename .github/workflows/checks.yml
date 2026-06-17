@@ -30,6 +30,8 @@ jobs:
             command: npm run check:prompt
           - label: Production readiness
             command: npm run check:production
+          - label: Dependency/API drift
+            command: npm run check:dependencies
           - label: Queue consistency
             command: npm run check:next
           - label: Skill registry

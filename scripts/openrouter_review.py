@@ -7,6 +7,10 @@ and streams an independent review from a free OpenRouter model.
 
 Usage:
   python scripts/openrouter_review.py --output reviews/review_v1.md
+
+Authentication:
+  Set OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY in the environment.
+  Do not pass API keys as command-line arguments; shell and process history can retain them.
 """
 
 import os
@@ -62,7 +66,6 @@ def load_env(repo_root):
 def main():
     parser = argparse.ArgumentParser(description="Run an independent code/doctrine review of the Dizzy repository using OpenRouter.")
     parser.add_argument("--model", type=str, help="OpenRouter model to use (default: openrouter/free or environment value)")
-    parser.add_argument("--key", type=str, help="OpenRouter API Key (default: OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY)")
     parser.add_argument("--url", type=str, default="https://openrouter.ai/api/v1", help="API Base URL (default: https://openrouter.ai/api/v1)")
     parser.add_argument("--output", type=str, help="Path to save the review output markdown file")
     parser.add_argument("--add-file", action="append", default=[], help="Add specific files to the review context")
@@ -99,11 +102,11 @@ def main():
         sys.exit(0)
 
     # Get API key
-    api_key = args.key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_COMPAT_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_COMPAT_API_KEY")
     if not api_key:
         print("Error: No API key found.", file=sys.stderr)
-        print("Please set the OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY environment variable,", file=sys.stderr)
-        print("or pass your key via the --key parameter.", file=sys.stderr)
+        print("Please set OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY in the environment.", file=sys.stderr)
+        print("Do not pass API keys as command-line arguments; they can linger in shell/process history.", file=sys.stderr)
         sys.exit(1)
 
     # Resolve model

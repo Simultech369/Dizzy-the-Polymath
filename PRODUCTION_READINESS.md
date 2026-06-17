@@ -18,6 +18,7 @@ This file is an operational gate, not a claim that every production capability a
 | Rate limiting | Built-in Express rate limiting is available through `DIZZY_RATE_LIMIT_ENABLED`, `DIZZY_RATE_LIMIT_WINDOW_MS`, and `DIZZY_RATE_LIMIT_MAX`; `/health` is exempt | Public, auth, and expensive routes must have per-IP or per-user limits before public exposure | Rate-limit config, test request burst, `429` behavior sample |
 | Caching | Internal markdown, memory graph, and prompt bundle caches exist | Static assets cache safely; sensitive/user-specific responses are not publicly cached; invalidation rules are explicit | Cache headers, TTL notes, sensitive route no-cache test |
 | Scaling | Queue/Redis architecture exists for tool jobs and worker flows | Resource assumptions, queue/backpressure behavior, horizontal-scaling constraints, and outage behavior are documented | Capacity note, worker count assumptions, Redis/database/provider outage test |
+| Dependency and external API drift | Runtime packages, Redis-compatible servers, SQLite sidecar behavior, Telegram, Gemini, and OpenAI-compatible providers are tracked in `DEPENDENCY_GOVERNANCE.md` | Package, lockfile, runtime, provider, and API-contract changes are classified before promotion | `npm run check:dependencies`, lockfile diff summary, provider fixture or redacted dry run, rollback path |
 | Regulated actions / funds | No user-fund custody or autonomous financial execution is implemented | Legal review, explicit user consent, kill switch, and bounded signing authority are required before user funds, wallets, or regulated actions | Counsel signoff or risk memo, consent record, kill-switch test, scoped-signing spec if applicable |
 | Error tracking | Local structured errors and logs exist, but no external tracker is configured | Server/client errors are captured with environment, release, and request context while secrets/private content are scrubbed | Test event in tracker, scrubber rules, release tag attached |
 | Accessibility / ADA | No dedicated public UI exists yet | Public UI targets WCAG 2.2 AA; legal/procurement-sensitive surfaces verify at least WCAG 2.1 AA | Automated accessibility scan, manual keyboard pass, screen-reader spot check |
@@ -28,7 +29,9 @@ This file is an operational gate, not a claim that every production capability a
 - `RUNBOOK.md` remains the operational setup surface.
 - `OPERATIONS.md` governs runtime operation and trust-zone handling.
 - `scripts/production_readiness_check.mjs` verifies that this gate remains wired into the repo.
+- `DEPENDENCY_GOVERNANCE.md` defines the dependency/API drift matrix and credential handling rule.
 - `npm run check:production` runs the production-readiness wiring check.
+- `npm run check:dependencies` runs the dependency/API drift gate.
 - `npm run maintain` includes the production-readiness check with the rest of the maintenance pass.
 
 ## Launch Proof Packet
@@ -50,6 +53,7 @@ Before any hosted/client-facing release, collect:
 
 - Do not expose non-loopback runtime routes without auth.
 - Do not ship browser bundles that contain private env vars or service-role credentials.
+- Do not pass provider API keys as command-line arguments; use environment variables or an approved local secret manager.
 - Do not claim ADA compliance from automation alone; combine automated scans with manual keyboard and assistive-tech checks.
 - Do not treat Redis or local memory files as a substitute for database RLS if user accounts or tenants are added.
 - Do not promote SQLite, or deprecate Redis, without an explicit authority and rollback plan.
