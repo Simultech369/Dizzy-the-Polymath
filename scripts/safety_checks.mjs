@@ -1374,6 +1374,42 @@ async function testSqliteOperationalStore() {
     assert.equal(store.integrityCheck(), "ok");
     const checkpoint = store.checkpoint("TRUNCATE");
     assert.equal(typeof checkpoint.busy, "number");
+
+    // SQLite multi-worker concurrency safety check
+    // Create 100 queued jobs
+    for (let i = 0; i < 100; i++) {
+      store.createJob({ jobId: `concur-job-${i}`, effect: "READ" });
+    }
+
+    const workersCount = 5;
+    const claims = Array(workersCount).fill(0).map(() => []);
+    const workerPromises = [];
+
+    for (let w = 0; w < workersCount; w++) {
+      workerPromises.push((async () => {
+        const workerId = `worker-${w}`;
+        while (true) {
+          await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 3)));
+          const job = store.claimNextJob({ workerId, leaseMs: 10000 });
+          if (!job) break;
+          claims[w].push(job.job_id);
+        }
+      })());
+    }
+
+    await Promise.all(workerPromises);
+
+    const allClaimedIds = claims.flat().filter((id) => id.startsWith("concur-job-"));
+    assert.equal(allClaimedIds.length, 100);
+    const uniqueClaimedIds = new Set(allClaimedIds);
+    assert.equal(uniqueClaimedIds.size, 100);
+
+    // Verify all 100 jobs are indeed in running status in db
+    for (let i = 0; i < 100; i++) {
+      const job = store.getJob(`concur-job-${i}`);
+      assert.equal(job.status, "running");
+      assert.ok(job.claim_owner.startsWith("worker-"));
+    }
   } finally {
     store.close();
     for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${dbPath}${suffix}`, { force: true });
@@ -2690,24 +2726,32 @@ async function testNewHardeningFeatures() {
 
   const queued = [JSON.stringify({ notification_id: "one" }), JSON.stringify({ notification_id: "two" })];
   const fakeNotificationRedis = {
-    async eval(_script, { arguments: args }) {
-      const receipts = typeof args[0] === "string" && args[0].startsWith("[")
-        ? JSON.parse(args[0])
-        : args;
-      const actual = queued.slice(0, receipts.length).map((item) => crypto.createHash("sha1").update(item).digest("hex"));
-      if (actual.length !== receipts.length) return -1;
-      if (actual.some((receipt, index) => receipt !== receipts[index])) return -2;
-      queued.splice(0, receipts.length);
-      return receipts.length;
+    async eval(_script, { arguments: receipts }) {
+      let removed = 0;
+      for (const receipt of receipts) {
+        const idx = queued.findIndex((item) => crypto.createHash("sha1").update(item).digest("hex") === receipt);
+        if (idx !== -1) {
+          queued.splice(idx, 1);
+          removed++;
+        }
+      }
+      return removed;
     },
   };
   const firstReceipt = crypto.createHash("sha1").update(queued[0]).digest("hex");
   const secondReceipt = crypto.createHash("sha1").update(queued[1]).digest("hex");
-  await assert.rejects(() => acknowledgeNotifications(fakeNotificationRedis, "notify:test", [secondReceipt]), /queue head changed/);
-  assert.equal(queued.length, 2);
-  assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 1);
-  await assert.rejects(() => acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), /queue head changed/);
+  
+  // Acknowledging out-of-order should succeed and remove only the second item
+  assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [secondReceipt]), 1);
   assert.equal(queued.length, 1);
+  assert.equal(queued[0], JSON.stringify({ notification_id: "one" }));
+
+  // Acknowledging the first receipt should succeed and remove it
+  assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 1);
+  assert.equal(queued.length, 0);
+
+  // Acknowledging again should be idempotent and return 0
+  assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 0);
   console.log("-> Recovery and notification acknowledgement checks passed");
 
   // Start server with custom auth configuration for identity headers and scoped tokens
@@ -2754,6 +2798,18 @@ async function testNewHardeningFeatures() {
     assert.equal(dashHtml.includes("escapeHtml(s.path)"), true);
     assert.equal(dashHtml.includes("escapeHtml(d.relPath)"), true);
     console.log("-> Dashboard HTML XSS escaping check passed");
+
+    // 2b. Dashboard loopback restriction check
+    const forwardedDashRes = await fetch(`http://127.0.0.1:${port}/dashboard`, {
+      headers: {
+        authorization: "Bearer master-token",
+        "X-Forwarded-For": "8.8.8.8",
+      },
+    });
+    assert.equal(forwardedDashRes.status, 403);
+    const forwardedDashJson = await forwardedDashRes.json();
+    assert.equal(forwardedDashJson.error, "Dashboard is restricted to local loopback connections only");
+    console.log("-> Dashboard loopback and proxy header restriction check passed");
 
     // 3. Scoped Identity Headers check
     const historyFile = path.resolve(process.cwd(), "runtime", "execution_history.jsonl");

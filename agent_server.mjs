@@ -1163,6 +1163,13 @@ function getDashboardHtml() {
     if (!authToken) {
       return res.status(503).json({ ok: false, error: "Dashboard requires DIZZY_AUTH_TOKEN" });
     }
+    const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
+    const isLoopback = isLoopbackHost(remote);
+    const proxyHeaders = ["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip"];
+    const forwarded = proxyHeaders.some((name) => String(req.headers?.[name] ?? "").trim() !== "");
+    if (!isLoopback || forwarded) {
+      return res.status(403).json({ ok: false, error: "Dashboard is restricted to local loopback connections only" });
+    }
     return next();
   }
 
