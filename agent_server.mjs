@@ -144,9 +144,9 @@ function createProxyExposureGuard({ authToken, deploymentMode, trustedProxies = 
         error: "Forwarded requests are disabled in direct_local mode",
       });
     }
-    if (forwarded && trustedProxies.length > 0) {
+    if (forwarded) {
       const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
-      if (!trustedProxies.includes(remote)) {
+      if (trustedProxies.length === 0 || !trustedProxies.includes(remote)) {
         return res.status(403).json({ ok: false, error: "Forwarded request from untrusted proxy" });
       }
     }
@@ -460,6 +460,16 @@ export async function createRuntime(opts = {}) {
     .split(",")
     .map(normalizeIp)
     .filter(Boolean);
+
+  if (authToken && authToken.length < 32) {
+    console.warn(`[WARNING] DIZZY_AUTH_TOKEN is only ${authToken.length} characters long. A minimum length of 32 characters is highly recommended for security.`);
+  }
+  if (executeToken && executeToken.length < 16) {
+    console.warn(`[WARNING] DIZZY_EXECUTE_TOKEN is only ${executeToken.length} characters long. A minimum length of 16 characters is highly recommended for security.`);
+  }
+  if (notifyToken && notifyToken.length < 16) {
+    console.warn(`[WARNING] DIZZY_NOTIFY_TOKEN is only ${notifyToken.length} characters long. A minimum length of 16 characters is highly recommended for security.`);
+  }
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));

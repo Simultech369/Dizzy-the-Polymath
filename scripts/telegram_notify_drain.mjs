@@ -174,7 +174,7 @@ async function main() {
         const msg = String(e?.message ?? e);
         console.error(`[telegram_drain] send error: ${msg}`);
         appendJsonl(failedLog, { at: nowIso(), error: msg, notification: n });
-        break;
+        continue;
       }
       await sleep(250);
     }

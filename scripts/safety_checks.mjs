@@ -2302,6 +2302,7 @@ async function testForwardedRequestsRequireAuthentication() {
     authToken: "proxy-test-token",
     redisUrl: "",
     deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
   });
   try {
     const allowed = await fetch(`http://127.0.0.1:${authenticated.boundPort}/state?zone=public`, {
@@ -2690,7 +2691,9 @@ async function testNewHardeningFeatures() {
   const queued = [JSON.stringify({ notification_id: "one" }), JSON.stringify({ notification_id: "two" })];
   const fakeNotificationRedis = {
     async eval(_script, { arguments: args }) {
-      const receipts = JSON.parse(args[0]);
+      const receipts = typeof args[0] === "string" && args[0].startsWith("[")
+        ? JSON.parse(args[0])
+        : args;
       const actual = queued.slice(0, receipts.length).map((item) => crypto.createHash("sha1").update(item).digest("hex"));
       if (actual.length !== receipts.length) return -1;
       if (actual.some((receipt, index) => receipt !== receipts[index])) return -2;
