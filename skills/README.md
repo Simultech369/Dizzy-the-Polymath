@@ -25,4 +25,4 @@ Cultural and creative expansion:
 
 Runtime selection is defined in `skills/registry.json`. Review decisions and safety boundaries are recorded in `skills/REVIEW.md`.
 
-Bug-bounty discovery is intentionally not a local skill. Use the bounded discovery automation and update the local `bounty-board.md` notes instead of loading changing bounty-market state into Dizzy's skill prompt.
+Bug-bounty discovery is intentionally not a local skill. Use the bounded discovery automation and update local tracker notes instead of loading changing bounty-market state into Dizzy's skill prompt.

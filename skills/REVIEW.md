@@ -4,7 +4,7 @@ Reviewed: 2026-06-11
 
 Scope: the fifteen existing `skills/*/SKILL.md` files only. The external entries in `context-packs/skill-intake-ledger.md` remain uninstalled candidates.
 
-Bug-bounty discovery is deliberately outside this registry. Its changing sources, claim state, and payment evidence belong in the discovery automation and local `bounty-board.md`, not in an always-reusable skill body.
+Bug-bounty discovery is deliberately outside this registry. Its changing sources, claim state, and payment evidence belong in the discovery automation and local tracker files, not in an always-reusable skill body.
 
 ## Decision
 
