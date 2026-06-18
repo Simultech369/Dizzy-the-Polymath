@@ -38,6 +38,21 @@ For `lockfile`, `runtime_dependency`, `external_contract`, or `provider_migratio
 - rollback path
 - focused fixture, smoke test, or documented reason a live check was not run
 
+## Evidence Fixtures
+
+Evidence for non-`none` impact classifications lives under `dependency-evidence/`.
+
+Each evidence file should include:
+
+- impact classification
+- affected surface
+- verification commands or fixture path
+- result
+- rollback path
+- live-check gap, if a real provider/server/API was not contacted
+
+`scripts/dependency_api_drift_check.mjs` verifies that every non-`none` `Dependency/API impact:` entry in `EXPERIMENT_RECONCILIATION.md` includes an `Evidence: \`dependency-evidence/...\`` pointer and that the referenced file exists.
+
 ## Credential Handling
 
 Provider keys must come from environment variables or an approved local secret manager. Do not pass API keys as command-line arguments to review or provider scripts, because shell history, process lists, terminal capture, and logs can retain them.
@@ -51,4 +66,3 @@ Every future promotion entry in `EXPERIMENT_RECONCILIATION.md` should include:
 `Dependency/API impact: none | lockfile | runtime_dependency | external_contract | provider_migration`
 
 If the impact is not `none`, the promotion entry should point to the evidence used to verify the transition.
-

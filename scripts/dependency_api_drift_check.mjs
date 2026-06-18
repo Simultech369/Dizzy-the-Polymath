@@ -12,6 +12,57 @@ function requireText(file, text, needle, issues) {
   if (!text.includes(needle)) issues.push(`${file}: missing '${needle}'`);
 }
 
+function validateImpactEvidence(reconciliation, issues) {
+  const allowed = new Set(["none", "lockfile", "runtime_dependency", "external_contract", "provider_migration"]);
+  const lines = reconciliation.split(/\r?\n/);
+
+  for (const [index, line] of lines.entries()) {
+    if (!line.includes("Dependency/API impact:")) continue;
+
+    const impactText = line.split("Dependency/API impact:", 2)[1]?.split("Evidence:", 1)[0] || "";
+    const impacts = impactText
+      .replace(/[().]/g, " ")
+      .split(/[,;]/)
+      .map((value) => value.trim().split(/\s+/)[0])
+      .filter(Boolean);
+
+    if (!impacts.length) {
+      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: missing impact classification after Dependency/API impact.`);
+      continue;
+    }
+
+    for (const impact of impacts) {
+      if (!allowed.has(impact)) {
+        issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: unknown dependency/API impact '${impact}'.`);
+      }
+    }
+
+    if (impacts.every((impact) => impact === "none")) continue;
+
+    const evidenceMatches = Array.from(line.matchAll(/Evidence:\s*`([^`]+)`/g));
+    if (!evidenceMatches.length) {
+      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: non-none dependency/API impact requires Evidence: \`dependency-evidence/...\`.`);
+      continue;
+    }
+
+    for (const match of evidenceMatches) {
+      const rel = match[1];
+      if (!rel.startsWith("dependency-evidence/")) {
+        issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: evidence path must live under dependency-evidence/: ${rel}`);
+        continue;
+      }
+      const evidenceText = read(rel);
+      if (!evidenceText) {
+        issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: evidence file missing: ${rel}`);
+        continue;
+      }
+      for (const heading of ["Impact Classification", "Affected Surface", "Verification", "Result", "Rollback Path", "Live-Check Gap"]) {
+        requireText(rel, evidenceText, `## ${heading}`, issues);
+      }
+    }
+  }
+}
+
 function main() {
   const issues = [];
   const warnings = [];
@@ -60,6 +111,8 @@ function main() {
   requireText("README.md", readme, "check:dependencies", issues);
   requireText("PRODUCTION_READINESS.md", readiness, "Dependency and external API drift", issues);
   requireText("EXPERIMENT_RECONCILIATION.md", reconciliation, "Dependency/API impact:", issues);
+  requireText("DEPENDENCY_GOVERNANCE.md", governance, "dependency-evidence/", issues);
+  validateImpactEvidence(reconciliation, issues);
 
   if (/add_argument\(\s*["']--key["']/.test(openrouter)) {
     issues.push("scripts/openrouter_review.py still accepts --key; use env vars instead.");
@@ -90,7 +143,7 @@ function main() {
   }
 
   console.log("[green] Dependency/API drift gate");
-  console.log("- Dependency matrix, credential rule, promotion impact classification, and CI wiring are present.");
+  console.log("- Dependency matrix, credential rule, promotion impact evidence, and CI wiring are present.");
   if (warnings.length) {
     console.log("");
     console.log("[yellow] Dependency/API drift warnings");
