@@ -190,6 +190,7 @@ export function restoreRuntime({
   if (hadRuntime) fs.renameSync(target, recoveryPath);
   try {
     copyRuntime(source, target, { recursive: true, errorOnExist: true, force: false });
+    verifySnapshotManifest(target);
   } catch (error) {
     fs.rmSync(target, { recursive: true, force: true });
     if (hadRuntime) fs.renameSync(recoveryPath, target);

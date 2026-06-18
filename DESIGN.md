@@ -142,7 +142,7 @@ Consequences:
 Decision:
 - Use a simple, auditable job lifecycle: `queued -> running -> succeeded | retry_scheduled | dead`.
 - Preserve an event trail via DLQ JSONL + Redis fields; provide a per-channel notification on terminal failure.
-- Read notifications non-destructively and acknowledge only an exact observed queue prefix after downstream delivery succeeds.
+- Read notifications non-destructively and acknowledge exact observed receipts after downstream delivery succeeds (out-of-order deletion is supported to prevent duplicate deliveries, with one receipt removing at most one matching notification).
 - Claim ready jobs into a processing list and acknowledge them only after a durable terminal or retry transition.
 - On worker restart, requeue interrupted `READ` jobs; fail interrupted non-READ jobs closed because their external effect is unknown.
 - Record upload and delivery intent before external calls; if completion evidence is missing, block automatic replay and require operator reconciliation.
@@ -782,7 +782,7 @@ Consequences:
 - Notification behavior:
   - Terminal failures: queue emits `kind=job_dead` -> `/notify/:channel` -> Telegram notify drain.
   - Polling is non-destructive; the drain acknowledges exact receipts only after successful Telegram delivery, so failures may duplicate but do not silently discard notifications.
-  - Acknowledgment is exact-prefix based: later notifications are not removed ahead of a failed head item. This preserves ordered at-least-once delivery over out-of-order deletion.
+  - Acknowledgment is out-of-order exact-receipt based to prevent head-of-line blocking: failed items remain in the queue while successfully delivered later items are removed. One submitted receipt removes at most one matching entry to prevent identical duplicate notification loss, ensuring at-least-once delivery where duplicate delivery is possible.
   - Tool results: optional polling via `TELEGRAM_POLL_JOB_RESULTS=1` in the relay.
 
 ### 3.2 Queue / Jobs

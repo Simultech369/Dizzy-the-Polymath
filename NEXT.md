@@ -16,7 +16,12 @@ Rules:
 
 ## Work Queue
 
-(none)
+- W-0044: Enforce fail-closed safety for expired SQLite WRITE jobs in `claimNextJob`.
+- W-0045: Restrict SQLite transactions to fail-fast on nested transaction calls.
+- W-0046: Make dead-job DLQ/notification side-effects recovery idempotent via `dlq_enqueued_at_ms` and `death_notified_at_ms` tracking.
+- W-0047: Implement post-copy restore validation (`verifySnapshotManifest`) to trigger rollback on copy failure or hash mismatch.
+- W-0048: Add multi-connection SQLite WAL contention and duplicate notification acknowledgement unit tests.
+- W-0049: Document at-least-once out-of-order notification ack semantics and duplicate risk.
 
 ---
 

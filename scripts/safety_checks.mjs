@@ -1281,6 +1281,37 @@ async function testClaimRecoveryAfterRedisFailures() {
   assert.equal(mutationRedis.notify.length, 1);
   assert.equal(JSON.parse(mutationRedis.notify[0]).recovered_after_worker_interruption, true);
   assert.deepEqual(mutationRedis.processing, []);
+
+  // Test idempotent recovery of dead job side-effects
+  const deadRecoveryJobs = new Map([[keys.job("dead-crash-interrupted"), {
+    ...baseJob("dead-crash-interrupted", "WRITE"),
+    status: "dead",
+    dlq_enqueued_at_ms: "",
+    death_notified_at_ms: "",
+  }]]);
+  const deadRecoveryRedis = makeFakeRedisForQueue(deadRecoveryJobs);
+  deadRecoveryRedis.processing.push("dead-crash-interrupted");
+
+  // First recovery run should push to DLQ and notify, setting the timestamps
+  const deadRecoveryResult1 = await recoverClaimedJobs(deadRecoveryRedis, keys);
+  assert.equal(deadRecoveryResult1.cleared, 1);
+  assert.equal(deadRecoveryRedis.dlq.includes("dead-crash-interrupted"), true);
+  assert.equal(deadRecoveryRedis.notify.length, 1);
+  
+  const updatedJob = deadRecoveryJobs.get(keys.job("dead-crash-interrupted"));
+  assert.ok(updatedJob.dlq_enqueued_at_ms.length > 0);
+  assert.ok(updatedJob.death_notified_at_ms.length > 0);
+
+  // Clear simulated side effect buffers for the second run check
+  deadRecoveryRedis.dlq = [];
+  deadRecoveryRedis.notify = [];
+  deadRecoveryRedis.processing.push("dead-crash-interrupted"); // re-queue processing claim
+
+  // Second recovery run should NOT push to DLQ or notify again (idempotent!)
+  const deadRecoveryResult2 = await recoverClaimedJobs(deadRecoveryRedis, keys);
+  assert.equal(deadRecoveryResult2.cleared, 1);
+  assert.equal(deadRecoveryRedis.dlq.includes("dead-crash-interrupted"), false);
+  assert.equal(deadRecoveryRedis.notify.length, 0);
 }
 
 await testClaimRecoveryAfterRedisFailures();
@@ -1375,6 +1406,42 @@ async function testSqliteOperationalStore() {
     const checkpoint = store.checkpoint("TRUNCATE");
     assert.equal(typeof checkpoint.busy, "number");
 
+    // Test nested transactions fail-fast
+    assert.throws(() => {
+      store.transaction(() => {
+        store.transaction(() => {});
+      });
+    }, /Nested transactions are not supported/);
+
+    // Test expired WRITE job lease safety:
+    // Clean up queued sqlite-job-two first
+    store.transitionJob({
+      jobId: "sqlite-job-two",
+      fromStatus: "queued",
+      toStatus: "dead",
+      reason: "cleanup",
+      idempotencyKey: "cleanup-sqlite-job-two",
+    });
+
+    store.createJob({ jobId: "expired-write-job", effect: "WRITE" });
+    store.transitionJob({
+      jobId: "expired-write-job",
+      fromStatus: "queued",
+      toStatus: "running",
+      reason: "claimed for expiration test",
+    });
+    const pastTime = new Date(Date.now() - 5000).toISOString();
+    store.db.prepare("UPDATE jobs SET claim_expires_at = ? WHERE job_id = ?").run(pastTime, "expired-write-job");
+
+    // Calling claimNextJob should mark it dead and return null
+    const claimedJob = store.claimNextJob({ workerId: "worker-recovery-test", leaseMs: 10000 });
+    assert.equal(claimedJob, null);
+    const deadWriteJob = store.getJob("expired-write-job");
+    assert.equal(deadWriteJob.status, "dead");
+    const lastEvent = store.db.prepare("SELECT * FROM job_events WHERE job_id='expired-write-job' ORDER BY created_at DESC LIMIT 1").get();
+    assert.equal(lastEvent.to_status, "dead");
+    assert.ok(lastEvent.reason.includes("replay blocked"));
+
     // SQLite multi-worker concurrency safety check
     // Create 100 queued jobs
     for (let i = 0; i < 100; i++) {
@@ -1384,13 +1451,16 @@ async function testSqliteOperationalStore() {
     const workersCount = 5;
     const claims = Array(workersCount).fill(0).map(() => []);
     const workerPromises = [];
+    const workerStores = [];
 
     for (let w = 0; w < workersCount; w++) {
+      const wStore = openOperationalStore(dbPath);
+      workerStores.push(wStore);
       workerPromises.push((async () => {
         const workerId = `worker-${w}`;
         while (true) {
           await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 3)));
-          const job = store.claimNextJob({ workerId, leaseMs: 10000 });
+          const job = wStore.claimNextJob({ workerId, leaseMs: 10000 });
           if (!job) break;
           claims[w].push(job.job_id);
         }
@@ -1398,6 +1468,9 @@ async function testSqliteOperationalStore() {
     }
 
     await Promise.all(workerPromises);
+    for (const wStore of workerStores) {
+      wStore.close();
+    }
 
     const allClaimedIds = claims.flat().filter((id) => id.startsWith("concur-job-"));
     assert.equal(allClaimedIds.length, 100);
@@ -2722,6 +2795,21 @@ async function testNewHardeningFeatures() {
     },
   }), /injected restore copy failure/);
   assert.equal(fs.readFileSync(path.join(liveRuntime, "rollback.txt"), "utf8"), "preserve");
+
+  // Test post-copy validation failure (e.g. target manifest mismatch) rolls back
+  fs.writeFileSync(path.join(liveRuntime, "rollback.txt"), "preserve2", "utf8");
+  assert.throws(() => restoreRuntime({
+    sourceDir: snapshot,
+    runtimeDir: liveRuntime,
+    recoveryRoot: backups,
+    copyRuntime(src, dest, opts) {
+      fs.cpSync(src, dest, opts);
+      // corrupt a file in target after copy completes, but before verifySnapshotManifest runs
+      fs.writeFileSync(path.join(dest, "events.jsonl"), "corrupt-post-copy", "utf8");
+    }
+  }), /hash mismatch/);
+  assert.equal(fs.readFileSync(path.join(liveRuntime, "rollback.txt"), "utf8"), "preserve2");
+
   fs.rmSync(recoveryRoot, { recursive: true, force: true });
 
   const queued = [JSON.stringify({ notification_id: "one" }), JSON.stringify({ notification_id: "two" })];
@@ -2752,6 +2840,30 @@ async function testNewHardeningFeatures() {
 
   // Acknowledging again should be idempotent and return 0
   assert.equal(await acknowledgeNotifications(fakeNotificationRedis, "notify:test", [firstReceipt]), 0);
+
+  // Test duplicate identical notification removal safety
+  const duplicates = [JSON.stringify({ notification_id: "dup" }), JSON.stringify({ notification_id: "dup" })];
+  const dupReceipt = crypto.createHash("sha1").update(duplicates[0]).digest("hex");
+  const fakeDupRedis = {
+    async eval(_script, { arguments: receipts }) {
+      let removed = 0;
+      for (const receipt of receipts) {
+        const idx = duplicates.findIndex((item) => crypto.createHash("sha1").update(item).digest("hex") === receipt);
+        if (idx !== -1) {
+          duplicates.splice(idx, 1);
+          removed++;
+        }
+      }
+      return removed;
+    },
+  };
+  // Acknowledging once should only remove one duplicate, leaving the second one
+  assert.equal(await acknowledgeNotifications(fakeDupRedis, "notify:test", [dupReceipt]), 1);
+  assert.equal(duplicates.length, 1);
+  // Acknowledging it again removes the second one
+  assert.equal(await acknowledgeNotifications(fakeDupRedis, "notify:test", [dupReceipt]), 1);
+  assert.equal(duplicates.length, 0);
+  console.log("-> Duplicate notification exact removal checks passed");
   console.log("-> Recovery and notification acknowledgement checks passed");
 
   // Start server with custom auth configuration for identity headers and scoped tokens
