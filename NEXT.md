@@ -16,17 +16,18 @@ Rules:
 
 ## Work Queue
 
-- W-0044: Enforce fail-closed safety for expired SQLite WRITE jobs in `claimNextJob`.
-- W-0045: Restrict SQLite transactions to fail-fast on nested transaction calls.
-- W-0046: Make dead-job DLQ/notification side-effects recovery idempotent via `dlq_enqueued_at_ms` and `death_notified_at_ms` tracking.
-- W-0047: Implement post-copy restore validation (`verifySnapshotManifest`) to trigger rollback on copy failure or hash mismatch.
-- W-0048: Add multi-connection SQLite WAL contention and duplicate notification acknowledgement unit tests.
-- W-0049: Document at-least-once out-of-order notification ack semantics and duplicate risk.
+(none)
 
 ---
 
 ## Completed
 
+- W-0044: Enforced fail-closed safety for expired SQLite WRITE jobs in `claimNextJob`.
+- W-0045: Restricted SQLite transactions to fail-fast on nested transaction calls.
+- W-0046: Added marker-based idempotent recovery for dead-job DLQ/notification side effects via `dlq_enqueued_at_ms` and `death_notified_at_ms`; repeated recovery after markers persist does not re-run those side effects.
+- W-0047: Added post-copy restore validation (`verifySnapshotManifest`) so copy failure or target hash mismatch triggers rollback.
+- W-0048: Added multi-connection SQLite WAL contention and duplicate notification acknowledgement unit tests.
+- W-0049: Documented at-least-once out-of-order notification ack semantics and duplicate delivery risk.
 - W-0036: Evaluated a bounded SQLite operational sidecar after queue recovery and multi-record conversation ordering exposed concrete JSONL limits; kept it non-authoritative pending independent review (D-0036).
 - Strengthened the logical untrusted-context boundary by introducing `lib/janitor.mjs` to strip/neutralize instruction triggers, escape HTML/XML tag markers, and wrap untrusted inputs in a strict XML envelope.
 - Added checked repository revision, scanner version, check timestamp, findings count, and stable finding IDs to drift scans, with safety tests checking simulated overrides.

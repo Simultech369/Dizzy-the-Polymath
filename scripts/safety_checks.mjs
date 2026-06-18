@@ -1282,7 +1282,7 @@ async function testClaimRecoveryAfterRedisFailures() {
   assert.equal(JSON.parse(mutationRedis.notify[0]).recovered_after_worker_interruption, true);
   assert.deepEqual(mutationRedis.processing, []);
 
-  // Test idempotent recovery of dead job side-effects
+  // Test marker-based idempotent recovery of dead job side-effects
   const deadRecoveryJobs = new Map([[keys.job("dead-crash-interrupted"), {
     ...baseJob("dead-crash-interrupted", "WRITE"),
     status: "dead",
@@ -1307,7 +1307,7 @@ async function testClaimRecoveryAfterRedisFailures() {
   deadRecoveryRedis.notify = [];
   deadRecoveryRedis.processing.push("dead-crash-interrupted"); // re-queue processing claim
 
-  // Second recovery run should NOT push to DLQ or notify again (idempotent!)
+  // Second recovery run should NOT push to DLQ or notify again after markers persist.
   const deadRecoveryResult2 = await recoverClaimedJobs(deadRecoveryRedis, keys);
   assert.equal(deadRecoveryResult2.cleared, 1);
   assert.equal(deadRecoveryRedis.dlq.includes("dead-crash-interrupted"), false);
@@ -1413,34 +1413,34 @@ async function testSqliteOperationalStore() {
       });
     }, /Nested transactions are not supported/);
 
-    // Test expired WRITE job lease safety:
-    // Clean up queued sqlite-job-two first
-    store.transitionJob({
-      jobId: "sqlite-job-two",
-      fromStatus: "queued",
-      toStatus: "dead",
-      reason: "cleanup",
-      idempotencyKey: "cleanup-sqlite-job-two",
-    });
+    // Test expired WRITE job lease safety in an isolated database so previous
+    // job-state assertions cannot affect claim ordering.
+    const expiredWriteDbPath = path.resolve(process.cwd(), "runtime", "test-expired-write-operational-store.sqlite");
+    for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${expiredWriteDbPath}${suffix}`, { force: true });
+    const expiredWriteStore = openOperationalStore(expiredWriteDbPath);
+    try {
+      expiredWriteStore.createJob({ jobId: "expired-write-job", effect: "WRITE" });
+      expiredWriteStore.transitionJob({
+        jobId: "expired-write-job",
+        fromStatus: "queued",
+        toStatus: "running",
+        reason: "claimed for expiration test",
+      });
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      expiredWriteStore.db.prepare("UPDATE jobs SET claim_expires_at = ? WHERE job_id = ?").run(pastTime, "expired-write-job");
 
-    store.createJob({ jobId: "expired-write-job", effect: "WRITE" });
-    store.transitionJob({
-      jobId: "expired-write-job",
-      fromStatus: "queued",
-      toStatus: "running",
-      reason: "claimed for expiration test",
-    });
-    const pastTime = new Date(Date.now() - 5000).toISOString();
-    store.db.prepare("UPDATE jobs SET claim_expires_at = ? WHERE job_id = ?").run(pastTime, "expired-write-job");
-
-    // Calling claimNextJob should mark it dead and return null
-    const claimedJob = store.claimNextJob({ workerId: "worker-recovery-test", leaseMs: 10000 });
-    assert.equal(claimedJob, null);
-    const deadWriteJob = store.getJob("expired-write-job");
-    assert.equal(deadWriteJob.status, "dead");
-    const lastEvent = store.db.prepare("SELECT * FROM job_events WHERE job_id='expired-write-job' ORDER BY created_at DESC LIMIT 1").get();
-    assert.equal(lastEvent.to_status, "dead");
-    assert.ok(lastEvent.reason.includes("replay blocked"));
+      // Calling claimNextJob should mark the expired WRITE job dead and return null.
+      const claimedJob = expiredWriteStore.claimNextJob({ workerId: "worker-recovery-test", leaseMs: 10000 });
+      assert.equal(claimedJob, null);
+      const deadWriteJob = expiredWriteStore.getJob("expired-write-job");
+      assert.equal(deadWriteJob.status, "dead");
+      const lastEvent = expiredWriteStore.db.prepare("SELECT * FROM job_events WHERE job_id='expired-write-job' ORDER BY id DESC LIMIT 1").get();
+      assert.equal(lastEvent.to_status, "dead");
+      assert.ok(lastEvent.reason.includes("replay blocked"));
+    } finally {
+      expiredWriteStore.close();
+      for (const suffix of ["", "-wal", "-shm"]) fs.rmSync(`${expiredWriteDbPath}${suffix}`, { force: true });
+    }
 
     // SQLite multi-worker concurrency safety check
     // Create 100 queued jobs
