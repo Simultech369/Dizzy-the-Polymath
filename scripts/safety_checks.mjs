@@ -2943,6 +2943,26 @@ async function testDashboardFailureIndependence() {
   } finally {
     await failedRuntime.stop();
   }
+
+  const missingAssetRuntime = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "dashboard-missing-asset-test-token",
+    redisUrl: "",
+    dashboardEnabled: true,
+    dashboardAssetPath: path.resolve(process.cwd(), "runtime", "missing-dashboard-asset.html"),
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${missingAssetRuntime.boundPort}`;
+    assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
+    const unavailable = await fetch(`${baseUrl}/dashboard`, {
+      headers: { authorization: "Bearer dashboard-missing-asset-test-token" },
+    });
+    assert.equal(unavailable.status, 503);
+    assert.equal((await unavailable.json()).error, "Dashboard asset unavailable");
+  } finally {
+    await missingAssetRuntime.stop();
+  }
 }
 
 await testDashboardFailureIndependence();
@@ -3332,6 +3352,9 @@ async function testNewHardeningFeatures() {
     const dashHtml = await dashRes.text();
     assert.equal(dashHtml.includes("escapeHtml(s.path)"), true);
     assert.equal(dashHtml.includes("escapeHtml(d.relPath)"), true);
+    assert.equal(dashHtml.includes("fonts.googleapis.com"), false);
+    assert.equal(dashHtml.includes("placehold.co"), false);
+    assert.match(dashRes.headers.get("content-security-policy") || "", /default-src 'self'/);
     console.log("-> Dashboard HTML XSS escaping check passed");
 
     // 2b. Dashboard loopback restriction check

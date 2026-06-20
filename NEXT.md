@@ -22,6 +22,7 @@ Rules:
 
 ## Completed
 
+- W-0056: Extracted the dashboard renderer into local-only `dashboard/index.html`, removed third-party font and placeholder-image requests, added a restrictive content security policy, and proved missing assets cannot break core health.
 - W-0055: Extracted dashboard guards and read-only data/query routes into `lib/dashboard.mjs`; disabled mode avoids loading the module, initialization failure cannot break core health, and paid/public or outside-contact zones are denied.
 - W-0054: Added an operator-run baseline-versus-three-hypothesis evaluation harness with measurable insight, distinctness, provenance, and decision-record thresholds; it performs no model calls or autonomous writes.
 - W-0053: Raised the supported Node floor to 20.18.1, matching the installed Cheerio/Undici engine contract and general CI.
