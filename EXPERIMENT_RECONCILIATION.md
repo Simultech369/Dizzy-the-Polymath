@@ -10,7 +10,7 @@ This file records reconciliation intent. It does not change runtime behavior, co
 
 - Stable branch: `main`
 - Experimental branch: `experiments`
-- Experimental implementation tip reviewed by this note: `5a981fe`
+- Experimental baseline reviewed before promotion batch: `6e77928e7a4a8b0d8facfba4835f11590c23ffb4`
 - The experimental branch must not be merged wholesale.
 - Experimental work remains non-authoritative until promoted through a focused commit with tests.
 - Keep exactly two active branches: `main` and `experiments`. Preserve obsolete unique history as archive tags rather than active branches.
@@ -82,6 +82,7 @@ Evidence still lacking:
 | W-0043 Refinement preflight | Integrated on `experiments` | Live prompt and operator guidance define tested skip, proceed, and clarify paths without adding a planning subsystem |
 | Queue Enqueue Idempotency Key | Integrated on `main` | Atomic Redis Lua script returning `[jobId, created]`, route/actor scoping, header validation (`^[!-~]{1,128}$`), JS positive integer expiry check, tested in `safety_checks.mjs` and verified with `maintain`. Dependency/API impact: runtime_dependency (redis). Evidence: `dependency-evidence/2026-06-17-queue-enqueue-idempotency-key.md`. |
 | Dependency/API drift gate | Integrated on `experiments` | `DEPENDENCY_GOVERNANCE.md`, `scripts/dependency_api_drift_check.mjs`, CI, and `maintain` require dependency/API impact classification and env-only provider keys for OpenRouter review. Dependency/API impact: external_contract (OpenRouter review utility), runtime_dependency (maintenance/CI gate). Evidence: `dependency-evidence/2026-06-17-dependency-api-drift-gate.md`. |
+| Runtime recovery and review-tool hardening | Integrated on `experiments` | Dead-job notification enqueue and marker persistence use one idempotent Redis Lua operation; SQLite creation replays matching idempotency keys; CI retains Node 20 coverage and adds Node 22 SQLite plus explicit Python setup; custom review destinations require HTTPS and provider-specific credentials. Dependency/API impact: runtime_dependency (Redis and CI runtimes); external_contract (OpenRouter-compatible review destinations). Evidence: `dependency-evidence/2026-06-20-runtime-recovery-review-hardening.md`. |
 
 ## HEARTBEAT.md Retirement Map
 

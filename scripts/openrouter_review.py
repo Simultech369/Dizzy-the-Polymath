@@ -19,6 +19,7 @@ import json
 import urllib.request
 import urllib.error
 import argparse
+from urllib.parse import urlparse
 
 # Default files to read based on context-packs/repo-review.md
 DEFAULT_FILES = [
@@ -43,8 +44,7 @@ DEFAULT_FILES = [
     "lib/sqlite_operational_store.mjs",
     "scripts/telegram_notify_drain.mjs",
     "scripts/telegram_relay.mjs",
-    "scripts/backup_restore.mjs",
-    "state.json"
+    "scripts/backup_restore.mjs"
 ]
 
 def load_env(repo_root):
@@ -71,6 +71,7 @@ def main():
     parser.add_argument("--add-file", action="append", default=[], help="Add specific files to the review context")
     parser.add_argument("--exclude-file", action="append", default=[], help="Exclude files from the default list")
     parser.add_argument("--list-files", action="store_true", help="List files that will be included in the context and exit")
+    parser.add_argument("--force", action="store_true", help="Force upload to non-OpenRouter URLs without prompting")
 
     args = parser.parse_args()
 
@@ -101,11 +102,72 @@ def main():
             print(f"  - {f}")
         sys.exit(0)
 
-    # Get API key
-    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_COMPAT_API_KEY")
+    # Destination URL security check
+    try:
+        parsed_url = urlparse(args.url)
+        scheme = (parsed_url.scheme or "").lower()
+        hostname = parsed_url.hostname or ""
+        username = parsed_url.username
+        password = parsed_url.password
+    except Exception as e:
+        print(f"Error: Malformed destination URL '{args.url}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # 1. Unconditional Rejections (non-HTTPS, user-info, malformed/empty host)
+    if not hostname:
+        print(f"Error: Invalid or missing host in destination URL '{args.url}'", file=sys.stderr)
+        sys.exit(1)
+
+    if scheme != "https":
+        print(f"Error: Transport security violation. Destination URL must use HTTPS: '{args.url}'", file=sys.stderr)
+        sys.exit(1)
+
+    if username is not None or password is not None:
+        print(f"Error: User-info credentials detected in destination URL. This is blocked for security.", file=sys.stderr)
+        sys.exit(1)
+
+    is_openrouter = hostname == "openrouter.ai" or hostname.endswith(".openrouter.ai")
+
+    # 2. Key Resolution and Allowlisting
+    if is_openrouter:
+        api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_COMPAT_API_KEY")
+    else:
+        # Non-OpenRouter host: restrict to OPENAI_COMPAT_API_KEY only!
+        api_key = os.environ.get("OPENAI_COMPAT_API_KEY")
+        if not api_key:
+            if os.environ.get("OPENROUTER_API_KEY"):
+                print("Error: For non-OpenRouter destinations, only OPENAI_COMPAT_API_KEY is allowed.", file=sys.stderr)
+                print("OPENROUTER_API_KEY cannot be sent to a custom endpoint.", file=sys.stderr)
+                sys.exit(1)
+
+        print(f"\n[SECURITY WARNING] Destination URL host '{hostname}' is not an openrouter.ai host.", file=sys.stderr)
+        print("This will upload the repository context and send your OPENAI_COMPAT_API_KEY to this custom endpoint.", file=sys.stderr)
+        print("\n::warning::Files to be uploaded:", file=sys.stderr)
+        for f in valid_files:
+            print(f"  - {f}", file=sys.stderr)
+        print(f"\nTarget URL: {args.url}\n", file=sys.stderr)
+
+        if not args.force:
+            if sys.stdin.isatty():
+                try:
+                    choice = input("Are you sure you want to proceed? (y/N): ").strip().lower()
+                    if choice != 'y':
+                        print("Execution aborted by operator.", file=sys.stderr)
+                        sys.exit(1)
+                except KeyboardInterrupt:
+                    print("\nExecution aborted.", file=sys.stderr)
+                    sys.exit(1)
+            else:
+                print("Error: Non-interactive execution blocked for non-OpenRouter destination URL.", file=sys.stderr)
+                print("Use the --force option to bypass this check.", file=sys.stderr)
+                sys.exit(1)
+
     if not api_key:
         print("Error: No API key found.", file=sys.stderr)
-        print("Please set OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY in the environment.", file=sys.stderr)
+        if is_openrouter:
+            print("Please set OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY in the environment.", file=sys.stderr)
+        else:
+            print("Please set OPENAI_COMPAT_API_KEY in the environment.", file=sys.stderr)
         print("Do not pass API keys as command-line arguments; they can linger in shell/process history.", file=sys.stderr)
         sys.exit(1)
 

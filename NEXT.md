@@ -24,7 +24,7 @@ Rules:
 
 - W-0044: Enforced fail-closed safety for expired SQLite WRITE jobs in `claimNextJob`.
 - W-0045: Restricted SQLite transactions to fail-fast on nested transaction calls.
-- W-0046: Added marker-based idempotent recovery for dead-job DLQ/notification side effects via `dlq_enqueued_at_ms` and `death_notified_at_ms`; repeated recovery after markers persist does not re-run those side effects.
+- W-0046: Added marker-based dead-job DLQ recovery and atomic Redis notification enqueue/marker persistence via `dlq_enqueued_at_ms` and `death_notified_at_ms`; ambiguous notification-enqueue responses can be retried without adding another queue item, while downstream delivery remains at-least-once.
 - W-0047: Added post-copy restore validation (`verifySnapshotManifest`) so copy failure or target hash mismatch triggers rollback.
 - W-0048: Added multi-connection SQLite WAL contention and duplicate notification acknowledgement unit tests.
 - W-0049: Documented at-least-once out-of-order notification ack semantics and duplicate delivery risk.

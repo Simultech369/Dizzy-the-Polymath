@@ -11,12 +11,21 @@
   <img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/Simultech369/Dizzy-the-Polymath/checks.yml?branch=main&style=for-the-badge&label=checks">
   <img alt="License" src="https://img.shields.io/github/license/Simultech369/Dizzy-the-Polymath?style=for-the-badge">
   <img alt="Local-first runtime" src="https://img.shields.io/badge/runtime-local--first-111827?style=for-the-badge">
-  <img alt="Trust zones enforced" src="https://img.shields.io/badge/trust%20zones-enforced-2563eb?style=for-the-badge">
+  <img alt="Trust zones locally tested" src="https://img.shields.io/badge/trust%20zones-locally%20tested-2563eb?style=for-the-badge">
   <img alt="Bounded memory" src="https://img.shields.io/badge/memory-bounded-7c3aed?style=for-the-badge">
   <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
 </p>
 
 </div>
+
+### Repository Structure and Authority
+
+| Layer | Path / Files | Authority Status |
+| --- | --- | --- |
+| **Runtime** | `agent_server.mjs`, `worker.mjs`, `lib/` | Active, tested execution layer |
+| **Experimental** | `lib/sqlite_operational_store.mjs` | Retained as experimental sidecar, Node 22+ tested |
+| **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
+| **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
 
 Dizzy is a local-first continuity-and-judgment runtime. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
 
@@ -58,7 +67,7 @@ Install dependencies:
 npm install
 ```
 
-The main runtime supports Node.js 18+. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
+The main runtime supports Node.js 18+. The full safety suite also requires Python 3 for the OpenRouter review-tool checks. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
 
 Run the server:
 

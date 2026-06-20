@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { ethers } from "ethers";
 
 import { validateMechanismSieve } from "../lib/sieve_validator.mjs";
@@ -921,6 +921,14 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
     async zRangeByScore() { return []; },
     async zRem() {},
     async eval(_script, options) {
+      if (options.keys.length === 2 && String(options.keys[0]).includes("notify")) {
+        const [notifyKey, jobKey] = options.keys;
+        const current = jobMap.get(jobKey) ?? {};
+        if (current.death_notified_at_ms) return 0;
+        await this.rPush(notifyKey, options.arguments[0]);
+        await this.hSet(jobKey, { death_notified_at_ms: options.arguments[1] });
+        return 1;
+      }
       if (options.keys.length === 1) {
         const current = jobMap.get(options.keys[0]) ?? {};
         if (current.claim_owner !== options.arguments[0]) return 0;
@@ -1242,7 +1250,7 @@ async function testClaimRecoveryAfterRedisFailures() {
   const activeRedis = makeFakeRedisForQueue(activeJobs);
   activeRedis.processing.push("active-claim");
   const activeRecovery = await recoverClaimedJobs(activeRedis, keys, { nowMs: 5000 });
-  assert.deepEqual(activeRecovery, { recovered: 0, dead: 0, cleared: 0 });
+  assert.deepEqual(activeRecovery, { recovered: 0, dead: 0, cleared: 0, notification_pending: 0 });
   assert.deepEqual(activeRedis.processing, ["active-claim"]);
   assert.equal(activeJobs.get(keys.job("active-claim")).status, "running");
 
@@ -1314,7 +1322,212 @@ async function testClaimRecoveryAfterRedisFailures() {
   assert.equal(deadRecoveryRedis.notify.length, 0);
 }
 
+async function testDeadJobNotificationResilience() {
+  const oldDlqDir = process.env.DIZZY_DLQ_DIR;
+  const testDlqDir = path.resolve(process.cwd(), "runtime", "test-dlq-resilience");
+  process.env.DIZZY_DLQ_DIR = testDlqDir;
+  fs.rmSync(testDlqDir, { recursive: true, force: true });
+
+  try {
+    const keys = {
+      ready: "ready",
+      processing: "processing",
+      delayed: "delayed",
+      dlq: "dlq",
+      notify: () => "notify:telegram",
+      job: (id) => `job:${id}`,
+    };
+
+    // --- Scenario 1: Worker notification failure retains claim ---
+    const jobMap1 = new Map([
+      [keys.job("job-worker-fail"), {
+        id: "job-worker-fail",
+        status: "queued",
+        type: "tool",
+        tool: "http_get",
+        effect: "READ",
+        attempts: "3", // will hit max_attempts = 4 on run
+        max_attempts: "4",
+        retry_count: "3",
+        max_retries: "3",
+        payload_json: "{}",
+        notify_json: JSON.stringify({ channel: "telegram" }),
+        started_at_ms: "",
+      }],
+    ]);
+    const redis1 = makeFakeRedisForQueue(jobMap1, ["job-worker-fail"]);
+    const originalEval1 = redis1.eval;
+    redis1.eval = async function (script, options) {
+      if (options.keys.length === 2 && String(options.keys[0]).includes("notify")) {
+        throw new Error("Simulated notification failure");
+      }
+      return originalEval1.call(this, script, options);
+    };
+
+    const cycleResult = await runWorkerCycle(redis1, keys, async () => {
+      throw new Error("execution failure forcing death");
+    });
+    assert.equal(cycleResult.kind, "dead");
+    assert.deepEqual(redis1.processing, ["job-worker-fail"]);
+    assert.equal(jobMap1.get(keys.job("job-worker-fail")).status, "dead");
+    assert.equal(jobMap1.get(keys.job("job-worker-fail")).death_notified_at_ms, "");
+
+    // --- Scenario 2: Recovery notification failure still retains claim ---
+    const jobMap2 = new Map([
+      [keys.job("job-recovery-fail"), {
+        id: "job-recovery-fail",
+        status: "dead",
+        type: "tool",
+        tool: "http_get",
+        effect: "WRITE",
+        attempts: "4",
+        max_attempts: "4",
+        retry_count: "3",
+        max_retries: "3",
+        payload_json: "{}",
+        notify_json: JSON.stringify({ channel: "telegram" }),
+        started_at_ms: "1000",
+        dlq_enqueued_at_ms: "2000",
+        death_notified_at_ms: "",
+      }],
+    ]);
+    const redis2 = makeFakeRedisForQueue(jobMap2);
+    redis2.processing.push("job-recovery-fail");
+    const originalEval2 = redis2.eval;
+    redis2.eval = async function (script, options) {
+      if (options.keys.length === 2 && String(options.keys[0]).includes("notify")) {
+        throw new Error("Simulated notification failure in recovery");
+      }
+      return originalEval2.call(this, script, options);
+    };
+
+    const recoveryResult2 = await recoverClaimedJobs(redis2, keys);
+    assert.equal(recoveryResult2.cleared, 0);
+    assert.equal(recoveryResult2.notification_pending, 1);
+    assert.deepEqual(redis2.processing, ["job-recovery-fail"]);
+    assert.equal(jobMap2.get(keys.job("job-recovery-fail")).death_notified_at_ms, "");
+
+    // --- Scenario 3: Later successful recovery marks notification and clears claim ---
+    redis2.eval = originalEval2;
+    const recoveryResult3 = await recoverClaimedJobs(redis2, keys);
+    assert.equal(recoveryResult3.cleared, 1);
+    assert.equal(recoveryResult3.notification_pending, 0);
+    assert.deepEqual(redis2.processing, []);
+    assert.ok(jobMap2.get(keys.job("job-recovery-fail")).death_notified_at_ms.length > 0);
+
+    // --- Scenario 4: Redis commits atomically but the response is lost ---
+    const jobMap4 = new Map([
+      [keys.job("job-marker-fail"), {
+        id: "job-marker-fail",
+        status: "dead",
+        type: "tool",
+        tool: "http_get",
+        effect: "WRITE",
+        attempts: "4",
+        max_attempts: "4",
+        retry_count: "3",
+        max_retries: "3",
+        payload_json: "{}",
+        notify_json: JSON.stringify({ channel: "telegram" }),
+        started_at_ms: "1000",
+        dlq_enqueued_at_ms: "2000",
+        death_notified_at_ms: "",
+      }],
+    ]);
+    const redis4 = makeFakeRedisForQueue(jobMap4);
+    redis4.processing.push("job-marker-fail");
+    const originalEval4 = redis4.eval;
+    let loseFirstAtomicResponse = true;
+    redis4.eval = async function (script, options) {
+      const result = await originalEval4.call(this, script, options);
+      if (options.keys.length === 2 && String(options.keys[0]).includes("notify") && loseFirstAtomicResponse) {
+        loseFirstAtomicResponse = false;
+        throw new Error("Simulated lost response after atomic Redis commit");
+      }
+      return result;
+    };
+
+    const recoveryResult4 = await recoverClaimedJobs(redis4, keys);
+    assert.equal(recoveryResult4.cleared, 0);
+    assert.equal(recoveryResult4.notification_pending, 1);
+    assert.deepEqual(redis4.processing, ["job-marker-fail"]);
+    assert.equal(redis4.notify.length, 1);
+
+    redis4.eval = originalEval4;
+    const recoveryResult5 = await recoverClaimedJobs(redis4, keys);
+    assert.equal(recoveryResult5.cleared, 1);
+    assert.equal(recoveryResult5.notification_pending, 0);
+    assert.deepEqual(redis4.processing, []);
+    assert.equal(redis4.notify.length, 1); // Atomic marker prevents a duplicate enqueue
+    assert.ok(jobMap4.get(keys.job("job-marker-fail")).death_notified_at_ms.length > 0);
+
+  } finally {
+    if (oldDlqDir === undefined) delete process.env.DIZZY_DLQ_DIR;
+    else process.env.DIZZY_DLQ_DIR = oldDlqDir;
+    fs.rmSync(testDlqDir, { recursive: true, force: true });
+  }
+}
+
+async function testOpenRouterReviewScriptSafety() {
+  const scriptPath = path.resolve(process.cwd(), "scripts", "openrouter_review.py");
+  const candidates = process.platform === "win32"
+    ? [["python", []], ["py", ["-3"]], ["python3", []]]
+    : [["python3", []], ["python", []]];
+  const python = candidates.find(([command, prefix]) => {
+    const probe = spawnSync(command, [...prefix, "--version"], { stdio: "ignore" });
+    return probe.status === 0;
+  });
+  assert.ok(python, "Python 3 is required to run the OpenRouter review safety checks");
+  const [pythonCommand, pythonPrefix] = python;
+
+  const runScript = (args, envOverrides = {}) => {
+    const env = {
+      ...process.env,
+      OPENROUTER_API_KEY: "",
+      OPENAI_COMPAT_API_KEY: "",
+      ...envOverrides,
+    };
+    return spawnSync(pythonCommand, [...pythonPrefix, scriptPath, ...args], {
+      env,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  };
+
+  // 1. Malformed URL
+  const malformedRes = runScript(["--url", "not-a-valid-url"]);
+  assert.equal(malformedRes.status, 1);
+  assert.match(malformedRes.stderr.toString(), /Error: Invalid or missing host/);
+
+  // 2. Non-HTTPS URL
+  const httpRes = runScript(["--url", "http://openrouter.ai/api/v1"]);
+  assert.equal(httpRes.status, 1);
+  assert.match(httpRes.stderr.toString(), /Error: Transport security violation/);
+
+  // 3. User-info URL
+  const userInfoRes = runScript(["--url", "https://user:pass@openrouter.ai/api/v1"]);
+  assert.equal(userInfoRes.status, 1);
+  assert.match(userInfoRes.stderr.toString(), /Error: User-info credentials/);
+
+  // 4. Non-OpenRouter URL with only OPENROUTER_API_KEY set (prevent credentials leakage)
+  const leakRes = runScript(
+    ["--url", "https://custom-destination.com/api", "--force"],
+    { OPENROUTER_API_KEY: "secret-key" }
+  );
+  assert.equal(leakRes.status, 1);
+  assert.match(leakRes.stderr.toString(), /only OPENAI_COMPAT_API_KEY is allowed/);
+
+  // 5. Non-interactive rejection without --force for custom HTTPS host
+  const nonInteractiveRes = runScript(
+    ["--url", "https://custom-destination.com/api"],
+    { OPENAI_COMPAT_API_KEY: "compat-key" }
+  );
+  assert.equal(nonInteractiveRes.status, 1);
+  assert.match(nonInteractiveRes.stderr.toString(), /Error: Non-interactive execution blocked/);
+}
+
 await testClaimRecoveryAfterRedisFailures();
+await testDeadJobNotificationResilience();
+await testOpenRouterReviewScriptSafety();
 
 async function testSqliteOperationalStore() {
   let openOperationalStore;
@@ -1385,6 +1598,15 @@ async function testSqliteOperationalStore() {
     });
     assert.equal(duplicate.status, "running");
     assert.equal(store.db.prepare("SELECT COUNT(*) count FROM job_events WHERE job_id='sqlite-job'").get().count, 2);
+
+    // Test duplicate createJob idempotency: same idempotencyKey, same jobId
+    const duplicateCreated = store.createJob({ jobId: "sqlite-job", effect: "READ", idempotencyKey: "create-sqlite-job" });
+    assert.equal(duplicateCreated.job_id, "sqlite-job");
+    assert.equal(duplicateCreated.status, "running"); // returns existing transitioned state
+
+    // Test duplicate createJob idempotency conflict: same idempotencyKey, different jobId
+    assert.throws(() => store.createJob({ jobId: "sqlite-job-three", effect: "READ", idempotencyKey: "create-sqlite-job" }), /Idempotency key conflict/);
+
     store.createJob({ jobId: "sqlite-job-two", effect: "READ", idempotencyKey: "create-sqlite-job-two" });
     assert.throws(() => store.transitionJob({
       jobId: "sqlite-job-two",

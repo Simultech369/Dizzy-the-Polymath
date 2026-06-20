@@ -8,7 +8,7 @@ This file is an operational gate. It does not freeze dependencies; it defines wh
 
 | Surface | Current contract | Runtime role | Drift risk | Upgrade or transition evidence |
 | --- | --- | --- | --- | --- |
-| Node.js / GitHub Actions | CI uses Node 20; README states Node 18+ for the main runtime and Node 22.5+ for optional `node:sqlite` acceptance checks | Runtime and verification environment | CI/runtime mismatch, optional SQLite checks skipped or misread | CI node-version review, local `node --version`, `npm ci`, `npm run maintain` |
+| Node.js / GitHub Actions | CI uses Node 20 generally and Node 22 for SQLite checks; Python 3.12 is provisioned where review-tool safety tests run | Runtime and verification environment | CI/runtime mismatch, optional SQLite checks skipped, Python tooling unavailable | CI runtime-version review, local `node --version`, Python version probe, `npm ci`, `npm run maintain` |
 | `redis` npm package | `package.json` version range plus `package-lock.json` | Live queue authority and notification queues | Queue semantics, Lua support, notification ack behavior, connection errors | Lockfile diff summary, queue safety tests, Redis-compatible smoke or documented no-live-Redis result |
 | `express` npm package | `package.json` version range plus `package-lock.json` | HTTP API, auth, dashboard, route boundaries | Middleware behavior, request parsing, route matching, security defaults | Lockfile diff summary, smoke test, auth/route safety checks |
 | `ethers` npm package | `package.json` version range plus `package-lock.json` | Optional EVM read-contract tooling | ABI/provider behavior changes, BigInt serialization drift | Focused read-contract fixture or documented no-call change |
@@ -57,7 +57,7 @@ Each evidence file should include:
 
 Provider keys must come from environment variables or an approved local secret manager. Do not pass API keys as command-line arguments to review or provider scripts, because shell history, process lists, terminal capture, and logs can retain them.
 
-`scripts/openrouter_review.py` intentionally reads `OPENROUTER_API_KEY` or `OPENAI_COMPAT_API_KEY` from the environment and does not accept a `--key` argument.
+`scripts/openrouter_review.py` intentionally reads credentials from the environment and does not accept a `--key` argument. OpenRouter HTTPS destinations may use `OPENROUTER_API_KEY` or `OPENAI_COMPAT_API_KEY`; custom HTTPS destinations may use only `OPENAI_COMPAT_API_KEY` and require explicit operator confirmation or `--force`.
 
 ## Promotion Rule
 

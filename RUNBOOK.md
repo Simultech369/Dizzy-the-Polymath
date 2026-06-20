@@ -157,6 +157,8 @@ In a fourth terminal:
 Notes:
 - This surfaces `/notify/:channel` messages (currently terminal failures: `kind=job_dead`).
 - Set `DIZZY_AUTH_TOKEN` or `DIZZY_NOTIFY_TOKEN` here too if auth is enabled.
+- Redis atomically enqueues each dead-job notification with its recovery marker, so an ambiguous Redis response can be retried without adding a second queue item.
+- End-to-end delivery remains at-least-once: Telegram may accept a message before the drain can acknowledge its exact queue receipt, so downstream duplicates remain possible after a drain crash.
 
 ---
 

@@ -52,6 +52,12 @@ jobs:
           node-version: "20"
           cache: npm
 
+      - name: Setup Python for review-tool safety checks
+        if: matrix.label == 'Runtime safety'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         run: npm ci
 
@@ -68,6 +74,30 @@ jobs:
           fi
           exit "$status"
 
+  sqlite-checks:
+    name: SQLite operational store
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: SQLite safety checks
+        run: npm run check:safety
+
   maintenance-summary:
     name: Full maintenance summary
     runs-on: ubuntu-latest
@@ -80,6 +110,11 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - name: Install dependencies
         run: npm ci
