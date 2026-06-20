@@ -1,0 +1,22 @@
+[
+  {
+    "id": "case-01",
+    "prompt": "Replace with an evidence-grounded synthesis task and duplicate this object until there are at least 20 blinded cases.",
+    "baseline": {
+      "hypotheses": ["Paste the baseline answer's main hypothesis."],
+      "provenance_correct": 0,
+      "provenance_total": 0,
+      "selection_criteria": "",
+      "rejected_alternatives": [],
+      "operator_insight": 0
+    },
+    "divergent": {
+      "hypotheses": ["Hypothesis A", "Hypothesis B", "Hypothesis C"],
+      "provenance_correct": 0,
+      "provenance_total": 0,
+      "selection_criteria": "State the criteria used to select or rank the hypotheses.",
+      "rejected_alternatives": ["Record at least one rejected alternative and why it lost."],
+      "operator_insight": 0
+    }
+  }
+]
