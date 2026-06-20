@@ -18,6 +18,7 @@
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",
+                    "eval:divergence":  "node ./scripts/generative_capability_eval.mjs",
                     "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [
@@ -30,6 +31,9 @@
     "author":  "Josh",
     "license":  "ISC",
     "type":  "commonjs",
+    "engines":  {
+                    "node":  ">=20.18.1"
+                },
     "dependencies":  {
                          "cheerio":  "^1.2.0",
                          "ethers":  "^6.16.0",

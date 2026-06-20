@@ -15,19 +15,24 @@ function requireText(file, text, needle, issues) {
 function validateImpactEvidence(reconciliation, issues) {
   const allowed = new Set(["none", "lockfile", "runtime_dependency", "external_contract", "provider_migration"]);
   const lines = reconciliation.split(/\r?\n/);
+  const headerIndex = lines.findIndex((line) => /^\|\s*Candidate\s*\|/.test(line));
+  if (headerIndex < 0) {
+    issues.push("EXPERIMENT_RECONCILIATION.md: missing structured reconciliation ledger table.");
+    return;
+  }
 
-  for (const [index, line] of lines.entries()) {
-    if (!line.includes("Dependency/API impact:")) continue;
-
-    const impactText = line.split("Dependency/API impact:", 2)[1]?.split("Evidence:", 1)[0] || "";
-    const impacts = impactText
-      .replace(/[().]/g, " ")
-      .split(/[,;]/)
-      .map((value) => value.trim().split(/\s+/)[0])
-      .filter(Boolean);
-
-    if (!impacts.length) {
-      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: missing impact classification after Dependency/API impact.`);
+  let rowCount = 0;
+  for (let index = headerIndex + 2; index < lines.length && lines[index].trim().startsWith("|"); index += 1) {
+    const cells = lines[index].split("|").slice(1, -1).map((value) => value.trim());
+    rowCount += 1;
+    if (cells.length !== 5) {
+      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: reconciliation row must have 5 columns.`);
+      continue;
+    }
+    const [candidate, , , impactCell, evidenceCell] = cells;
+    const impacts = impactCell.replaceAll("`", "").split(",").map((value) => value.trim()).filter(Boolean);
+    if (!candidate || !impacts.length) {
+      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: candidate and dependency/API impact are required.`);
       continue;
     }
 
@@ -39,9 +44,9 @@ function validateImpactEvidence(reconciliation, issues) {
 
     if (impacts.every((impact) => impact === "none")) continue;
 
-    const evidenceMatches = Array.from(line.matchAll(/Evidence:\s*`([^`]+)`/g));
+    const evidenceMatches = Array.from(evidenceCell.matchAll(/`([^`]+)`/g));
     if (!evidenceMatches.length) {
-      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: non-none dependency/API impact requires Evidence: \`dependency-evidence/...\`.`);
+      issues.push(`EXPERIMENT_RECONCILIATION.md:${index + 1}: non-none dependency/API impact requires a structured evidence path.`);
       continue;
     }
 
@@ -61,6 +66,7 @@ function validateImpactEvidence(reconciliation, issues) {
       }
     }
   }
+  if (!rowCount) issues.push("EXPERIMENT_RECONCILIATION.md: reconciliation ledger has no candidate rows.");
 }
 
 function main() {
@@ -110,7 +116,7 @@ function main() {
   requireText("FILE_ROLES.md", fileRoles, "DEPENDENCY_GOVERNANCE.md", issues);
   requireText("README.md", readme, "check:dependencies", issues);
   requireText("PRODUCTION_READINESS.md", readiness, "Dependency and external API drift", issues);
-  requireText("EXPERIMENT_RECONCILIATION.md", reconciliation, "Dependency/API impact:", issues);
+  requireText("EXPERIMENT_RECONCILIATION.md", reconciliation, "Dependency/API impact", issues);
   requireText("DEPENDENCY_GOVERNANCE.md", governance, "dependency-evidence/", issues);
   validateImpactEvidence(reconciliation, issues);
 
@@ -124,10 +130,10 @@ function main() {
     issues.push("scripts/openrouter_review.py must read provider keys from OPENROUTER_API_KEY or OPENAI_COMPAT_API_KEY.");
   }
 
-  if (!/node-version:\s*"20"/.test(workflow)) {
-    warnings.push("CI Node version is not visibly pinned to Node 20.");
+  if (!/node-version:\s*"20\.18\.1"/.test(workflow)) {
+    warnings.push("CI Node version is not visibly pinned to the supported 20.18.1 floor.");
   }
-  if (!/Node\.js 18\+/.test(readme)) {
+  if (!/Node\.js 20\.18\.1\+/.test(readme)) {
     warnings.push("README no longer declares the main runtime Node.js support floor.");
   }
 

@@ -22,6 +22,11 @@ Rules:
 
 ## Completed
 
+- W-0054: Added an operator-run baseline-versus-three-hypothesis evaluation harness with measurable insight, distinctness, provenance, and decision-record thresholds; it performs no model calls or autonomous writes.
+- W-0053: Raised the supported Node floor to 20.18.1, matching the installed Cheerio/Undici engine contract and general CI.
+- W-0052: Replaced optional dependency-impact prose scanning with a five-column reconciliation ledger validated row by row.
+- W-0051: Bound SQLite idempotency replays to operation fingerprints and reject same-key creation requests whose effect changes.
+- W-0050: Added periodic backoff-aware processing-claim recovery, operator-visible pending signals, and atomic DLQ enqueue/marker persistence.
 - W-0044: Enforced fail-closed safety for expired SQLite WRITE jobs in `claimNextJob`.
 - W-0045: Restricted SQLite transactions to fail-fast on nested transaction calls.
 - W-0046: Added marker-based dead-job DLQ recovery and atomic Redis notification enqueue/marker persistence via `dlq_enqueued_at_ms` and `death_notified_at_ms`; ambiguous notification-enqueue responses can be retried without adding another queue item, while downstream delivery remains at-least-once.

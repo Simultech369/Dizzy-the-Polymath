@@ -59,30 +59,33 @@ Evidence still lacking:
 
 ## Reconciliation Ledger
 
-| Candidate | Current disposition | Promotion condition |
-| --- | --- | --- |
-| Context packs and strange-attractor ledger | Keep experimental | Demonstrate repeated value in bounded review tasks before changing default loading |
-| Skill intake ledger/review skill | Review for selective harvest | Confirm current `main` does not already contain patch-equivalent behavior; preserve supply-chain gates |
-| BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract |
-| Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence |
-| Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible |
-| Drift and memory dashboard | Auth-gated experiment | Disabled by default; enabling requires `DIZZY_AUTH_TOKEN`; still extract from `agent_server.mjs` and prove failure independence before promotion |
-| Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently |
-| Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking |
-| Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary |
-| Retrieved-context instruction boundary | Defense-in-depth experiment | Excerpts cannot close their data containers and are labeled untrusted evidence; prompt formatting is neither authorization nor complete injection prevention |
-| Proxy-shaped loopback requests | Auth required on `experiments` | Any standard forwarding header requires `DIZZY_AUTH_TOKEN`; deployment docs warn that stripped headers defeat origin inference |
-| Unused ChromaDB and Puppeteer dependencies | Removed on `experiments` | Re-add only with an executable runtime path, sandbox policy, and integration tests |
-| Orphan `memory_nodes` vacuum lifecycle | Removed on `experiments` | Reintroduce only with a defined producer, durable owner, lifecycle schema, and acceptance tests; do not mix runtime records into canonical `state.json` |
-| HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` |
-| GOVERNANCE.md rename to INTERACTION_NORMS.md | Completed on `experiments`; promotion candidate | Namespace migration is complete while `/governance` retains API compatibility |
-| W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met |
-| W-0041 Telos/Substrate | Parked after fresh review on 2026-06-11 | Activate only after measurable trajectory/compression contracts and documented doctrine failures meet the source note's evidence gate |
-| W-0042 Durable-write policy | Integrated on `experiments` | Shared pre-write gate covers remembered memory, auto-memory candidates, friction, and trajectories; blocked writer tests prove no file is created |
-| W-0043 Refinement preflight | Integrated on `experiments` | Live prompt and operator guidance define tested skip, proceed, and clarify paths without adding a planning subsystem |
-| Queue Enqueue Idempotency Key | Integrated on `main` | Atomic Redis Lua script returning `[jobId, created]`, route/actor scoping, header validation (`^[!-~]{1,128}$`), JS positive integer expiry check, tested in `safety_checks.mjs` and verified with `maintain`. Dependency/API impact: runtime_dependency (redis). Evidence: `dependency-evidence/2026-06-17-queue-enqueue-idempotency-key.md`. |
-| Dependency/API drift gate | Integrated on `experiments` | `DEPENDENCY_GOVERNANCE.md`, `scripts/dependency_api_drift_check.mjs`, CI, and `maintain` require dependency/API impact classification and env-only provider keys for OpenRouter review. Dependency/API impact: external_contract (OpenRouter review utility), runtime_dependency (maintenance/CI gate). Evidence: `dependency-evidence/2026-06-17-dependency-api-drift-gate.md`. |
-| Runtime recovery and review-tool hardening | Integrated on `experiments` | Dead-job notification enqueue and marker persistence use one idempotent Redis Lua operation; SQLite creation replays matching idempotency keys; CI retains Node 20 coverage and adds Node 22 SQLite plus explicit Python setup; custom review destinations require HTTPS and provider-specific credentials. Dependency/API impact: runtime_dependency (Redis and CI runtimes); external_contract (OpenRouter-compatible review destinations). Evidence: `dependency-evidence/2026-06-20-runtime-recovery-review-hardening.md`. |
+| Candidate | Current disposition | Promotion condition | Dependency/API impact | Evidence |
+| --- | --- | --- | --- | --- |
+| Context packs and strange-attractor ledger | Keep experimental | Demonstrate repeated value in bounded review tasks before changing default loading | `none` | — |
+| Skill intake ledger/review skill | Review for selective harvest | Confirm current `main` does not already contain patch-equivalent behavior; preserve supply-chain gates | `none` | — |
+| BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract | `none` | — |
+| Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence | `none` | — |
+| Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible | `none` | — |
+| Drift and memory dashboard | Auth-gated experiment | Disabled by default; enabling requires `DIZZY_AUTH_TOKEN`; still extract from `agent_server.mjs` and prove failure independence before promotion | `none` | — |
+| Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently | `none` | — |
+| Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking | `none` | — |
+| Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary | `none` | — |
+| Retrieved-context instruction boundary | Defense-in-depth experiment | Excerpts cannot close their data containers and are labeled untrusted evidence; prompt formatting is neither authorization nor complete injection prevention | `none` | — |
+| Proxy-shaped loopback requests | Auth required on `experiments` | Any standard forwarding header requires `DIZZY_AUTH_TOKEN`; deployment docs warn that stripped headers defeat origin inference | `none` | — |
+| Unused ChromaDB and Puppeteer dependencies | Removed on `experiments` | Re-add only with an executable runtime path, sandbox policy, and integration tests | `none` | — |
+| Orphan `memory_nodes` vacuum lifecycle | Removed on `experiments` | Reintroduce only with a defined producer, durable owner, lifecycle schema, and acceptance tests; do not mix runtime records into canonical `state.json` | `none` | — |
+| HEARTBEAT.md retirement | Completed on `experiments`; promotion candidate | Retained behavior has declared owners; live references are checked by `scripts/doc_reference_check.mjs` | `none` | — |
+| GOVERNANCE.md rename to INTERACTION_NORMS.md | Completed on `experiments`; promotion candidate | Namespace migration is complete while `/governance` retains API compatibility | `none` | — |
+| W-0040 Privilege Split | Parked after fresh review on 2026-06-11 | Activate only when an untrusted-input path reaches privileged capabilities and the source note's evidence gate is met | `none` | — |
+| W-0041 Telos/Substrate | Parked after fresh review on 2026-06-11 | Activate only after measurable trajectory/compression contracts and documented doctrine failures meet the source note's evidence gate | `none` | — |
+| W-0042 Durable-write policy | Integrated on `experiments` | Shared pre-write gate covers remembered memory, auto-memory candidates, friction, and trajectories; blocked writer tests prove no file is created | `none` | — |
+| W-0043 Refinement preflight | Integrated on `experiments` | Live prompt and operator guidance define tested skip, proceed, and clarify paths without adding a planning subsystem | `none` | — |
+| Queue Enqueue Idempotency Key | Integrated on `main` | Atomic Redis Lua script returning `[jobId, created]`, route/actor scoping, header validation (`^[!-~]{1,128}$`), JS positive integer expiry check, tested in `safety_checks.mjs` and verified with `maintain` | `runtime_dependency` | `dependency-evidence/2026-06-17-queue-enqueue-idempotency-key.md` |
+| Dependency/API drift gate | Integrated on `experiments` | CI and maintenance require structured impact classification and evidence | `external_contract`, `runtime_dependency` | `dependency-evidence/2026-06-17-dependency-api-drift-gate.md` |
+| Runtime recovery and review-tool hardening | Integrated on `experiments` | Atomic queue side effects, request-bound SQLite idempotency, runtime matrices, and provider upload boundaries | `runtime_dependency`, `external_contract` | `dependency-evidence/2026-06-20-runtime-recovery-review-hardening.md` |
+| Lockfile vulnerability upgrades | Integrated on `experiments` | Resolved 5 npm audit advisories for path-to-regexp, qs, undici, ws, and ethers; Node floor 20.18.1 engine requirement | `lockfile` | `dependency-evidence/2026-06-20-lockfile-vulnerability-upgrades.md` |
+
+
 
 ## HEARTBEAT.md Retirement Map
 

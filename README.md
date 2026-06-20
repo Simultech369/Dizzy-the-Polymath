@@ -7,7 +7,7 @@
 **Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
 
 <p>
-  <img alt="Node.js 18+" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
+  <img alt="Node.js 20.18.1+" src="https://img.shields.io/badge/Node.js-20.18.1%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
   <img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/Simultech369/Dizzy-the-Polymath/checks.yml?branch=main&style=for-the-badge&label=checks">
   <img alt="License" src="https://img.shields.io/github/license/Simultech369/Dizzy-the-Polymath?style=for-the-badge">
   <img alt="Local-first runtime" src="https://img.shields.io/badge/runtime-local--first-111827?style=for-the-badge">
@@ -67,7 +67,7 @@ Install dependencies:
 npm install
 ```
 
-The main runtime supports Node.js 18+. The full safety suite also requires Python 3 for the OpenRouter review-tool checks. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
+The main runtime supports Node.js 20.18.1+. The full safety suite also requires Python 3 for the OpenRouter review-tool checks. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
 
 Run the server:
 
