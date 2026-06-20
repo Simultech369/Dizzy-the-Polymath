@@ -15,8 +15,9 @@ import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
-import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle, enqueueJob } from "../lib/queue.mjs";
+import { acknowledgeNotifications, makeQueueKeys, moveDueDelayed, recoverClaimedJobs, redactPersistedValue, runWorkerCycle, workerLoop, enqueueJob } from "../lib/queue.mjs";
 import { backupRuntime, repairJsonlFile, restoreRuntime, verifySnapshotManifest } from "./backup_restore.mjs";
+import { evaluateGenerativeCapability } from "./generative_capability_eval.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
@@ -929,6 +930,14 @@ function makeFakeRedisForQueue(jobMap, queueIds = []) {
         await this.hSet(jobKey, { death_notified_at_ms: options.arguments[1] });
         return 1;
       }
+      if (options.keys.length === 2 && options.keys[0] === "dlq") {
+        const [, jobKey] = options.keys;
+        const current = jobMap.get(jobKey) ?? {};
+        if (current.dlq_enqueued_at_ms) return 0;
+        await this.lPush("dlq", options.arguments[0]);
+        await this.hSet(jobKey, { dlq_enqueued_at_ms: options.arguments[1] });
+        return 1;
+      }
       if (options.keys.length === 1) {
         const current = jobMap.get(options.keys[0]) ?? {};
         if (current.claim_owner !== options.arguments[0]) return 0;
@@ -1076,6 +1085,107 @@ function testExternalEffectAmbiguityGuard() {
 }
 
 testExternalEffectAmbiguityGuard();
+
+function testGenerativeCapabilityEvaluation() {
+  // 1. Positive case (valid 20 cases)
+  const rows = Array.from({ length: 20 }, (_, index) => ({
+    id: `eval-${index + 1}`,
+    baseline: {
+      hypotheses: ["retrieved material summary"],
+      provenance_correct: 1,
+      provenance_total: 1,
+      operator_insight: 3,
+    },
+    divergent: {
+      hypotheses: [
+        "coordination failure caused by missing ownership",
+        "technical failure caused by retry starvation",
+        "governance failure caused by hidden authority",
+      ],
+      provenance_correct: 3,
+      provenance_total: 3,
+      selection_criteria: "evidence, leverage, and reversibility",
+      rejected_alternatives: ["purely cosmetic explanation"],
+      operator_insight: 4,
+    },
+  }));
+  const report = evaluateGenerativeCapability(rows);
+  assert.equal(report.passed, true);
+  assert.equal(report.checks.minimum_cases, true);
+  assert.equal(report.metrics.provenance_quality, 1);
+
+  // 2. Failure: Less than 20 cases
+  const fewRows = rows.slice(0, 19);
+  const reportFew = evaluateGenerativeCapability(fewRows);
+  assert.equal(reportFew.passed, false);
+  assert.equal(reportFew.checks.minimum_cases, false);
+
+  // 3. Failure: Insight improvement < 20% (baseline = 3, divergent = 3)
+  const lowInsightRows = rows.map(r => ({
+    ...r,
+    divergent: { ...r.divergent, operator_insight: 3 }
+  }));
+  const reportLowInsight = evaluateGenerativeCapability(lowInsightRows);
+  assert.equal(reportLowInsight.passed, false);
+  assert.equal(reportLowInsight.checks.insight_improvement, false);
+
+  // 4. Failure: Distinct case rate < 80% (less than 3 hypotheses or low Jaccard distance)
+  const nonDistinctRows = rows.map((r, idx) => {
+    if (idx < 5) { // 5/20 cases are non-distinct (25% failure rate, bringing success rate to 75% which is < 80%)
+      return {
+        ...r,
+        divergent: {
+          ...r.divergent,
+          hypotheses: [
+            "coordination failure caused by missing ownership",
+            "coordination failure caused by missing ownership a",
+            "coordination failure caused by missing ownership b",
+          ]
+        }
+      };
+    }
+    return r;
+  });
+  const reportNonDistinct = evaluateGenerativeCapability(nonDistinctRows);
+  assert.equal(reportNonDistinct.passed, false);
+  assert.equal(reportNonDistinct.checks.distinct_case_rate, false);
+
+  // 5. Failure: Provenance quality < 95%
+  const lowProvenanceRows = rows.map((r, idx) => {
+    if (idx === 0) { // 1/20 cases with 0% provenance (overall average will be 19/20 = 95%, which is >= 95%. Let's fail 2 cases to drop to 90%.)
+      return {
+        ...r,
+        divergent: { ...r.divergent, provenance_correct: 0, provenance_total: 3 }
+      };
+    }
+    if (idx === 1) {
+      return {
+        ...r,
+        divergent: { ...r.divergent, provenance_correct: 0, provenance_total: 3 }
+      };
+    }
+    return r;
+  });
+  const reportLowProvenance = evaluateGenerativeCapability(lowProvenanceRows);
+  assert.equal(reportLowProvenance.passed, false);
+  assert.equal(reportLowProvenance.checks.provenance_quality, false);
+
+  // 6. Failure: Missing decision record (e.g. selection_criteria is empty)
+  const missingDecisionRows = rows.map((r, idx) => {
+    if (idx === 0) {
+      return {
+        ...r,
+        divergent: { ...r.divergent, selection_criteria: "" }
+      };
+    }
+    return r;
+  });
+  const reportMissingDecision = evaluateGenerativeCapability(missingDecisionRows);
+  assert.equal(reportMissingDecision.passed, false);
+  assert.equal(reportMissingDecision.checks.decision_record_rate, false);
+}
+
+testGenerativeCapabilityEvaluation();
 
 async function testWorkerCycleRetryAndDeath() {
   const oldDlqDir = process.env.DIZZY_DLQ_DIR;
@@ -1372,6 +1482,21 @@ async function testDeadJobNotificationResilience() {
     assert.equal(jobMap1.get(keys.job("job-worker-fail")).status, "dead");
     assert.equal(jobMap1.get(keys.job("job-worker-fail")).death_notified_at_ms, "");
 
+    // The same long-running worker heals the retained claim without requiring a restart.
+    redis1.eval = originalEval1;
+    const recoverySignals = [];
+    await workerLoop(redis1, keys, async () => "unused", {
+      maxCycles: 3,
+      pollMs: 2,
+      recoveryIntervalMs: 1,
+      recoveryInitialBackoffMs: 1,
+      recoveryMaxBackoffMs: 4,
+      onRecovery: (summary) => recoverySignals.push(summary),
+    });
+    assert.deepEqual(redis1.processing, []);
+    assert.equal(redis1.notify.length, 1);
+    assert.equal(recoverySignals.some((summary) => summary.cleared === 1), true);
+
     // --- Scenario 2: Recovery notification failure still retains claim ---
     const jobMap2 = new Map([
       [keys.job("job-recovery-fail"), {
@@ -1523,6 +1648,15 @@ async function testOpenRouterReviewScriptSafety() {
   );
   assert.equal(nonInteractiveRes.status, 1);
   assert.match(nonInteractiveRes.stderr.toString(), /Error: Non-interactive execution blocked/);
+
+  // 6. Reject query-bearing base URLs instead of concatenating an ambiguous endpoint.
+  const queryBaseRes = runScript(["--url", "https://openrouter.ai/api/v1?tenant=test"]);
+  assert.equal(queryBaseRes.status, 1);
+  assert.match(queryBaseRes.stderr.toString(), /base URL must not include a query string or fragment/);
+
+  const reviewScript = fs.readFileSync(scriptPath, "utf8");
+  assert.match(reviewScript, /NoRedirectHandler/);
+  assert.match(reviewScript, /build_opener\(NoRedirectHandler\(\)\)/);
 }
 
 await testClaimRecoveryAfterRedisFailures();
@@ -1603,6 +1737,10 @@ async function testSqliteOperationalStore() {
     const duplicateCreated = store.createJob({ jobId: "sqlite-job", effect: "READ", idempotencyKey: "create-sqlite-job" });
     assert.equal(duplicateCreated.job_id, "sqlite-job");
     assert.equal(duplicateCreated.status, "running"); // returns existing transitioned state
+    assert.throws(
+      () => store.createJob({ jobId: "sqlite-job", effect: "WRITE", idempotencyKey: "create-sqlite-job" }),
+      /Idempotency request conflict/,
+    );
 
     // Test duplicate createJob idempotency conflict: same idempotencyKey, different jobId
     assert.throws(() => store.createJob({ jobId: "sqlite-job-three", effect: "READ", idempotencyKey: "create-sqlite-job" }), /Idempotency key conflict/);

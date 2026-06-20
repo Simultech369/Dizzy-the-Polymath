@@ -63,6 +63,18 @@ def load_env(repo_root):
                     if key not in os.environ:
                         os.environ[key] = value
 
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Fail closed so credentials and repository context never cross origins implicitly."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+def build_chat_completions_url(parsed_url):
+    if parsed_url.query or parsed_url.fragment:
+        raise ValueError("base URL must not include a query string or fragment")
+    path = (parsed_url.path or "").rstrip("/") + "/chat/completions"
+    return parsed_url._replace(path=path, query="", fragment="").geturl()
+
 def main():
     parser = argparse.ArgumentParser(description="Run an independent code/doctrine review of the Dizzy repository using OpenRouter.")
     parser.add_argument("--model", type=str, help="OpenRouter model to use (default: openrouter/free or environment value)")
@@ -72,12 +84,14 @@ def main():
     parser.add_argument("--exclude-file", action="append", default=[], help="Exclude files from the default list")
     parser.add_argument("--list-files", action="store_true", help="List files that will be included in the context and exit")
     parser.add_argument("--force", action="store_true", help="Force upload to non-OpenRouter URLs without prompting")
+    parser.add_argument("--load-env", action="store_true", help="Explicitly load credentials from the repository .env file")
 
     args = parser.parse_args()
 
     # Find repository root directory
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    load_env(repo_root)
+    if args.load_env:
+        load_env(repo_root)
 
     # Assemble and validate file list
     files_to_read = []
@@ -126,7 +140,13 @@ def main():
         print(f"Error: User-info credentials detected in destination URL. This is blocked for security.", file=sys.stderr)
         sys.exit(1)
 
-    is_openrouter = hostname == "openrouter.ai" or hostname.endswith(".openrouter.ai")
+    is_openrouter = hostname == "openrouter.ai"
+
+    try:
+        request_url = build_chat_completions_url(parsed_url)
+    except ValueError as e:
+        print(f"Error: Invalid destination base URL '{args.url}': {e}", file=sys.stderr)
+        sys.exit(1)
 
     # 2. Key Resolution and Allowlisting
     if is_openrouter:
@@ -323,7 +343,7 @@ Ensure your output matches the requested Markdown Handoff format exactly."""
     }
 
     req = urllib.request.Request(
-        args.url + "/chat/completions",
+        request_url,
         data=json.dumps(payload).encode("utf-8"),
         headers=headers,
         method="POST"
@@ -332,7 +352,8 @@ Ensure your output matches the requested Markdown Handoff format exactly."""
     output_buffer = []
 
     try:
-        with urllib.request.urlopen(req) as response:
+        opener = urllib.request.build_opener(NoRedirectHandler())
+        with opener.open(req) as response:
             for line_bytes in response:
                 line = line_bytes.decode("utf-8").strip()
                 if not line:
@@ -358,6 +379,9 @@ Ensure your output matches the requested Markdown Handoff format exactly."""
                         pass
             print() # Ending newline
     except urllib.error.HTTPError as e:
+        if 300 <= e.code < 400:
+            print(f"\nRedirect blocked (HTTP {e.code}). Re-authorize the final provider URL explicitly.", file=sys.stderr)
+            sys.exit(1)
         print(f"\nHTTP Error {e.code}: {e.reason}", file=sys.stderr)
         try:
             error_body = e.read().decode("utf-8")

@@ -15,4 +15,16 @@ console.log(`[worker] redis=${redisUrl} prefix=${prefix}`);
 await workerLoop(redis, keys, async (job) => {
   if (job.type === "tool") return runToolJob(job);
   throw new Error(`Unknown job type: ${job.type}`);
+}, {
+  onRecovery(summary) {
+    if (summary.notification_pending > 0) {
+      console.warn(`[worker] notification_pending=${summary.notification_pending} recovered=${summary.recovered} cleared=${summary.cleared}`);
+    }
+  },
+  onRecoveryError(error) {
+    console.warn(`[worker] recovery_error=${String(error?.message || error)}`);
+  },
+  onNotificationPending(cycle) {
+    console.warn(`[worker] notification_pending=1 job_id=${cycle.jobId}`);
+  },
 });
