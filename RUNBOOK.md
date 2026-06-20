@@ -17,6 +17,8 @@ Terminal B:
 
 This starts the local API, exposes governance/prompt/memory inspection endpoints, and does not require Telegram, Redis, or a model backend.
 
+The optional dashboard is disabled by default. Its read-only routes are isolated in `lib/dashboard.mjs`; disabled mode does not load that module, and an initialization failure leaves core routes such as `/health` available.
+
 ---
 
 ## Quick start: Telegram interface (2 terminals)

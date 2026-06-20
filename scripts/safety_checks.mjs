@@ -2877,12 +2877,75 @@ async function testPrivateReadSurfaces() {
     for (const snippet of query.snippets) {
       assert.equal(Object.hasOwn(snippet, "excerpt"), false);
     }
+
+    const paidPublicDashboard = await fetch(`${baseUrl}/api/dashboard-data`, {
+      headers: { ...headers, "x-dizzy-zone": "paid_public" },
+    });
+    assert.equal(paidPublicDashboard.status, 403);
+    assert.match((await paidPublicDashboard.json()).error, /trust zone/i);
+
+    const mutationAttempt = await fetch(`${baseUrl}/api/dashboard-data`, {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ mutate: true }),
+    });
+    assert.equal(mutationAttempt.status, 404);
   } finally {
     await protectedRuntime.stop();
   }
 }
 
 await testPrivateReadSurfaces();
+
+async function testDashboardFailureIndependence() {
+  let disabledLoaderCalled = false;
+  const disabledRuntime = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "dashboard-disabled-test-token",
+    redisUrl: "",
+    dashboardEnabled: false,
+    dashboardModuleLoader: async () => {
+      disabledLoaderCalled = true;
+      throw new Error("disabled dashboard module should not load");
+    },
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${disabledRuntime.boundPort}`;
+    assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
+    const disabled = await fetch(`${baseUrl}/dashboard`, {
+      headers: { authorization: "Bearer dashboard-disabled-test-token" },
+    });
+    assert.equal(disabled.status, 404);
+    assert.equal(disabledLoaderCalled, false);
+  } finally {
+    await disabledRuntime.stop();
+  }
+
+  const failedRuntime = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "dashboard-failure-test-token",
+    redisUrl: "",
+    dashboardEnabled: true,
+    dashboardModuleLoader: async () => {
+      throw new Error("simulated dashboard initialization failure");
+    },
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${failedRuntime.boundPort}`;
+    assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
+    const unavailable = await fetch(`${baseUrl}/dashboard`, {
+      headers: { authorization: "Bearer dashboard-failure-test-token" },
+    });
+    assert.equal(unavailable.status, 503);
+    assert.equal((await unavailable.json()).error, "Dashboard unavailable");
+  } finally {
+    await failedRuntime.stop();
+  }
+}
+
+await testDashboardFailureIndependence();
 
 async function testLoopbackBrowserOriginGuard() {
   const started = await startServer({

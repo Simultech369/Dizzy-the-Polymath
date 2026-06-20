@@ -9,7 +9,6 @@ import { buildClientConversationKey, deleteClientContinuity, executionHistoryPat
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
-import { getRelevantMarkdownSnippets } from "./lib/md_retriever.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 
 function isMainModule() {
@@ -55,6 +54,18 @@ function parseBool(value, fallback = false) {
 function parsePositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+function registerDashboardFallbackRoutes(app, { enabled } = {}) {
+  for (const route of ["/dashboard", "/api/dashboard-data", "/api/dashboard-query"]) {
+    app.get(route, (req, res) => {
+      if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
+      return res.status(503).json({
+        ok: false,
+        error: "Dashboard unavailable",
+      });
+    });
+  }
 }
 
 function getRateLimitConfig(opts = {}) {
@@ -1158,109 +1169,25 @@ function getDashboardHtml() {
     }
   });
 
-  function dashboardAccessGuard(req, res, next) {
-    if (!dashboardEnabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
-    if (!authToken) {
-      return res.status(503).json({ ok: false, error: "Dashboard requires DIZZY_AUTH_TOKEN" });
+  if (!dashboardEnabled) {
+    registerDashboardFallbackRoutes(app, { enabled: false });
+  } else {
+    const dashboardLoader = opts.dashboardModuleLoader || (() => import("./lib/dashboard.mjs"));
+    try {
+      const dashboard = await dashboardLoader();
+      dashboard.registerDashboardRoutes(app, {
+        authToken,
+        normalizeIp,
+        isLoopbackHost,
+        renderHtml: getDashboardHtml,
+      });
+    } catch (error) {
+      console.warn(`[dashboard] initialization_failed=${String(error?.message ?? error)}`);
+      registerDashboardFallbackRoutes(app, {
+        enabled: true,
+      });
     }
-    const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
-    const isLoopback = isLoopbackHost(remote);
-    const proxyHeaders = ["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip"];
-    const forwarded = proxyHeaders.some((name) => String(req.headers?.[name] ?? "").trim() !== "");
-    if (!isLoopback || forwarded) {
-      return res.status(403).json({ ok: false, error: "Dashboard is restricted to local loopback connections only" });
-    }
-    return next();
   }
-
-  app.get("/dashboard", dashboardAccessGuard, (req, res) => {
-    res.type("text/html").send(getDashboardHtml());
-  });
-
-  app.get("/api/dashboard-data", dashboardAccessGuard, async (req, res) => {
-    try {
-      const { getPromptSources } = await import("./lib/prompt_bundle.mjs");
-      const { getIndex } = await import("./lib/md_retriever.mjs");
-      
-      const promptSources = getPromptSources();
-      const index = getIndex();
-      
-      const docs = index.docs.map(d => {
-        const dateStr = d.frontmatter?.last_reviewed || d.frontmatter?.captured_at || "";
-        let ageInDays = 0;
-        let decay = 1.0;
-        if (dateStr) {
-          const t = Date.parse(dateStr.trim());
-          if (!Number.isNaN(t)) {
-            ageInDays = Math.max(0, (Date.now() - t) / (1000 * 60 * 60 * 24));
-            decay = Math.pow(0.5, ageInDays / 180);
-          }
-        }
-        
-        let confidence = 1.0;
-        if (d.frontmatter?.confidence) {
-          const s = String(d.frontmatter.confidence).trim().toLowerCase();
-          if (s === "high") confidence = 1.0;
-          else if (s === "medium") confidence = 0.7;
-          else if (s === "low") confidence = 0.4;
-          else {
-            const frac = s.match(/^(\d+)\s*\/\s*(\d+)$/);
-            if (frac) {
-              const num = Number(frac[1]);
-              const den = Number(frac[2]);
-              if (den > 0) confidence = Math.max(0, Math.min(1, num / den));
-            } else {
-              const n = Number(s);
-              if (Number.isFinite(n)) confidence = Math.max(0, Math.min(1, n));
-            }
-          }
-        }
-
-        return {
-          relPath: d.relPath,
-          kind: d.kind,
-          confidence,
-          decay,
-          ageInDays,
-        };
-      });
-
-      res.json({
-        ok: true,
-        prompt_sources: promptSources.map(s => ({
-          path: s.path,
-          role: s.role,
-          exists: s.exists,
-          bytes: s.bytes,
-          truncated: s.truncated,
-        })),
-        docs,
-      });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
-    }
-  });
-
-  app.get("/api/dashboard-query", dashboardAccessGuard, (req, res) => {
-    try {
-      const q = String(req.query.q ?? "").trim();
-      const snippets = getRelevantMarkdownSnippets(q, { k: 10 });
-      res.json({
-        ok: true,
-        query: q,
-        snippets: snippets.map((snippet) => ({
-          path: snippet.path,
-          kind: snippet.kind,
-          confidence: snippet.confidence,
-          decay: snippet.decay,
-          score: snippet.score,
-          reasons: snippet.reasons,
-        })),
-      });
-    } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
-    }
-  });
 
   app.get("/prompt", async (req, res) => {
     try {

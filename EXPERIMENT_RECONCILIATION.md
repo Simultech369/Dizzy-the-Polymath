@@ -43,7 +43,7 @@ Recently changed on `experiments`:
 Known unresolved issues and deferred work:
 
 - Time decay was originally specified as report-only, but the experiment now changes retrieval relevance for some memory classes. Whether that is justified, sufficiently bounded, and ready for promotion remains unresolved.
-- The dashboard remains embedded in `agent_server.mjs`; isolation, failure independence, and zone-safe read-only behavior are not yet proven.
+- Dashboard route policy and data access now live in `lib/dashboard.mjs`; disabled mode skips module loading, initialization failure degrades only dashboard routes, and paid/public or outside-contact access is denied. The behavior-identical HTML renderer remains inline pending a separate static-asset extraction.
 - Prompt overlay expiry remains experimental and lacks complete evidence that constitutional material cannot fail closed or disappear silently.
 - Privilege split and telos/substrate work are parked pending concrete trigger evidence; parking them may be prudent or may conceal a missing boundary.
 - Production-readiness checks verify some wiring more strongly than behavior.
@@ -53,7 +53,7 @@ Evidence still lacking:
 
 - Comparative retrieval evaluations showing that class-aware decay improves useful ranking without burying relevant observations or overprivileging stale claims.
 - Adversarial tests beyond known phrases and current trust-zone fixtures, including indirect instructions and mixed-trust retrieved content.
-- Failure-injection evidence for dashboard, prompt-overlay, Redis, and optional external-service degradation.
+- Failure-injection evidence for prompt-overlay, live Redis, and optional external-service degradation. Dashboard module initialization failure is covered locally.
 - Real operator or client workflow evidence showing which experimental mechanisms improve outcomes rather than only internal coherence.
 - A promotion-by-promotion record showing accepted behavior on `main`, rejected behavior, and residual risk.
 
@@ -66,7 +66,7 @@ Evidence still lacking:
 | BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract | `none` | — |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence | `none` | — |
 | Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible | `none` | — |
-| Drift and memory dashboard | Auth-gated experiment | Disabled by default; enabling requires `DIZZY_AUTH_TOKEN`; still extract from `agent_server.mjs` and prove failure independence before promotion | `none` | — |
+| Drift and memory dashboard | Isolated experiment on `experiments` | `lib/dashboard.mjs` owns read-only routes and sanitized responses; disabled and failed-module startup paths are tested; extract the inline HTML renderer before final promotion | `none` | — |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently | `none` | — |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking | `none` | — |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary | `none` | — |
@@ -208,11 +208,11 @@ Acceptance tests:
 
 ## Dashboard Boundary
 
-Keep the dashboard experimental until it is separated from the server core.
+Keep the dashboard experimental until the remaining inline HTML renderer is extracted from the server core.
 
 Preferred shape:
 
-- `lib/dashboard.mjs`
+- `lib/dashboard.mjs` (route policy and data access implemented)
 - a separate static dashboard asset
 - explicit read-only routes
 - sanitized, zone-aware data responses
@@ -223,6 +223,12 @@ Acceptance tests:
 - No private memory exposure in paid/public or outside-contact contexts.
 - Dashboard failure cannot break the core runtime.
 - Server startup does not depend on dashboard assets.
+
+Current evidence:
+
+- Disabled mode does not invoke the dashboard module loader.
+- A simulated module initialization failure leaves `/health` available and returns a dashboard-scoped `503`.
+- Dashboard data remains metadata-only, exposes no excerpts, rejects mutation methods, and denies paid/public and outside-contact trust zones.
 
 ## NEXT.md Consistency
 

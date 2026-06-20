@@ -22,6 +22,7 @@ Rules:
 
 ## Completed
 
+- W-0055: Extracted dashboard guards and read-only data/query routes into `lib/dashboard.mjs`; disabled mode avoids loading the module, initialization failure cannot break core health, and paid/public or outside-contact zones are denied.
 - W-0054: Added an operator-run baseline-versus-three-hypothesis evaluation harness with measurable insight, distinctness, provenance, and decision-record thresholds; it performs no model calls or autonomous writes.
 - W-0053: Raised the supported Node floor to 20.18.1, matching the installed Cheerio/Undici engine contract and general CI.
 - W-0052: Replaced optional dependency-impact prose scanning with a five-column reconciliation ledger validated row by row.
