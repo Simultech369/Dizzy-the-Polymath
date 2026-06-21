@@ -3505,6 +3505,76 @@ async function testNewHardeningFeatures() {
     assert.equal(r6.status, 200);
     console.log("-> Scoped API access tokens boundary checks passed");
 
+    // 5. Native Security Headers checks (W-0057)
+    // 5a. Check default closed CSP and other security headers on an API endpoint (/prompt)
+    const promptRes = await fetch(`http://127.0.0.1:${port}/prompt`, {
+      headers: { authorization: "Bearer master-token" },
+    });
+    assert.equal(promptRes.status, 200);
+    assert.equal(promptRes.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(promptRes.headers.get("x-frame-options"), "DENY");
+    assert.equal(promptRes.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(promptRes.headers.get("x-permitted-cross-domain-policies"), "none");
+    assert.equal(promptRes.headers.get("x-dns-prefetch-control"), "off");
+    assert.match(promptRes.headers.get("permissions-policy") || "", /camera=\(\)/);
+    // Should have strict closed CSP
+    assert.equal(promptRes.headers.get("content-security-policy"), "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    // HSTS should NOT be present on local loopback configuration by default
+    assert.equal(promptRes.headers.get("strict-transport-security"), null);
+
+    // 5b. Verify headers on auth failures
+    const failedAuthRes = await fetch(`http://127.0.0.1:${port}/prompt`, {
+      headers: { authorization: "Bearer bad-token" },
+    });
+    assert.equal(failedAuthRes.status, 401);
+    assert.equal(failedAuthRes.headers.get("x-frame-options"), "DENY");
+    assert.equal(failedAuthRes.headers.get("content-security-policy"), "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+
+    // 5c. Verify headers on 404 responses
+    const notFoundRes = await fetch(`http://127.0.0.1:${port}/non-existent-route`, {
+      headers: { authorization: "Bearer master-token" },
+    });
+    assert.equal(notFoundRes.status, 404);
+    assert.equal(notFoundRes.headers.get("x-frame-options"), "DENY");
+    assert.equal(notFoundRes.headers.get("content-security-policy"), "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+
+    // 5d. Verify dashboard CSP remains open/overwritten with 'unsafe-inline'
+    const dashboardCsp = dashRes.headers.get("content-security-policy") || "";
+    assert.match(dashboardCsp, /'unsafe-inline'/);
+    assert.doesNotMatch(dashboardCsp, /default-src 'none'/);
+
+    // 5e. Test HSTS is present when verifiedHttps is configured
+    const startedHttps = await startServer({
+      port: 0,
+      bindHost: "127.0.0.1",
+      authToken: "master-token",
+      deploymentMode: "proxied",
+      trustedProxies: "127.0.0.1",
+      verifiedHttps: true,
+    });
+    try {
+      const httpsPromptRes = await fetch(`http://127.0.0.1:${startedHttps.boundPort}/prompt`, {
+        headers: { authorization: "Bearer master-token" },
+      });
+      assert.equal(httpsPromptRes.status, 200);
+      assert.equal(httpsPromptRes.headers.get("strict-transport-security"), "max-age=31536000");
+    } finally {
+      await startedHttps.stop();
+    }
+
+    // 5f. Verify that DIZZY_VERIFIED_HTTPS=1 throws validation error in direct_local mode
+    await assert.rejects(async () => {
+      await startServer({
+        port: 0,
+        bindHost: "127.0.0.1",
+        authToken: "master-token",
+        deploymentMode: "direct_local",
+        verifiedHttps: true,
+      });
+    }, /requires DIZZY_DEPLOYMENT_MODE to be proxied or hosted/);
+
+    console.log("-> Native security headers checks (W-0057) passed");
+
   } finally {
     await started.stop();
     delete process.env.DIZZY_ENFORCE_IDENTITY_HEADERS;

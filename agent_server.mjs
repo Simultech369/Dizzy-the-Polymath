@@ -10,6 +10,7 @@ import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
+import { securityHeaders } from "./lib/security_headers.mjs";
 
 function isMainModule() {
   try {
@@ -472,6 +473,8 @@ export async function createRuntime(opts = {}) {
     .map(normalizeIp)
     .filter(Boolean);
 
+  const verifiedHttps = opts.verifiedHttps ?? parseBool(process.env.DIZZY_VERIFIED_HTTPS, false);
+
   if (authToken && authToken.length < 32) {
     console.warn(`[WARNING] DIZZY_AUTH_TOKEN is only ${authToken.length} characters long. A minimum length of 32 characters is highly recommended for security.`);
   }
@@ -483,6 +486,7 @@ export async function createRuntime(opts = {}) {
   }
 
   const app = express();
+  app.use(securityHeaders({ verifiedHttps }));
   app.use(express.json({ limit: "5mb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
@@ -495,6 +499,7 @@ export async function createRuntime(opts = {}) {
     authTokenConfigured: Boolean(authToken),
     deploymentMode,
     publicSurfaceMode,
+    verifiedHttps,
   });
 
   if (enforceIdentityHeaders && deploymentMode !== "proxied") {
@@ -1017,6 +1022,20 @@ export async function createRuntime(opts = {}) {
     } catch (e) {
       return res.status(500).json({ ok: false, error: String(e?.message ?? e) });
     }
+  });
+
+  app.use((req, res) => {
+    res.status(404).json({ ok: false, error: "Not found" });
+  });
+
+  app.use((err, req, res, next) => {
+    if (res.headersSent) {
+      return next(err);
+    }
+    const errMsg = String(err?.message ?? err).slice(0, 500);
+    const redacted = redactTextPayload(errMsg);
+    console.error(`[Server Error] ${redacted}`);
+    return res.status(500).json({ ok: false, error: "Internal server error" });
   });
 
   return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit };

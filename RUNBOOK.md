@@ -82,6 +82,7 @@ Optional auth (recommended if you ever bind beyond loopback):
 - set `DIZZY_ENFORCE_IDENTITY_HEADERS=1` in `proxied` mode to ignore body-supplied `client_id` and `service_id` and read them from `X-Dizzy-Client-Id` and `X-Dizzy-Service-Id`
 - identity-header enforcement fails startup unless `DIZZY_TRUSTED_PROXIES` names the proxy socket IPs allowed to supply those headers (for example `127.0.0.1,10.0.0.1`)
 - set `DIZZY_EXECUTE_TOKEN` and/or `DIZZY_NOTIFY_TOKEN` alongside `DIZZY_AUTH_TOKEN` to restrict API callers to `/agent/execute` or `/notify`; scoped-token configuration fails startup without the master token
+- set `DIZZY_VERIFIED_HTTPS=1` in `proxied` or `hosted` mode when the deployment is served over verified HTTPS. This enables Strict-Transport-Security (HSTS) headers. Enabling verified-HTTPS validation prevents HSTS from interfering with local HTTP development.
 
 ---
 
