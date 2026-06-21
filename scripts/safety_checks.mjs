@@ -1654,9 +1654,22 @@ async function testOpenRouterReviewScriptSafety() {
   assert.equal(queryBaseRes.status, 1);
   assert.match(queryBaseRes.stderr.toString(), /base URL must not include a query string or fragment/);
 
+  // 7. Explicit bounded context excludes the legacy default bundle.
+  const boundedListRes = runScript([
+    "--no-default-files",
+    "--add-file", "README.md",
+    "--list-files",
+  ]);
+  assert.equal(boundedListRes.status, 0);
+  assert.match(boundedListRes.stdout.toString(), /README\.md/);
+  assert.doesNotMatch(boundedListRes.stdout.toString(), /REPO_GUIDE\.md/);
+
   const reviewScript = fs.readFileSync(scriptPath, "utf8");
   assert.match(reviewScript, /NoRedirectHandler/);
   assert.match(reviewScript, /build_opener\(NoRedirectHandler\(\)\)/);
+  assert.match(reviewScript, /--prompt-file/);
+  assert.match(reviewScript, /--no-default-files/);
+  assert.match(reviewScript, /Prompt file exceeds the 256 KiB safety limit/);
 }
 
 await testClaimRecoveryAfterRedisFailures();

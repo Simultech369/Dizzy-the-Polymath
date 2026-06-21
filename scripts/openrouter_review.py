@@ -80,8 +80,10 @@ def main():
     parser.add_argument("--model", type=str, help="OpenRouter model to use (default: openrouter/free or environment value)")
     parser.add_argument("--url", type=str, default="https://openrouter.ai/api/v1", help="API Base URL (default: https://openrouter.ai/api/v1)")
     parser.add_argument("--output", type=str, help="Path to save the review output markdown file")
+    parser.add_argument("--prompt-file", type=str, help="Replace the built-in review instructions with a UTF-8 prompt file")
     parser.add_argument("--add-file", action="append", default=[], help="Add specific files to the review context")
     parser.add_argument("--exclude-file", action="append", default=[], help="Exclude files from the default list")
+    parser.add_argument("--no-default-files", action="store_true", help="Include only files supplied with --add-file")
     parser.add_argument("--list-files", action="store_true", help="List files that will be included in the context and exit")
     parser.add_argument("--force", action="store_true", help="Force upload to non-OpenRouter URLs without prompting")
     parser.add_argument("--load-env", action="store_true", help="Explicitly load credentials from the repository .env file")
@@ -95,9 +97,10 @@ def main():
 
     # Assemble and validate file list
     files_to_read = []
-    for f in DEFAULT_FILES:
-        if f not in args.exclude_file:
-            files_to_read.append(f)
+    if not args.no_default_files:
+        for f in DEFAULT_FILES:
+            if f not in args.exclude_file:
+                files_to_read.append(f)
     for f in args.add_file:
         if f not in files_to_read:
             files_to_read.append(f)
@@ -245,6 +248,21 @@ Ask yourself:
 
 Ensure your output matches the requested Markdown Handoff format exactly."""
 
+    if args.prompt_file:
+        prompt_path = os.path.abspath(args.prompt_file)
+        try:
+            if os.path.getsize(prompt_path) > 256 * 1024:
+                print("Error: Prompt file exceeds the 256 KiB safety limit.", file=sys.stderr)
+                sys.exit(1)
+            with open(prompt_path, "r", encoding="utf-8") as fh:
+                system_prompt = fh.read().strip()
+        except (OSError, UnicodeError) as e:
+            print(f"Error: Unable to read prompt file '{args.prompt_file}': {e}", file=sys.stderr)
+            sys.exit(1)
+        if not system_prompt:
+            print("Error: Prompt file is empty.", file=sys.stderr)
+            sys.exit(1)
+
     # Read file content and assemble user message
     user_content_parts = ["Below is the context of the Dizzy repository files under review:\n\n"]
     total_chars = 0
@@ -260,11 +278,15 @@ Ensure your output matches the requested Markdown Handoff format exactly."""
 
     user_content = "".join(user_content_parts)
     
-    # Append instructions at the end to prevent prompt dilution in long context
+    # Append instructions at the end to prevent prompt dilution in long context.
     user_content += "\n\n=== END OF FILE CONTEXT ===\n\n"
-    user_content += "Based on the repository files provided above, perform the strict, critical audit now.\n"
-    user_content += "OUTPUT FORMAT:\n"
-    user_content += "Create a complete Markdown handoff suitable for giving directly to Codex.\n"
+    if args.prompt_file:
+        user_content += "Follow the supplied system instructions using only evidence available in the provided repository context.\n"
+    else:
+        user_content += "Based on the repository files provided above, perform the strict, critical audit now.\n"
+        user_content += "OUTPUT FORMAT:\n"
+        user_content += "Create a complete Markdown handoff suitable for giving directly to Codex.\n"
+    legacy_output_start = len(user_content)
     user_content += "Title: # Engineering, Security, Reliability & Architecture Review Handoff\n\n"
     user_content += "Include the following sections:\n"
     user_content += "## Review Metadata\n"
@@ -316,6 +338,8 @@ Ensure your output matches the requested Markdown Handoff format exactly."""
     user_content += "- Prefer minimal, reversible remediation.\n"
     user_content += "- Recommend deletion when complexity does not earn its cost.\n"
     user_content += "- Include 'no material issue found' for areas you examined successfully.\n"
+    if args.prompt_file:
+        user_content = user_content[:legacy_output_start]
 
     print(f"Loaded {len(valid_files)} files.")
     print(f"Total character count: {total_chars} (~{total_chars // 4} tokens).")
