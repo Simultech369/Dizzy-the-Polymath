@@ -2879,7 +2879,15 @@ async function testPrivateReadSurfaces() {
 
     const dashboard = await fetch(`${baseUrl}/api/dashboard-data`, { headers }).then((r) => r.json());
     assert.equal(dashboard.ok, true);
+    assert.equal(dashboard.projection, "minimal-v1");
+    for (const source of dashboard.prompt_sources) {
+      assert.match(source.id, /^source-[a-f0-9]{12}$/);
+      assert.equal(Object.hasOwn(source, "path"), false);
+    }
     for (const doc of dashboard.docs) {
+      assert.match(doc.id, /^doc-[a-f0-9]{12}$/);
+      assert.equal(Object.hasOwn(doc, "relPath"), false);
+      assert.equal(Object.hasOwn(doc, "path"), false);
       assert.equal(Object.hasOwn(doc, "excerpt"), false);
       assert.equal(Object.hasOwn(doc, "frontmatter"), false);
       assert.equal(Object.hasOwn(doc, "signals"), false);
@@ -2888,6 +2896,8 @@ async function testPrivateReadSurfaces() {
     const query = await fetch(`${baseUrl}/api/dashboard-query?q=memory`, { headers }).then((r) => r.json());
     assert.equal(query.ok, true);
     for (const snippet of query.snippets) {
+      assert.match(snippet.id, /^doc-[a-f0-9]{12}$/);
+      assert.equal(Object.hasOwn(snippet, "path"), false);
       assert.equal(Object.hasOwn(snippet, "excerpt"), false);
     }
 
@@ -2897,7 +2907,7 @@ async function testPrivateReadSurfaces() {
     assert.equal(paidPublicDashboard.status, 403);
     assert.match((await paidPublicDashboard.json()).error, /trust zone/i);
 
-    for (const route of ["/dashboard", "/api/dashboard-data", "/api/dashboard-query"]) {
+    for (const route of ["/dashboard", "/assets/dashboard.js", "/api/dashboard-data", "/api/dashboard-query"]) {
       for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
         const mutationAttempt = await fetch(`${baseUrl}${route}`, {
           method,
@@ -3373,11 +3383,19 @@ async function testNewHardeningFeatures() {
       headers: { authorization: "Bearer master-token" },
     });
     const dashHtml = await dashRes.text();
-    assert.equal(dashHtml.includes("escapeHtml(s.path)"), true);
-    assert.equal(dashHtml.includes("escapeHtml(d.relPath)"), true);
+    assert.equal(dashHtml.includes('<script src="/assets/dashboard.js" defer></script>'), true);
+    assert.equal(/on(?:click|keydown)=/i.test(dashHtml), false);
     assert.equal(dashHtml.includes("fonts.googleapis.com"), false);
     assert.equal(dashHtml.includes("placehold.co"), false);
     assert.match(dashRes.headers.get("content-security-policy") || "", /default-src 'self'/);
+    const dashboardScript = await fetch(`http://127.0.0.1:${port}/assets/dashboard.js`, {
+      headers: { authorization: "Bearer master-token" },
+    });
+    assert.equal(dashboardScript.status, 200);
+    const dashboardScriptText = await dashboardScript.text();
+    assert.equal(dashboardScriptText.includes("escapeHtml(source.id)"), true);
+    assert.equal(dashboardScriptText.includes("escapeHtml(doc.id)"), true);
+    assert.equal(dashboardScriptText.includes("escapeHtml(snippet.id)"), true);
     console.log("-> Dashboard HTML XSS escaping check passed");
 
     // 2b. Dashboard loopback restriction check
@@ -3549,9 +3567,10 @@ async function testNewHardeningFeatures() {
     assert.equal(notFoundRes.headers.get("x-frame-options"), "DENY");
     assert.equal(notFoundRes.headers.get("content-security-policy"), "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 
-    // 5d. Verify dashboard CSP remains open/overwritten with 'unsafe-inline'
+    // 5d. Verify dashboard CSP permits only external same-origin scripts.
     const dashboardCsp = dashRes.headers.get("content-security-policy") || "";
-    assert.match(dashboardCsp, /'unsafe-inline'/);
+    assert.match(dashboardCsp, /script-src 'self';/);
+    assert.doesNotMatch(dashboardCsp, /script-src[^;]*'unsafe-inline'/);
     assert.doesNotMatch(dashboardCsp, /default-src 'none'/);
 
     // 5e. Test HSTS is present when verifiedHttps is configured

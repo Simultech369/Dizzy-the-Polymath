@@ -16,12 +16,13 @@ Rules:
 
 ## Work Queue
 
-- W-0058 [Tier 1]: Close dashboard promotion blockers: define a trust-zone-specific metadata projection, implement browser-compatible local authentication, remove inline script/event handlers so CSP can drop `'unsafe-inline'`, and add a browser-flow regression test. Keep the dashboard experimental and disabled by default until these gates pass.
+- W-0058 [Tier 1]: Close the remaining dashboard promotion blocker: implement URL-credential-free, loopback-only browser authentication and prove the complete HTML, script, data, and query flow in a browser regression test. Keep the dashboard experimental and disabled by default until this gate passes.
 
 ---
 
 ## Completed
 
+- W-0059: Minimized dashboard metadata with opaque stable document/source IDs, removed repository paths from API responses, extracted executable JavaScript into a guarded local asset, removed inline event handlers, and tightened `script-src` to same-origin scripts without `'unsafe-inline'`.
 - W-0057: Implemented native HTTP security headers middleware in [lib/security_headers.mjs](lib/security_headers.mjs), integrated `DIZZY_VERIFIED_HTTPS` gating in config and Express, documented in [RUNBOOK.md](RUNBOOK.md) and [.env.example](.env.example), and added safety test assertions for CSP routing, 401/404 header coverage, and HSTS.
 - W-0056: Extracted the dashboard renderer into local-only `dashboard/index.html`, removed third-party font and placeholder-image requests, added a restrictive content security policy, and proved missing assets cannot break core health.
 - W-0055: Extracted dashboard guards and read-only data/query routes into `lib/dashboard.mjs`; disabled mode avoids loading the module, initialization failure cannot break core health, and paid/public or outside-contact zones are denied.

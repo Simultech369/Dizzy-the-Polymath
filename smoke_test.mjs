@@ -127,12 +127,15 @@ try {
     headers: { authorization: "Bearer test-token" },
   }).then((r) => r.json());
   await must(dashData.ok === true && Array.isArray(dashData.prompt_sources) && Array.isArray(dashData.docs), "dashboard data invalid");
+  await must(dashData.projection === "minimal-v1", "dashboard data projection missing");
+  await must(dashData.docs.every((doc) => /^doc-[a-f0-9]{12}$/.test(doc.id) && !("path" in doc) && !("relPath" in doc)), "dashboard data leaked document paths");
 
   const dashQuery = await fetch(`http://127.0.0.1:${port}/api/dashboard-query?q=apples`, {
     headers: { authorization: "Bearer test-token" },
   }).then((r) => r.json());
   await must(dashQuery.ok === true && Array.isArray(dashQuery.snippets), "dashboard query invalid");
-  await must(dashQuery.snippets.some(s => s.path.includes("calibration-examples.md")), "dashboard query missing calibration doc");
+  await must(dashQuery.snippets.length > 0, "dashboard query returned no matches");
+  await must(dashQuery.snippets.every((snippet) => /^doc-[a-f0-9]{12}$/.test(snippet.id) && !("path" in snippet)), "dashboard query leaked document paths");
 
   const authHealth = await fetch(`http://127.0.0.1:${port}/health`).then((r) => r.json());
   await must(authHealth.ok === true, "health should stay open on loopback binding");

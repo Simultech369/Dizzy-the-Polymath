@@ -58,7 +58,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/api/dashboard-data", "/api/dashboard-query"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/api/dashboard-data", "/api/dashboard-query"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -666,6 +666,7 @@ export async function createRuntime(opts = {}) {
         normalizeIp,
         isLoopbackHost,
         assetPath: opts.dashboardAssetPath,
+        scriptAssetPath: opts.dashboardScriptAssetPath,
       });
     } catch (error) {
       console.warn(`[dashboard] initialization_failed=${String(error?.message ?? error)}`);

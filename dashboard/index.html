@@ -349,8 +349,8 @@
     <!-- Main Content Area -->
     <div class="card">
       <div class="tab-container">
-        <div class="tab active" onclick="switchTab('tab-memory')">Memory Database</div>
-        <div class="tab" onclick="switchTab('tab-search')">Sieve Retrieval Tester</div>
+        <div class="tab active" data-tab-target="tab-memory">Memory Database</div>
+        <div class="tab" data-tab-target="tab-search">Sieve Retrieval Tester</div>
       </div>
 
       <!-- Tab 1: Memory Database -->
@@ -363,8 +363,8 @@
       <!-- Tab 2: Sieve Retrieval Tester -->
       <div id="tab-search" class="tab-content">
         <div class="search-container">
-          <input type="text" id="search-query" class="search-input" placeholder="Type query (e.g. apple colors or preventative economics)..." onkeydown="if(event.key === 'Enter') runSearch()">
-          <button class="btn" onclick="runSearch()">Query Sieve</button>
+          <input type="text" id="search-query" class="search-input" placeholder="Type query (e.g. apple colors or preventative economics)...">
+          <button class="btn" id="search-button">Query Sieve</button>
         </div>
         <div id="search-results-container">
           <table class="results-table">
@@ -388,126 +388,6 @@
     </div>
   </div>
 
-  <script>
-    async function loadData() {
-      try {
-        const res = await fetch('/api/dashboard-data');
-        const data = await res.json();
-        
-        // Render Active Pack
-        const urlParams = new URLSearchParams(window.location.search);
-        document.getElementById('active-pack').innerText = data.prompt_sources.length ? 'Custom/Core' : 'None';
-        
-        // Render Prompt Sources
-        const promptList = document.getElementById('prompt-sources-list');
-        promptList.innerHTML = data.prompt_sources.map(s => `
-          <li class="prompt-item">
-            <span class="prompt-path">${escapeHtml(s.path)}</span>
-            <span class="badge ${escapeHtml(s.role) === 'constitutional' ? 'badge-primary' : 'badge-amber'}">${escapeHtml(s.role)}</span>
-          </li>
-        `).join('');
-
-        // Render Memory Docs
-        const memoryList = document.getElementById('memory-docs-list');
-        if (!data.docs || !data.docs.length) {
-          memoryList.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No indexed memory items found.</div>';
-          return;
-        }
-        
-        memoryList.innerHTML = data.docs.map(d => {
-          const confidencePct = Math.round(d.confidence * 100);
-          const decayPct = Math.round(d.decay * 100);
-          
-          return `
-            <div class="doc-item">
-              <div class="doc-header">
-                <span class="doc-path">${escapeHtml(d.relPath)}</span>
-                <span class="badge badge-primary">${escapeHtml(d.kind)}</span>
-              </div>
-              <div class="doc-metrics">
-                <div class="doc-metric">
-                  <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
-                  <div class="bar-container">
-                    <div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--primary);"></div>
-                  </div>
-                  <span class="metric-value">${confidencePct}%</span>
-                </div>
-                <div class="doc-metric">
-                  <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Decay Factor:</span>
-                  <div class="bar-container">
-                    <div class="bar-fill" style="width: ${decayPct}%; background-color: ${d.decay < 0.5 ? 'var(--rose)' : 'var(--emerald)'};"></div>
-                  </div>
-                  <span class="metric-value">${decayPct}% (${Math.round(d.ageInDays)}d old)</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      const tabEl = Array.from(document.querySelectorAll('.tab')).find(t => t.innerText.toLowerCase().includes(tabId.split('-')[1]));
-      if (tabEl) tabEl.classList.add('active');
-      
-      document.getElementById(tabId).classList.add('active');
-    }
-
-    async function runSearch() {
-      const q = document.getElementById('search-query').value.trim();
-      if (!q) return;
-
-      const body = document.getElementById('search-results-body');
-      body.innerHTML = '<tr><td colspan="5" style="text-align: center;">Retrieving...</td></tr>';
-
-      try {
-        const res = await fetch(`/api/dashboard-query?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        
-        if (!data.snippets || !data.snippets.length) {
-          body.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No matching snippets returned from the sieve.</td></tr>';
-          return;
-        }
-
-        body.innerHTML = data.snippets.map(s => {
-          const confidencePct = Math.round((s.confidence ?? 1.0) * 100);
-          const decayPct = Math.round((s.decay ?? 1.0) * 100);
-          const reasonsHtml = s.reasons.map(r => `<span class="badge badge-amber" style="margin-right: 0.25rem;">${escapeHtml(r)}</span>`).join('');
-          
-          return `
-            <tr>
-              <td>
-                <span class="file-path">${escapeHtml(s.path)}</span>
-              </td>
-              <td>${confidencePct}%</td>
-              <td>${decayPct}%</td>
-              <td style="font-weight: bold; color: var(--emerald);">${Number(s.score).toFixed(2)}</td>
-              <td>${reasonsHtml || '<span style="color:var(--text-muted); font-size:0.8rem;">None</span>'}</td>
-            </tr>
-          `;
-        }).join('');
-      } catch (e) {
-        body.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--rose);">Error running query: ${escapeHtml(e.message)}</td></tr>`;
-      }
-    }
-
-    function escapeHtml(text) {
-      if (!text) return '';
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    // Init
-    window.onload = loadData;
-  </script>
+  <script src="/assets/dashboard.js" defer></script>
 </body>
 </html>
