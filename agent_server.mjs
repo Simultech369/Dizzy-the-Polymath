@@ -621,7 +621,7 @@ export async function createRuntime(opts = {}) {
     res.json(out);
   });
 
-  app.get("/state", (req, res) => {
+  app.get("/state", (req, res, next) => {
     const rawZone = req.headers?.["x-dizzy-zone"] || req.query?.zone || "public";
     const zone = rawZone === "private" ? "private" : "public";
     const isLocal = isLoopbackRemoteAddress(req.socket?.remoteAddress);
@@ -636,12 +636,12 @@ export async function createRuntime(opts = {}) {
       const stateConfig = loadStateConfig(zone);
       res.json({ ok: true, state: stateConfig });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
 
-  app.get("/governance", async (req, res) => {
+  app.get("/governance", async (req, res, next) => {
     try {
       const docPath = path.resolve(process.cwd(), "INTERACTION_NORMS.md");
       if (!fs.existsSync(docPath)) {
@@ -651,7 +651,7 @@ export async function createRuntime(opts = {}) {
       res.setHeader("Cache-Control", "no-store");
       res.type("text/markdown").send(text);
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
@@ -675,7 +675,7 @@ export async function createRuntime(opts = {}) {
     }
   }
 
-  app.get("/prompt", async (req, res) => {
+  app.get("/prompt", async (req, res, next) => {
     try {
       const trustZone = String(req.query?.trust_zone ?? "").trim().toLowerCase();
       const { sources } = getCachedChatSystemPrompt({ trustZone });
@@ -715,7 +715,7 @@ export async function createRuntime(opts = {}) {
       res.setHeader("Cache-Control", "no-store");
       res.json(out);
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
@@ -727,7 +727,7 @@ export async function createRuntime(opts = {}) {
     return next();
   }
 
-  app.get("/memory/graph", memoryGraphAccessGuard, async (req, res) => {
+  app.get("/memory/graph", memoryGraphAccessGuard, async (req, res, next) => {
     try {
       const query = String(req.query.q ?? "").trim();
       if (query) {
@@ -760,7 +760,7 @@ export async function createRuntime(opts = {}) {
         entities: graph.entities.slice(0, 20),
       });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
@@ -825,7 +825,7 @@ export async function createRuntime(opts = {}) {
   }
 
   // Single dispatch path (Telegram/model wiring can call this later).
-  app.post("/dispatch/incoming", requestBoundaryAuditGuard, async (req, res) => {
+  app.post("/dispatch/incoming", requestBoundaryAuditGuard, async (req, res, next) => {
     try {
       const rawIdempotencyKey = req.header("idempotency-key");
       let idempotencyKey = undefined;
@@ -849,24 +849,24 @@ export async function createRuntime(opts = {}) {
 
       res.json({ ok: true, ...out });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
   // Job status endpoint
-  app.get("/jobs/:id", async (req, res) => {
+  app.get("/jobs/:id", async (req, res, next) => {
     try {
       if (!redisReady) return res.status(503).json({ ok: false, error: "Redis not ready" });
       const job = await getJob(redis, queueKeys, req.params.id);
       if (!job) return res.status(404).json({ ok: false, error: "Not found" });
       res.json({ ok: true, job: shapeJobForResponse(job) });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
   // Notification reads are non-destructive; clients acknowledge exact receipts after delivery.
-  app.get("/notify/:channel", async (req, res) => {
+  app.get("/notify/:channel", async (req, res, next) => {
     try {
       if (!redisReady) return res.status(503).json({ ok: false, error: "Redis not ready" });
       const channel = normalizeIdentifier(req.params.channel || "local", "local");
@@ -885,11 +885,11 @@ export async function createRuntime(opts = {}) {
 
       res.json({ ok: true, channel, notifications });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
-  app.post("/notify/:channel/ack", async (req, res) => {
+  app.post("/notify/:channel/ack", async (req, res, next) => {
     try {
       if (!redisReady) return res.status(503).json({ ok: false, error: "Redis not ready" });
       const channel = normalizeIdentifier(req.params.channel || "local", "local");
@@ -901,12 +901,12 @@ export async function createRuntime(opts = {}) {
       if (e?.code === "NOTIFY_ACK_CONFLICT") {
         return res.status(409).json({ ok: false, error: String(e.message) });
       }
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
   // POST /agent/execute delegates to dispatch for now.
-  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res) => {
+  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res, next) => {
     const { brief } = req.body ?? {};
     let client_id = req.body?.client_id;
     let service_id = req.body?.service_id;
@@ -996,11 +996,11 @@ export async function createRuntime(opts = {}) {
         ...out,
       });
     } catch (e) {
-      res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      next(e);
     }
   });
 
-  app.delete("/agent/continuity", async (req, res) => {
+  app.delete("/agent/continuity", async (req, res, next) => {
     try {
       const result = deleteClientContinuity({
         client_id: req.body?.client_id,
@@ -1011,16 +1011,16 @@ export async function createRuntime(opts = {}) {
       if (!result.ok) return res.status(400).json(result);
       return res.json(result);
     } catch (e) {
-      return res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      return next(e);
     }
   });
 
-  app.post("/agent/continuity/prune", async (req, res) => {
+  app.post("/agent/continuity/prune", async (req, res, next) => {
     try {
       const result = pruneExpiredClientContinuity();
       return res.json(result);
     } catch (e) {
-      return res.status(500).json({ ok: false, error: String(e?.message ?? e) });
+      return next(e);
     }
   });
 

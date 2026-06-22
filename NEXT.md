@@ -10,13 +10,13 @@ Rules:
 
 ## Open Decisions
 
-(none)
+- Dashboard browser authentication: choose a loopback-only operator-session or one-time nonce design that never places credentials in URLs, browser history, or logs. Until resolved, browser UX is explicitly unsupported when bearer authentication is enabled.
 
 ---
 
 ## Work Queue
 
-(none)
+- W-0058 [Tier 1]: Close dashboard promotion blockers: define a trust-zone-specific metadata projection, implement browser-compatible local authentication, remove inline script/event handlers so CSP can drop `'unsafe-inline'`, and add a browser-flow regression test. Keep the dashboard experimental and disabled by default until these gates pass.
 
 ---
 

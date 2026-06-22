@@ -2897,12 +2897,15 @@ async function testPrivateReadSurfaces() {
     assert.equal(paidPublicDashboard.status, 403);
     assert.match((await paidPublicDashboard.json()).error, /trust zone/i);
 
-    const mutationAttempt = await fetch(`${baseUrl}/api/dashboard-data`, {
-      method: "POST",
-      headers: { ...headers, "content-type": "application/json" },
-      body: JSON.stringify({ mutate: true }),
-    });
-    assert.equal(mutationAttempt.status, 404);
+    for (const route of ["/dashboard", "/api/dashboard-data", "/api/dashboard-query"]) {
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+        const mutationAttempt = await fetch(`${baseUrl}${route}`, {
+          method,
+          headers,
+        });
+        assert.equal(mutationAttempt.status, 404, `${method} ${route} must remain unregistered`);
+      }
+    }
   } finally {
     await protectedRuntime.stop();
   }
@@ -3081,13 +3084,13 @@ async function testAdversarialTrustZoneBypass() {
   const auditPath = path.resolve(process.cwd(), "runtime", "audit", "boundary_violations.jsonl");
   fs.rmSync(auditPath, { force: true });
 
-  const port = 3456;
   const started = await startServer({
-    port,
+    port: 0,
     bindHost: "127.0.0.1",
     authToken: "",
     redisUrl: "",
   });
+  const port = started.boundPort;
 
   try {
     const statePath = path.resolve(process.cwd(), "state.json");
@@ -3151,6 +3154,13 @@ async function testAdversarialTrustZoneBypass() {
       const emailTest = redactTextPayload("Contact test@example.com or 555-123-4567");
       assert.match(emailTest, /\[REDACTED_EMAIL\]/);
       assert.match(emailTest, /\[REDACTED_PHONE\]/);
+
+      fs.writeFileSync(statePath, '{"secret":"sk-routeerrorsecret1234567890",', "utf8");
+      const failedState = await fetch(`http://127.0.0.1:${port}/state?zone=private`);
+      assert.equal(failedState.status, 500);
+      assert.deepEqual(await failedState.json(), { ok: false, error: "Internal server error" });
+      fs.writeFileSync(statePath, JSON.stringify(parsedState, null, 2), "utf8");
+      console.log("-> Route failure responses use the global redacted error handler");
 
     } finally {
       delete parsedState["secrets#private"];
@@ -3323,7 +3333,6 @@ async function testNewHardeningFeatures() {
   console.log("-> Recovery and notification acknowledgement checks passed");
 
   // Start server with custom auth configuration for identity headers and scoped tokens
-  const port = 3457;
   process.env.DIZZY_ENFORCE_IDENTITY_HEADERS = "1";
   process.env.DIZZY_DEPLOYMENT_MODE = "proxied";
   process.env.DIZZY_AUTH_TOKEN = "master-token";
@@ -3350,12 +3359,13 @@ async function testNewHardeningFeatures() {
   }), /DIZZY_AUTH_TOKEN is required when scoped API tokens are configured/);
 
   const started = await startServer({
-    port,
+    port: 0,
     bindHost: "127.0.0.1",
     authToken: "master-token",
     deploymentMode: "proxied",
     trustedProxies: "127.0.0.1",
   });
+  const port = started.boundPort;
 
   try {
     // 2. Dashboard XSS Escaping check
@@ -3411,15 +3421,15 @@ async function testNewHardeningFeatures() {
     console.log("-> Scoped identity headers enforcement passed");
 
     // 3b. Scoped Identity Headers Trust Verification check
-    const proxyPort = 3458;
     const startedProxy = await startServer({
-      port: proxyPort,
+      port: 0,
       bindHost: "127.0.0.1",
       authToken: "master-token",
       deploymentMode: "proxied",
       enforceIdentityHeaders: true,
       trustedProxies: "192.168.1.100", // Non-matching IP
     });
+    const proxyPort = startedProxy.boundPort;
 
     try {
       const untrustedRes = await fetch(`http://127.0.0.1:${proxyPort}/agent/execute`, {
@@ -3441,16 +3451,17 @@ async function testNewHardeningFeatures() {
     }
 
     const startedProxyMatch = await startServer({
-      port: proxyPort,
+      port: 0,
       bindHost: "127.0.0.1",
       authToken: "master-token",
       deploymentMode: "proxied",
       enforceIdentityHeaders: true,
       trustedProxies: "127.0.0.1", // Matching IP
     });
+    const proxyMatchPort = startedProxyMatch.boundPort;
 
     try {
-      const trustedRes = await fetch(`http://127.0.0.1:${proxyPort}/agent/execute`, {
+      const trustedRes = await fetch(`http://127.0.0.1:${proxyMatchPort}/agent/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -3682,14 +3693,14 @@ async function testQueueIdempotency() {
   assert.equal(res4_2[1], 0);
 
   // HTTP boundary checks
-  const port = 3459;
   const started = await startServer({
-    port,
+    port: 0,
     bindHost: "127.0.0.1",
     authToken: "master-token",
     deploymentMode: "proxied",
     trustedProxies: "127.0.0.1",
   });
+  const port = started.boundPort;
 
   try {
     // 1. Invalid Idempotency-Key format check (spaces, invalid chars, too long)

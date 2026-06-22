@@ -445,11 +445,13 @@ function main() {
   console.log(`  latest_commit: ${latestCommitSummary()}`);
   console.log(`  open_work_items: ${queue.open} (${queue.tier1} Tier 1)`);
   console.log(`  next_queue_item: ${queue.next || "none"}`);
-  const promotionDebt = metabolism.status === "yellow"
-    ? "review memory metabolism findings"
-    : upgrades.status === "yellow"
-      ? "review upgrade status findings"
-      : "none visible";
+  const promotionDebt = queue.tier1 > 0
+    ? `${queue.tier1} Tier 1 work item(s) block promotion`
+    : metabolism.status === "yellow"
+      ? "review memory metabolism findings"
+      : upgrades.status === "yellow"
+        ? "review upgrade status findings"
+        : "none visible";
   console.log(`  promotion_debt: ${promotionDebt}`);
   console.log("");
 

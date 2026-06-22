@@ -19,6 +19,8 @@ This starts the local API, exposes governance/prompt/memory inspection endpoints
 
 The optional dashboard is disabled by default. Its read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Disabled mode does not load the module; module or asset failure leaves core routes such as `/health` available.
 
+Dashboard browser UX is not promotion-ready. When `DIZZY_AUTH_TOKEN` is configured, normal browser navigation and the renderer's follow-on `fetch` calls cannot attach the required bearer header. Header-authenticated API clients remain supported. Do not put credentials in query strings; keep the dashboard disabled unless using an explicit header-capable local client while a loopback-only operator-session design is evaluated.
+
 ---
 
 ## Quick start: Telegram interface (2 terminals)

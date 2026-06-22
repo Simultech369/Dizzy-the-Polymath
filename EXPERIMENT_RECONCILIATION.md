@@ -43,7 +43,7 @@ Recently changed on `experiments`:
 Known unresolved issues and deferred work:
 
 - Time decay was originally specified as report-only, but the experiment now changes retrieval relevance for some memory classes. Whether that is justified, sufficiently bounded, and ready for promotion remains unresolved.
-- Dashboard route policy and data access live in `lib/dashboard.mjs`; the behavior-identical renderer now lives in `dashboard/index.html` without third-party font or placeholder-image requests. Disabled mode skips module loading, and module or asset failure degrades only dashboard routes.
+- Dashboard route policy and data access live in `lib/dashboard.mjs`; the behavior-identical renderer now lives in `dashboard/index.html` without third-party font or placeholder-image requests. Disabled mode skips module loading, and module or asset failure degrades only dashboard routes. Normal browser use is not operable under bearer authentication because navigation and renderer fetches do not attach the required header.
 - Prompt overlay expiry remains experimental and lacks complete evidence that constitutional material cannot fail closed or disappear silently.
 - Privilege split and telos/substrate work are parked pending concrete trigger evidence; parking them may be prudent or may conceal a missing boundary.
 - Production-readiness checks verify some wiring more strongly than behavior.
@@ -66,7 +66,7 @@ Evidence still lacking:
 | BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract | `none` | — |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence | `none` | — |
 | Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible | `none` | — |
-| Drift and memory dashboard | Isolated experiment on `experiments` | `lib/dashboard.mjs` owns read-only routes and sanitized responses; `dashboard/index.html` is local-only; disabled, failed-module, and missing-asset paths are tested; broad independent review remains required before promotion | `none` | — |
+| Drift and memory dashboard | Isolated experiment on `experiments` | `lib/dashboard.mjs` owns read-only routes and sanitized responses; `dashboard/index.html` is local-only; independent review found browser-auth, metadata-projection, and CSP blockers that remain open in `NEXT.md` | `none` | — |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently | `none` | — |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking | `none` | — |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary | `none` | — |
@@ -208,7 +208,7 @@ Acceptance tests:
 
 ## Dashboard Boundary
 
-Keep the dashboard experimental until broad independent review confirms the extracted boundary and remaining metadata policy.
+Keep the dashboard experimental until the reviewed browser-auth, metadata-projection, and CSP blockers are resolved and browser-flow evidence exists.
 
 Preferred shape:
 
@@ -231,6 +231,7 @@ Current evidence:
 - A missing static asset leaves `/health` available and returns a dashboard-scoped `503`.
 - Dashboard data remains metadata-only, exposes no excerpts, rejects mutation methods, and denies paid/public and outside-contact trust zones.
 - Dashboard HTML no longer requests third-party fonts or placeholder images and is served with a local-only content security policy.
+- Header-authenticated clients can exercise the routes, but ordinary browser navigation and renderer fetches do not carry bearer authentication. Browser UX is therefore unsupported until a URL-credential-free local operator-session design is implemented and tested.
 
 ## NEXT.md Consistency
 
