@@ -19,9 +19,9 @@ This starts the local API, exposes governance/prompt/memory inspection endpoints
 
 The optional dashboard is disabled by default. Its read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Disabled mode does not load the module; module or asset failure leaves core routes such as `/health` available.
 
-Dashboard browser UX is not promotion-ready. When `DIZZY_AUTH_TOKEN` is configured, normal browser navigation and the renderer's follow-on `fetch` calls cannot attach the required bearer header. Header-authenticated API clients remain supported. Do not put credentials in query strings; keep the dashboard disabled unless using an explicit header-capable local client while a loopback-only operator-session design is evaluated.
+Dashboard browser access uses a loopback-only temporary operator session. Set `DIZZY_DASHBOARD_ENABLED=1` and a strong `DIZZY_AUTH_TOKEN`, start the server, then open `/dashboard/login`. Submit the operator token through the local form; the server exchanges it for a random in-memory `HttpOnly; SameSite=Strict` cookie and redirects to `/dashboard`. The cookie is accepted only on dashboard routes, defaults to a one-hour lifetime (`DIZZY_DASHBOARD_SESSION_TTL_MS`), and is cleared by `POST /dashboard/logout`. It never authorizes general API routes. Do not put credentials in query strings or browser storage.
 
-Dashboard API responses use the `minimal-v1` projection: repository-relative paths are replaced by opaque stable IDs. Executable dashboard JavaScript is served from the guarded local `/assets/dashboard.js` route, and the HTML CSP allows same-origin scripts without inline script execution.
+Dashboard API responses use the `minimal-v1` projection: repository-relative paths are replaced by opaque stable IDs. Executable dashboard JavaScript is served from guarded local assets, and the HTML CSP allows same-origin scripts without inline script execution.
 
 ---
 

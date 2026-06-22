@@ -2868,6 +2868,56 @@ async function testPrivateReadSurfaces() {
   const headers = { authorization: "Bearer privacy-test-token" };
   try {
     const baseUrl = `http://127.0.0.1:${protectedRuntime.boundPort}`;
+
+    const loginPage = await fetch(`${baseUrl}/dashboard/login`);
+    assert.equal(loginPage.status, 200);
+    const loginHtml = await loginPage.text();
+    assert.match(loginHtml, /temporary dashboard session/i);
+    assert.match(loginHtml, /\/assets\/dashboard-login\.js/);
+    const loginScript = await fetch(`${baseUrl}/assets/dashboard-login.js`);
+    assert.equal(loginScript.status, 200);
+    assert.match(await loginScript.text(), /dashboard\/session/);
+
+    const badSession = await fetch(`${baseUrl}/dashboard/session`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", origin: baseUrl },
+      body: new URLSearchParams({ token: "wrong-token" }),
+    });
+    assert.equal(badSession.status, 401);
+    assert.equal(badSession.headers.has("set-cookie"), false);
+
+    const sessionResponse = await fetch(`${baseUrl}/dashboard/session`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", origin: baseUrl },
+      body: new URLSearchParams({ token: "privacy-test-token" }),
+    });
+    assert.equal(sessionResponse.status, 303);
+    assert.equal(sessionResponse.headers.get("location"), "/dashboard");
+    const setCookie = sessionResponse.headers.get("set-cookie") || "";
+    assert.match(setCookie, /^dizzy_dashboard_session=[A-Za-z0-9_-]+;/);
+    assert.match(setCookie, /HttpOnly/i);
+    assert.match(setCookie, /SameSite=Strict/i);
+    assert.equal(setCookie.includes("privacy-test-token"), false);
+    const sessionCookie = setCookie.split(";", 1)[0];
+    const cookieHeaders = { cookie: sessionCookie };
+
+    assert.equal((await fetch(`${baseUrl}/dashboard`, { headers: cookieHeaders })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/assets/dashboard.js`, { headers: cookieHeaders })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/api/dashboard-data`, { headers: cookieHeaders })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/api/dashboard-query?q=memory`, { headers: cookieHeaders })).status, 200);
+    assert.equal((await fetch(`${baseUrl}/prompt`, { headers: cookieHeaders })).status, 401);
+
+    const logout = await fetch(`${baseUrl}/dashboard/logout`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { ...cookieHeaders, origin: baseUrl },
+    });
+    assert.equal(logout.status, 303);
+    assert.match(logout.headers.get("set-cookie") || "", /Max-Age=0/i);
+    assert.equal((await fetch(`${baseUrl}/dashboard`, { headers: cookieHeaders })).status, 401);
+
     const graph = await fetch(`${baseUrl}/memory/graph?q=memory`, { headers });
     assert.equal(graph.status, 200);
     const graphBody = await graph.json();
@@ -2907,7 +2957,7 @@ async function testPrivateReadSurfaces() {
     assert.equal(paidPublicDashboard.status, 403);
     assert.match((await paidPublicDashboard.json()).error, /trust zone/i);
 
-    for (const route of ["/dashboard", "/assets/dashboard.js", "/api/dashboard-data", "/api/dashboard-query"]) {
+    for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query"]) {
       for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
         const mutationAttempt = await fetch(`${baseUrl}${route}`, {
           method,

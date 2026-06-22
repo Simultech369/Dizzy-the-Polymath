@@ -66,7 +66,7 @@ Evidence still lacking:
 | BM25 retrieval | Integrated on `main` in `f4504b8` | Verified with `npm run verify:bm25`; preserve trust-zone blocks and output metadata contract | `none` | — |
 | Confidence weighting | Rework experimentally | Define metadata defaults and behavior for missing or malformed confidence | `none` | — |
 | Time-decay memory | Class-aware experiment implemented | Project decisions and user claims preserve authority; observations and reusable patterns decay relevance at class-specific rates; review age remains visible | `none` | — |
-| Drift and memory dashboard | Isolated experiment on `experiments` | `lib/dashboard.mjs` now returns an explicit path-free `minimal-v1` projection; executable JS is a guarded local asset with a same-origin script CSP; browser authentication and browser-flow evidence remain open in `NEXT.md` | `none` | — |
+| Drift and memory dashboard | Bounded local experiment on `experiments` | Path-free `minimal-v1` projection, external same-origin scripts, loopback-only temporary operator session, HTTP regression coverage, and live browser-flow evidence are present; shared/hosted deployment remains out of scope | `none` | — |
 | Prompt overlay expiry | Keep experimental | Expiry must be visible and fail legibly; constitutional files must never disappear silently | `none` | — |
 | Preventative-economics retrieval boost | Do not promote generically | Allow only in an explicit domain/task overlay, not general relevance ranking | `none` | — |
 | Request phrase audit guard | Clarified defense-in-depth role | Keyword detection produces redacted audit receipts; trust-zone capability checks remain the actual privacy boundary | `none` | — |
@@ -208,7 +208,7 @@ Acceptance tests:
 
 ## Dashboard Boundary
 
-Keep the dashboard experimental until the remaining browser-auth blocker is resolved and browser-flow evidence exists.
+Keep the dashboard local-only and experimental; the reviewed local browser-auth blocker is resolved, but this does not authorize shared or hosted deployment.
 
 Preferred shape:
 
@@ -231,7 +231,8 @@ Current evidence:
 - A missing static asset leaves `/health` available and returns a dashboard-scoped `503`.
 - Dashboard data uses the explicit `minimal-v1` projection: it remains metadata-only, replaces repository paths with opaque stable IDs, exposes no excerpts, rejects mutation methods, and denies paid/public and outside-contact trust zones.
 - Dashboard HTML no longer requests third-party fonts or placeholder images. Executable JavaScript is served from a guarded local asset, inline event handlers are absent, and `script-src` no longer permits `'unsafe-inline'`.
-- Header-authenticated clients can exercise the routes, but ordinary browser navigation and renderer fetches do not carry bearer authentication. Browser UX is therefore unsupported until a URL-credential-free local operator-session design is implemented and tested.
+- A loopback-only login exchanges the operator token in a local POST body for a random, expiring, in-memory `HttpOnly; SameSite=Strict` cookie. Authorization accepts that cookie only for dashboard routes; regression coverage confirms it cannot authorize `/prompt`.
+- A live browser pass verified login redirect, guarded script/data loading, metadata rendering, tab switching, and retrieval results without URL credentials or browser storage.
 
 ## NEXT.md Consistency
 

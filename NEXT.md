@@ -10,18 +10,19 @@ Rules:
 
 ## Open Decisions
 
-- Dashboard browser authentication: choose a loopback-only operator-session or one-time nonce design that never places credentials in URLs, browser history, or logs. Until resolved, browser UX is explicitly unsupported when bearer authentication is enabled.
+(none)
 
 ---
 
 ## Work Queue
 
-- W-0058 [Tier 1]: Close the remaining dashboard promotion blocker: implement URL-credential-free, loopback-only browser authentication and prove the complete HTML, script, data, and query flow in a browser regression test. Keep the dashboard experimental and disabled by default until this gate passes.
+(none)
 
 ---
 
 ## Completed
 
+- W-0058: Added loopback-only dashboard login that exchanges the operator token through a local POST body for a random, expiring, in-memory `HttpOnly; SameSite=Strict` cookie scoped in authorization to dashboard routes only; regression coverage proves login, guarded assets/data/query access, logout, and rejection on `/prompt`, with a live browser pass covering login, render, tab switching, and retrieval.
 - W-0059: Minimized dashboard metadata with opaque stable document/source IDs, removed repository paths from API responses, extracted executable JavaScript into a guarded local asset, removed inline event handlers, and tightened `script-src` to same-origin scripts without `'unsafe-inline'`.
 - W-0057: Implemented native HTTP security headers middleware in [lib/security_headers.mjs](lib/security_headers.mjs), integrated `DIZZY_VERIFIED_HTTPS` gating in config and Express, documented in [RUNBOOK.md](RUNBOOK.md) and [.env.example](.env.example), and added safety test assertions for CSP routing, 401/404 header coverage, and HSTS.
 - W-0056: Extracted the dashboard renderer into local-only `dashboard/index.html`, removed third-party font and placeholder-image requests, added a restrictive content security policy, and proved missing assets cannot break core health.

@@ -47,6 +47,29 @@ function tokensEqual(candidate, expected) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
+const DASHBOARD_SESSION_COOKIE = "dizzy_dashboard_session";
+
+function readCookie(req, name) {
+  const raw = String(req.headers?.cookie || "");
+  for (const pair of raw.split(";")) {
+    const separator = pair.indexOf("=");
+    if (separator < 0) continue;
+    if (pair.slice(0, separator).trim() === name) return pair.slice(separator + 1).trim();
+  }
+  return "";
+}
+
+function isDashboardRoute(pathname) {
+  return pathname === "/dashboard"
+    || pathname === "/dashboard/login"
+    || pathname === "/dashboard/session"
+    || pathname === "/dashboard/logout"
+    || pathname === "/assets/dashboard.js"
+    || pathname === "/assets/dashboard-login.js"
+    || pathname === "/api/dashboard-data"
+    || pathname === "/api/dashboard-query";
+}
+
 function parseBool(value, fallback = false) {
   const raw = String(value ?? (fallback ? "1" : "0")).trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
@@ -58,13 +81,23 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/api/dashboard-data", "/api/dashboard-query"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
         ok: false,
         error: "Dashboard unavailable",
       });
+    });
+  }
+  app.get("/dashboard/login", (req, res) => {
+    if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
+    return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
+  });
+  for (const route of ["/dashboard/session", "/dashboard/logout"]) {
+    app.post(route, (req, res) => {
+      if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
+      return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
     });
   }
 }
@@ -488,6 +521,7 @@ export async function createRuntime(opts = {}) {
   const app = express();
   app.use(securityHeaders({ verifiedHttps }));
   app.use(express.json({ limit: "5mb" }));
+  app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
@@ -512,6 +546,30 @@ export async function createRuntime(opts = {}) {
     throw new Error("DIZZY_AUTH_TOKEN is required when scoped API tokens are configured.");
   }
 
+  const dashboardSessionTtlMs = parsePositiveInt(
+    opts.dashboardSessionTtlMs ?? process.env.DIZZY_DASHBOARD_SESSION_TTL_MS,
+    60 * 60 * 1000,
+  );
+  let dashboardSessionToken = "";
+  let dashboardSessionExpiresAt = 0;
+  const hasDashboardSession = (req) => {
+    if (!dashboardSessionToken || Date.now() >= dashboardSessionExpiresAt) return false;
+    return tokensEqual(readCookie(req, DASHBOARD_SESSION_COOKIE), dashboardSessionToken);
+  };
+  const createDashboardSession = (candidate) => {
+    if (!tokensEqual(String(candidate || ""), authToken)) return null;
+    dashboardSessionToken = crypto.randomBytes(32).toString("base64url");
+    dashboardSessionExpiresAt = Date.now() + dashboardSessionTtlMs;
+    return {
+      token: dashboardSessionToken,
+      maxAgeSeconds: Math.max(1, Math.floor(dashboardSessionTtlMs / 1000)),
+    };
+  };
+  const clearDashboardSession = () => {
+    dashboardSessionToken = "";
+    dashboardSessionExpiresAt = 0;
+  };
+
   const hasAnyToken = Boolean(authToken || executeToken || notifyToken);
   if (hasAnyToken) {
     const anonymousDiscoveryRoutes = new Set([
@@ -525,6 +583,8 @@ export async function createRuntime(opts = {}) {
       // Health can remain open only on loopback bindings.
       if (req.path === "/health" && isLoopbackHost(bindHost)) return next();
       if (publicSurfaceMode === "discovery" && anonymousDiscoveryRoutes.has(req.path)) return next();
+      if (dashboardEnabled && ["/dashboard/login", "/dashboard/session", "/assets/dashboard-login.js"].includes(req.path)) return next();
+      if (dashboardEnabled && isDashboardRoute(req.path) && hasDashboardSession(req)) return next();
 
       const auth = String(req.headers?.authorization ?? "");
       const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
@@ -667,6 +727,10 @@ export async function createRuntime(opts = {}) {
         isLoopbackHost,
         assetPath: opts.dashboardAssetPath,
         scriptAssetPath: opts.dashboardScriptAssetPath,
+        loginScriptAssetPath: opts.dashboardLoginScriptAssetPath,
+        verifiedHttps,
+        createDashboardSession,
+        clearDashboardSession,
       });
     } catch (error) {
       console.warn(`[dashboard] initialization_failed=${String(error?.message ?? error)}`);
