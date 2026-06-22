@@ -75,6 +75,38 @@ private_marker: hiddenfrontmatterterm
 Only searchable body content belongs here.
 `);
 
+writeFixture("revoked.md", `
+---
+memory_status: revoked
+---
+# Revoked memory
+revokedzircon should never be retrieved
+`);
+
+writeFixture("zone-blocked.md", `
+---
+zone_allowed: paid_public
+---
+# Zone blocked memory
+zonezircon should not cross into private retrieval
+`);
+
+writeFixture("a-assistant-source.md", `
+---
+source: assistant_proposed
+---
+# Source authority tie
+authorityzircon identical claim
+`);
+
+writeFixture("z-operator-source.md", `
+---
+source: operator_reviewed
+---
+# Source authority tie
+authorityzircon identical claim
+`);
+
 try {
   process.env.DIZZY_RAG_ROOT = FIXTURE_REL;
   process.env.DIZZY_RAG_ALLOWED_ROOTS = FIXTURE_REL;
@@ -109,6 +141,16 @@ try {
 
   const missingResults = getRelevantMarkdownSnippets("termthatdoesnotexistanywhere", { k: 20 });
   assert.deepEqual(missingResults, [], "missing terms should return no snippets");
+
+  const revokedResults = getRelevantMarkdownSnippets("revokedzircon", { k: 20, trustZone: "private_self" });
+  assert.equal(revokedResults.length, 0, "explicitly revoked memory should not be retrieved");
+
+  const zoneResults = getRelevantMarkdownSnippets("zonezircon", { k: 20, trustZone: "private_self" });
+  assert.equal(zoneResults.length, 0, "zone-ineligible memory should not cross into private retrieval");
+
+  const authorityResults = getRelevantMarkdownSnippets("authorityzircon identical claim", { k: 20, trustZone: "private_self" });
+  assert.ok(authorityResults[0]?.path.endsWith("z-operator-source.md"), "operator-reviewed evidence should win an exact relevance tie");
+  assert.equal(authorityResults[0]?.source, "operator_reviewed");
 
   for (const item of termResults) {
     assert.equal(typeof item.path, "string");

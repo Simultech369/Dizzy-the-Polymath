@@ -150,6 +150,7 @@ function validateTopicMetadata(rel, text) {
     sensitivity_class: ["normal", "sensitive", "do_not_export"],
     quantitative_attribution: ["none", "required", "present"],
     zone_origin: ["private_self", "trusted_collaborator", "outside_contact", "paid_public", "project"],
+    memory_status: ["active", "revoked"],
   };
   for (const [key, allowed] of Object.entries(enums)) {
     if (data[key] && !allowed.includes(String(data[key]).trim().toLowerCase())) {

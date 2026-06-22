@@ -4,6 +4,8 @@ _ext/
 _external/
 .env
 evaluations/generative-capability/results.json
+evaluations/dacr/results/
+evaluations/retrieval-integrity/results/
 .env.*
 !.env.example
 *.log

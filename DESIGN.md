@@ -773,6 +773,50 @@ Consequences:
 
 ---
 
+### D-0038: Retrieval integrity enforces explicit lifecycle and trust metadata
+
+Decision:
+- Treat missing `memory_status` as `active`; exclude a record from automatic markdown retrieval only when it is explicitly marked `memory_status: revoked`.
+- Keep `revocation_path` as the operator-facing mechanism for editing, deleting, or restoring a record. A populated path does not itself mean the record is revoked.
+- When retrieval is invoked with a trust zone, enforce `zone_allowed`; metadata-free legacy records remain eligible under the existing trusted-root boundary.
+- Use source authority only to break exact relevance ties: `operator_reviewed` outranks `runtime_generated`, `assistant_proposed`, and `imported_reference`. Source class does not override a stronger relevance score.
+- Preserve freshness decay, missing-evidence abstention, source hashes, and deterministic ranking replay.
+
+Rationale:
+- Lifecycle and trust metadata are ineffective if retrieval validates them at write time but ignores them at read time.
+- Conflating a revocation mechanism with active revocation would erase valid curated memory.
+- Authority should resolve otherwise equal evidence without becoming a hidden relevance multiplier.
+- CoreTex-style replay and temporal checks are useful here; its mining, contract, and coordinator architecture are not.
+
+Consequences:
+- `lib/md_retriever.mjs` filters explicit revocations and zone-ineligible records, and exposes lifecycle/source metadata in retrieval receipts.
+- `lib/dispatch.mjs` passes the active trust zone into markdown retrieval.
+- `scripts/verify_bm25.mjs` and `scripts/retrieval_integrity_eval.mjs` gate the promoted behavior.
+- Three-pool retrieval remains report-only; this decision does not promote automatic second-pass retrieval, memory writes, or speculative context.
+
+---
+
+### D-0039: Dashboard browser access uses a temporary loopback-only session
+
+Decision:
+- Keep the dashboard disabled by default and unavailable outside direct loopback access.
+- Exchange the existing operator token through a local POST body for a random, expiring, in-memory session cookie.
+- Mark the cookie `HttpOnly` and `SameSite=Strict`; add `Secure` when HTTPS is independently verified.
+- Accept the session cookie only for dashboard HTML, assets, data, query, and logout routes. It must never authorize general runtime APIs.
+- Never place dashboard credentials in URLs, localStorage, or persistent repository/runtime files.
+
+Rationale:
+- Browser navigation and same-origin fetches cannot attach the machine API bearer header without exposing credentials to page JavaScript or browser storage.
+- A short-lived server-side session restores normal browser behavior while preserving loopback, trust-zone, and route-scope boundaries.
+- Reusing the operator's explicit token entry avoids creating a second persistent secret or logging a bootstrap credential.
+
+Consequences:
+- `DIZZY_DASHBOARD_SESSION_TTL_MS` controls the temporary session lifetime and defaults to one hour.
+- Restarting the runtime invalidates the session because its random token exists only in memory.
+- Shared, proxied, or hosted dashboard deployment remains out of scope and requires a separate authority decision.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

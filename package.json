@@ -19,6 +19,8 @@
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",
                     "eval:divergence":  "node ./scripts/generative_capability_eval.mjs",
+                    "eval:dacr:smoke":  "node ./scripts/dacr_bench_eval.mjs",
+                    "eval:retrieval-integrity":  "node ./scripts/retrieval_integrity_eval.mjs",
                     "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [
