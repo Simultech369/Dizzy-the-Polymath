@@ -23,6 +23,10 @@ Run the bounded default smoke evaluation:
 npm.cmd run eval:dacr:smoke
 ```
 
+The wrapper fails closed when Ollama or the configured model is unavailable,
+or when the runner records a transport/format failure. Incorrect model answers
+remain valid evaluation results; they do not become transport failures.
+
 The default uses `gemma3:4b`, Ollama's native local `/api/chat` route, an 8K
 context, the shortest synthetic document under 1,800 words, one question, and
 one challenge. Results are ignored under `evaluations/dacr/results/`.

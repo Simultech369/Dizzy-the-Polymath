@@ -41,3 +41,18 @@ The upstream evaluator previously treated runner failures without an explicit
 `parseFormat` as JSON and reported a 0% format-failure rate. The local DACR
 adapter now records `parseFormat: "failed"`, a failure reason, and a correct
 100% format-failure rate for transport failures.
+
+## Harness Revalidation — 2026-06-22
+
+- An initial Gemma retry hit `fetch failed` after 308.1 seconds. The wrapper
+  exposed a defect by returning success despite a 100% format-failure report.
+- The wrapper now preflights Ollama/model availability and exits nonzero for
+  runner transport or format failures. A missing-model probe confirmed the
+  fail-closed path before inference.
+- A warm identical-slice rerun with a 128-token completion cap completed in
+  24.3 seconds without a format failure. It again answered `Neuro graft` at
+  0.95 confidence, preserving the original conclusion: executable baseline,
+  poor conditional-filter accuracy, no routing promotion.
+- Final reconciliation against external `dacr-bench` commit `d3814d3` observed
+  another `fetch failed` runner failure; the wrapper correctly exited nonzero
+  after the evaluator reported a 100% format-failure rate.

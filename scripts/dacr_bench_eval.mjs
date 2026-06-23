@@ -38,6 +38,37 @@ function assertLocalEndpoint(endpoint) {
   }
 }
 
+async function preflightOllama(endpoint, model) {
+  if (!/\/api\/chat\/?$/.test(endpoint)) return;
+  const tagsUrl = new URL("/api/tags", endpoint);
+  let response;
+  try {
+    response = await fetch(tagsUrl, { signal: AbortSignal.timeout(5000) });
+  } catch (error) {
+    throw new Error(`Ollama preflight failed at ${tagsUrl}: ${error?.message || error}`);
+  }
+  if (!response.ok) throw new Error(`Ollama preflight returned HTTP ${response.status}`);
+  const body = await response.json();
+  const installed = Array.isArray(body?.models) ? body.models.map((entry) => String(entry?.name || entry?.model || "")) : [];
+  if (!installed.includes(model)) throw new Error(`Ollama model is not installed: ${model}`);
+}
+
+function assertUsableEvaluation(predictionsPath, reportPath) {
+  const predictionRows = JSON.parse(fs.readFileSync(predictionsPath, "utf8"));
+  if (!Array.isArray(predictionRows) || predictionRows.length === 0) {
+    throw new Error("DACR runner produced no prediction rows");
+  }
+  const failedRows = predictionRows.filter((row) => {
+    const metadata = row?.metadata || {};
+    return Boolean(metadata.failureReason) || Number(metadata.formatFailures || 0) > 0 || metadata.parseFormat === "failed";
+  });
+  const reportBody = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+  if (failedRows.length > 0 || Number(reportBody?.summary?.formatFailureRate || 0) > 0) {
+    const reasons = failedRows.map((row) => row?.metadata?.failureReason || "format failure").join("; ");
+    throw new Error(`DACR evaluation was not executable: ${reasons || "format failure reported"}`);
+  }
+}
+
 function run(command, commandArgs, cwd, dryRun) {
   if (dryRun) return;
   const result = spawnSync(command, commandArgs, {
@@ -120,7 +151,9 @@ const plan = {
 console.log(JSON.stringify(plan, null, 2));
 
 if (!dryRun) fs.mkdirSync(resultsDir, { recursive: true });
+if (!dryRun) await preflightOllama(endpoint, model);
 run(process.execPath, runArgs, benchmarkRoot, dryRun);
 run(process.execPath, evaluateArgs, benchmarkRoot, dryRun);
+if (!dryRun) assertUsableEvaluation(predictions, report);
 
 if (!dryRun) console.log(`DACR report: ${report.replace(/\.json$/, ".md")}`);

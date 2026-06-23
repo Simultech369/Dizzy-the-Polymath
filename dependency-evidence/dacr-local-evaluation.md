@@ -4,8 +4,10 @@
 - Affected surface: optional operator-run evaluation only
 - Contract: local Ollama native `POST /api/chat`; loopback endpoints only
 - Dependency change: none; the external DACR checkout owns its own tooling
-- Verification: `npm.cmd run eval:dacr:smoke -- --dry-run` and bounded live
-  smoke runs recorded in `evaluations/dacr/SMOKE_BASELINE_2026-06-21.md`
+- External checkout observed: `C:\Users\Josh\Documents\misc\dacr-bench` at
+  `d3814d3` (`make DACR runner portable for local Ollama`)
+- Verification: dry-run plan inspection, missing-model preflight rejection, and
+  bounded live smoke runs recorded in `evaluations/dacr/SMOKE_BASELINE_2026-06-21.md`
 - Runtime authority: none; no prompt, memory, routing, queue, or state mutation
 - Results: written only to ignored `evaluations/dacr/results/`
 - Rollback: remove `scripts/dacr_bench_eval.mjs`, `evaluations/dacr/`, the
@@ -14,3 +16,6 @@
   8K and 6K context while Ollama remained reachable
 - Live-check gap: model quality is slice-specific; one smoke case is not enough
   for routing or runtime promotion
+- Failure contract: missing Ollama models, transport failures, and response
+  format failures exit nonzero; incorrect but executable answers remain valid
+  evaluation evidence
