@@ -1,0 +1,1039 @@
+From d3814d37f84e89084cfc334e95e3db10614400bb Mon Sep 17 00:00:00 2001
+From: Simultech369 <265983039+Simultech369@users.noreply.github.com>
+Date: Mon, 22 Jun 2026 06:51:34 -0400
+Subject: [PATCH] make DACR runner portable for local Ollama
+
+---
+ README.md         |  22 +-
+ package-lock.json | 566 ++++++++++++++++++++++++++++++++++++++++++++++
+ package.json      |  16 ++
+ src/evaluate.ts   |  25 +-
+ src/run.ts        | 164 +++++++++-----
+ src/types.ts      |   2 +
+ tsconfig.json     |  12 +
+ 7 files changed, 750 insertions(+), 57 deletions(-)
+ create mode 100644 package-lock.json
+ create mode 100644 package.json
+ create mode 100644 tsconfig.json
+
+diff --git a/README.md b/README.md
+index 159d62e..814b77e 100644
+--- a/README.md
++++ b/README.md
+@@ -20,6 +20,13 @@ npx tsx src/run.ts \
+   --benchmark data/dacr_bench_v1.1_mini.json \
+   --model sonnet --limit 5
+ 
++# Low-cost local smoke test (one challenge, one question)
++npx tsx src/run.ts \
++  --benchmark data/dacr_bench_v1.1_mini.json \
++  --runner http --endpoint http://localhost:11434/api/chat \
++  --model gemma3:4b --split synthetic \
++  --max-document-words 1800 --limit 1 --questions 1 --max-tokens 512
++
+ # Run only real-document or synthetic challenges
+ npx tsx src/run.ts \
+   --benchmark data/dacr_bench_v1.1.json \
+@@ -117,11 +124,15 @@ npx tsx src/run.ts \
+ npx tsx src/run.ts \
+   --benchmark data/dacr_bench_v1.1.json \
+   --runner http \
+-  --endpoint http://localhost:8000/v1/chat/completions \
+-  --model Qwen/Qwen2.5-7B-Instruct \
++  --endpoint http://localhost:11434/v1/chat/completions \
++  --model qwen2.5-coder:7b \
+   --output results/predictions_qwen7b.json
+ ```
+ 
++The HTTP runner uses Node's built-in `fetch` and works on Windows, macOS, and
++Linux. The default endpoint is Ollama's OpenAI-compatible endpoint at
++`http://localhost:11434/v1/chat/completions`.
++
+ ### Options
+ | Flag | Default | Description |
+ |------|---------|-------------|
+@@ -131,8 +142,15 @@ npx tsx src/run.ts \
+ | `--temperature` | 0.1 | Inference temperature |
+ | `--timeout` | 120 | Seconds per challenge |
+ | `--limit` | all | Max challenges to run |
++| `--questions` | all | Max questions per challenge for smoke tests |
++| `--max-tokens` | 4000 | Maximum completion tokens |
++| `--max-document-words` | all | Skip larger documents and try shortest first |
++| `--ollama-context` | 8192 | Context window for Ollama's native `/api/chat` route |
+ | `--split` | all | `real`, `synthetic`, or `all` |
+ 
++For smoke results, pass the same `--split`, `--max-document-words`, `--limit`,
++and `--questions` filters to `evaluate.ts` that you used with `run.ts`.
++
+ ## Evaluation Metrics
+ 
+ ### Primary
+diff --git a/package-lock.json b/package-lock.json
+new file mode 100644
+index 0000000..ab645fd
+--- /dev/null
++++ b/package-lock.json
+@@ -0,0 +1,566 @@
++{
++  "name": "dacr-bench",
++  "version": "1.1.0",
++  "lockfileVersion": 3,
++  "requires": true,
++  "packages": {
++    "": {
++      "name": "dacr-bench",
++      "version": "1.1.0",
++      "devDependencies": {
++        "@types/node": "^22.0.0",
++        "tsx": "^4.20.0",
++        "typescript": "^5.8.0"
++      }
++    },
++    "node_modules/@esbuild/aix-ppc64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.1.tgz",
++      "integrity": "sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.1.tgz",
++      "integrity": "sha512-0k2F129Xdio1TdJfzJ8sy1Q47vUD2NnwdhiAf7drUN1EBTfPf4hsFCtmMgu/6m8JSzsBrlmVjudMBQqOfG8usQ==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.1.tgz",
++      "integrity": "sha512-34EGEbCIAgosYz6goLcopX6Mo7NyGv9tfwEM2/7Ce2VcVRk568iSvniGWcUXIy7wEDR1wzolcxcriFVrWYcwBg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.1.tgz",
++      "integrity": "sha512-dbwY7ltSMDWsRatcRpCnES4F+im88OCUgGZjy52shC7GqHRE/cYlxNbB4Z4UpJswpcc4Qxd2oE/ufM0p61IKng==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.1.tgz",
++      "integrity": "sha512-TZbWkQY7kvTAXbXUT7uVACR5cMHsDiSz9z7ZKAX/RTq/WJEk3QyRr0wZpNhBDX+/0CtdqUIJlOiodQcta6tY3Q==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.1.tgz",
++      "integrity": "sha512-zfdzgK9ACBNZLI/CyHTOx81SyNbM6YXn7rxSgX97VjyiPl9W1i4Ka4fgKECEoFCKGpvBj5qArWIGgQjOwkgskQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-wG2EA8ENdEI0qhkSZMjfqrdY+ziCYCPMmtZjjIwOmXFjmyzEHn+UUxk5of+SYsjtfs3VpnlC7QLzSI5hY/rOAw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.1.tgz",
++      "integrity": "sha512-i7dZ9vQgnvSCzi/rYCXNgtF/U+eKZNJBzu3eTQbRgHnM7tNSizLOkRFAl3qzVc/Op/u5YkHHa4pf/3DOYHthLQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.1.tgz",
++      "integrity": "sha512-qVXBOHQS+d5Y722GwJzJUtOLlX7km3CraOaGormF1pDtPd2C/l1SHRPgjLunLGe51Sh5YYWKMFDyV4SxgMQYTQ==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.1.tgz",
++      "integrity": "sha512-yHs+0uc8+nvEAfAfxrWQKK5peSNzBc4PegcMO0EJ2hT71uA7vB8Ihg2e77R2P7SG5uYjPbHlLLmve4LLLRCf0g==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ia32": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.1.tgz",
++      "integrity": "sha512-d1z4ZuP0ajrfz/FhGT4vv278rX8KnPPJx8i5+AtK7TYbx9Le9F1hyzurZpkEyjkGa9dUGhQow4C1NmeGvqxN2w==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-loong64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.1.tgz",
++      "integrity": "sha512-M5sRjUVZrkm1OAPR3dlOYzNmN+loZKGVi1VUQGrwuqLcbR6qeAz+famMhjASeH3YVKvZz+zT1jlh/keC3Rj/lg==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-mips64el": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.1.tgz",
++      "integrity": "sha512-mRObBZeHh2OxcBFPWE/FjylkRgZdYuiTR3vaTozquCGOH14iP9oN4x4Ge81CoIDYQrXmIxpFumJBu5MtZpnQJQ==",
++      "cpu": [
++        "mips64el"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ppc64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.1.tgz",
++      "integrity": "sha512-slScBsMAb3GFDcdrCgLwZtPYRoH2H/youv10QiZyRjmsP48fznoveWytSgCI/R0ZcUgpc0ZhIUEx6LHts8yrfQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-riscv64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.1.tgz",
++      "integrity": "sha512-kw0owk1o0GFETUJyW0jc0G4Yzs0BHZn0JDZ8JRT088vjJYX777BAs1fDGxAC+q831qOs2DTC96mNsG2opdfyyQ==",
++      "cpu": [
++        "riscv64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-s390x": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.1.tgz",
++      "integrity": "sha512-/lAIjX8aYFRByhh6L5rYtPEDRqa9de/4V/juOXcta5frjvzXO4/sqEtyytse0g3zZFuWu5cDN0MkLz2qRDD2Ag==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.1.tgz",
++      "integrity": "sha512-u/anNYF2mmVOEDwLtnQ1wOr3EZ9sTNGLWrsYGYwHWzGA3Si84IOkHXlbWTD1NB+9/1lcnweYKO54uhxZydNzfA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-oks0DYbLwWMmaakTsCb+zL4E+aHRVLom9IJZOAthMQEPiQmydXHkziYEsGYRx0uNV/IjEKGAV941JzH02pflqw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.1.tgz",
++      "integrity": "sha512-aeL6lAnN89Hz43Mlh1G8ARasbuoYvSITDEx0tHh5b7jJnHcssqgjy9Yx430GDpmCa6OyrKoS0aNRjKundRizGg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.1.tgz",
++      "integrity": "sha512-MEFJe5C3R8pwXdZ5Y21oo6m7ePiS0d9pWucn99O/wvyJZChoIQKrQDxKrGeW8F5+T0okTHesAmDeiHDTIq0V/Q==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.1.tgz",
++      "integrity": "sha512-i/ZLIOafE0Z8cI/XANJAixoJL/uRAoS2xOA3rb0xN+KK0K177cMAsQYkzHtBrtMXAKuAc7HGgcWiZ/sRC1Nxgw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.1.tgz",
++      "integrity": "sha512-ge+Z7EXFNt2BO1oAMsVpiQ8EwndV9i1xXerAeTIK7AtPs3bKFXQM7nlRxDSIUIMeueR1CNXxqztLzdNeReKBJg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/sunos-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.1.tgz",
++      "integrity": "sha512-BEjgtECkL3vY+SaSQ6nzVfiALUeFxpawyp8Jmf5PtYhf1Ug40N1h/hxlhts+f1FvSvarEigdxS3BlSMI2PJLcQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-arm64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.1.tgz",
++      "integrity": "sha512-lCv9eK/H6ZJWbE7bh2nw54CZ9M2nupBxJcTsdk/QQnWkdSjKGuxmmH8/GWrlT1eMmZfn4dGcCjRte397WqfQXA==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-ia32": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.1.tgz",
++      "integrity": "sha512-zvb/mB2bSCoJOpoCBgYKKpX6YM6mJBlBUVUtVj41DlZJVEB6/0CKlRYxP5wWl1C1ILiCoAU5wZZ4q1P3qeS6Eg==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-x64": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.1.tgz",
++      "integrity": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@types/node": {
++      "version": "22.20.0",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.20.0.tgz",
++      "integrity": "sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "undici-types": "~6.21.0"
++      }
++    },
++    "node_modules/esbuild": {
++      "version": "0.28.1",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz",
++      "integrity": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "bin": {
++        "esbuild": "bin/esbuild"
++      },
++      "engines": {
++        "node": ">=18"
++      },
++      "optionalDependencies": {
++        "@esbuild/aix-ppc64": "0.28.1",
++        "@esbuild/android-arm": "0.28.1",
++        "@esbuild/android-arm64": "0.28.1",
++        "@esbuild/android-x64": "0.28.1",
++        "@esbuild/darwin-arm64": "0.28.1",
++        "@esbuild/darwin-x64": "0.28.1",
++        "@esbuild/freebsd-arm64": "0.28.1",
++        "@esbuild/freebsd-x64": "0.28.1",
++        "@esbuild/linux-arm": "0.28.1",
++        "@esbuild/linux-arm64": "0.28.1",
++        "@esbuild/linux-ia32": "0.28.1",
++        "@esbuild/linux-loong64": "0.28.1",
++        "@esbuild/linux-mips64el": "0.28.1",
++        "@esbuild/linux-ppc64": "0.28.1",
++        "@esbuild/linux-riscv64": "0.28.1",
++        "@esbuild/linux-s390x": "0.28.1",
++        "@esbuild/linux-x64": "0.28.1",
++        "@esbuild/netbsd-arm64": "0.28.1",
++        "@esbuild/netbsd-x64": "0.28.1",
++        "@esbuild/openbsd-arm64": "0.28.1",
++        "@esbuild/openbsd-x64": "0.28.1",
++        "@esbuild/openharmony-arm64": "0.28.1",
++        "@esbuild/sunos-x64": "0.28.1",
++        "@esbuild/win32-arm64": "0.28.1",
++        "@esbuild/win32-ia32": "0.28.1",
++        "@esbuild/win32-x64": "0.28.1"
++      }
++    },
++    "node_modules/fsevents": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
++      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++      }
++    },
++    "node_modules/tsx": {
++      "version": "4.22.4",
++      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.22.4.tgz",
++      "integrity": "sha512-X8EX+XV4QR5xCsrgxaED954zTDfY8KqlDtskKEL0cHhyS/P8b4IFOvGDQpsC9Q1XnLq915wEfwwY/zzskCtmhg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "esbuild": "~0.28.0"
++      },
++      "bin": {
++        "tsx": "dist/cli.mjs"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      },
++      "optionalDependencies": {
++        "fsevents": "~2.3.3"
++      }
++    },
++    "node_modules/typescript": {
++      "version": "5.9.3",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
++      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    },
++    "node_modules/undici-types": {
++      "version": "6.21.0",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
++      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
++      "dev": true,
++      "license": "MIT"
++    }
++  }
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..7a31d3b
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,16 @@
++{
++  "name": "dacr-bench",
++  "version": "1.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "typecheck": "tsc --noEmit",
++    "run": "tsx src/run.ts",
++    "evaluate": "tsx src/evaluate.ts"
++  },
++  "devDependencies": {
++    "@types/node": "^22.0.0",
++    "tsx": "^4.20.0",
++    "typescript": "^5.8.0"
++  }
++}
+diff --git a/src/evaluate.ts b/src/evaluate.ts
+index 331d5d5..10326c9 100644
+--- a/src/evaluate.ts
++++ b/src/evaluate.ts
+@@ -253,7 +253,9 @@ export function evaluate(
+     }
+ 
+     // Track format used
+-    const parseFormat: ParseFormat = pred.metadata?.parseFormat ?? "json";
++    const parseFormat: ParseFormat = pred.metadata?.parseFormat
++      ?? (pred.metadata?.formatFailures ? "failed" : "json");
++    if (parseFormat === "failed") formatFailures++;
+     formatCounts[parseFormat].count++;
+ 
+     const score = scoreChallenge(challenge, pred);
+@@ -507,6 +509,9 @@ if (process.argv[1]?.endsWith("evaluate.ts")) {
+   const predIdx = args.indexOf("--predictions");
+   const outIdx = args.indexOf("--output");
+   const splitIdx = args.indexOf("--split");
++  const questionsIdx = args.indexOf("--questions");
++  const limitIdx = args.indexOf("--limit");
++  const maxDocumentWordsIdx = args.indexOf("--max-document-words");
+ 
+   if (benchIdx === -1 || predIdx === -1) {
+     console.error("Usage: npx tsx src/evaluate.ts --benchmark <challenges.json> --predictions <predictions.json> [--output <results.json>] [--split real|synthetic|all]");
+@@ -523,6 +528,9 @@ if (process.argv[1]?.endsWith("evaluate.ts")) {
+   const predictions: ModelPrediction[] = JSON.parse(fs.readFileSync(args[predIdx + 1], "utf-8"));
+   const outputPath = outIdx !== -1 ? args[outIdx + 1] : "results/results.json";
+   const splitFilter = splitIdx !== -1 ? args[splitIdx + 1] as "real" | "synthetic" | "all" : "all";
++  const questionsPerChallenge = questionsIdx !== -1 ? parseInt(args[questionsIdx + 1]) : undefined;
++  const limit = limitIdx !== -1 ? parseInt(args[limitIdx + 1]) : undefined;
++  const maxDocumentWords = maxDocumentWordsIdx !== -1 ? parseInt(args[maxDocumentWordsIdx + 1]) : undefined;
+ 
+   // Filter by split if requested
+   if (splitFilter !== "all") {
+@@ -530,6 +538,21 @@ if (process.argv[1]?.endsWith("evaluate.ts")) {
+     console.log(`Filtered to ${splitFilter} split: ${challenges.length} challenges\n`);
+   }
+ 
++  if (maxDocumentWords) {
++    challenges = challenges
++      .filter((challenge) => challenge.document.wordCount <= maxDocumentWords)
++      .sort((a, b) => a.document.wordCount - b.document.wordCount);
++  }
++
++  if (limit) challenges = challenges.slice(0, limit);
++
++  if (questionsPerChallenge) {
++    challenges = challenges.map((challenge) => ({
++      ...challenge,
++      questions: challenge.questions.slice(0, questionsPerChallenge),
++    }));
++  }
++
+   const results = evaluate(challenges, predictions);
+   const report = generateReport(results);
+ 
+diff --git a/src/run.ts b/src/run.ts
+index 80fe569..44cf765 100644
+--- a/src/run.ts
++++ b/src/run.ts
+@@ -10,8 +10,7 @@
+ 
+ import * as fs from "fs";
+ import * as path from "path";
+-import * as crypto from "crypto";
+-import { execSync } from "child_process";
++import { spawnSync } from "child_process";
+ import type { BenchmarkChallenge, BenchmarkSplit, ModelPrediction, ModelAnswer } from "./types.js";
+ 
+ // ── Prompt Template ──
+@@ -58,6 +57,14 @@ export interface RunConfig {
+   limit?: number;
+   /** Filter to specific split */
+   split?: BenchmarkSplit | "all";
++  /** Limit questions per challenge for low-cost smoke tests */
++  questionsPerChallenge?: number;
++  /** Maximum completion tokens */
++  maxTokens?: number;
++  /** Skip documents above this reported word count */
++  maxDocumentWords?: number;
++  /** Ollama native context window (used with an /api/chat endpoint) */
++  ollamaContext?: number;
+ }
+ 
+ // ── Prompt Formatting ──
+@@ -79,60 +86,78 @@ function runClaudeCLI(
+   model: string,
+   timeoutMs: number
+ ): string {
+-  const tmpFile = `/tmp/dacr_run_${crypto.randomBytes(4).toString("hex")}.txt`;
+-  fs.writeFileSync(tmpFile, prompt);
++  if (!/^[a-zA-Z0-9._:/-]+$/.test(model)) {
++    throw new Error(`Invalid model identifier: ${model}`);
++  }
+ 
+-  try {
+-    const result = execSync(
+-      `cat "${tmpFile}" | claude -p --model ${model}`,
+-      {
+-        maxBuffer: 50 * 1024 * 1024,
+-        timeout: timeoutMs,
+-        cwd: "/tmp", // isolated from repo
+-        shell: "/bin/bash",
+-      }
+-    );
+-    return result.toString().trim();
+-  } finally {
+-    try { fs.unlinkSync(tmpFile); } catch {}
++  const isWindows = process.platform === "win32";
++  const command = isWindows ? (process.env.ComSpec ?? "cmd.exe") : "claude";
++  const args = isWindows
++    ? ["/d", "/s", "/c", `claude.cmd -p --model ${model}`]
++    : ["-p", "--model", model];
++  const result = spawnSync(command, args, {
++    input: prompt,
++    encoding: "utf8",
++    maxBuffer: 50 * 1024 * 1024,
++    timeout: timeoutMs,
++    cwd: process.cwd(),
++    windowsHide: true,
++  });
++
++  if (result.error) throw result.error;
++  if (result.status !== 0) {
++    throw new Error(result.stderr?.trim() || `Claude CLI exited with status ${result.status}`);
+   }
++  return result.stdout.trim();
+ }
+ 
+ // ── HTTP Runner (for local models / vLLM / ollama) ──
+ 
+-function runHTTP(
++async function runHTTP(
+   prompt: string,
+   endpoint: string,
+   model: string,
+   temperature: number,
+   timeoutMs: number,
++  maxTokens: number,
++  ollamaContext: number,
+   apiKey?: string
+-): string {
+-  const payload = JSON.stringify({
+-    model,
+-    messages: [{ role: "user", content: prompt }],
+-    temperature,
+-    max_tokens: 4000,
+-  });
+-
+-  const tmpPayload = `/tmp/dacr_payload_${crypto.randomBytes(4).toString("hex")}.json`;
+-  fs.writeFileSync(tmpPayload, payload);
++): Promise<string> {
++  const isOllamaNative = /\/api\/chat\/?$/.test(endpoint);
++  const payload = isOllamaNative
++    ? {
++        model,
++        messages: [{ role: "user", content: prompt }],
++        stream: false,
++        options: { temperature, num_ctx: ollamaContext, num_predict: maxTokens },
++      }
++    : {
++        model,
++        messages: [{ role: "user", content: prompt }],
++        temperature,
++        max_tokens: maxTokens,
++      };
+ 
+   const maxRetries = 3;
+ 
+-  try {
+-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+-      const result = execSync(
+-        `curl -s -X POST "${endpoint}" -H "Content-Type: application/json"${apiKey ? ` -H "Authorization: Bearer ${apiKey}"` : ""} -d @"${tmpPayload}" --max-time ${Math.ceil(timeoutMs / 1000)}`,
+-        { maxBuffer: 10 * 1024 * 1024, timeout: timeoutMs + 5000 }
+-      );
++  for (let attempt = 0; attempt < maxRetries; attempt++) {
++      const headers: Record<string, string> = { "Content-Type": "application/json" };
++      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
++      const response = await fetch(endpoint, {
++        method: "POST",
++        headers,
++        body: JSON.stringify(payload),
++        signal: AbortSignal.timeout(timeoutMs),
++      });
++      const responseText = await response.text();
+ 
+       let responseBody: any;
+       try {
+-        responseBody = JSON.parse(result.toString());
++        responseBody = JSON.parse(responseText);
+       } catch {
+         // Response isn't JSON — could be raw text from some endpoints
+-        return result.toString().trim();
++        if (!response.ok) throw new Error(`HTTP ${response.status}: ${responseText.slice(0, 500)}`);
++        return responseText.trim();
+       }
+ 
+       // Handle array-wrapped responses (some APIs wrap in [])
+@@ -141,16 +166,18 @@ function runHTTP(
+       }
+ 
+       // Check for rate-limit / quota errors and retry with backoff
+-      if (responseBody.error) {
+-        const code = responseBody.error.code ?? responseBody.error.status;
+-        if ((code === 429 || code === "RESOURCE_EXHAUSTED") && attempt < maxRetries - 1) {
+-          const retryMatch = JSON.stringify(responseBody).match(/retry.*?(\d+)/i);
+-          const waitSecs = retryMatch ? Math.min(parseInt(retryMatch[1]) + 5, 120) : 30 * (attempt + 1);
+-          console.warn(`  Rate limited, waiting ${waitSecs}s before retry ${attempt + 2}/${maxRetries}...`);
+-          execSync(`sleep ${waitSecs}`);
+-          continue;
+-        }
+-        throw new Error(`API error: ${responseBody.error.message ?? JSON.stringify(responseBody.error)}`);
++      const code = responseBody?.error?.code ?? responseBody?.error?.status ?? response.status;
++      if ((response.status === 429 || code === 429 || code === "RESOURCE_EXHAUSTED") && attempt < maxRetries - 1) {
++        const retryAfter = Number(response.headers.get("retry-after"));
++        const waitSecs = Number.isFinite(retryAfter) && retryAfter > 0
++          ? Math.min(retryAfter, 120)
++          : 30 * (attempt + 1);
++        console.warn(`  Rate limited, waiting ${waitSecs}s before retry ${attempt + 2}/${maxRetries}...`);
++        await new Promise((resolve) => setTimeout(resolve, waitSecs * 1000));
++        continue;
++      }
++      if (!response.ok || responseBody?.error) {
++        throw new Error(`API error: ${responseBody?.error?.message ?? `HTTP ${response.status}`}`);
+       }
+ 
+       // OpenAI-compatible format
+@@ -161,12 +188,13 @@ function runHTTP(
+       if (responseBody.content?.[0]?.text) {
+         return responseBody.content[0].text;
+       }
+-      return result.toString();
++      // Ollama native /api/chat format
++      if (responseBody.message?.content) {
++        return responseBody.message.content;
++      }
++      return responseText;
+     }
+-    throw new Error("Max retries exceeded");
+-  } finally {
+-    try { fs.unlinkSync(tmpPayload); } catch {}
+-  }
++  throw new Error("Max retries exceeded");
+ }
+ 
+ // ── Response Parsing ──
+@@ -441,16 +469,29 @@ export async function runBenchmark(config: RunConfig): Promise<ModelPrediction[]
+     console.log(`Filtered to ${config.split} split: ${challenges.length} challenges`);
+   }
+ 
++  if (config.maxDocumentWords) {
++    const maxDocumentWords = config.maxDocumentWords;
++    challenges = challenges
++      .filter((challenge) => challenge.document.wordCount <= maxDocumentWords)
++      .sort((a, b) => a.document.wordCount - b.document.wordCount);
++    console.log(`Filtered to documents <= ${config.maxDocumentWords} words: ${challenges.length} challenges`);
++  }
++
+   const limit = config.limit ?? challenges.length;
+   const temperature = config.temperature ?? 0.1;
+   const timeoutMs = (config.timeoutSeconds ?? 120) * 1000;
++  const maxTokens = config.maxTokens ?? 4000;
++  const ollamaContext = config.ollamaContext ?? 8192;
+   const predictions: ModelPrediction[] = [];
+ 
+   console.log(`Running ${Math.min(limit, challenges.length)} challenges with model: ${config.model}`);
+   console.log(`Runner: ${config.runner}, Temperature: ${temperature}\n`);
+ 
+   for (let i = 0; i < Math.min(limit, challenges.length); i++) {
+-    const challenge = challenges[i];
++    const sourceChallenge = challenges[i];
++    const challenge = config.questionsPerChallenge
++      ? { ...sourceChallenge, questions: sourceChallenge.questions.slice(0, config.questionsPerChallenge) }
++      : sourceChallenge;
+     console.log(`[${i + 1}/${Math.min(limit, challenges.length)}] ${challenge.challengeId}...`);
+ 
+     const prompt = formatPrompt(challenge);
+@@ -461,7 +502,7 @@ export async function runBenchmark(config: RunConfig): Promise<ModelPrediction[]
+       if (config.runner === "claude-cli") {
+         raw = runClaudeCLI(prompt, config.model, timeoutMs);
+       } else {
+-        raw = runHTTP(prompt, config.endpoint!, config.model, temperature, timeoutMs, config.apiKey);
++        raw = await runHTTP(prompt, config.endpoint!, config.model, temperature, timeoutMs, maxTokens, ollamaContext, config.apiKey);
+       }
+     } catch (e: any) {
+       console.warn(`  FAILED: ${e.message}`);
+@@ -475,6 +516,8 @@ export async function runBenchmark(config: RunConfig): Promise<ModelPrediction[]
+           tokensGenerated: 0,
+           temperature,
+           formatFailures: 1,
++          parseFormat: "failed",
++          failureReason: String(e?.message ?? e),
+         },
+       });
+       continue;
+@@ -517,6 +560,7 @@ export async function runBenchmark(config: RunConfig): Promise<ModelPrediction[]
+         temperature,
+         formatFailures,
+         parseFormat,
++        ...(parseFormat === "failed" ? { rawResponsePreview: raw.slice(0, 4000) } : {}),
+       },
+     });
+   }
+@@ -542,10 +586,14 @@ if (process.argv[1]?.endsWith("run.ts")) {
+   const benchmarkPath = get("--benchmark");
+   const model = get("--model") ?? "sonnet";
+   const runner = (get("--runner") ?? "claude-cli") as "claude-cli" | "http";
+-  const endpoint = get("--endpoint") ?? "http://localhost:8000/v1/chat/completions";
++  const endpoint = get("--endpoint") ?? "http://localhost:11434/v1/chat/completions";
+   const temperature = parseFloat(get("--temperature") ?? "0.1");
+   const timeout = parseInt(get("--timeout") ?? "120");
+   const limit = get("--limit") ? parseInt(get("--limit")!) : undefined;
++  const questionsPerChallenge = get("--questions") ? parseInt(get("--questions")!) : undefined;
++  const maxTokens = parseInt(get("--max-tokens") ?? "4000");
++  const maxDocumentWords = get("--max-document-words") ? parseInt(get("--max-document-words")!) : undefined;
++  const ollamaContext = parseInt(get("--ollama-context") ?? "8192");
+   const split = (get("--split") ?? "all") as "real" | "synthetic" | "all";
+   const apiKey = get("--api-key");
+   const outputPath = get("--output") ?? `results/predictions_${model.replace(/\//g, "_")}.json`;
+@@ -560,6 +608,10 @@ Options:
+   --temperature <n>    Inference temperature (default: 0.1)
+   --timeout <secs>     Timeout per challenge (default: 120)
+   --limit <n>          Max challenges to run
++  --questions <n>      Max questions per challenge (smoke tests)
++  --max-tokens <n>     Maximum completion tokens (default: 4000)
++  --max-document-words <n>  Skip larger documents and try shortest first
++  --ollama-context <n> Ollama context for native /api/chat (default: 8192)
+   --split <type>       real, synthetic, or all (default: all)
+   --output <path>      Output predictions file`);
+     process.exit(1);
+@@ -576,5 +628,9 @@ Options:
+     outputPath,
+     limit,
+     split,
++    questionsPerChallenge,
++    maxTokens,
++    maxDocumentWords,
++    ollamaContext,
+   });
+ }
+diff --git a/src/types.ts b/src/types.ts
+index 287593f..44e0143 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -126,6 +126,8 @@ export interface ModelPrediction {
+     temperature: number;
+     formatFailures: number;
+     parseFormat?: ParseFormat; // Which format was successfully parsed
++    rawResponsePreview?: string; // Included only when parsing fails
++    failureReason?: string; // Transport or runner failure, when present
+   };
+ }
+ 
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..919c3e2
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,12 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "NodeNext",
++    "moduleResolution": "NodeNext",
++    "strict": true,
++    "esModuleInterop": true,
++    "skipLibCheck": true,
++    "noEmit": true
++  },
++  "include": ["src/**/*.ts"]
++}
+-- 
+2.52.0.windows.1
+

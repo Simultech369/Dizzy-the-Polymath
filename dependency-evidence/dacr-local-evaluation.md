@@ -6,6 +6,9 @@
 - Dependency change: none; the external DACR checkout owns its own tooling
 - External checkout observed: `C:\Users\Josh\Documents\misc\dacr-bench` at
   `d3814d3` (`make DACR runner portable for local Ollama`)
+- Local vendor patch archived:
+  `dependency-evidence/patches/dacr-bench-ollama-portability-d3814d3.patch`
+- Patch base: upstream DACR commit `8a78b5e`
 - Verification: dry-run plan inspection, missing-model preflight rejection, and
   bounded live smoke runs recorded in `evaluations/dacr/SMOKE_BASELINE_2026-06-21.md`
 - Runtime authority: none; no prompt, memory, routing, queue, or state mutation
@@ -19,3 +22,6 @@
 - Failure contract: missing Ollama models, transport failures, and response
   format failures exit nonzero; incorrect but executable answers remain valid
   evaluation evidence
+
+To reconstruct the local DACR checkout without forking the upstream repository,
+check out upstream `8a78b5e` and apply the archived patch with `git am`.
