@@ -65,6 +65,8 @@ For runtime/client surfaces, inspect:
 
 If a receipt contradicts the intended trust zone, stop and fix the boundary before continuing.
 
+For new capabilities, memory writers, external services, public/client surfaces, dashboards, automations, or dependencies, run the Capability Chokepoint Pass in [selection-pressure.md](upgrades/active/selection-pressure.md).
+
 ## Friction Capture
 
 When the same stall repeats, log it instead of carrying it mentally:

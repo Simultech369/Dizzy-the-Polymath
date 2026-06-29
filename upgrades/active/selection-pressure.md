@@ -29,6 +29,22 @@ Before adopting a major upgrade, answer:
 
 If the answer is mostly "it adds nuance," keep the idea in `upgrades/provenance/` until experience earns it.
 
+## Capability Chokepoint Pass
+
+Use before adopting a new capability, dependency, workflow layer, memory path, external service, dashboard, public surface, or automation.
+
+1. What can Simul do afterward with less dependency than before? (Avoid the blind spot where a feature increases capability short-term but creates long-term dependency.)
+2. Who can inspect it?
+3. Who can revoke, exit, or route around it?
+4. What chokepoint might this create?
+
+Decision:
+- adopt:
+- defer:
+- reject:
+- mitigation:
+- revisit trigger:
+
 ## Dizzy Questions
 
 Use for memory, routing, doctrine, trust zones, public surfaces, and prompt architecture.
