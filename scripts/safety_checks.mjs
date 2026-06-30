@@ -32,6 +32,8 @@ import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "..
 import { assessDurableWrite, durableAppendJsonl, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
 import { sanitizeUntrustedInput } from "../lib/janitor.mjs";
 
+const STRONG_TEST_AUTH_TOKEN = "test-master-token-32-chars-minimum";
+
 async function expectReject(fn, pattern) {
   let threw = false;
   try {
@@ -1910,6 +1912,29 @@ function testRuntimeConfigValidation() {
     toolMode: "inline",
   });
   assert.match(proxiedWithoutAuth.errors.join(" "), /DIZZY_AUTH_TOKEN.*proxied/i);
+
+  const proxiedWeakAuth = validateRuntimeSafetyConfig({
+    bindHost: "127.0.0.1",
+    authTokenConfigured: true,
+    authTokenLength: 12,
+    deploymentMode: "proxied",
+    publicSurfaceMode: "closed",
+    chatBackend: "",
+    toolMode: "inline",
+  });
+  assert.match(proxiedWeakAuth.errors.join(" "), /DIZZY_AUTH_TOKEN.*at least 32 characters.*proxied/i);
+
+  assert.doesNotThrow(() => {
+    assertRuntimeSafetyConfig({
+      bindHost: "127.0.0.1",
+      authTokenConfigured: true,
+      authTokenLength: 12,
+      deploymentMode: "direct_local",
+      publicSurfaceMode: "closed",
+      chatBackend: "",
+      toolMode: "inline",
+    });
+  });
 }
 
 function testModelRoutingRoles() {
@@ -2781,7 +2806,7 @@ async function testForwardedRequestsRequireAuthentication() {
   const authenticated = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "proxy-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     deploymentMode: "proxied",
     trustedProxies: "127.0.0.1",
@@ -2789,7 +2814,7 @@ async function testForwardedRequestsRequireAuthentication() {
   try {
     const allowed = await fetch(`http://127.0.0.1:${authenticated.boundPort}/state?zone=public`, {
       headers: {
-        authorization: "Bearer proxy-test-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "x-forwarded-for": "203.0.113.10",
       },
     });
@@ -3091,7 +3116,7 @@ async function testLoopbackBrowserOriginGuard() {
   const remote = await startServer({
     port: 0,
     bindHost: "0.0.0.0",
-    authToken: "test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     deploymentMode: "hosted",
     allowedOrigins: "https://trusted.example",
@@ -3101,7 +3126,7 @@ async function testLoopbackBrowserOriginGuard() {
     const port = remote.boundPort;
     const spoofedHost = await fetch(`http://127.0.0.1:${port}/health`, {
       headers: {
-        authorization: "Bearer test-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         host: "attacker.example",
         origin: "https://attacker.example",
       },
@@ -3109,7 +3134,7 @@ async function testLoopbackBrowserOriginGuard() {
     assert.equal(spoofedHost.status, 403);
 
     const allowed = await fetch(`http://127.0.0.1:${port}/health`, {
-      headers: { authorization: "Bearer test-token", origin: "https://trusted.example" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`, origin: "https://trusted.example" },
     });
     assert.equal(allowed.status, 200);
   } finally {
@@ -3119,7 +3144,7 @@ async function testLoopbackBrowserOriginGuard() {
   const proxied = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     deploymentMode: "proxied",
     trustedProxies: "10.0.0.10",
@@ -3129,7 +3154,7 @@ async function testLoopbackBrowserOriginGuard() {
     const port = proxied.boundPort;
     const untrustedForwarded = await fetch(`http://127.0.0.1:${port}/health`, {
       headers: {
-        authorization: "Bearer test-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "x-forwarded-for": "203.0.113.5",
       },
     });
@@ -3395,7 +3420,7 @@ async function testNewHardeningFeatures() {
   // Start server with custom auth configuration for identity headers and scoped tokens
   process.env.DIZZY_ENFORCE_IDENTITY_HEADERS = "1";
   process.env.DIZZY_DEPLOYMENT_MODE = "proxied";
-  process.env.DIZZY_AUTH_TOKEN = "master-token";
+  process.env.DIZZY_AUTH_TOKEN = STRONG_TEST_AUTH_TOKEN;
   process.env.DIZZY_EXECUTE_TOKEN = "exec-token";
   process.env.DIZZY_NOTIFY_TOKEN = "notif-token";
   process.env.DIZZY_DASHBOARD_ENABLED = "1";
@@ -3403,7 +3428,14 @@ async function testNewHardeningFeatures() {
   await assert.rejects(() => startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "master-token",
+    authToken: "short-token",
+    deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
+  }), /DIZZY_AUTH_TOKEN must be at least 32 characters/);
+  await assert.rejects(() => startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     deploymentMode: "proxied",
     enforceIdentityHeaders: true,
     trustedProxies: "",
@@ -3421,7 +3453,7 @@ async function testNewHardeningFeatures() {
   const started = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "master-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     deploymentMode: "proxied",
     trustedProxies: "127.0.0.1",
   });
@@ -3430,7 +3462,7 @@ async function testNewHardeningFeatures() {
   try {
     // 2. Dashboard XSS Escaping check
     const dashRes = await fetch(`http://127.0.0.1:${port}/dashboard`, {
-      headers: { authorization: "Bearer master-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     const dashHtml = await dashRes.text();
     assert.equal(dashHtml.includes('<script src="/assets/dashboard.js" defer></script>'), true);
@@ -3439,7 +3471,7 @@ async function testNewHardeningFeatures() {
     assert.equal(dashHtml.includes("placehold.co"), false);
     assert.match(dashRes.headers.get("content-security-policy") || "", /default-src 'self'/);
     const dashboardScript = await fetch(`http://127.0.0.1:${port}/assets/dashboard.js`, {
-      headers: { authorization: "Bearer master-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(dashboardScript.status, 200);
     const dashboardScriptText = await dashboardScript.text();
@@ -3451,7 +3483,7 @@ async function testNewHardeningFeatures() {
     // 2b. Dashboard loopback restriction check
     const forwardedDashRes = await fetch(`http://127.0.0.1:${port}/dashboard`, {
       headers: {
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "X-Forwarded-For": "8.8.8.8",
       },
     });
@@ -3492,7 +3524,7 @@ async function testNewHardeningFeatures() {
     const startedProxy = await startServer({
       port: 0,
       bindHost: "127.0.0.1",
-      authToken: "master-token",
+      authToken: STRONG_TEST_AUTH_TOKEN,
       deploymentMode: "proxied",
       enforceIdentityHeaders: true,
       trustedProxies: "192.168.1.100", // Non-matching IP
@@ -3521,7 +3553,7 @@ async function testNewHardeningFeatures() {
     const startedProxyMatch = await startServer({
       port: 0,
       bindHost: "127.0.0.1",
-      authToken: "master-token",
+      authToken: STRONG_TEST_AUTH_TOKEN,
       deploymentMode: "proxied",
       enforceIdentityHeaders: true,
       trustedProxies: "127.0.0.1", // Matching IP
@@ -3579,7 +3611,7 @@ async function testNewHardeningFeatures() {
     assert.equal(r5.status, 401);
 
     const r6 = await fetch(`http://127.0.0.1:${port}/state`, {
-      headers: { authorization: "Bearer master-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(r6.status, 200);
     console.log("-> Scoped API access tokens boundary checks passed");
@@ -3587,7 +3619,7 @@ async function testNewHardeningFeatures() {
     // 5. Native Security Headers checks (W-0057)
     // 5a. Check default closed CSP and other security headers on an API endpoint (/prompt)
     const promptRes = await fetch(`http://127.0.0.1:${port}/prompt`, {
-      headers: { authorization: "Bearer master-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(promptRes.status, 200);
     assert.equal(promptRes.headers.get("x-content-type-options"), "nosniff");
@@ -3611,7 +3643,7 @@ async function testNewHardeningFeatures() {
 
     // 5c. Verify headers on 404 responses
     const notFoundRes = await fetch(`http://127.0.0.1:${port}/non-existent-route`, {
-      headers: { authorization: "Bearer master-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(notFoundRes.status, 404);
     assert.equal(notFoundRes.headers.get("x-frame-options"), "DENY");
@@ -3627,14 +3659,14 @@ async function testNewHardeningFeatures() {
     const startedHttps = await startServer({
       port: 0,
       bindHost: "127.0.0.1",
-      authToken: "master-token",
+      authToken: STRONG_TEST_AUTH_TOKEN,
       deploymentMode: "proxied",
       trustedProxies: "127.0.0.1",
       verifiedHttps: true,
     });
     try {
       const httpsPromptRes = await fetch(`http://127.0.0.1:${startedHttps.boundPort}/prompt`, {
-        headers: { authorization: "Bearer master-token" },
+        headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
       });
       assert.equal(httpsPromptRes.status, 200);
       assert.equal(httpsPromptRes.headers.get("strict-transport-security"), "max-age=31536000");
@@ -3647,7 +3679,7 @@ async function testNewHardeningFeatures() {
       await startServer({
         port: 0,
         bindHost: "127.0.0.1",
-        authToken: "master-token",
+        authToken: STRONG_TEST_AUTH_TOKEN,
         deploymentMode: "direct_local",
         verifiedHttps: true,
       });
@@ -3765,7 +3797,7 @@ async function testQueueIdempotency() {
   const started = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "master-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     deploymentMode: "proxied",
     trustedProxies: "127.0.0.1",
   });
@@ -3777,7 +3809,7 @@ async function testQueueIdempotency() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "Idempotency-Key": "invalid key with spaces",
       },
       body: JSON.stringify({ brief: "hello" }),
@@ -3788,7 +3820,7 @@ async function testQueueIdempotency() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "Idempotency-Key": "a".repeat(129),
       },
       body: JSON.stringify({ brief: "hello" }),
@@ -3800,7 +3832,7 @@ async function testQueueIdempotency() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "Idempotency-Key": "valid-key-123_abc",
       },
       body: JSON.stringify({ brief: "hello" }),
@@ -3812,7 +3844,7 @@ async function testQueueIdempotency() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "Idempotency-Key": "invalid key with spaces",
       },
       body: JSON.stringify({ text: "tool:http_get http://test.com" }),
@@ -3823,7 +3855,7 @@ async function testQueueIdempotency() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer master-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "Idempotency-Key": "valid-key-123",
       },
       body: JSON.stringify({ text: "tool:http_get http://test.com" }),

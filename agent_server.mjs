@@ -508,6 +508,17 @@ export async function createRuntime(opts = {}) {
 
   const verifiedHttps = opts.verifiedHttps ?? parseBool(process.env.DIZZY_VERIFIED_HTTPS, false);
 
+  const runtimeSafety = getRuntimeSafetyConfig();
+  const safetyDiagnostics = assertRuntimeSafetyConfig({
+    ...runtimeSafety,
+    bindHost,
+    authTokenConfigured: Boolean(authToken),
+    authTokenLength: authToken.length,
+    deploymentMode,
+    publicSurfaceMode,
+    verifiedHttps,
+  });
+
   if (authToken && authToken.length < 32) {
     console.warn(`[WARNING] DIZZY_AUTH_TOKEN is only ${authToken.length} characters long. A minimum length of 32 characters is highly recommended for security.`);
   }
@@ -525,16 +536,6 @@ export async function createRuntime(opts = {}) {
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
   app.use(createRateLimitMiddleware(rateLimit));
-
-  const runtimeSafety = getRuntimeSafetyConfig();
-  const safetyDiagnostics = assertRuntimeSafetyConfig({
-    ...runtimeSafety,
-    bindHost,
-    authTokenConfigured: Boolean(authToken),
-    deploymentMode,
-    publicSurfaceMode,
-    verifiedHttps,
-  });
 
   if (enforceIdentityHeaders && deploymentMode !== "proxied") {
     throw new Error("DIZZY_ENFORCE_IDENTITY_HEADERS=1 requires DIZZY_DEPLOYMENT_MODE=proxied.");
