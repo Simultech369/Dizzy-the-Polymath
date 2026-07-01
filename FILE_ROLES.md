@@ -69,6 +69,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 - `LEGAL-GUARDRAILS.md`
 - `CHOKEPOINTS.md`
 - `MECHANISM_SIEVE.md`
+- `PORTABILITY.md`
 - `MECHANISMS.md`
 - `MEMORY_OWNERSHIP.md`
 - `ECONOMICS.md`

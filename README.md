@@ -138,6 +138,7 @@ The public or paid layer is currently a constrained projection of the core syste
 | [`OPERATING_LOOP.md`](OPERATING_LOOP.md) | Daily operator loop for turning work into durable value |
 | [`OPERATIONS.md`](OPERATIONS.md) | Runtime execution overlay |
 | [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md) | Worksheet for converting values into mechanisms |
+| [`PORTABILITY.md`](PORTABILITY.md) | Export, deletion, and trust-zone boundaries for continuity records |
 | [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md) | Optional lightweight outward-facing surface |
 | [`upgrades/`](upgrades/) | Planning lane, review trail, and candidate improvements; not runtime doctrine |
 

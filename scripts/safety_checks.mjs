@@ -2151,6 +2151,28 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     fs.mkdirSync(path.dirname(conversationPath), { recursive: true });
     fs.writeFileSync(conversationPath, "{\"role\":\"user\",\"text\":\"client-scoped\"}\n", "utf8");
 
+    const exportBase = `http://127.0.0.1:${rt.boundPort}/agent/continuity/export`;
+    const missingExport = await fetch(exportBase);
+    assert.equal(missingExport.status, 400);
+
+    const exportRes = await fetch(`${exportBase}?client_id=${encodeURIComponent("Client A")}&service_id=${encodeURIComponent("Review")}`);
+    assert.equal(exportRes.status, 200);
+    assert.equal(exportRes.headers.get("cache-control"), "no-store");
+    const exportBody = await exportRes.json();
+    assert.equal(exportBody.schema_version, "dizzy.client_continuity.export.v1");
+    assert.equal(exportBody.conversation_key, conversationKey);
+    assert.equal(exportBody.counts.history_rows, 1);
+    assert.equal(exportBody.counts.conversation_rows, 1);
+    assert.equal(exportBody.history[0].conversation_key, conversationKey);
+    assert.equal(exportBody.conversation[0].text, "client-scoped");
+    assert.equal(JSON.stringify(exportBody).includes("Other Client"), false);
+
+    const otherExport = await fetch(`${exportBase}?client_id=${encodeURIComponent("Other Client")}&service_id=${encodeURIComponent("Review")}`);
+    assert.equal(otherExport.status, 200);
+    const otherExportBody = await otherExport.json();
+    assert.equal(otherExportBody.counts.history_rows, 0);
+    assert.equal(otherExportBody.counts.conversation_rows, 0);
+
     const deleteRes = await fetch(`http://127.0.0.1:${rt.boundPort}/agent/continuity`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
@@ -2164,6 +2186,12 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(fs.existsSync(historyPath), true);
     assert.equal(fs.readFileSync(historyPath, "utf8").trim(), "");
     assert.equal(fs.existsSync(deletionLog), true);
+
+    const afterDeleteExport = await fetch(`${exportBase}?conversation_key=${encodeURIComponent(conversationKey)}`);
+    assert.equal(afterDeleteExport.status, 200);
+    const afterDeleteBody = await afterDeleteExport.json();
+    assert.equal(afterDeleteBody.counts.history_rows, 0);
+    assert.equal(afterDeleteBody.counts.conversation_rows, 0);
   } finally {
     await rt.stop();
     fs.rmSync(historyPath, { force: true });
@@ -2280,6 +2308,26 @@ async function testClientContinuityPruneRunsOffExecuteHotPath() {
     assert.equal(second.status, 200);
     await new Promise((resolve) => setTimeout(resolve, 20));
     assert.equal(pruneCalls, 1);
+  } finally {
+    await started.stop();
+  }
+}
+
+async function testClientContinuityExportRequiresAuthWhenConfigured() {
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: STRONG_TEST_AUTH_TOKEN,
+    redisUrl: "",
+  });
+  try {
+    const exportUrl = `http://127.0.0.1:${started.boundPort}/agent/continuity/export`;
+    const unauthenticated = await fetch(exportUrl);
+    assert.equal(unauthenticated.status, 401);
+    const authenticated = await fetch(exportUrl, {
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
+    });
+    assert.equal(authenticated.status, 400);
   } finally {
     await started.stop();
   }
@@ -2715,6 +2763,7 @@ testMemoryMetabolismReportMode();
 testFrictionLedgerManualPath();
 testClientContinuityExpiryPrune();
 await testClientContinuityPruneRunsOffExecuteHotPath();
+await testClientContinuityExportRequiresAuthWhenConfigured();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
 await testPaidPublicCannotCaptureTrajectories();

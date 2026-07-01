@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
-import { buildClientConversationKey, deleteClientContinuity, executionHistoryPath, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
+import { buildClientConversationKey, deleteClientContinuity, executionHistoryPath, exportClientContinuity, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -1121,6 +1121,21 @@ export async function createRuntime(opts = {}) {
         reason: "operator_delete",
       });
       if (!result.ok) return res.status(400).json(result);
+      return res.json(result);
+    } catch (e) {
+      return next(e);
+    }
+  });
+
+  app.get("/agent/continuity/export", async (req, res, next) => {
+    try {
+      const result = exportClientContinuity({
+        client_id: req.query?.client_id,
+        service_id: req.query?.service_id,
+        conversation_key: req.query?.conversation_key,
+      });
+      if (!result.ok) return res.status(400).json(result);
+      res.setHeader("Cache-Control", "no-store");
       return res.json(result);
     } catch (e) {
       return next(e);
