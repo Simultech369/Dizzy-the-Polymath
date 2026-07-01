@@ -2247,6 +2247,44 @@ function testClientContinuityExpiryPrune() {
   fs.rmSync(deletionPath, { force: true });
 }
 
+async function testClientContinuityPruneRunsOffExecuteHotPath() {
+  let pruneCalls = 0;
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: "direct-test-token",
+    redisUrl: "",
+    clientContinuityPruneIntervalMs: 60000,
+    pruneClientContinuity: () => {
+      pruneCalls += 1;
+      return { ok: true, checked: 0, expired: 0, deleted: 0, deleted_conversation_keys: [] };
+    },
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${started.boundPort}`;
+    const headers = {
+      "Content-Type": "application/json",
+      authorization: "Bearer direct-test-token",
+    };
+    const first = await fetch(`${baseUrl}/agent/execute`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ brief: "hello" }),
+    });
+    assert.equal(first.status, 200);
+    const second = await fetch(`${baseUrl}/agent/execute`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ brief: "hello again" }),
+    });
+    assert.equal(second.status, 200);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(pruneCalls, 1);
+  } finally {
+    await started.stop();
+  }
+}
+
 function testMarkdownRetrieverExcludesUntrustedRoots() {
   const externalDir = path.resolve(process.cwd(), "_external");
   const probePath = path.resolve(externalDir, "retrieval-probe.md");
@@ -2676,6 +2714,7 @@ testTrajectoryDistilleryManualPath();
 testMemoryMetabolismReportMode();
 testFrictionLedgerManualPath();
 testClientContinuityExpiryPrune();
+await testClientContinuityPruneRunsOffExecuteHotPath();
 await testCommandAvailabilityWithoutChatBackend();
 await testSpoofedLocalChannelDoesNotBypassMutationGuards();
 await testPaidPublicCannotCaptureTrajectories();
@@ -2750,6 +2789,41 @@ async function testRateLimiting() {
     assert.ok(second.headers.get("retry-after"));
   } finally {
     await started.stop();
+  }
+
+  const proxied = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: STRONG_TEST_AUTH_TOKEN,
+    redisUrl: "",
+    deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
+    rateLimitEnabled: true,
+    rateLimitWindowMs: 60000,
+    rateLimitMax: 1,
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${proxied.boundPort}`;
+    const clientAHeaders = {
+      authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
+      "x-forwarded-for": "198.51.100.99, 203.0.113.10",
+    };
+    const clientASpoofedHeaders = {
+      authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
+      "x-forwarded-for": "198.51.100.100, 203.0.113.10",
+    };
+    const clientBHeaders = {
+      authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
+      "x-forwarded-for": "198.51.100.99, 203.0.113.11",
+    };
+    const firstA = await fetch(`${baseUrl}/state?zone=public`, { headers: clientAHeaders });
+    assert.equal(firstA.status, 200);
+    const secondA = await fetch(`${baseUrl}/state?zone=public`, { headers: clientASpoofedHeaders });
+    assert.equal(secondA.status, 429);
+    const firstB = await fetch(`${baseUrl}/state?zone=public`, { headers: clientBHeaders });
+    assert.equal(firstB.status, 200);
+  } finally {
+    await proxied.stop();
   }
 }
 

@@ -124,7 +124,27 @@ export function pruneExpiredRateLimitBuckets(buckets, now = Date.now()) {
   return removed;
 }
 
-function createRateLimitMiddleware(config) {
+function forwardedClientIp(req, trustedProxies = []) {
+  const forwardedFor = String(req.headers?.["x-forwarded-for"] || "")
+    .split(",")
+    .map(normalizeIp)
+    .filter(Boolean);
+  for (let i = forwardedFor.length - 1; i >= 0; i -= 1) {
+    if (!trustedProxies.includes(forwardedFor[i])) return forwardedFor[i];
+  }
+  if (forwardedFor.length > 0) return forwardedFor[0];
+  return normalizeIp(req.headers?.["x-real-ip"]);
+}
+
+function rateLimitClientKey(req, { deploymentMode, trustedProxies = [] } = {}) {
+  const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
+  if (["proxied", "hosted"].includes(deploymentMode) && trustedProxies.includes(remote)) {
+    return forwardedClientIp(req, trustedProxies) || remote || "unknown";
+  }
+  return remote || normalizeIp(req.ip) || "unknown";
+}
+
+function createRateLimitMiddleware(config, trust = {}) {
   const buckets = new Map();
   let nextPruneAt = 0;
 
@@ -136,7 +156,7 @@ function createRateLimitMiddleware(config) {
       pruneExpiredRateLimitBuckets(buckets, now);
       nextPruneAt = now + config.windowMs;
     }
-    const key = String(req.ip || req.socket?.remoteAddress || "unknown");
+    const key = rateLimitClientKey(req, trust);
     const current = buckets.get(key);
     const bucket = current && current.resetAt > now
       ? current
@@ -535,7 +555,7 @@ export async function createRuntime(opts = {}) {
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
-  app.use(createRateLimitMiddleware(rateLimit));
+  app.use(createRateLimitMiddleware(rateLimit, { deploymentMode, trustedProxies }));
 
   if (enforceIdentityHeaders && deploymentMode !== "proxied") {
     throw new Error("DIZZY_ENFORCE_IDENTITY_HEADERS=1 requires DIZZY_DEPLOYMENT_MODE=proxied.");
@@ -545,6 +565,32 @@ export async function createRuntime(opts = {}) {
   }
   if ((executeToken || notifyToken) && !authToken) {
     throw new Error("DIZZY_AUTH_TOKEN is required when scoped API tokens are configured.");
+  }
+
+  const pruneClientContinuity = opts.pruneClientContinuity || pruneExpiredClientContinuity;
+  const clientContinuityPruneIntervalMs = parsePositiveInt(
+    opts.clientContinuityPruneIntervalMs ?? process.env.DIZZY_CLIENT_CONTINUITY_PRUNE_INTERVAL_MS,
+    60 * 1000,
+  );
+  let nextClientContinuityPruneAt = 0;
+  let clientContinuityPruneScheduled = false;
+
+  function scheduleClientContinuityPrune(nowMs = Date.now()) {
+    if (clientContinuityPruneScheduled || nowMs < nextClientContinuityPruneAt) return false;
+    nextClientContinuityPruneAt = nowMs + clientContinuityPruneIntervalMs;
+    clientContinuityPruneScheduled = true;
+    const timer = setTimeout(() => {
+      try {
+        pruneClientContinuity();
+      } catch (error) {
+        const message = redactTextPayload(String(error?.message ?? error)).slice(0, 300);
+        console.warn(`[client_continuity] prune_failed=${message}`);
+      } finally {
+        clientContinuityPruneScheduled = false;
+      }
+    }, 0);
+    if (typeof timer.unref === "function") timer.unref();
+    return true;
   }
 
   const dashboardSessionTtlMs = parsePositiveInt(
@@ -1016,7 +1062,7 @@ export async function createRuntime(opts = {}) {
     }
 
     try {
-      pruneExpiredClientContinuity();
+      scheduleClientContinuityPrune();
       const message = buildIncomingMessage(
         { text: brief, meta: { service_id, client_id } },
         req,
@@ -1083,7 +1129,7 @@ export async function createRuntime(opts = {}) {
 
   app.post("/agent/continuity/prune", async (req, res, next) => {
     try {
-      const result = pruneExpiredClientContinuity();
+      const result = pruneClientContinuity();
       return res.json(result);
     } catch (e) {
       return next(e);
