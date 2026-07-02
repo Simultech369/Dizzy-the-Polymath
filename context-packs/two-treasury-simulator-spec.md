@@ -1,6 +1,7 @@
 ---
 status: sketch
 purpose: Define the technical specifications and parameters for the two-treasury stress simulator.
+implementation_status: offline_conceptual_draft
 load:
   - context-packs/coordination-philosophy.md
 exclude: []
@@ -11,6 +12,8 @@ watch:
 ---
 
 # Two-Treasury Stress Simulator Specification (v0)
+
+> Status: offline conceptual draft. This file defines a proposed simulator model, parameter grid, and engineering invariants. It is not an implemented simulator and should not be cited as runtime behavior.
 
 ## Learning Question
 Under what transfer and reserve policies can the Floor Treasury fund essential obligations through a prolonged, correlated collapse in speculative revenue—without receiving a bailout from the Experimental Treasury’s principal or cutting core services?

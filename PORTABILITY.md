@@ -75,6 +75,24 @@ Not implemented yet:
 - signed export bundles
 - export manifests with checksums
 
+## Future CSV Schema Sketch
+
+CSV export is not implemented. If added later, it should use separate files rather than flattening unlike records into one table.
+
+`execution_history.csv` candidate columns:
+
+```text
+export_schema_version,exported_at,conversation_key,t,route,trust_zone,service_id,client_id,continuity_mode,retention_scope,repo_retrieval_allowed,durable_memory_allowed,result_kind
+```
+
+`conversation.csv` candidate columns:
+
+```text
+export_schema_version,exported_at,conversation_key,row_index,role,text,t
+```
+
+CSV exports must follow the same exclusions as JSON exports. They must not include private memory, repository retrieval snippets, credentials, cookies, authorization headers, deleted records, or unrelated client context.
+
 ## Review Rule
 
 Any new export surface must answer:

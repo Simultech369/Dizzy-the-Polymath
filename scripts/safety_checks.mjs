@@ -2173,12 +2173,23 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(otherExportBody.counts.history_rows, 0);
     assert.equal(otherExportBody.counts.conversation_rows, 0);
 
-    const traversalExport = await fetch(`${exportBase}?conversation_key=${encodeURIComponent("../../etc/passwd")}`);
-    assert.equal(traversalExport.status, 200);
-    const traversalBody = await traversalExport.json();
-    assert.doesNotMatch(traversalBody.conversation_key, /\.\.|[\\/]/);
-    assert.equal(traversalBody.counts.history_rows, 0);
-    assert.equal(traversalBody.counts.conversation_rows, 0);
+    for (const rawKey of [
+      "../../etc/passwd",
+      "..%2f..%2fwindows%2fwin.ini",
+      "..%5c..%5cwindows%5cwin.ini",
+      "%2e%2e%2fsecret",
+      "client\u0000secret",
+      "%00",
+      "%c0%af",
+      "%e0%80%af",
+    ]) {
+      const traversalExport = await fetch(`${exportBase}?conversation_key=${encodeURIComponent(rawKey)}`);
+      assert.equal(traversalExport.status, 200);
+      const traversalBody = await traversalExport.json();
+      assert.doesNotMatch(traversalBody.conversation_key, /\.\.|[\\/]|%2f|%5c|%00|%c0%af|%e0%80%af/i);
+      assert.equal(traversalBody.counts.history_rows, 0);
+      assert.equal(traversalBody.counts.conversation_rows, 0);
+    }
 
     const deleteRes = await fetch(`http://127.0.0.1:${rt.boundPort}/agent/continuity`, {
       method: "DELETE",
