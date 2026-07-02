@@ -207,6 +207,7 @@ Notes on memory:
 - Auto-memory is enabled by default when chat is enabled. It writes only on higher-signal turns, with cooldown and dedupe gates to avoid summarizing every exchange.
 - Trust-zone note: `/agent/execute` paid/public requests are ephemeral by default. Enable continuity explicitly per client/task with `continuity_mode=client` if you intentionally want retained client-specific chat history.
 - Client continuity requires `client_id` and `service_id`; `/agent/execute` derives the conversation key from those fields and ignores caller-provided keys.
+- Export retained client continuity as JSON with `GET /agent/continuity/export?client_id=...&service_id=...` or `GET /agent/continuity/export?conversation_key=...`. When `DIZZY_AUTH_TOKEN` is configured, use the same bearer auth as other `/agent/*` routes. See `PORTABILITY.md` for schema, exclusions, and deletion behavior.
 - Ephemeral `/agent/execute` requests do not write execution-history entries.
 - Markdown auto-retrieval is scoped to trusted root doctrine docs plus `memory/` by default. Imported markdown under `_ext/` and `_external/` is excluded unless you explicitly widen the allowlist.
 

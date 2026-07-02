@@ -2173,6 +2173,13 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(otherExportBody.counts.history_rows, 0);
     assert.equal(otherExportBody.counts.conversation_rows, 0);
 
+    const traversalExport = await fetch(`${exportBase}?conversation_key=${encodeURIComponent("../../etc/passwd")}`);
+    assert.equal(traversalExport.status, 200);
+    const traversalBody = await traversalExport.json();
+    assert.doesNotMatch(traversalBody.conversation_key, /\.\.|[\\/]/);
+    assert.equal(traversalBody.counts.history_rows, 0);
+    assert.equal(traversalBody.counts.conversation_rows, 0);
+
     const deleteRes = await fetch(`http://127.0.0.1:${rt.boundPort}/agent/continuity`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
