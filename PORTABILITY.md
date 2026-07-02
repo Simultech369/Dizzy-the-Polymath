@@ -15,7 +15,7 @@ GET /agent/continuity/export?conversation_key=...
 
 The route returns `dizzy.client_continuity.export.v1`.
 
-The route is protected by the same server authentication boundary as other `/agent/*` routes when `DIZZY_AUTH_TOKEN` is configured. In `direct_local` mode without authentication, it remains loopback-local with the rest of the local-first runtime.
+The route relies on the same server boundary as other `/agent/*` routes: global bearer authentication when `DIZZY_AUTH_TOKEN` is configured, and loopback-only startup rules in unauthenticated `direct_local` mode. Do not expose continuity export over non-loopback, proxied, hosted, or client-facing surfaces without strong `DIZZY_AUTH_TOKEN` protection and an explicit scoped export design.
 
 ## Exported Data
 
@@ -40,6 +40,8 @@ Exports must not include:
 - deleted continuity records
 - third-party private context outside the requested conversation
 
+The JSON export returns the scoped conversation record as stored. Upstream capture rules, trust-zone gating, and deletion/pruning must prevent excluded data from entering that record; the export route is not a general-purpose redaction pass.
+
 ## Scope Rules
 
 An export request must identify one continuity scope by either:
@@ -48,6 +50,8 @@ An export request must identify one continuity scope by either:
 - `conversation_key`
 
 The server normalizes `client_id` and `service_id` into the same deterministic conversation key used by `/agent/execute`. Caller-supplied arbitrary conversation keys are normalized before file lookup.
+
+The `conversation_key` form is an operator/admin recovery surface, not client self-service authorization. Client-visible export would need scoped client authentication or a non-guessable export capability before deterministic conversation keys could be safely exposed.
 
 ## Revocation And Deletion
 
@@ -75,21 +79,42 @@ Not implemented yet:
 - signed export bundles
 - export manifests with checksums
 
-## Future CSV Schema Sketch
+## Future CSV Schema Layout Map
 
-CSV export is not implemented. If added later, it should use separate files rather than flattening unlike records into one table.
+CSV export is not implemented. If added later, it must use separate files to avoid flattening unlike records. The current database/export shapes suggest the following candidate column layouts; fields not present in stored rows must be omitted or emitted blank.
 
-`execution_history.csv` candidate columns:
+### 1. Execution History (`execution_history.csv`)
 
-```text
-export_schema_version,exported_at,conversation_key,t,route,trust_zone,service_id,client_id,continuity_mode,retention_scope,repo_retrieval_allowed,durable_memory_allowed,result_kind
-```
+Tracks execution parameters. Nested structures (like the capability receipt) are flattened.
 
-`conversation.csv` candidate columns:
+| CSV Header | Description | Data Type | Source Field / Receipt Mapping |
+|---|---|---|---|
+| `timestamp` | ISO 8601 creation timestamp | String | `t` |
+| `route` | HTTP request path | String | `route` |
+| `trust_zone` | Scoped trust zone for execution | String | `trust_zone` |
+| `service_id` | Scoped service identifier | String | `service_id` |
+| `client_id` | Scoped client identifier | String | `client_id` |
+| `continuity_mode` | Continuity mode | String | `continuity_mode` |
+| `retention_scope` | Scoped data retention policy | String | `retention_scope` |
+| `repo_retrieval_allowed` | Whether repository retrieval was allowed | Boolean | `repo_retrieval_allowed` |
+| `durable_memory_allowed` | Whether memory writing was allowed | Boolean | `durable_memory_allowed` |
+| `result_kind` | Execution result category | String | `result_kind` |
+| `receipt_format` | Format of capability receipt | String | `capability_receipt.format` |
+| `receipt_zone` | Capability receipt trust zone | String | `capability_receipt.trust_zone` |
+| `receipt_timestamp` | Timestamp on receipt | String | `capability_receipt.timestamp` |
+| `conversation_key` | Normalized conversation identifier | String | `conversation_key` |
 
-```text
-export_schema_version,exported_at,conversation_key,row_index,role,text,t
-```
+### 2. Conversation History (`conversation_history.csv`)
+
+Tracks messages within a given conversation.
+
+| CSV Header | Description | Data Type | Source Field |
+|---|---|---|---|
+| `timestamp` | ISO 8601 message timestamp | String | `t` |
+| `role` | Message author role (`user` or `assistant`) | String | `role` |
+| `text` | Raw message text | String | `text` |
+| `backend` | API backend used, if present (assistant only) | Optional String | `backend` |
+| `model_route` | Selected model route, if present (assistant only) | Optional String | `model_route` |
 
 CSV exports must follow the same exclusions as JSON exports. They must not include private memory, repository retrieval snippets, credentials, cookies, authorization headers, deleted records, or unrelated client context.
 

@@ -86,7 +86,7 @@ Useful files:
 - `lib/friction_ledger.mjs`
 - `lib/dispatch.mjs`
 - `scripts/maintain.mjs`
-- `upgrades/active/friction-ledger.md`
+- `upgrades/provenance/friction-ledger.md`
 
 Failure mode: logging friction becomes another chore and does not drive cleanup.
 
@@ -99,7 +99,7 @@ Mechanism: store sparse known-good trajectories with goal, constraints, actions,
 Useful files:
 - `lib/trajectories.mjs`
 - `lib/dispatch.mjs`
-- `upgrades/active/trajectory-distillery.md`
+- `upgrades/provenance/trajectory-distillery.md`
 
 Failure mode: trajectories become vague success stories instead of reusable moves.
 

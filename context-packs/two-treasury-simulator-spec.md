@@ -1,7 +1,6 @@
 ---
-status: sketch
+status: offline-conceptual-draft
 purpose: Define the technical specifications and parameters for the two-treasury stress simulator.
-implementation_status: offline_conceptual_draft
 load:
   - context-packs/coordination-philosophy.md
 exclude: []
@@ -10,6 +9,9 @@ watch:
   - Stable-asset haircut probability modeling
   - Oracle error impact thresholds
 ---
+
+> [!NOTE]
+> This document is an **offline conceptual draft** only. The simulator specified here is a theoretical exercise and is not implemented in the active runtime codebase.
 
 # Two-Treasury Stress Simulator Specification (v0)
 

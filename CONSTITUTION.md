@@ -37,49 +37,12 @@ If this file and `DESIGN.md` conflict, treat the conflict as a red maintenance i
 | `outside_contact` | Minimal/local | Disabled | Disabled by default | Fresh-context reasoning |
 | `paid_public` | Ephemeral by default | Disabled | Disabled | No hidden carryover or cross-client residue |
 
-Boundary crossing requires:
+Boundary crossing requires explicit purpose, allowed source context, redaction, retention scope, revocation/deletion path, and visible receipt.
 
-- explicit purpose
-- allowed source context
-- redaction of private or sensitive context
-- retention scope
-- revocation or deletion path when persistence exists
-- visible receipt when runtime supports it
+## Memory Lifecycle & Exit
 
-## Memory Lifecycle
-
-Every durable memory claim should be classed by:
-
-- source: where it came from
-- scope: private, project, client, public, or operational
-- confidence: low, medium, or high
-- freshness: last verified or expiry trigger
-- sensitivity: normal, sensitive, or do-not-export
-- revocation path: how to remove or demote it
-
-Memory should expire, be revalidated, or be demoted when:
-
-- the source context changes
-- a trust-zone boundary changes
-- confidence drops
-- the user revokes it
-- it no longer improves present judgment
-
-Expiration and deletion are review-first unless a runtime surface explicitly supports safe deterministic deletion. Background pruning may mark stale nodes; irreversible deletion requires operator review.
-
-## Exit And Portability
-
-Participants should be able to export useful interaction records, eligibility credentials, signatures, receipts, and continuity artifacts in standard machine-readable formats when doing so does not violate another trust-zone boundary.
-
-Consent for retained continuity can be revoked. Revocation must mark the relevant memory or continuity surface for review, demotion, or deletion through the declared owner path.
+Durable memory must be curated, confidence-aware, and freshness-aware. Participants may export interaction records, credentials, and continuity artifacts in standard machine-readable formats.
 
 ## Promotion Rule
 
-Doctrine becomes runtime only when promoted through at least one enforcing layer:
-
-- default prompt-pack language
-- runtime code
-- tests or drift checks
-- operator maintenance output
-
-Unpromoted doctrine is a proposal, explanation, or aspiration. It should not be treated as live authority.
+Doctrine becomes runtime only when promoted through default prompt-pack, runtime code, tests, or operator maintenance output.

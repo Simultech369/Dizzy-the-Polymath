@@ -2179,14 +2179,21 @@ async function testAgentExecuteContinuityLifecycleResponse() {
       "..%5c..%5cwindows%5cwin.ini",
       "%2e%2e%2fsecret",
       "client\u0000secret",
+      "client%00secret",
       "%00",
       "%c0%af",
       "%e0%80%af",
+      "..%252f..%252fetc%252fpasswd",
+      "..\u2215..\u2215etc\u2215passwd",
+      "..\uFF0F..\uFF0Fetc\uFF0Fpasswd",
+      "../../etc/passwd%00",
+      "../../etc/passwd\u0000",
     ]) {
       const traversalExport = await fetch(`${exportBase}?conversation_key=${encodeURIComponent(rawKey)}`);
       assert.equal(traversalExport.status, 200);
       const traversalBody = await traversalExport.json();
       assert.doesNotMatch(traversalBody.conversation_key, /\.\.|[\\/]|%2f|%5c|%00|%c0%af|%e0%80%af/i);
+      assert.ok(/^[a-z0-9_-]*$/.test(traversalBody.conversation_key), `Normalized key contains non-whitelist characters: ${traversalBody.conversation_key}`);
       assert.equal(traversalBody.counts.history_rows, 0);
       assert.equal(traversalBody.counts.conversation_rows, 0);
     }
@@ -2278,7 +2285,7 @@ function testClientContinuityExpiryPrune() {
   assert.equal(fs.existsSync(deletionPath), true);
 
   const deleteResult = deleteClientContinuity({
-    conversation_key: freshKey,
+    conversation_key: "execute/client/fresh client/review",
     historyPath,
     conversationsDir,
     deletionPath,
@@ -2286,7 +2293,10 @@ function testClientContinuityExpiryPrune() {
     now: new Date("2026-05-31T00:00:00.000Z"),
   });
   assert.equal(deleteResult.deleted, true);
+  assert.equal(deleteResult.conversation_key, freshKey);
+  assert.equal(deleteResult.removed_history_rows, 1);
   assert.equal(fs.existsSync(freshPath), false);
+  assert.equal(fs.readFileSync(historyPath, "utf8").trim(), "");
 
   fs.rmSync(historyPath, { force: true });
   fs.rmSync(conversationsDir, { recursive: true, force: true });

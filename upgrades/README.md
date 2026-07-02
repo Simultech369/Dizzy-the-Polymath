@@ -11,10 +11,10 @@ The aesthetic here should be workshop clarity: enough provenance to understand w
 For current direction, start with:
 
 - [active/selection-pressure.md](active/selection-pressure.md)
-- [active/2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md)
+- [provenance/2026-05-13-dizzy-upgrade-priorities.md](provenance/2026-05-13-dizzy-upgrade-priorities.md)
 - [active/tension-map.md](active/tension-map.md)
-- [active/trajectory-distillery.md](active/trajectory-distillery.md)
-- [active/friction-ledger.md](active/friction-ledger.md)
+- [provenance/trajectory-distillery.md](provenance/trajectory-distillery.md)
+- [provenance/friction-ledger.md](provenance/friction-ledger.md)
 
 For cross-model review history, start with:
 
@@ -102,8 +102,12 @@ Every note in `active/` must start with status frontmatter:
 ## Current Active Notes
 
 - `active`: [selection-pressure.md](active/selection-pressure.md), [tension-map.md](active/tension-map.md)
-- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md), [civic-sieve.md](active/civic-sieve.md), [drift-check-evidence.md](active/drift-check-evidence.md), [friction-ledger.md](active/friction-ledger.md), [memory-metadata.md](active/memory-metadata.md), [per-zone-capability-lists.md](active/per-zone-capability-lists.md), [privilege-split.md](active/privilege-split.md), [refinement-discipline.md](active/refinement-discipline.md), [trajectory-distillery.md](active/trajectory-distillery.md)
-- `parked`: [2026-05-13-dizzy-upgrade-priorities.md](active/2026-05-13-dizzy-upgrade-priorities.md), [anti-goblin-local-failure-pressure.md](active/anti-goblin-local-failure-pressure.md), [telos-substrate.md](active/telos-substrate.md)
+- `integrated`: [W-0004-continuity-lifecycle.md](active/W-0004-continuity-lifecycle.md)
+
+## Archived / Provenance Notes
+
+- `integrated`: [civic-sieve.md](provenance/civic-sieve.md), [drift-check-evidence.md](provenance/drift-check-evidence.md), [friction-ledger.md](provenance/friction-ledger.md), [memory-metadata.md](provenance/memory-metadata.md), [per-zone-capability-lists.md](provenance/per-zone-capability-lists.md), [privilege-split.md](provenance/privilege-split.md), [refinement-discipline.md](provenance/refinement-discipline.md), [trajectory-distillery.md](provenance/trajectory-distillery.md)
+- `parked`: [2026-05-13-dizzy-upgrade-priorities.md](provenance/2026-05-13-dizzy-upgrade-priorities.md), [anti-goblin-local-failure-pressure.md](provenance/anti-goblin-local-failure-pressure.md), [telos-substrate.md](provenance/telos-substrate.md)
 
 ## Near-Term Implementation Sequence
 
