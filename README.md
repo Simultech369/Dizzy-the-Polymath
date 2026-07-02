@@ -200,6 +200,8 @@ npm run check:production
 npm run check:dependencies
 ```
 
+Use [`EXTERNAL_SURFACE_REVIEW.md`](EXTERNAL_SURFACE_REVIEW.md) before adding any public form, auth provider, edge provider, hosted database, or client-facing storage.
+
 | Area | Requirement |
 | --- | --- |
 | Minified front end | Production build uses minified assets, no exposed secrets, no public source maps unless intentionally gated, and no environment variables shipped into client bundles unless safe for public use |
@@ -207,6 +209,7 @@ npm run check:dependencies
 | Version control | Main branch is protected, releases are tagged, secrets are excluded from git history, and deploys come from reviewed commits |
 | APIs | Auth, input validation, schema checks, CORS policy, request size limits, structured errors, and explicit public/private route boundaries are in place |
 | Hosting and deployment | Deploy target uses HTTPS, least-privilege environment variables, rollback path, health checks, and separate development/staging/production configuration |
+| External intake and providers | Public forms, auth providers, hosted databases, edge providers, and storage providers are scoped adapters with documented purpose, collected fields, destination, retention, deletion/export path, logging posture, and secret boundary |
 | Rate limiting | Public, auth, and expensive routes have per-IP or per-user limits; abuse limits fail closed without leaking private state |
 | Caching | Static assets are cacheable, sensitive responses are not cached publicly, and cache invalidation is explicit for user-specific data |
 | Scaling | Runtime has documented resource assumptions, queue/backpressure behavior, horizontal-scaling constraints, and failure modes for Redis/database/provider outages |
@@ -222,6 +225,7 @@ npm run check:dependencies
 - Accessibility scan results plus one manual keyboard/screen-reader pass
 - Rate-limit behavior shown on one public route
 - Error-tracking dashboard receiving a test event
+- External intake/provider data-flow map if any form, auth provider, edge provider, hosted database, or client-facing storage is added
 - Database RLS policy notes or migration references
 - Deployment rollback command or provider rollback path
 

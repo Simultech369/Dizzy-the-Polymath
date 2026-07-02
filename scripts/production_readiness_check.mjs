@@ -9,6 +9,7 @@ const REQUIRED_AREAS = [
   "Version control",
   "APIs",
   "Hosting and deployment",
+  "External intake and providers",
   "Rate limiting",
   "Caching",
   "Scaling",
@@ -55,7 +56,10 @@ function main() {
   }
 
   checkContains("README.md", readme, "Production Readiness Checklist", issues);
+  checkContains("README.md", readme, "EXTERNAL_SURFACE_REVIEW.md", issues);
   checkContains("FILE_ROLES.md", fileRoles, "PRODUCTION_READINESS.md", issues);
+  checkContains("FILE_ROLES.md", fileRoles, "EXTERNAL_SURFACE_REVIEW.md", issues);
+  checkContains("PRODUCTION_READINESS.md", readiness, "EXTERNAL_SURFACE_REVIEW.md", issues);
   checkContains("package.json", packageJson, "\"check:production\"", issues);
 
   for (const envName of REQUIRED_ENV_HINTS) {
@@ -67,6 +71,9 @@ function main() {
 
   if (!hasFile("scripts/production_readiness_check.mjs")) {
     issues.push("scripts/production_readiness_check.mjs is missing.");
+  }
+  if (!hasFile("EXTERNAL_SURFACE_REVIEW.md")) {
+    issues.push("EXTERNAL_SURFACE_REVIEW.md is missing.");
   }
 
   if (!/rate limit/i.test(server)) {

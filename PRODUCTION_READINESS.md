@@ -14,6 +14,7 @@ This file is an operational gate, not a claim that every production capability a
 | Version control | Git repo with local maintenance discipline | Main branch protection, reviewed commits for deploys, tagged releases, no committed secrets, and a rollback point | Protected-branch settings, release tag, secret scan, deploy commit hash |
 | APIs | Express runtime with `/health`, `/prompt`, `/governance`, `/memory/graph`, auth support, redacted boundary receipts, and safety checks | Auth, input validation, explicit public/private route boundaries, CORS policy, request size limits, and structured errors | Smoke test, route inventory, auth test, CORS config, API error sample |
 | Hosting and deployment | Local-first runtime, loopback default, optional bearer auth for non-loopback exposure | HTTPS, least-privilege env vars, health checks, separate dev/staging/prod config, and rollback path | Deployment runbook, `/health` from deployed target, env inventory, rollback command |
+| External intake and providers | Current public endpoints are informational; no third-party auth, database, form, or edge provider is authoritative yet | Public intake, auth, storage, or edge providers must be scoped adapters with documented purpose, collected fields, destination, retention, deletion/export path, logging posture, and secret boundary | Provider data-flow map, intake schema, retention/delete/export note, browser bundle secret scan, auth/routing test |
 | Scoped capabilities | Master, execute, and notify tokens exist for local/proxy operation | Public or multi-tenant capability grants are time-bounded, parameter-bounded, revocable, and auditable | Token scope tests, expiry/revocation test, request receipt, client lifecycle doc |
 | Rate limiting | Built-in Express rate limiting is available through `DIZZY_RATE_LIMIT_ENABLED`, `DIZZY_RATE_LIMIT_WINDOW_MS`, and `DIZZY_RATE_LIMIT_MAX`; `/health` is exempt | Public, auth, and expensive routes must have per-IP or per-user limits before public exposure | Rate-limit config, test request burst, `429` behavior sample |
 | Caching | Internal markdown, memory graph, and prompt bundle caches exist | Static assets cache safely; sensitive/user-specific responses are not publicly cached; invalidation rules are explicit | Cache headers, TTL notes, sensitive route no-cache test |
@@ -28,6 +29,7 @@ This file is an operational gate, not a claim that every production capability a
 - `README.md` presents the public summary and launch-proof list.
 - `RUNBOOK.md` remains the operational setup surface.
 - `OPERATIONS.md` governs runtime operation and trust-zone handling.
+- `EXTERNAL_SURFACE_REVIEW.md` is the reusable gate template for public forms, auth providers, edge providers, hosted databases, and client-facing storage.
 - `scripts/production_readiness_check.mjs` verifies that this gate remains wired into the repo.
 - `DEPENDENCY_GOVERNANCE.md` defines the dependency/API drift matrix and credential handling rule.
 - `npm run check:production` runs the production-readiness wiring check.
@@ -45,6 +47,7 @@ Before any hosted/client-facing release, collect:
 - Rate-limit proof on one public route
 - Cache-header proof for static and sensitive routes
 - Error-tracking test event
+- External intake/provider data-flow map, if any form, auth provider, edge provider, hosted database, or client-facing storage is added
 - Database RLS or tenant-isolation proof, if a database exists
 - Accessibility scan plus manual keyboard/screen-reader notes
 - Deployment rollback path
@@ -53,6 +56,8 @@ Before any hosted/client-facing release, collect:
 
 - Do not expose non-loopback runtime routes without auth.
 - Do not ship browser bundles that contain private env vars or service-role credentials.
+- Do not create public lead, intake, or support forms until purpose, fields, destination, retention, deletion/export, anti-tracking posture, and abuse controls are documented.
+- Do not let Cloudflare, Supabase, Firebase, Clerk, form vendors, or any equivalent provider become authority for private memory, client continuity, or identity beyond an explicit adapter scope.
 - Do not pass provider API keys as command-line arguments; use environment variables or an approved local secret manager.
 - Do not claim ADA compliance from automation alone; combine automated scans with manual keyboard and assistive-tech checks.
 - Do not treat Redis or local memory files as a substitute for database RLS if user accounts or tenants are added.

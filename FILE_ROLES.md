@@ -83,6 +83,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 - `OPERATIONS.md`
 - `OPERATOR.md`
 - `PRODUCTION_READINESS.md`
+- `EXTERNAL_SURFACE_REVIEW.md`
 - `PROFILE_README.md`
 - `OPERATING_LOOP.md`
 - `OPERATING_SURFACE.md`

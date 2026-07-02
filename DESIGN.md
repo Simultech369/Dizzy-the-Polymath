@@ -817,6 +817,27 @@ Consequences:
 
 ---
 
+### D-0040: External intake and providers are adapters, not authority
+
+Decision:
+- Treat Cloudflare, Supabase, Firebase, Clerk, form vendors, and equivalent services as scoped adapters unless a later decision explicitly promotes one of them.
+- Do not add public lead, intake, or support forms until purpose, fields, destination, retention, deletion/export, anti-tracking posture, and abuse controls are documented.
+- Do not let an external provider become authority for private memory, client continuity, identity, or deletion semantics by default.
+- Keep server secrets, service-role credentials, provider API keys, and `DIZZY_AUTH_TOKEN` server-only; browser-visible keys must be intentionally public and backed by server-side policy.
+
+Rationale:
+- Managed providers can reduce operational burden while quietly becoming chokepoints for identity, storage, logs, consent, or continuity.
+- Public forms can manufacture apparent consent, collect more than the task needs, or route private material into third-party systems without visible governance.
+- Provider competence is not the same as project legitimacy; authority has to be named, bounded, auditable, and reversible.
+
+Consequences:
+- `PRODUCTION_READINESS.md` must require an external intake/provider data-flow map before hosted/client-facing release.
+- Supabase/Firebase-style databases require tenant isolation or RLS-equivalent proof before user or tenant data is trusted.
+- Clerk-style auth may prove login/session state, but it does not own Dizzy continuity or private memory without a separate lifecycle decision.
+- Cloudflare-style edge/proxy use must preserve runtime auth, HTTPS posture, route inventory, and provider log retention awareness.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
