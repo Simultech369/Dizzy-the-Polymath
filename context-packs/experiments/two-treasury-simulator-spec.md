@@ -1,6 +1,9 @@
 ---
 status: offline-conceptual-draft
 purpose: Define the technical specifications and parameters for the two-treasury stress simulator.
+runtime_authority: none
+retrieval_role: experimental_spec
+do_not_cite_as_capability: true
 load:
   - context-packs/coordination-philosophy.md
 exclude: []
@@ -12,6 +15,7 @@ watch:
 
 > [!NOTE]
 > This document is an **offline conceptual draft** only. The simulator specified here is a theoretical exercise and is not implemented in the active runtime codebase.
+> Its placement under `context-packs/experiments/` is intentional: it may inform review or future design, but it is not an active context-pack loading map and must not be cited as a shipped capability.
 
 # Two-Treasury Stress Simulator Specification (v0)
 

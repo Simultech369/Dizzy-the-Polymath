@@ -39,6 +39,16 @@ Each pack should declare:
 - `exclude`: files or surfaces to avoid by default
 - `watch`: tensions, drift signals, or strange attractors to notice
 
+## Root Packs vs Experiments
+
+Root-level context packs are task loading maps. They may be manually selected for
+active reasoning passes, so they should describe context to load, exclude, and
+watch rather than proposed runtime behavior.
+
+Offline conceptual drafts, future simulator specs, and unimplemented mechanism
+sketches belong under `context-packs/experiments/`. They may inform review, but
+they carry no runtime authority and must not be cited as shipped capability.
+
 ## Strange Attractors
 
 A strange attractor is a recurring pull that is not yet a rule.
@@ -61,4 +71,3 @@ Hold them where they can breathe and be compared against reality.
 2. Use it in at least one real reasoning pass.
 3. If it improves judgment, compress the durable part into the appropriate governing or memory file.
 4. If it only had momentary charge, leave it as dated residue or retire it.
-

@@ -103,8 +103,11 @@ Memory is curated context, not doctrine. Topic files live under `memory/`.
 ## Context Packs
 
 - `context-packs/*.md`
+- `context-packs/experiments/*.md`
 
-Context packs are loading maps for bounded long-context reasoning passes. They are not doctrine unless their contents are promoted into the live prompt pack, governance docs, runtime code, or curated memory.
+Root-level context packs are loading maps for bounded long-context reasoning passes. They are not doctrine unless their contents are promoted into the live prompt pack, governance docs, runtime code, or curated memory.
+
+Experimental context packs are offline conceptual sketches or stress specs. They may inform review, but they are not active loading maps and must not be cited as implemented runtime behavior.
 
 ## Local Skills
 
@@ -131,12 +134,11 @@ These files may carry optional economic, strategy, or campaign-specific orientat
 
 ## Local Artifacts / Cleanup Candidates
 
-- `patch_body.txt`
-- `patch_headers.txt`
-- `result.png`
 - `dizzylogofull.png`
 
-These should not be read as doctrine. Some are assets; some may be cleanup candidates.
+Root scratch probes should be archived under ignored runtime storage such as `runtime/local-artifacts/` rather than kept beside governing files. `dizzylogofull.png` is a root asset used by the README and `/assets/logo`; it should not be read as doctrine.
+
+Generated media under `output/` is local operator output and ignored by default.
 
 ## Rule
 

@@ -16,6 +16,7 @@ patch_headers.txt
 result.png
 coverage/
 dist/
+output/
 __pycache__/
 *.pyc
 

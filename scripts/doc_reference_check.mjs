@@ -68,6 +68,16 @@ for (const abs of listMarkdownFiles()) {
   const rel = toRepoPath(abs);
   const text = fs.readFileSync(abs, "utf8");
   const prose = text.replace(/```[\s\S]*?```/g, "").replace(/`[^`]*`/g, "");
+  const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const status = frontmatter?.[1]?.match(/^status:\s*(.+)$/m)?.[1]?.trim().toLowerCase() || "";
+
+  if (
+    rel.startsWith("context-packs/")
+    && !rel.startsWith("context-packs/experiments/")
+    && /offline[-_ ]conceptual|conceptual[-_ ]draft/.test(status)
+  ) {
+    issues.push(`${rel}: offline conceptual drafts belong under context-packs/experiments/`);
+  }
 
   if (!RETIRED_REFERENCE_ALLOWLIST.has(rel)) {
     for (const retired of RETIRED_REFERENCES) {

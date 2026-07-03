@@ -2149,7 +2149,14 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     const conversationKey = buildClientConversationKey({ client_id: "Client A", service_id: "Review" });
     const conversationPath = conversationPathForKey(conversationKey, conversationDir);
     fs.mkdirSync(path.dirname(conversationPath), { recursive: true });
-    fs.writeFileSync(conversationPath, "{\"role\":\"user\",\"text\":\"client-scoped\"}\n", "utf8");
+    fs.writeFileSync(conversationPath, `${JSON.stringify({
+      role: "user",
+      text: "client-scoped API_KEY=supersecretvalue123",
+      meta: {
+        api_key: "supersecretvalue123",
+        note: "Bearer sk-exportboundarysecret",
+      },
+    })}\n`, "utf8");
 
     const exportBase = `http://127.0.0.1:${rt.boundPort}/agent/continuity/export`;
     const missingExport = await fetch(exportBase);
@@ -2164,8 +2171,11 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(exportBody.counts.history_rows, 1);
     assert.equal(exportBody.counts.conversation_rows, 1);
     assert.equal(exportBody.history[0].conversation_key, conversationKey);
-    assert.equal(exportBody.conversation[0].text, "client-scoped");
+    assert.equal(exportBody.conversation[0].text, "client-scoped API_KEY=[REDACTED]");
+    assert.equal(exportBody.conversation[0].meta.api_key, "[REDACTED]");
+    assert.equal(exportBody.conversation[0].meta.note, "Bearer [REDACTED_API_KEY]");
     assert.equal(JSON.stringify(exportBody).includes("Other Client"), false);
+    assert.doesNotMatch(JSON.stringify(exportBody), /supersecretvalue123|sk-exportboundarysecret/);
 
     const otherExport = await fetch(`${exportBase}?client_id=${encodeURIComponent("Other Client")}&service_id=${encodeURIComponent("Review")}`);
     assert.equal(otherExport.status, 200);
