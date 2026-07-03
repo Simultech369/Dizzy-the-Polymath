@@ -19,3 +19,5 @@ description: Review external or third-party SKILL.md files before adoption. Use 
 - Require a baseline failure or concrete use case, validation path, and rollback or removal path before adoption.
 - Produce line-level diagnostics for structural or security problems when source files are available.
 - Use any available intake ledger when a broader intake map exists.
+- Skill Manifest Gate: Before promoting or enabling a reviewed skill, record its source/version, triggers, provides, required tools, permissions, external services, validation path, rollback path, and receipt fields.
+- Treat marketplace popularity, official labels, or model recommendations as evidence signals, not authority.

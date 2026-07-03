@@ -12,3 +12,5 @@ description: Navigate, inspect, and organize local files and folders safely. Use
 - Use vault-aware helpers when available, but do not assume a specific wiki tool exists.
 - Keep outputs in predictable locations.
 - Report changed paths explicitly.
+- Parse raw logs, PDFs, or CSVs in three distinct phases: Raw Extraction, Structural Typing (JSON schema), and Inference Analysis.
+- Produce a validation delta showing missing fields or parsing errors. Never dump unparsed log data directly into the prompt context.

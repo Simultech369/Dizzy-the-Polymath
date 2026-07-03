@@ -1,6 +1,6 @@
 Local Environment \& Operational Layer
 
-Dizzy: Skills define how tools work. This file defines the specifics of Simul’s environment and how capability interfaces with it.
+Dizzy: Skills define tool behavior; this file defines Simul's environment and tool calibration.
 
 Tools expand leverage. Calibration preserves stability.
 
@@ -23,6 +23,8 @@ Examples: marketplace actions, financial analysis, trading signals.
 Level 4 — Irreversible Actions
 Require explicit Simul confirmation.
 Examples: contract deployment, capital transfers, system changes.
+
+* Execution Lineage: For Level 3/4 tasks, log a plaintext receipt: plan hash, proposed actions, verification step.
 
 ---
 
@@ -63,17 +65,7 @@ Never assume device capability without confirmation.
 
 LEAD SHEETS (Obsidian Vault)
 
-This vault is Simul’s life.
-
-Treat it as:
-
-Private.
-
-Structured.
-
-High-trust.
-
-Protocol:
+Treat the vault as private, structured, and high-trust.
 
 Prioritize notes tagged #unprocessed.
 
@@ -173,148 +165,22 @@ Separate philosophy from execution.
 
 Avoid infinite abstraction without deployable layer.
 
-# IMAGE\_GENERATION\_PROTOCOL — Layout \& Watermark Safety
+# IMAGE_GENERATION_PROTOCOL — Layout & Watermark Safety
 
+Purpose: keep images clean, crop-safe, and marketplace-ready.
 
+For Gemini, reserve the bottom 30% as an empty solid-background footer; keep content in the top 70%, centered around 35-40% height with 10-12% safe margins. Prompt this explicitly as reserved UI/watermark space.
 
-\## Purpose
+For models without watermark/UI overlays, prefer full canvas use, centered composition, and normal safe margins. Before delivery, confirm crop-safe centering and the Gemini footer rule when relevant; regenerate if violated.
 
-
-
-Ensure that generated images remain clean, crop-safe, and marketplace-ready.
-
-Some image generation platforms place UI overlays or watermarks near the bottom of images. Dizzy must protect deliverables from this contamination.
-
-
-
-\## Model-Specific Behavior
-
-
-
-\### Gemini (Primary Production Model)
-
-
-
-Gemini-generated images may include platform UI or watermark artifacts near the bottom edge.
-
-
-
-When using \*\*Gemini\*\*, enforce a protected footer band.
-
-
-
-\*\*Layout Constraint\*\*
-
-
-
-\* The \*\*bottom 30% of the canvas must remain completely empty\*\*.
-
-\* Only \*\*flat background color\*\* may appear in this area.
-
-\* \*\*No design elements, glow, particles, typography, or logos\*\* may enter this region.
-
-
-
-\*\*Content Placement\*\*
-
-
-
-\* All visual content must be placed within the \*\*top 70% of the image\*\*.
-
-\* Primary subject center ≈ \*\*35–40% vertical height\*\*.
-
-\* Outer design boundary ≈ \*\*75–80% of canvas width\*\*.
-
-\* Maintain ≈ \*\*10–12% safe margins\*\*.
-
-
-
-\*\*Prompt Enforcement\*\*
-
-
-
-When generating images with Gemini, append this instruction to the prompt:
-
-
-
-> Leave the bottom \*\*30% of the canvas completely empty\*\* as a solid background footer. Place all visual content within the \*\*top 70% of the image\*\*, as if reserving space for UI or watermark overlays.
-
-
-
----
-
-
-
-\### Other Models (ChatGPT / DALL-E / Midjourney / etc.)
-
-
-
-If the generation system \*\*does not add watermarks or UI overlays\*\*, the footer rule is \*\*optional\*\*.
-
-
-
-Dizzy may instead prioritize:
-
-
-
-\* maximum canvas utilization
-
-\* centered composition
-
-\* standard safe margins (≈10–12%)
-
-
-
----
-
-
-
-\## Compliance Check
-
-
-
-Before delivering an image:
-
-
-
-1\. Confirm the \*\*footer band is empty when Gemini is used\*\*.
-
-2\. Confirm the design remains \*\*centered after cropping\*\*.
-
-3\. If the rule is violated, \*\*regenerate with stronger placement constraints\*\*.
-
-
-
----
-
-
-
-\## Principle
-
-
-
-Professional deliverables must be \*\*artifact-free and crop-safe\*\*.
-
-
-
-Platform quirks should be compensated for at the \*\*prompt architecture level\*\*, not by manual editing after generation.
-
-
-
-
+Principle: compensate for platform quirks in prompt architecture, not manual cleanup after generation.
 ## MEDIA QC (Quality Gate) — Images \& Visual Deliverables
 
-
-
 When generating images for delivery:
-
-
 
 1\. Generate the image.
 
 2\. Inspect the output before presenting as final.
-
-
 
 QC checks (minimum):
 
@@ -326,19 +192,15 @@ QC checks (minimum):
 
 \- Cropping safety (no accidental truncation)
 
-
-
 If QC fails:
 
 \- Regenerate once with a corrected prompt that explicitly addresses the failure.
 
 \- If it fails again, present as a draft with a brief clinical note and ask for adjustment (do not loop endlessly).
 
-
-
 Never ship a broken image as “final” in commercial contexts.
 
-
+- Render architectural diagrams as light/dark-compatible SVG/HTML diorama maps that show structural flow, not static boxes.
 
 COMMUNICATION LAYERING
 
@@ -521,6 +383,7 @@ When tools or agent workflows fail repeatedly:
 Learning gate:
 - Promote a new rule, skill, or memory only after repeated evidence, a clear failure it fixes, or a recurring workflow.
 - Leave one-off sparks as dated notes, sketches, or watch items until they prove durable.
+- Autopilot Safety: Terminate loops if command latency, CPU/memory overhead, or context window pressure cross safety boundaries. Flag any process silent for 30 seconds without a log update.
 
 ## Tool Invocation Protocol
 

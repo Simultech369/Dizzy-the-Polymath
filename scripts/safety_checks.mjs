@@ -33,6 +33,8 @@ import { assessDurableWrite, durableAppendJsonl, redactSecretMaterial } from "..
 import { sanitizeUntrustedInput } from "../lib/janitor.mjs";
 
 const STRONG_TEST_AUTH_TOKEN = "test-master-token-32-chars-minimum";
+const STRONG_TEST_EXECUTE_TOKEN = "test-execute-token-16-minimum";
+const STRONG_TEST_NOTIFY_TOKEN = "test-notify-token-16-minimum";
 
 async function expectReject(fn, pattern) {
   let threw = false;
@@ -43,6 +45,20 @@ async function expectReject(fn, pattern) {
     if (pattern) assert.match(String(err?.message ?? err), pattern);
   }
   assert.equal(threw, true, "expected rejection");
+}
+
+async function captureConsole(method, fn) {
+  const original = console[method];
+  const messages = [];
+  console[method] = (...args) => {
+    messages.push(args.map((arg) => String(arg)).join(" "));
+  };
+  try {
+    await fn();
+  } finally {
+    console[method] = original;
+  }
+  return messages;
 }
 
 function testDurableWritePolicy() {
@@ -2318,7 +2334,7 @@ async function testClientContinuityPruneRunsOffExecuteHotPath() {
   const started = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "direct-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     clientContinuityPruneIntervalMs: 60000,
     pruneClientContinuity: () => {
@@ -2330,7 +2346,7 @@ async function testClientContinuityPruneRunsOffExecuteHotPath() {
     const baseUrl = `http://127.0.0.1:${started.boundPort}`;
     const headers = {
       "Content-Type": "application/json",
-      authorization: "Bearer direct-test-token",
+      authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
     };
     const first = await fetch(`${baseUrl}/agent/execute`, {
       method: "POST",
@@ -2948,13 +2964,13 @@ async function testForwardedRequestsRequireAuthentication() {
   const authenticatedDirect = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "direct-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
   });
   try {
     const blocked = await fetch(`http://127.0.0.1:${authenticatedDirect.boundPort}/state?zone=private`, {
       headers: {
-        authorization: "Bearer direct-test-token",
+        authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}`,
         "x-forwarded-for": "203.0.113.10",
       },
     });
@@ -2991,7 +3007,7 @@ async function testExplicitPublicSurfacePolicy() {
   const closed = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "surface-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     publicSurfaceMode: "closed",
   });
@@ -3005,7 +3021,7 @@ async function testExplicitPublicSurfacePolicy() {
   const discovery = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "surface-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     publicSurfaceMode: "discovery",
   });
@@ -3018,7 +3034,7 @@ async function testExplicitPublicSurfacePolicy() {
     const privateState = await fetch(`${baseUrl}/state?zone=private`);
     assert.equal(privateState.status, 401);
     const authenticatedState = await fetch(`${baseUrl}/state?zone=private`, {
-      headers: { authorization: "Bearer surface-test-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(authenticatedState.status, 200);
   } finally {
@@ -3046,12 +3062,12 @@ async function testPrivateReadSurfaces() {
   const protectedRuntime = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "privacy-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     dashboardEnabled: true,
     memoryGraphEnabled: true,
   });
-  const headers = { authorization: "Bearer privacy-test-token" };
+  const headers = { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` };
   try {
     const baseUrl = `http://127.0.0.1:${protectedRuntime.boundPort}`;
 
@@ -3077,7 +3093,7 @@ async function testPrivateReadSurfaces() {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded", origin: baseUrl },
-      body: new URLSearchParams({ token: "privacy-test-token" }),
+      body: new URLSearchParams({ token: STRONG_TEST_AUTH_TOKEN }),
     });
     assert.equal(sessionResponse.status, 303);
     assert.equal(sessionResponse.headers.get("location"), "/dashboard");
@@ -3085,7 +3101,7 @@ async function testPrivateReadSurfaces() {
     assert.match(setCookie, /^dizzy_dashboard_session=[A-Za-z0-9_-]+;/);
     assert.match(setCookie, /HttpOnly/i);
     assert.match(setCookie, /SameSite=Strict/i);
-    assert.equal(setCookie.includes("privacy-test-token"), false);
+    assert.equal(setCookie.includes(STRONG_TEST_AUTH_TOKEN), false);
     const sessionCookie = setCookie.split(";", 1)[0];
     const cookieHeaders = { cookie: sessionCookie };
 
@@ -3164,7 +3180,7 @@ async function testDashboardFailureIndependence() {
   const disabledRuntime = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "dashboard-disabled-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     dashboardEnabled: false,
     dashboardModuleLoader: async () => {
@@ -3176,7 +3192,7 @@ async function testDashboardFailureIndependence() {
     const baseUrl = `http://127.0.0.1:${disabledRuntime.boundPort}`;
     assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
     const disabled = await fetch(`${baseUrl}/dashboard`, {
-      headers: { authorization: "Bearer dashboard-disabled-test-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(disabled.status, 404);
     assert.equal(disabledLoaderCalled, false);
@@ -3184,21 +3200,25 @@ async function testDashboardFailureIndependence() {
     await disabledRuntime.stop();
   }
 
-  const failedRuntime = await startServer({
-    port: 0,
-    bindHost: "127.0.0.1",
-    authToken: "dashboard-failure-test-token",
-    redisUrl: "",
-    dashboardEnabled: true,
-    dashboardModuleLoader: async () => {
-      throw new Error("simulated dashboard initialization failure");
-    },
+  let failedRuntime;
+  const dashboardWarnings = await captureConsole("warn", async () => {
+    failedRuntime = await startServer({
+      port: 0,
+      bindHost: "127.0.0.1",
+      authToken: STRONG_TEST_AUTH_TOKEN,
+      redisUrl: "",
+      dashboardEnabled: true,
+      dashboardModuleLoader: async () => {
+        throw new Error("simulated dashboard initialization failure");
+      },
+    });
   });
+  assert.equal(dashboardWarnings.some((msg) => msg.includes("[dashboard] initialization_failed=simulated dashboard initialization failure")), true);
   try {
     const baseUrl = `http://127.0.0.1:${failedRuntime.boundPort}`;
     assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
     const unavailable = await fetch(`${baseUrl}/dashboard`, {
-      headers: { authorization: "Bearer dashboard-failure-test-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(unavailable.status, 503);
     assert.equal((await unavailable.json()).error, "Dashboard unavailable");
@@ -3209,7 +3229,7 @@ async function testDashboardFailureIndependence() {
   const missingAssetRuntime = await startServer({
     port: 0,
     bindHost: "127.0.0.1",
-    authToken: "dashboard-missing-asset-test-token",
+    authToken: STRONG_TEST_AUTH_TOKEN,
     redisUrl: "",
     dashboardEnabled: true,
     dashboardAssetPath: path.resolve(process.cwd(), "runtime", "missing-dashboard-asset.html"),
@@ -3218,7 +3238,7 @@ async function testDashboardFailureIndependence() {
     const baseUrl = `http://127.0.0.1:${missingAssetRuntime.boundPort}`;
     assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
     const unavailable = await fetch(`${baseUrl}/dashboard`, {
-      headers: { authorization: "Bearer dashboard-missing-asset-test-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(unavailable.status, 503);
     assert.equal((await unavailable.json()).error, "Dashboard asset unavailable");
@@ -3402,9 +3422,12 @@ async function testAdversarialTrustZoneBypass() {
       assert.match(emailTest, /\[REDACTED_PHONE\]/);
 
       fs.writeFileSync(statePath, '{"secret":"sk-routeerrorsecret1234567890",', "utf8");
-      const failedState = await fetch(`http://127.0.0.1:${port}/state?zone=private`);
-      assert.equal(failedState.status, 500);
-      assert.deepEqual(await failedState.json(), { ok: false, error: "Internal server error" });
+      const errorLogs = await captureConsole("error", async () => {
+        const failedState = await fetch(`http://127.0.0.1:${port}/state?zone=private`);
+        assert.equal(failedState.status, 500);
+        assert.deepEqual(await failedState.json(), { ok: false, error: "Internal server error" });
+      });
+      assert.equal(errorLogs.some((msg) => msg.includes("[Server Error] Expected double-quoted property name in JSON")), true);
       fs.writeFileSync(statePath, JSON.stringify(parsedState, null, 2), "utf8");
       console.log("-> Route failure responses use the global redacted error handler");
 
@@ -3582,8 +3605,8 @@ async function testNewHardeningFeatures() {
   process.env.DIZZY_ENFORCE_IDENTITY_HEADERS = "1";
   process.env.DIZZY_DEPLOYMENT_MODE = "proxied";
   process.env.DIZZY_AUTH_TOKEN = STRONG_TEST_AUTH_TOKEN;
-  process.env.DIZZY_EXECUTE_TOKEN = "exec-token";
-  process.env.DIZZY_NOTIFY_TOKEN = "notif-token";
+  process.env.DIZZY_EXECUTE_TOKEN = STRONG_TEST_EXECUTE_TOKEN;
+  process.env.DIZZY_NOTIFY_TOKEN = STRONG_TEST_NOTIFY_TOKEN;
   process.env.DIZZY_DASHBOARD_ENABLED = "1";
 
   await assert.rejects(() => startServer({
@@ -3607,7 +3630,7 @@ async function testNewHardeningFeatures() {
     authToken: "",
     deploymentMode: "direct_local",
     enforceIdentityHeaders: false,
-    executeToken: "exec-token",
+    executeToken: STRONG_TEST_EXECUTE_TOKEN,
     notifyToken: "",
   }), /DIZZY_AUTH_TOKEN is required when scoped API tokens are configured/);
 
@@ -3662,7 +3685,7 @@ async function testNewHardeningFeatures() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        authorization: "Bearer exec-token",
+        authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}`,
         "X-Dizzy-Client-Id": "trusted-client",
         "X-Dizzy-Service-Id": "trusted-service",
       },
@@ -3697,7 +3720,7 @@ async function testNewHardeningFeatures() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          authorization: "Bearer exec-token",
+          authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}`,
           "X-Dizzy-Client-Id": "trusted-client",
           "X-Dizzy-Service-Id": "trusted-service",
         },
@@ -3726,7 +3749,7 @@ async function testNewHardeningFeatures() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          authorization: "Bearer exec-token",
+          authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}`,
           "X-Dizzy-Client-Id": "trusted-client",
           "X-Dizzy-Service-Id": "trusted-service",
         },
@@ -3744,30 +3767,30 @@ async function testNewHardeningFeatures() {
     // 4. Scoped API Access Tokens check
     const r1 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", authorization: "Bearer exec-token" },
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}` },
       body: JSON.stringify({ brief: "hello" }),
     });
     assert.equal(r1.status, 200);
 
     const r2 = await fetch(`http://127.0.0.1:${port}/agent/execute`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", authorization: "Bearer notif-token" },
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${STRONG_TEST_NOTIFY_TOKEN}` },
       body: JSON.stringify({ brief: "hello" }),
     });
     assert.equal(r2.status, 401);
 
     const r3 = await fetch(`http://127.0.0.1:${port}/notify/telegram?peek=1`, {
-      headers: { authorization: "Bearer notif-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_NOTIFY_TOKEN}` },
     });
     assert.equal(r3.status, 503);
 
     const r4 = await fetch(`http://127.0.0.1:${port}/notify/telegram?peek=1`, {
-      headers: { authorization: "Bearer exec-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}` },
     });
     assert.equal(r4.status, 401);
 
     const r5 = await fetch(`http://127.0.0.1:${port}/state`, {
-      headers: { authorization: "Bearer exec-token" },
+      headers: { authorization: `Bearer ${STRONG_TEST_EXECUTE_TOKEN}` },
     });
     assert.equal(r5.status, 401);
 

@@ -11,7 +11,7 @@ const CHECKS = [
   {
     id: "safety",
     label: "Runtime safety checks",
-    command: ["node", "scripts/safety_checks.mjs"],
+    command: ["node", "--disable-warning=ExperimentalWarning", "scripts/safety_checks.mjs"],
     severity: "red",
   },
   {

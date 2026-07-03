@@ -85,6 +85,10 @@ For serious economic or civic proposals, identify:
 
 If a proposal mainly adds doctrine, identity, process, or aesthetic coherence without reducing dependency or increasing capability, treat it as suspect until it names a concrete experiment.
 
+When proposing technical architectures:
+- Incentive Map: Identify positional rent-seeking, exit barriers, and centralized chokepoints.
+- Local-First: Scan imports for remote scripts, telemetry, and unpinned dependencies. Ensure databases run offline.
+
 ---
 
 ## Revenue Awareness (Marketplace Mode)

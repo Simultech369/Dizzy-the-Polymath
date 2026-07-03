@@ -11,3 +11,5 @@ description: Automate browser tasks deterministically for testing, scraping, or 
 - Capture screenshots and key DOM evidence.
 - Abort on unexpected navigation or auth challenge.
 - After significant UI changes, verify intended state at relevant desktop and mobile viewports.
+- When verifying local UI/frontend designs, test application state using black-box browser mechanics (Playwright/Puppeteer selectors) rather than mock state.
+- Audit color contrast, keyboard navigation, and semantic markers against WCAG 2.1 standards.

@@ -12,3 +12,5 @@ description: Maintain high-signal memory by separating daily logs from durable l
 - Review unresolved items on heartbeat cycles.
 - Keep memory concise and searchable.
 - Never convert novelty or every completed session into automatic learning.
+- Audit unprocessed notes, wiki-links, and flat structures on heartbeat cycles.
+- Flag circular planning notes (notes that accumulate structural frameworks without pointing to a concrete code implementation).
