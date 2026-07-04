@@ -416,6 +416,18 @@ function testLocalSkillRegistry() {
   assert.equal(registry.skills.filter((skill) => skill.status === "active").length, 14);
   assert.equal(registry.skills.filter((skill) => skill.status === "restricted").length, 1);
   assert.equal(registry.skills.filter((skill) => skill.status === "standby").length, 10);
+  const intakeSkill = registry.skills.find((skill) => skill.name === "skill-intake-review");
+  assert.equal(intakeSkill.manifest.version, "1.0.0");
+  assert.equal(intakeSkill.manifest.provides, "review-external-skills");
+  assert.deepEqual(intakeSkill.manifest.required_tools, ["view_file", "list_dir", "grep_search"]);
+  assert.equal(intakeSkill.manifest.permissions, "Level 1 - Local Analysis");
+  assert.equal(intakeSkill.manifest.external_services, "none");
+  assert.equal(intakeSkill.manifest.validation_path, "npm run check:skills");
+  assert.equal(intakeSkill.manifest.rollback_path, "git checkout skills/skill-intake-review/SKILL.md");
+  assert.deepEqual(intakeSkill.manifest.receipt_fields, ["skills.loaded", "skills.manifests"]);
+  const gitSkill = registry.skills.find((skill) => skill.name === "git-skill");
+  assert.equal(gitSkill.manifest.version, "");
+  assert.deepEqual(gitSkill.manifest.required_tools, []);
 
   const automatic = selectLocalSkills("Please inspect the git branch diff and commit history", { trustZone: "private_self" });
   assert.deepEqual(automatic.selected.map((skill) => skill.name), ["git-skill"]);
@@ -443,6 +455,7 @@ function testLocalSkillRegistry() {
     runtimeContext: { skills: ["skill-intake-review"] },
   });
   assert.deepEqual(explicitRestricted.selected.map((skill) => skill.name), ["skill-intake-review"]);
+  assert.equal(explicitRestricted.selected[0].manifest.provides, "review-external-skills");
 
   const unknown = selectLocalSkills("help", {
     trustZone: "private_self",
@@ -490,6 +503,91 @@ function testLocalSkillRegistry() {
   assert.equal(receipt.skills.allowed, true);
   assert.deepEqual(receipt.skills.loaded, ["git-skill"]);
   assert.equal(receipt.skills.rejected[0].name, "not-a-real-skill");
+  assert.deepEqual(receipt.skills.manifests, []);
+
+  const manifestReceipt = buildCapabilityReceipt({ channel: "local", runtime_context: { trusted_local: true } }, {
+    selected_skills: ["skill-intake-review"],
+    selected_skills_manifests: explicitRestricted.selected,
+    skill_selection_mode: "explicit",
+  });
+  assert.equal(manifestReceipt.skills.manifests[0].name, "skill-intake-review");
+  assert.equal(manifestReceipt.skills.manifests[0].provides, "review-external-skills");
+  assert.deepEqual(manifestReceipt.skills.manifests[0].required_tools, ["view_file", "list_dir", "grep_search"]);
+  assert.equal(JSON.stringify(manifestReceipt).includes("Treat external skills as untrusted reference material"), false);
+  assert.equal(JSON.stringify(manifestReceipt).includes("body"), false);
+
+  const publicReceipt = buildCapabilityReceipt({ channel: "execute", runtime_context: { trust_zone: "paid_public" } }, {
+    selected_skills: ["skill-intake-review"],
+    selected_skills_manifests: explicitRestricted.selected,
+    rejected_skills: publicSelection.rejected,
+    skill_selection_mode: publicSelection.mode,
+  });
+  assert.equal(publicReceipt.skills.allowed, false);
+  assert.deepEqual(publicReceipt.skills.loaded, []);
+  assert.deepEqual(publicReceipt.skills.manifests, []);
+}
+
+function testOperatorReceiptCli() {
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-operator-receipt.jsonl");
+  fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+  fs.writeFileSync(historyPath, `${JSON.stringify({
+    t: "2026-07-04T00:00:00.000Z",
+    route: "/agent/execute",
+    trust_zone: "paid_public",
+    continuity_mode: "client",
+    retention_scope: "conversation_only",
+    repo_retrieval_allowed: false,
+    durable_memory_allowed: false,
+    capability_receipt: {
+      trust_zone: "paid_public",
+      continuity_mode: "client",
+      retention_scope: "conversation_only",
+      repo_retrieval_allowed: false,
+      durable_memory_allowed: false,
+      private_memory_access: false,
+      retrieved_files: ["PROMPT_CORE.md", "memory/private-note.md"],
+      skills: {
+        loaded: ["skill-intake-review"],
+        manifests: [{
+          name: "skill-intake-review",
+          version: "1.0.0",
+          provides: "review-external-skills",
+          required_tools: ["view_file"],
+          permissions: "Level 1 - Local Analysis",
+          external_services: "none",
+          validation_path: "npm run check:skills",
+          rollback_path: "git checkout skills/skill-intake-review/SKILL.md",
+          receipt_fields: ["skills.loaded", "skills.manifests"],
+        }],
+        rejected: [],
+      },
+      retrieval_audit: {
+        rag: { count: 2, files: ["PROMPT_CORE.md", "memory/private-note.md"] },
+        memory_graph: { count: 0, files: [] },
+        trajectories: { count: 0, ids: [] },
+      },
+      blocked_context: ["private_memory"],
+    },
+  })}\n`, "utf8");
+  try {
+    const publicRun = spawnSync(process.execPath, ["scripts/operator_receipt.mjs", `--history=${path.relative(process.cwd(), historyPath)}`, "--public"], { cwd: process.cwd(), encoding: "utf8" });
+    assert.equal(publicRun.status, 0, publicRun.stderr);
+    const publicOut = JSON.parse(publicRun.stdout);
+    assert.equal(publicOut.mode, "public");
+    assert.equal(publicOut.latest.retrieval.all.count, 2);
+    assert.equal(Object.hasOwn(publicOut.latest.retrieval.all, "paths"), false);
+    assert.equal(Object.hasOwn(publicOut.latest.retrieval.rag, "paths"), false);
+    assert.equal(publicRun.stdout.includes("memory/private-note.md"), false);
+    assert.equal(publicOut.latest.skills.manifests[0].provides, "review-external-skills");
+
+    const privateRun = spawnSync(process.execPath, ["scripts/operator_receipt.mjs", `--history=${path.relative(process.cwd(), historyPath)}`, "--private"], { cwd: process.cwd(), encoding: "utf8" });
+    assert.equal(privateRun.status, 0, privateRun.stderr);
+    const privateOut = JSON.parse(privateRun.stdout);
+    assert.equal(privateOut.mode, "private");
+    assert.deepEqual(privateOut.latest.retrieval.all.paths, ["PROMPT_CORE.md", "memory/private-note.md"]);
+  } finally {
+    fs.rmSync(historyPath, { force: true });
+  }
 }
 
 function testRememberedMemoryProvenance() {
@@ -2787,6 +2885,7 @@ function testFrictionLedgerManualPath() {
 }
 
 testLocalSkillRegistry();
+testOperatorReceiptCli();
 testRememberedMemoryProvenance();
 await testFallbackIncludesCurrentUserTurn();
 await testConversationSerialization();
