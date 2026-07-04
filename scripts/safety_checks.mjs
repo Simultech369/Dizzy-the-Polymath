@@ -79,6 +79,14 @@ function testDurableWritePolicy() {
     payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
   }).reason, "secret_material_detected");
   assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
+  assert.match(redactSecretMaterial("token ghp_mockgithubtokenvalueextended"), /\[REDACTED_GITHUB_TOKEN\]/);
+  assert.match(redactSecretMaterial("token sk-ant-mockanthropictokenextended"), /\[REDACTED_API_KEY\]/);
+  assert.match(redactSecretMaterial("token xoxb-mockslacktokenvalueextended"), /\[REDACTED_SLACK_TOKEN\]/);
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: "Store ghp_mockgithubtokenvalueextended in durable memory for later use.",
+  }).reason, "secret_material_detected");
   const durableAppendPath = path.resolve(process.cwd(), "runtime", "test-durable-append.jsonl");
   fs.rmSync(durableAppendPath, { force: true });
   durableAppendJsonl(durableAppendPath, { a: 1 });
@@ -463,6 +471,10 @@ function testLocalSkillRegistry() {
     "name: bad-skill",
     "description: Bad fixture",
     "surprise_field: no",
+    "description: Duplicate fixture",
+    "required_tools:",
+    "  - view_file",
+    "unterminated list item",
     "---",
     "Bad fixture body.",
     "",
@@ -470,6 +482,9 @@ function testLocalSkillRegistry() {
   try {
     const schemaRegistry = discoverLocalSkills({ rootDir: schemaRoot });
     assert.equal(schemaRegistry.issues.includes("bad-skill: unknown frontmatter key 'surprise_field'"), true);
+    assert.equal(schemaRegistry.issues.includes("bad-skill: duplicate frontmatter key 'description' at line 5"), true);
+    assert.equal(schemaRegistry.issues.includes("bad-skill: unsupported frontmatter continuation at line 7"), true);
+    assert.equal(schemaRegistry.issues.includes("bad-skill: malformed frontmatter line 8"), true);
   } finally {
     fs.rmSync(schemaRoot, { recursive: true, force: true });
   }
