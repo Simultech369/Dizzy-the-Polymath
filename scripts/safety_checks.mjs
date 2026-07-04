@@ -11,7 +11,7 @@ import { assessCandidatePayload, buildPreparedCandidatePayload, hasUnresolvedExt
 import { autoRememberSignalScore, buildCapabilityReceipt, buildRememberedDailySection, buildRememberedMemoryHeader, conversationArtifactPath, escapeRetrievedContext, formatExternalError, getContinuityMode, getTrustZone, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText, isRemoteMutationAllowed, isSelfModifyAllowed, isSelfModifyCommandText, normalizeConversationKey, routeIncomingMessage, runConversationSerialized, shouldAutoRemember, trustZoneUsesEphemeralChatHistory } from "../lib/dispatch.mjs";
 import { getRelevantMarkdownSnippets, resetMarkdownIndexCacheForTests } from "../lib/md_retriever.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "../lib/memory_graph.mjs";
-import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
+import { parseFrontmatter, stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 import { getModelRoute } from "../lib/model_router.mjs";
 import { getPromptSources } from "../lib/prompt_bundle.mjs";
 import { buildRetrievalPlan } from "../lib/retrieval_plan.mjs";
@@ -79,6 +79,27 @@ function testDurableWritePolicy() {
     payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
   }).reason, "secret_material_detected");
   assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
+  assert.equal(redactSecretMaterial("API_KEY=\"supersecretvalue123\""), "API_KEY=\"[REDACTED]\"");
+  assert.equal(redactSecretMaterial("API_KEY='supersecretvalue123'"), "API_KEY='[REDACTED]'");
+  for (const input of [
+    "{\"token\":\"my-secret-value\"}",
+    "{\"token\": \"my-secret-value\"}",
+  ]) {
+    const redacted = redactSecretMaterial(input);
+    const parsed = JSON.parse(redacted);
+    assert.equal(parsed.token, "[REDACTED]");
+  }
+  for (const input of [
+    "{\\\"token\\\":\\\"my-secret-value\\\"}",
+    "{\\\"token\\\": \\\"my-secret-value\\\"}",
+  ]) {
+    const redacted = redactSecretMaterial(input);
+    assert.doesNotMatch(redacted, /my-secret-value/);
+    assert.match(redacted, /\\\"token\\\"/);
+    assert.match(redacted, /\\\"\[REDACTED\]\\\"/);
+  }
+  assert.equal(redactSecretMaterial("authorization: Bearer abcdefghijk"), "authorization: Bearer [REDACTED]");
+  assert.equal(redactSecretMaterial("cookie=sessionsecret123;"), "cookie=[REDACTED];");
   assert.match(redactSecretMaterial("token ghp_mockgithubtokenvalueextended"), /\[REDACTED_GITHUB_TOKEN\]/);
   assert.match(redactSecretMaterial("token sk-ant-mockanthropictokenextended"), /\[REDACTED_API_KEY\]/);
   assert.match(redactSecretMaterial("token xoxb-mockslacktokenvalueextended"), /\[REDACTED_SLACK_TOKEN\]/);
@@ -461,10 +482,14 @@ function testLocalSkillRegistry() {
   const schemaRoot = path.resolve(process.cwd(), "runtime", "test-skill-schema");
   fs.rmSync(schemaRoot, { recursive: true, force: true });
   fs.mkdirSync(path.join(schemaRoot, "bad-skill"), { recursive: true });
+  fs.mkdirSync(path.join(schemaRoot, "mismatch-skill"), { recursive: true });
   fs.writeFileSync(path.join(schemaRoot, "registry.json"), JSON.stringify({
     version: 1,
     reviewed_at: "2026-07-04",
-    skills: { "bad-skill": { status: "active", trigger_terms: ["bad"] } },
+    skills: {
+      "bad-skill": { status: "active", trigger_terms: ["bad"] },
+      "mismatch-skill": { status: "active", trigger_terms: ["mismatch"] },
+    },
   }, null, 2), "utf8");
   fs.writeFileSync(path.join(schemaRoot, "bad-skill", "SKILL.md"), [
     "---",
@@ -479,12 +504,31 @@ function testLocalSkillRegistry() {
     "Bad fixture body.",
     "",
   ].join("\n"), "utf8");
+  fs.writeFileSync(path.join(schemaRoot, "mismatch-skill", "SKILL.md"), [
+    "---",
+    "name: other-name",
+    "description: Mismatch fixture",
+    "---",
+    "Mismatch fixture body.",
+    "",
+  ].join("\n"), "utf8");
   try {
     const schemaRegistry = discoverLocalSkills({ rootDir: schemaRoot });
     assert.equal(schemaRegistry.issues.includes("bad-skill: unknown frontmatter key 'surprise_field'"), true);
     assert.equal(schemaRegistry.issues.includes("bad-skill: duplicate frontmatter key 'description' at line 5"), true);
     assert.equal(schemaRegistry.issues.includes("bad-skill: unsupported frontmatter continuation at line 7"), true);
     assert.equal(schemaRegistry.issues.includes("bad-skill: malformed frontmatter line 8"), true);
+    const badSkill = schemaRegistry.skills.find((skill) => skill.name === "bad-skill");
+    assert.equal(badSkill.manifest_valid, false);
+    assert.equal(badSkill.issues.some((issue) => issue.message === "unknown frontmatter key 'surprise_field'"), true);
+    const badSelection = selectLocalSkills("bad", { rootDir: schemaRoot, trustZone: "private_self" });
+    assert.equal(badSelection.selected.length, 0);
+    assert.equal(badSelection.rejected[0].name, "bad-skill");
+    assert.equal(badSelection.rejected[0].reason, "malformed_manifest");
+    const mismatchSelection = selectLocalSkills("mismatch", { rootDir: schemaRoot, trustZone: "private_self" });
+    assert.equal(mismatchSelection.selected.length, 0);
+    assert.equal(mismatchSelection.rejected[0].name, "other-name");
+    assert.equal(mismatchSelection.rejected[0].reason, "malformed_manifest");
   } finally {
     fs.rmSync(schemaRoot, { recursive: true, force: true });
   }
@@ -2143,6 +2187,13 @@ function testFrontmatterStrip() {
   const stripped = stripFrontmatter(raw);
   assert.doesNotMatch(stripped, /frontmatter_only_token/);
   assert.match(stripped, /body_only_token/);
+
+  const malformed = parseFrontmatter("---\n\nname: fixture\n continuation\n---\nBody");
+  assert.equal(malformed.issues.includes("unsupported frontmatter continuation at line 4"), true);
+  const valid = parseFrontmatter("---\nname: fixture\n\n---\nBody");
+  assert.deepEqual(valid.data, { name: "fixture" });
+  assert.deepEqual(valid.issues, []);
+  assert.equal(valid.body, "Body");
 }
 
 function testMemoryGraph() {
@@ -2436,11 +2487,22 @@ function testClientContinuityExpiryPrune() {
 
   const expiredKey = buildClientConversationKey({ client_id: "Old Client", service_id: "Review" });
   const freshKey = buildClientConversationKey({ client_id: "Fresh Client", service_id: "Review" });
+  const orphanExpiredKey = buildClientConversationKey({ client_id: "Orphan Old", service_id: "Review" });
+  const orphanFreshKey = buildClientConversationKey({ client_id: "Orphan Fresh", service_id: "Review" });
   const expiredPath = conversationPathForKey(expiredKey, conversationsDir);
   const freshPath = conversationPathForKey(freshKey, conversationsDir);
+  const orphanExpiredPath = conversationPathForKey(orphanExpiredKey, conversationsDir);
+  const orphanFreshPath = conversationPathForKey(orphanFreshKey, conversationsDir);
+  const nonClientPath = path.resolve(conversationsDir, "manual_notes.jsonl");
   fs.mkdirSync(conversationsDir, { recursive: true });
   fs.writeFileSync(expiredPath, "{\"role\":\"user\",\"text\":\"old\"}\n", "utf8");
   fs.writeFileSync(freshPath, "{\"role\":\"user\",\"text\":\"fresh\"}\n", "utf8");
+  fs.writeFileSync(orphanExpiredPath, "{\"role\":\"user\",\"text\":\"orphan old\"}\n", "utf8");
+  fs.writeFileSync(orphanFreshPath, "{\"role\":\"user\",\"text\":\"orphan fresh\"}\n", "utf8");
+  fs.writeFileSync(nonClientPath, "{\"role\":\"user\",\"text\":\"manual\"}\n", "utf8");
+  fs.utimesSync(orphanExpiredPath, new Date("2026-05-01T00:00:00.000Z"), new Date("2026-05-01T00:00:00.000Z"));
+  fs.utimesSync(orphanFreshPath, new Date("2026-05-30T00:00:00.000Z"), new Date("2026-05-30T00:00:00.000Z"));
+  fs.utimesSync(nonClientPath, new Date("2026-05-01T00:00:00.000Z"), new Date("2026-05-01T00:00:00.000Z"));
 
   const rows = [
     {
@@ -2469,10 +2531,15 @@ function testClientContinuityExpiryPrune() {
     automationReceiptPath,
     expiryMs: 7 * 24 * 60 * 60 * 1000,
   });
-  assert.equal(result.deleted, 1);
-  assert.deepEqual(result.deleted_conversation_keys, [expiredKey]);
+  assert.equal(result.deleted, 2);
+  assert.equal(result.expired, 1);
+  assert.equal(result.orphaned, 1);
+  assert.deepEqual(result.deleted_conversation_keys, [expiredKey, orphanExpiredKey]);
   assert.equal(fs.existsSync(expiredPath), false);
   assert.equal(fs.existsSync(freshPath), true);
+  assert.equal(fs.existsSync(orphanExpiredPath), false);
+  assert.equal(fs.existsSync(orphanFreshPath), true);
+  assert.equal(fs.existsSync(nonClientPath), true);
   const remaining = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
   assert.equal(remaining.length, 1);
   assert.equal(remaining[0].conversation_key, freshKey);
@@ -2480,7 +2547,7 @@ function testClientContinuityExpiryPrune() {
   assert.equal(fs.existsSync(automationReceiptPath), true);
   const automationReceipt = JSON.parse(fs.readFileSync(automationReceiptPath, "utf8").trim());
   assert.equal(automationReceipt.action, "prune_expired_client_continuity");
-  assert.match(automationReceipt.reason, /Deleted 1 expired client continuity record/);
+  assert.match(automationReceipt.reason, /Deleted 2 expired client continuity record/);
   assert.match(automationReceipt.veto_command, /DIZZY_CLIENT_CONTINUITY_EXPIRY_DAYS/);
 
   const deleteResult = deleteClientContinuity({
@@ -2580,6 +2647,50 @@ function testMarkdownRetrieverExcludesUntrustedRoots() {
   else process.env.DIZZY_RAG_CACHE_MS = oldCache;
   if (oldTopK === undefined) delete process.env.DIZZY_RAG_TOP_K;
   else process.env.DIZZY_RAG_TOP_K = oldTopK;
+}
+
+function testMarkdownRetrieverAuthorityTieBreaks() {
+  const fixtureRel = "runtime/test-rag-authority";
+  const fixtureDir = path.resolve(process.cwd(), fixtureRel);
+  const oldRoot = process.env.DIZZY_RAG_ROOT;
+  const oldAllowedRoots = process.env.DIZZY_RAG_ALLOWED_ROOTS;
+  const oldCache = process.env.DIZZY_RAG_CACHE_MS;
+  const oldTopK = process.env.DIZZY_RAG_TOP_K;
+
+  function writeFixture(name, source) {
+    fs.writeFileSync(path.join(fixtureDir, name), `---\nsource: ${source}\n---\n# Same\n\nauthoritytiefixture identical claim\n`, "utf8");
+  }
+
+  fs.rmSync(fixtureDir, { recursive: true, force: true });
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  writeFixture("a-operator.md", "operator_reviewed");
+  writeFixture("b-operator.md", "operator_reviewed");
+  writeFixture("z-runtime.md", "runtime_generated");
+  process.env.DIZZY_RAG_ROOT = fixtureRel;
+  process.env.DIZZY_RAG_ALLOWED_ROOTS = fixtureRel;
+  process.env.DIZZY_RAG_CACHE_MS = "0";
+  process.env.DIZZY_RAG_TOP_K = "10";
+
+  try {
+    resetMarkdownIndexCacheForTests();
+    const snippets = getRelevantMarkdownSnippets("authoritytiefixture identical claim", { k: 10, trustZone: "private_self" });
+    assert.deepEqual(snippets.slice(0, 3).map((item) => item.path), [
+      "runtime/test-rag-authority/a-operator.md",
+      "runtime/test-rag-authority/b-operator.md",
+      "runtime/test-rag-authority/z-runtime.md",
+    ]);
+  } finally {
+    resetMarkdownIndexCacheForTests();
+    fs.rmSync(fixtureDir, { recursive: true, force: true });
+    if (oldRoot === undefined) delete process.env.DIZZY_RAG_ROOT;
+    else process.env.DIZZY_RAG_ROOT = oldRoot;
+    if (oldAllowedRoots === undefined) delete process.env.DIZZY_RAG_ALLOWED_ROOTS;
+    else process.env.DIZZY_RAG_ALLOWED_ROOTS = oldAllowedRoots;
+    if (oldCache === undefined) delete process.env.DIZZY_RAG_CACHE_MS;
+    else process.env.DIZZY_RAG_CACHE_MS = oldCache;
+    if (oldTopK === undefined) delete process.env.DIZZY_RAG_TOP_K;
+    else process.env.DIZZY_RAG_TOP_K = oldTopK;
+  }
 }
 
 function testRetrieverDoesNotCreateMatchesFromTopicBias() {
@@ -2983,6 +3094,7 @@ testMemoryGraph();
 testMarkdownRetrieverSignals();
 testClassAwareMemoryDecay();
 testMarkdownRetrieverExcludesUntrustedRoots();
+testMarkdownRetrieverAuthorityTieBreaks();
 testRetrieverDoesNotCreateMatchesFromTopicBias();
 testAutoRememberHeuristics();
 testPromptBundleDefaults();
