@@ -247,6 +247,7 @@ function memoryOwnershipStatus() {
     "memory/conversations/*.md",
     "runtime/trajectories/known_good.jsonl",
     "runtime/friction/ledger.jsonl",
+    "runtime/automation_receipts.jsonl",
     "runtime/auto_memory_candidates/*.json",
     "runtime/auto_memory/*.json",
   ];
@@ -300,6 +301,39 @@ function frictionStatus() {
   return {
     status: summary.unresolved >= 5 ? "yellow" : "green",
     message: `${summary.total} entries, ${summary.unresolved} unresolved${top ? `; top=${top}` : ""}.`,
+  };
+}
+
+function readJsonl(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+  return fs.readFileSync(filePath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        return { malformed: true, line: index + 1, error: error.message };
+      }
+    });
+}
+
+function automationConsentStatus() {
+  const filePath = path.resolve(ROOT, process.env.DIZZY_AUTOMATION_RECEIPT_PATH || "runtime/automation_receipts.jsonl");
+  const rows = readJsonl(filePath);
+  if (!rows.length) {
+    return { status: "green", message: "No automation receipts yet.", entries: [], findings: [] };
+  }
+
+  const malformed = rows.filter((row) => row.malformed);
+  const entries = rows.filter((row) => !row.malformed).slice(-5);
+  return {
+    status: malformed.length ? "yellow" : "green",
+    message: malformed.length
+      ? `${entries.length} recent automation receipt(s); ${malformed.length} malformed row(s).`
+      : `${entries.length} recent automation receipt(s).`,
+    entries,
+    findings: malformed.map((row) => `automation receipt line ${row.line}: ${row.error}`),
   };
 }
 
@@ -415,6 +449,7 @@ function main() {
   const trajectories = trajectoryStatus();
   const metabolism = summarizeMemoryMetabolism();
   const friction = frictionStatus();
+  const automationConsent = automationConsentStatus();
   const queue = workQueueStatus();
   const hardFailures = results.filter((r) => !r.ok && r.severity === "red");
   const softFailures = results.filter((r) => !r.ok && r.severity !== "red");
@@ -432,6 +467,7 @@ function main() {
     trajectories.status === "yellow" ||
     metabolism.status === "yellow" ||
     friction.status === "yellow" ||
+    automationConsent.status === "yellow" ||
     dateIssues.length ||
     zoneViolations.length ||
     schemaFailures.length
@@ -498,6 +534,13 @@ function main() {
   console.log(`${color(friction.status)} Friction ledger`);
   console.log(`  ${friction.message}`);
 
+  console.log("");
+  console.log(`${color(automationConsent.status)} Automation consent`);
+  console.log(`  ${automationConsent.message}`);
+  for (const entry of automationConsent.entries) {
+    console.log(`  - ${entry.t || "unknown"} ${entry.action || "unspecified"}: ${entry.reason || "unspecified"}; veto: ${entry.veto_command || "not specified"}`);
+  }
+
   if (dateIssues.length) {
     console.log("");
     console.log("[yellow] Date freshness");
@@ -530,6 +573,8 @@ function main() {
     if (trajectories.status === "yellow") console.log("- Review trajectory ledger for malformed or weak entries.");
     if (metabolism.status === "yellow") console.log("- Review memory metabolism findings before adding richer memory automation.");
     if (friction.status === "yellow") console.log("- Review unresolved friction and convert the highest-weight item into a cleanup or experiment.");
+    if (automationConsent.status === "yellow") console.log("- Review malformed automation receipt rows before trusting background-action summaries.");
+    for (const finding of automationConsent.findings.slice(0, 5)) console.log(`- Review automation consent: ${finding}`);
     for (const issue of dateIssues) console.log(`- Review date freshness: ${issue}`);
     for (const issue of zoneViolations) console.log(`- Review zone hygiene: ${issue}`);
     for (const issue of schemaFailures) console.log(`- Review ledger schema: ${issue}`);

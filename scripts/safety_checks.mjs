@@ -29,7 +29,7 @@ import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_consistency.mjs";
 import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "../lib/skill_registry.mjs";
-import { assessDurableWrite, durableAppendJsonl, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
+import { assessDurableWrite, durableAppendJsonl, logAutomationReceipt, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
 import { sanitizeUntrustedInput } from "../lib/janitor.mjs";
 
 const STRONG_TEST_AUTH_TOKEN = "test-master-token-32-chars-minimum";
@@ -86,6 +86,21 @@ function testDurableWritePolicy() {
   const durableAppendLines = fs.readFileSync(durableAppendPath, "utf8").trim().split(/\r?\n/);
   assert.deepEqual(durableAppendLines.map((line) => JSON.parse(line)), [{ a: 1 }, { b: 2 }]);
   fs.rmSync(durableAppendPath, { force: true });
+  const automationReceiptPath = path.resolve(process.cwd(), "runtime", "test-automation-receipts.jsonl");
+  fs.rmSync(automationReceiptPath, { force: true });
+  const automationReceipt = logAutomationReceipt({
+    action: "test_action",
+    reason: "API_KEY=supersecretvalue123 should be redacted",
+    veto_command: "disable test automation",
+    filePath: automationReceiptPath,
+    now: new Date("2026-07-04T00:00:00.000Z"),
+  });
+  assert.equal(automationReceipt.status, "completed");
+  assert.equal(automationReceipt.reason.includes("supersecretvalue123"), false);
+  const automationReceiptRows = fs.readFileSync(automationReceiptPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.equal(automationReceiptRows[0].action, "test_action");
+  assert.match(automationReceiptRows[0].reason, /API_KEY=\[REDACTED\]/);
+  fs.rmSync(automationReceiptPath, { force: true });
   assert.equal(assessDurableWrite({
     kind: "memory",
     trustZone: "private_self",
@@ -426,8 +441,38 @@ function testLocalSkillRegistry() {
   assert.equal(intakeSkill.manifest.rollback_path, "git checkout skills/skill-intake-review/SKILL.md");
   assert.deepEqual(intakeSkill.manifest.receipt_fields, ["skills.loaded", "skills.manifests"]);
   const gitSkill = registry.skills.find((skill) => skill.name === "git-skill");
-  assert.equal(gitSkill.manifest.version, "");
-  assert.deepEqual(gitSkill.manifest.required_tools, []);
+  assert.equal(gitSkill.manifest.version, "1.0.0");
+  assert.equal(gitSkill.manifest.provides, "git-operations");
+  assert.deepEqual(gitSkill.manifest.required_tools, ["run_command"]);
+  assert.equal(gitSkill.manifest.permissions, "Level 4 - Irreversible Actions");
+  assert.equal(gitSkill.manifest.external_services, "GitHub (origin)");
+  assert.equal(gitSkill.manifest.validation_path, "npm run maintain");
+  assert.equal(gitSkill.manifest.rollback_path, "git restore");
+  assert.deepEqual(gitSkill.manifest.receipt_fields, ["skills.loaded", "skills.manifests"]);
+
+  const schemaRoot = path.resolve(process.cwd(), "runtime", "test-skill-schema");
+  fs.rmSync(schemaRoot, { recursive: true, force: true });
+  fs.mkdirSync(path.join(schemaRoot, "bad-skill"), { recursive: true });
+  fs.writeFileSync(path.join(schemaRoot, "registry.json"), JSON.stringify({
+    version: 1,
+    reviewed_at: "2026-07-04",
+    skills: { "bad-skill": { status: "active", trigger_terms: ["bad"] } },
+  }, null, 2), "utf8");
+  fs.writeFileSync(path.join(schemaRoot, "bad-skill", "SKILL.md"), [
+    "---",
+    "name: bad-skill",
+    "description: Bad fixture",
+    "surprise_field: no",
+    "---",
+    "Bad fixture body.",
+    "",
+  ].join("\n"), "utf8");
+  try {
+    const schemaRegistry = discoverLocalSkills({ rootDir: schemaRoot });
+    assert.equal(schemaRegistry.issues.includes("bad-skill: unknown frontmatter key 'surprise_field'"), true);
+  } finally {
+    fs.rmSync(schemaRoot, { recursive: true, force: true });
+  }
 
   const automatic = selectLocalSkills("Please inspect the git branch diff and commit history", { trustZone: "private_self" });
   assert.deepEqual(automatic.selected.map((skill) => skill.name), ["git-skill"]);
@@ -579,6 +624,13 @@ function testOperatorReceiptCli() {
     assert.equal(Object.hasOwn(publicOut.latest.retrieval.rag, "paths"), false);
     assert.equal(publicRun.stdout.includes("memory/private-note.md"), false);
     assert.equal(publicOut.latest.skills.manifests[0].provides, "review-external-skills");
+
+    const defaultRun = spawnSync(process.execPath, ["scripts/operator_receipt.mjs", `--history=${path.relative(process.cwd(), historyPath)}`], { cwd: process.cwd(), encoding: "utf8" });
+    assert.equal(defaultRun.status, 0, defaultRun.stderr);
+    const defaultOut = JSON.parse(defaultRun.stdout);
+    assert.equal(defaultOut.mode, "public");
+    assert.equal(Object.hasOwn(defaultOut.latest.retrieval.all, "paths"), false);
+    assert.equal(defaultRun.stdout.includes("memory/private-note.md"), false);
 
     const privateRun = spawnSync(process.execPath, ["scripts/operator_receipt.mjs", `--history=${path.relative(process.cwd(), historyPath)}`, "--private"], { cwd: process.cwd(), encoding: "utf8" });
     assert.equal(privateRun.status, 0, privateRun.stderr);
@@ -2361,9 +2413,11 @@ function testClientContinuityExpiryPrune() {
   const historyPath = path.resolve(process.cwd(), "runtime", "test-prune-execution-history.jsonl");
   const conversationsDir = path.resolve(process.cwd(), "runtime", "test-prune-conversations");
   const deletionPath = path.resolve(process.cwd(), "runtime", "test-prune-deletions.jsonl");
+  const automationReceiptPath = path.resolve(process.cwd(), "runtime", "test-prune-automation-receipts.jsonl");
   fs.rmSync(historyPath, { force: true });
   fs.rmSync(conversationsDir, { recursive: true, force: true });
   fs.rmSync(deletionPath, { force: true });
+  fs.rmSync(automationReceiptPath, { force: true });
 
   const expiredKey = buildClientConversationKey({ client_id: "Old Client", service_id: "Review" });
   const freshKey = buildClientConversationKey({ client_id: "Fresh Client", service_id: "Review" });
@@ -2397,6 +2451,7 @@ function testClientContinuityExpiryPrune() {
     historyPath,
     conversationsDir,
     deletionPath,
+    automationReceiptPath,
     expiryMs: 7 * 24 * 60 * 60 * 1000,
   });
   assert.equal(result.deleted, 1);
@@ -2407,6 +2462,11 @@ function testClientContinuityExpiryPrune() {
   assert.equal(remaining.length, 1);
   assert.equal(remaining[0].conversation_key, freshKey);
   assert.equal(fs.existsSync(deletionPath), true);
+  assert.equal(fs.existsSync(automationReceiptPath), true);
+  const automationReceipt = JSON.parse(fs.readFileSync(automationReceiptPath, "utf8").trim());
+  assert.equal(automationReceipt.action, "prune_expired_client_continuity");
+  assert.match(automationReceipt.reason, /Deleted 1 expired client continuity record/);
+  assert.match(automationReceipt.veto_command, /DIZZY_CLIENT_CONTINUITY_EXPIRY_DAYS/);
 
   const deleteResult = deleteClientContinuity({
     conversation_key: "execute/client/fresh client/review",
@@ -2425,6 +2485,7 @@ function testClientContinuityExpiryPrune() {
   fs.rmSync(historyPath, { force: true });
   fs.rmSync(conversationsDir, { recursive: true, force: true });
   fs.rmSync(deletionPath, { force: true });
+  fs.rmSync(automationReceiptPath, { force: true });
 }
 
 async function testClientContinuityPruneRunsOffExecuteHotPath() {

@@ -92,7 +92,7 @@ export function evaluateGenerativeCapability(rows) {
 function main() {
   const resultsPath = path.resolve(process.argv[2] || DEFAULT_RESULTS);
   if (!fs.existsSync(resultsPath)) {
-    console.log(`No evaluation results found at ${resultsPath}`);
+    console.log(`SKIPPED_PRECONDITION: No evaluation results found at ${resultsPath}`);
     console.log("Copy cases.template.json to results.json, run baseline and three-hypothesis generations, then add blinded operator ratings and provenance counts.");
     return;
   }

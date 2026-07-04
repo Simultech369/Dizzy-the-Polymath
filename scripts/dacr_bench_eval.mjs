@@ -18,6 +18,11 @@ function positiveInteger(flag, fallback) {
   return parsed;
 }
 
+function skipPrecondition(message) {
+  console.log(`SKIPPED_PRECONDITION: ${message}`);
+  process.exit(0);
+}
+
 function resolveBenchmarkRoot() {
   const candidates = [
     process.env.DACR_BENCH_ROOT,
@@ -81,7 +86,12 @@ function run(command, commandArgs, cwd, dryRun) {
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
 }
 
-const benchmarkRoot = resolveBenchmarkRoot();
+let benchmarkRoot;
+try {
+  benchmarkRoot = resolveBenchmarkRoot();
+} catch (error) {
+  skipPrecondition(error?.message || error);
+}
 const endpoint = value("--endpoint", "http://localhost:11434/api/chat");
 assertLocalEndpoint(endpoint);
 
@@ -106,7 +116,7 @@ const report = path.join(resultsDir, `report_${safeModel}_smoke.json`);
 const benchmark = path.join("data", "dacr_bench_v1.1_mini.json");
 const tsxCli = path.join(benchmarkRoot, "node_modules", "tsx", "dist", "cli.mjs");
 if (!fs.existsSync(tsxCli)) {
-  throw new Error("DACR-Bench dependencies are missing. Run npm install in DACR_BENCH_ROOT.");
+  skipPrecondition("DACR-Bench dependencies are missing. Run npm install in DACR_BENCH_ROOT.");
 }
 
 const sharedFilters = [
@@ -151,7 +161,13 @@ const plan = {
 console.log(JSON.stringify(plan, null, 2));
 
 if (!dryRun) fs.mkdirSync(resultsDir, { recursive: true });
-if (!dryRun) await preflightOllama(endpoint, model);
+if (!dryRun) {
+  try {
+    await preflightOllama(endpoint, model);
+  } catch (error) {
+    skipPrecondition(error?.message || error);
+  }
+}
 run(process.execPath, runArgs, benchmarkRoot, dryRun);
 run(process.execPath, evaluateArgs, benchmarkRoot, dryRun);
 if (!dryRun) assertUsableEvaluation(predictions, report);
