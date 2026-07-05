@@ -209,6 +209,17 @@
       background: rgba(244, 63, 94, 0.28);
     }
 
+    .btn-success {
+      background: rgba(16, 185, 129, 0.24);
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      color: #d1fae5;
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: 0.75;
+    }
+
     .btn-small {
       padding: 0.45rem 0.7rem;
       border-radius: 8px;
@@ -409,7 +420,6 @@
 
     .console-pre {
       width: 100%;
-      min-height: 280px;
       max-height: 460px;
       overflow: auto;
       white-space: pre-wrap;
@@ -421,6 +431,129 @@
       background: rgba(0,0,0,0.25);
       border-radius: 8px;
       padding: 0.85rem;
+    }
+
+    .trace-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      min-height: 280px;
+    }
+
+    .summary-card {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 0.9rem;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .summary-card.success {
+      border-color: rgba(16, 185, 129, 0.32);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .summary-card.warning {
+      border-color: rgba(245, 158, 11, 0.34);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .summary-card.danger {
+      border-color: rgba(244, 63, 94, 0.34);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    .summary-title {
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+    }
+
+    .summary-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+
+    .summary-item {
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 0.6rem;
+      background: rgba(0,0,0,0.16);
+    }
+
+    .summary-label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+
+    .summary-value {
+      color: var(--text-main);
+      font-size: 0.88rem;
+      overflow-wrap: anywhere;
+    }
+
+    .raw-json {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.16);
+    }
+
+    .raw-json summary {
+      cursor: pointer;
+      padding: 0.65rem 0.85rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    .raw-json .console-pre {
+      border-radius: 0;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .conversation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-top: 0.85rem;
+    }
+
+    .bubble {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      padding: 0.75rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .bubble-user {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.22);
+    }
+
+    .bubble-assistant {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .bubble-meta {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
     }
 
     .record-actions {
@@ -548,12 +681,26 @@
 
           <div class="console-panel">
             <h3>Trace</h3>
-            <pre id="console-trace" class="console-pre">Idle.</pre>
+            <div id="console-trace" class="trace-stack" aria-live="polite">
+              <div class="summary-card">
+                <div class="summary-title">Idle</div>
+                <div class="summary-lines">
+                  <div>Run a brief to inspect execution state.</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="console-panel console-panel-receipt">
             <h3>Receipt</h3>
-            <pre id="console-receipt" class="console-pre">No receipt yet.</pre>
+            <div id="console-receipt" class="trace-stack" aria-live="polite">
+              <div class="summary-card">
+                <div class="summary-title">No receipt yet</div>
+                <div class="summary-lines">
+                  <div>Capability boundaries will appear after a run.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

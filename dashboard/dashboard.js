@@ -102,12 +102,246 @@ async function runSearch() {
   }
 }
 
+function rawDetails(label, value, open = false) {
+  const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  return `
+    <details class="raw-json"${open ? " open" : ""}>
+      <summary>${escapeHtml(label)}</summary>
+      <pre class="console-pre">${escapeHtml(text)}</pre>
+    </details>
+  `;
+}
+
+function summaryCard({ title, tone = "", lines = [], facts = [] }) {
+  const lineHtml = lines.length
+    ? `<div class="summary-lines">${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>`
+    : "";
+  const factHtml = facts.length
+    ? `<div class="summary-grid">${facts.map((fact) => `
+        <div class="summary-item">
+          <span class="summary-label">${escapeHtml(fact.label)}</span>
+          <span class="summary-value">${escapeHtml(fact.value)}</span>
+        </div>
+      `).join("")}</div>`
+    : "";
+  return `
+    <div class="summary-card ${escapeHtml(tone)}">
+      <div class="summary-title">${escapeHtml(title)}</div>
+      ${lineHtml}
+      ${factHtml}
+    </div>
+  `;
+}
+
+function setPanel(id, html, { focus = false } = {}) {
+  const el = document.getElementById(id);
+  el.innerHTML = html;
+  if (focus) {
+    el.closest(".console-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
 function setTrace(value) {
-  document.getElementById("console-trace").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  setPanel("console-trace", `${summaryCard({
+    title: typeof value === "string" ? value : "Trace updated",
+    lines: typeof value === "string" ? [] : [String(value?.status || "Raw trace available.")],
+  })}${rawDetails("Raw JSON", value, true)}`);
 }
 
 function setReceipt(value) {
-  document.getElementById("console-receipt").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  setPanel("console-receipt", `${summaryCard({
+    title: typeof value === "string" ? value : "Receipt updated",
+    lines: typeof value === "string" ? [] : ["Raw receipt details are available below."],
+  })}${rawDetails("Raw JSON", value, true)}`);
+}
+
+function boolLabel(value, yes, no) {
+  return value ? yes : no;
+}
+
+function previewText(value, maxChars = 360) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars - 3)}...`;
+}
+
+function formatExpiry(expiry) {
+  if (expiry?.expired) return "Expired";
+  if (expiry?.remaining_hours == null) return "Unknown";
+  const hours = Math.max(0, Number(expiry.remaining_hours) || 0);
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  if (days <= 0) return `expires in ${remHours}h`;
+  return `expires in ${days}d ${remHours}h`;
+}
+
+function formatIso(value) {
+  if (!value) return "unknown";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+}
+
+function renderReceiptSummary(receipt, raw = receipt, { focus = false } = {}) {
+  if (!receipt) {
+    setPanel("console-receipt", summaryCard({
+      title: "No receipt returned",
+      tone: "warning",
+      lines: ["The run completed without a capability receipt."],
+    }), { focus });
+    return;
+  }
+
+  const skills = receipt.skills || {};
+  const loadedSkills = Array.isArray(skills.loaded) && skills.loaded.length
+    ? skills.loaded.join(", ")
+    : "none";
+  const blocked = Array.isArray(receipt.blocked_context) && receipt.blocked_context.length
+    ? receipt.blocked_context.join(", ")
+    : "none";
+
+  setPanel("console-receipt", `
+    ${summaryCard({
+      title: "Capability receipt",
+      tone: "success",
+      lines: [
+        `Trust zone: ${receipt.trust_zone || "unknown"}`,
+        `Retention: ${receipt.retention_scope || "unknown"}`,
+      ],
+      facts: [
+        { label: "Repo retrieval", value: boolLabel(receipt.repo_retrieval_allowed, "allowed", "blocked") },
+        { label: "Durable memory", value: boolLabel(receipt.durable_memory_allowed, "allowed", "blocked") },
+        { label: "Private memory", value: boolLabel(receipt.private_memory_access, "accessed", "not accessed") },
+        { label: "Skills", value: loadedSkills },
+        { label: "Blocked context", value: blocked },
+        { label: "Deletion path", value: receipt.boundary_crossing?.revocation_or_deletion_path || "unknown" },
+      ],
+    })}
+    ${rawDetails("Raw receipt JSON", raw)}
+  `, { focus });
+}
+
+function renderExecutionTrace(result, raw = result) {
+  const retained = result.retention_scope === "conversation_only";
+  const failedText = String(result.text || "").toLowerCase().includes("failed");
+  const tone = result.ok === false ? "danger" : failedText ? "warning" : "success";
+  const title = result.ok === false
+    ? "Execution failed"
+    : retained
+      ? "Client continuity record created"
+      : "Ephemeral execution complete";
+  setPanel("console-trace", `
+    ${summaryCard({
+      title,
+      tone,
+      lines: [
+        retained ? "This run was retained as client-scoped continuity." : "No continuity record was retained.",
+        result.text ? `Assistant result: ${previewText(result.text)}` : `Result kind: ${result.kind || "unknown"}`,
+      ],
+      facts: [
+        { label: "Mode", value: result.continuity_mode || "unknown" },
+        { label: "Retention", value: result.retention_scope || "unknown" },
+        { label: "Record", value: retained ? result.conversation_key : "none retained" },
+      ],
+    })}
+    ${rawDetails("Raw response JSON", raw)}
+  `, { focus: true });
+}
+
+function renderConversationRows(rows = []) {
+  if (!rows.length) {
+    return summaryCard({
+      title: "No conversation rows",
+      tone: "warning",
+      lines: ["The export did not include transcript rows."],
+    });
+  }
+  return `
+    <div class="conversation-list">
+      ${rows.map((row) => {
+        const role = String(row.role || "entry").toLowerCase();
+        const klass = role === "user" ? "bubble-user" : "bubble-assistant";
+        return `
+          <div class="bubble ${klass}">
+            <div class="bubble-meta">${escapeHtml(role)} - ${escapeHtml(formatIso(row.t))}</div>
+            <div>${escapeHtml(row.text || JSON.stringify(row))}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderExportTrace(result, raw = result) {
+  const exclusions = result.redaction?.excludes?.length
+    ? result.redaction.excludes.join(", ")
+    : "standard private/sensitive exclusions";
+  setPanel("console-trace", `
+    ${summaryCard({
+      title: "Export complete",
+      tone: "success",
+      lines: [
+        "The retained client continuity record was exported for inspection.",
+        `Redaction excludes: ${exclusions}`,
+      ],
+      facts: [
+        { label: "Record", value: result.conversation_key || "unknown" },
+        { label: "History rows", value: String(result.counts?.history_rows ?? 0) },
+        { label: "Conversation rows", value: String(result.counts?.conversation_rows ?? 0) },
+        { label: "Format", value: result.format || "json" },
+      ],
+    })}
+    ${renderConversationRows(result.conversation || [])}
+    ${rawDetails("Raw export JSON", raw)}
+  `, { focus: true });
+}
+
+function renderRevocationTrace(result, raw = result) {
+  setPanel("console-trace", `
+    ${summaryCard({
+      title: result.deleted ? "Record revoked" : "Record not found",
+      tone: result.deleted ? "success" : "warning",
+      lines: [
+        result.deleted
+          ? "The selected client continuity record was removed."
+          : "No retained file was removed for this key.",
+      ],
+      facts: [
+        { label: "Record", value: result.conversation_key || "unknown" },
+        { label: "Conversation file", value: result.removed_conversation_file ? "removed" : "not removed" },
+        { label: "History rows", value: String(result.removed_history_rows ?? 0) },
+        { label: "Deletion log", value: result.deletion_log_path || "unknown" },
+      ],
+    })}
+    ${rawDetails("Raw revocation JSON", raw)}
+  `, { focus: true });
+}
+
+function setButtonBusy(button, text) {
+  if (!button) return;
+  button.dataset.originalText = button.dataset.originalText || button.textContent;
+  button.disabled = true;
+  button.textContent = text;
+}
+
+function flashButtonDone(button, text, className = "btn-success") {
+  if (!button) return;
+  const original = button.dataset.originalText || button.textContent;
+  button.textContent = text;
+  button.classList.add(className);
+  window.setTimeout(() => {
+    button.textContent = original;
+    button.classList.remove(className);
+    button.disabled = false;
+  }, 1500);
+}
+
+function resetButton(button) {
+  if (!button) return;
+  button.textContent = button.dataset.originalText || button.textContent;
+  button.disabled = false;
 }
 
 function renderRecords(report) {
@@ -119,7 +353,7 @@ function renderRecords(report) {
   body.innerHTML = report.records.map((record) => {
     const expiry = record.expiry?.expired
       ? '<span class="badge badge-rose">Expired</span>'
-      : `${Number(record.expiry?.remaining_hours ?? 0)}h`;
+      : escapeHtml(formatExpiry(record.expiry));
     return `
       <tr>
         <td><span class="file-path">${escapeHtml(record.conversation_key)}</span></td>
@@ -166,41 +400,52 @@ async function runOperatorExecute() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
-    setTrace({
-      status: "completed",
-      response: {
-        ok: result.ok,
-        kind: result.kind,
-        continuity_mode: result.continuity_mode,
-        retention_scope: result.retention_scope,
-        conversation_key: result.conversation_key,
-        text: result.text,
-      },
-    });
-    setReceipt({
+    const responseSummary = {
+      ok: result.ok,
+      kind: result.kind,
+      continuity_mode: result.continuity_mode,
+      retention_scope: result.retention_scope,
+      conversation_key: result.conversation_key,
+      text: result.text,
+    };
+    renderExecutionTrace(responseSummary, result);
+    renderReceiptSummary(result.capability_receipt, {
       capability_receipt: result.capability_receipt || null,
       retrieval_audit: result.capability_receipt?.retrieval_audit || null,
       skills: result.capability_receipt?.skills || null,
     });
     await loadContinuityRecords();
   } catch (error) {
-    setTrace({ status: "failed", error: error.message });
+    setPanel("console-trace", `${summaryCard({
+      title: "Execution failed",
+      tone: "danger",
+      lines: [error.message],
+    })}${rawDetails("Raw error", { status: "failed", error: error.message }, true)}`, { focus: true });
     setReceipt("No receipt.");
   }
 }
 
-async function exportContinuityRecord(key) {
+async function exportContinuityRecord(key, button) {
+  setButtonBusy(button, "Exporting...");
   setTrace({ status: "exporting", conversation_key: key });
   try {
     const result = await fetchJson(`/api/operator-continuity/export?conversation_key=${encodeURIComponent(key)}`);
-    setTrace({ status: "exported", export: result });
+    renderExportTrace(result);
+    flashButtonDone(button, "Exported");
   } catch (error) {
-    setTrace({ status: "export_failed", conversation_key: key, error: error.message });
+    resetButton(button);
+    setPanel("console-trace", `${summaryCard({
+      title: "Export failed",
+      tone: "danger",
+      lines: [error.message],
+      facts: [{ label: "Record", value: key }],
+    })}${rawDetails("Raw error", { status: "export_failed", conversation_key: key, error: error.message }, true)}`, { focus: true });
   }
 }
 
-async function deleteContinuityRecord(key) {
+async function deleteContinuityRecord(key, button) {
   if (!window.confirm(`Revoke continuity record ${key}?`)) return;
+  setButtonBusy(button, "Revoking...");
   setTrace({ status: "revoking", conversation_key: key });
   try {
     const result = await fetchJson("/api/operator-continuity/delete", {
@@ -208,10 +453,17 @@ async function deleteContinuityRecord(key) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ conversation_key: key }),
     });
-    setTrace({ status: "revoked", result });
+    renderRevocationTrace(result);
+    flashButtonDone(button, "Revoked");
     await loadContinuityRecords();
   } catch (error) {
-    setTrace({ status: "revoke_failed", conversation_key: key, error: error.message });
+    resetButton(button);
+    setPanel("console-trace", `${summaryCard({
+      title: "Revoke failed",
+      tone: "danger",
+      lines: [error.message],
+      facts: [{ label: "Record", value: key }],
+    })}${rawDetails("Raw error", { status: "revoke_failed", conversation_key: key, error: error.message }, true)}`, { focus: true });
   }
 }
 
@@ -227,11 +479,11 @@ document.getElementById("console-refresh-records").addEventListener("click", loa
 document.getElementById("console-records-body").addEventListener("click", (event) => {
   const exportButton = event.target.closest("[data-continuity-export]");
   if (exportButton) {
-    exportContinuityRecord(exportButton.dataset.continuityExport);
+    exportContinuityRecord(exportButton.dataset.continuityExport, exportButton);
     return;
   }
   const deleteButton = event.target.closest("[data-continuity-delete]");
-  if (deleteButton) deleteContinuityRecord(deleteButton.dataset.continuityDelete);
+  if (deleteButton) deleteContinuityRecord(deleteButton.dataset.continuityDelete, deleteButton);
 });
 loadData();
 loadContinuityRecords();

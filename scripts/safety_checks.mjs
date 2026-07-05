@@ -3626,8 +3626,14 @@ async function testDashboardOperatorConsoleApis() {
     const baseUrl = `http://127.0.0.1:${started.boundPort}`;
     const html = await fetch(`${baseUrl}/dashboard`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
     assert.match(html, /Operator Console/);
+    assert.match(html, /summary-card/);
+    assert.match(html, /trace-stack/);
     const dashboardScript = await fetch(`${baseUrl}/assets/dashboard.js`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
     assert.match(dashboardScript, /operator-execute/);
+    assert.match(dashboardScript, /Export complete/);
+    assert.match(dashboardScript, /Record revoked/);
+    assert.match(dashboardScript, /formatExpiry/);
+    assert.doesNotMatch(dashboardScript, /âœ/);
 
     const unauthenticated = await fetch(`${baseUrl}/api/operator-continuity`);
     assert.equal(unauthenticated.status, 401);
