@@ -23,7 +23,7 @@ import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/r
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
 import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
-import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
+import { buildClientConversationKey, buildContinuityAudit, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
 import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";
 import { validateMemoryProvenance } from "../lib/provenance.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
@@ -2757,6 +2757,51 @@ function testOperatorContinuityCli() {
     client_id: "cli_client",
     continuity_mode: "client",
     retention_scope: "conversation_only",
+    repo_retrieval_allowed: false,
+    durable_memory_allowed: false,
+    blocked_context: ["repo_docs"],
+    capability_receipt: {
+      trust_zone: "paid_public",
+      continuity_mode: "client",
+      retention_scope: "conversation_only",
+      durable_memory_allowed: false,
+      repo_retrieval_allowed: false,
+      private_memory_access: false,
+      retrieved_files: ["memory/topics/legacy-retrieved.md"],
+      skills: {
+        loaded: ["legacy-skill"],
+        manifests: [{
+          name: "legacy-skill",
+          version: "1.0.0",
+          provides: "legacy audit fixture",
+          required_tools: ["view_file"],
+          permissions: "Level 1 - Local Analysis",
+          external_services: "none",
+          validation_path: "npm test",
+          rollback_path: "git revert",
+          receipt_fields: ["skills.loaded"],
+        }],
+        rejected: [],
+      },
+      retrieval_audit: {
+        allowed: false,
+        rag: {
+          count: 1,
+          files: ["memory/topics/legacy-retrieved.md"],
+          filtered: [{
+            path: "memory/topics/blocked.md",
+            reason: "zone_restricted",
+            details: "active_zone=paid_public",
+          }],
+        },
+        memory_graph: { count: 1, files: ["memory/topics/graph-derived.md"] },
+        trajectories: { count: 1, ids: ["trajectory-legacy"] },
+      },
+      boundary_crossing: {
+        blocked_context: ["private_memory", "repo_docs"],
+      },
+      blocked_context: ["private_memory", "repo_docs"],
+    },
     conversation_key: conversationKey,
   })}\n`, "utf8");
 
@@ -2780,6 +2825,47 @@ function testOperatorContinuityCli() {
     assert.equal(listBody.records[0].file.exists, true);
     assert.equal(listBody.records[0].history.rows, 1);
     assert.equal(path.isAbsolute(listBody.records[0].file.path), false);
+
+    const audit = buildContinuityAudit({ conversation_key: conversationKey, historyPath, conversationsDir });
+    assert.equal(audit.ok, true);
+    assert.equal(audit.schema_version, "dizzy.client_continuity.audit.v1");
+    assert.equal(audit.conversation_key, conversationKey);
+    assert.equal(audit.counts.history_rows, 1);
+    assert.equal(audit.counts.conversation_rows, 1);
+    assert.deepEqual(audit.boundary.trust_zones, ["paid_public"]);
+    assert.deepEqual(audit.boundary.retention_scopes, ["conversation_only"]);
+    assert.deepEqual(audit.boundary.blocked_context, ["private_memory", "repo_docs"]);
+    assert.equal(audit.boundary.private_memory_access, false);
+    assert.equal(audit.boundary.repo_retrieval_allowed, false);
+    assert.deepEqual(audit.retrieval.retrieved_files, [
+      "memory/topics/graph-derived.md",
+      "memory/topics/legacy-retrieved.md",
+    ]);
+    assert.deepEqual(audit.retrieval.trajectory_ids, ["trajectory-legacy"]);
+    assert.deepEqual(audit.retrieval.filtered_files, [{
+      path: "memory/topics/blocked.md",
+      reason: "zone_restricted",
+      details: "active_zone=paid_public",
+    }]);
+    assert.deepEqual(audit.skills.loaded, ["legacy-skill"]);
+    assert.equal(audit.skills.manifests[0].name, "legacy-skill");
+    assert.equal(path.isAbsolute(audit.source.history_path), false);
+    assert.equal(path.isAbsolute(audit.source.conversation_path), false);
+    assert.doesNotMatch(JSON.stringify(audit), /supersecretvalue123/);
+
+    const auditRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "audit", conversationKey, "--json"], { cwd: process.cwd(), env, encoding: "utf8" });
+    assert.equal(auditRun.status, 0, auditRun.stderr);
+    const auditBody = JSON.parse(auditRun.stdout);
+    assert.equal(auditBody.schema_version, "dizzy.client_continuity.audit.v1");
+    assert.equal(auditBody.conversation_key, conversationKey);
+    assert.deepEqual(auditBody.boundary.blocked_context, ["private_memory", "repo_docs"]);
+    assert.equal(auditBody.retrieval.filtered_files[0].reason, "zone_restricted");
+    assert.doesNotMatch(auditRun.stdout, /supersecretvalue123/);
+
+    const humanAuditRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "audit", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
+    assert.equal(humanAuditRun.status, 0, humanAuditRun.stderr);
+    assert.match(humanAuditRun.stdout, /Continuity audit:/);
+    assert.match(humanAuditRun.stdout, /Filtered retrieval decisions:/);
 
     const exportRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "export", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
     assert.equal(exportRun.status, 0, exportRun.stderr);

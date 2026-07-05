@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {
+  buildContinuityAudit,
   buildContinuityReport,
   deleteClientContinuity,
   exportClientContinuity,
@@ -10,6 +11,7 @@ function usage() {
     "Usage:",
     "  node scripts/operator_continuity.mjs list [--json]",
     "  node scripts/operator_continuity.mjs export <conversation_key>",
+    "  node scripts/operator_continuity.mjs audit <conversation_key> [--json]",
     "  node scripts/operator_continuity.mjs delete <conversation_key>",
   ].join("\n");
 }
@@ -39,6 +41,24 @@ function printHumanList(report) {
     console.log(`  history_rows: ${record.history.rows}`);
     console.log(`  last_seen: ${record.history.last_seen_at || "unknown"}`);
     console.log(`  expiry: ${expiry} (${record.expiry.basis})`);
+  }
+}
+
+function printHumanAudit(audit) {
+  console.log(`Continuity audit: ${audit.conversation_key}`);
+  console.log(`history_rows=${audit.counts.history_rows} conversation_rows=${audit.counts.conversation_rows}`);
+  console.log(`trust_zones=${audit.boundary.trust_zones.join(", ") || "none"}`);
+  console.log(`retention_scopes=${audit.boundary.retention_scopes.join(", ") || "none"}`);
+  console.log(`blocked_context=${audit.boundary.blocked_context.join(", ") || "none"}`);
+  console.log(`retrieved_files=${audit.counts.retrieved_files} filtered_files=${audit.counts.filtered_files}`);
+  console.log(`loaded_skills=${audit.skills.loaded.join(", ") || "none"}`);
+
+  if (audit.retrieval.filtered_files.length) {
+    console.log("");
+    console.log("Filtered retrieval decisions:");
+    for (const item of audit.retrieval.filtered_files) {
+      console.log(`- ${item.path} (${item.reason}${item.details ? `; ${item.details}` : ""})`);
+    }
   }
 }
 
@@ -72,6 +92,23 @@ function main() {
         return;
       }
       console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    if (command === "audit") {
+      const key = args[1] || "";
+      if (!key) throw new Error("audit requires <conversation_key>");
+      const result = buildContinuityAudit({ conversation_key: key });
+      if (!result.ok) {
+        console.error(result.error || "audit failed");
+        process.exitCode = 1;
+        return;
+      }
+      if (args.includes("--json")) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        printHumanAudit(result);
+      }
       return;
     }
 
