@@ -112,6 +112,8 @@ Client information must be tracked using:
 CLIENT_TEMPLATE.md  
 CLIENTS.md
 
+For local testing and administrative simulation of these runs, the operator can use the **Operator Console** on the local dashboard (`/dashboard`) or via the `scripts/operator_continuity.mjs` CLI tool. This allows direct visual execution, trace inspection, and one-click record export or deletion.
+
 ---
 
 ### Public Environment (Telegram / Social)
@@ -366,6 +368,15 @@ Bias toward methods that reliably produce strong results, while preserving room 
 Exploration should introduce variation without abandoning the core objective of the task.
 
 Exploration should prioritize novelty that could plausibly increase future leverage, per `overlays/LEVERAGE.md`
+
+---
+
+# X. Continuity, Inspection, and Revocation
+
+To prevent accidental data retention or authority leaks, client-facing operations default to **ephemeral execution** (no durable log files created). When client continuity is explicitly enabled (matching scoped client/service keys):
+1. Records are stored locally under `runtime/conversations/` and execution history logs.
+2. The operator retains direct authority to audit, inspect, and revoke these records.
+3. The operator can run off-server CLI inspection (`node scripts/operator_continuity.mjs list/export/delete`) or loopback-only dashboard controls (`/dashboard` Console tab) to view capability/retrieval receipts and instantly delete/purge conversation histories.
 
 ---
 

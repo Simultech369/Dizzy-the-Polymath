@@ -28,6 +28,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 - `AGENTS.md`
 - `BOOTSTRAP.md`
+- `MULTI_AGENT_PLAYBOOK.md`
 - `.editorconfig`
 - `.env`
 - `.env.example`
