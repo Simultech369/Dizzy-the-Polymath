@@ -54,6 +54,21 @@ async function loadData() {
   }
 }
 
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, options);
+  const text = await response.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = { ok: false, error: text || response.statusText };
+  }
+  if (!response.ok) {
+    throw new Error(body?.error || response.statusText || `HTTP ${response.status}`);
+  }
+  return body;
+}
+
 function switchTab(tabId) {
   document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tabTarget === tabId));
   document.querySelectorAll(".tab-content").forEach((content) => content.classList.toggle("active", content.id === tabId));
@@ -87,6 +102,119 @@ async function runSearch() {
   }
 }
 
+function setTrace(value) {
+  document.getElementById("console-trace").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function setReceipt(value) {
+  document.getElementById("console-receipt").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function renderRecords(report) {
+  const body = document.getElementById("console-records-body");
+  if (!report.records?.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No retained client continuity records.</td></tr>';
+    return;
+  }
+  body.innerHTML = report.records.map((record) => {
+    const expiry = record.expiry?.expired
+      ? '<span class="badge badge-rose">Expired</span>'
+      : `${Number(record.expiry?.remaining_hours ?? 0)}h`;
+    return `
+      <tr>
+        <td><span class="file-path">${escapeHtml(record.conversation_key)}</span></td>
+        <td>${escapeHtml(record.client_id || "unknown")}</td>
+        <td>${escapeHtml(record.service_id || "unknown")}</td>
+        <td>${Number(record.history?.rows ?? 0)}</td>
+        <td>${expiry}</td>
+        <td>
+          <div class="record-actions">
+            <button class="btn btn-secondary btn-small" data-continuity-export="${escapeHtml(record.conversation_key)}">Export</button>
+            <button class="btn btn-danger btn-small" data-continuity-delete="${escapeHtml(record.conversation_key)}">Revoke</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function loadContinuityRecords() {
+  const body = document.getElementById("console-records-body");
+  body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>';
+  try {
+    const report = await fetchJson("/api/operator-continuity");
+    renderRecords(report);
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--rose);">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+async function runOperatorExecute() {
+  const brief = document.getElementById("console-brief").value.trim();
+  const continuityMode = document.getElementById("console-continuity-mode").value;
+  const payload = {
+    brief,
+    continuity_mode: continuityMode,
+    client_id: document.getElementById("console-client-id").value.trim(),
+    service_id: document.getElementById("console-service-id").value.trim(),
+  };
+  setTrace({ status: "running", request: payload });
+  setReceipt("Running...");
+  try {
+    const result = await fetchJson("/api/operator-execute", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setTrace({
+      status: "completed",
+      response: {
+        ok: result.ok,
+        kind: result.kind,
+        continuity_mode: result.continuity_mode,
+        retention_scope: result.retention_scope,
+        conversation_key: result.conversation_key,
+        text: result.text,
+      },
+    });
+    setReceipt({
+      capability_receipt: result.capability_receipt || null,
+      retrieval_audit: result.capability_receipt?.retrieval_audit || null,
+      skills: result.capability_receipt?.skills || null,
+    });
+    await loadContinuityRecords();
+  } catch (error) {
+    setTrace({ status: "failed", error: error.message });
+    setReceipt("No receipt.");
+  }
+}
+
+async function exportContinuityRecord(key) {
+  setTrace({ status: "exporting", conversation_key: key });
+  try {
+    const result = await fetchJson(`/api/operator-continuity/export?conversation_key=${encodeURIComponent(key)}`);
+    setTrace({ status: "exported", export: result });
+  } catch (error) {
+    setTrace({ status: "export_failed", conversation_key: key, error: error.message });
+  }
+}
+
+async function deleteContinuityRecord(key) {
+  if (!window.confirm(`Revoke continuity record ${key}?`)) return;
+  setTrace({ status: "revoking", conversation_key: key });
+  try {
+    const result = await fetchJson("/api/operator-continuity/delete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ conversation_key: key }),
+    });
+    setTrace({ status: "revoked", result });
+    await loadContinuityRecords();
+  } catch (error) {
+    setTrace({ status: "revoke_failed", conversation_key: key, error: error.message });
+  }
+}
+
 document.querySelectorAll("[data-tab-target]").forEach((tab) => {
   tab.addEventListener("click", () => switchTab(tab.dataset.tabTarget));
 });
@@ -94,4 +222,16 @@ document.getElementById("search-button").addEventListener("click", runSearch);
 document.getElementById("search-query").addEventListener("keydown", (event) => {
   if (event.key === "Enter") runSearch();
 });
+document.getElementById("console-execute-button").addEventListener("click", runOperatorExecute);
+document.getElementById("console-refresh-records").addEventListener("click", loadContinuityRecords);
+document.getElementById("console-records-body").addEventListener("click", (event) => {
+  const exportButton = event.target.closest("[data-continuity-export]");
+  if (exportButton) {
+    exportContinuityRecord(exportButton.dataset.continuityExport);
+    return;
+  }
+  const deleteButton = event.target.closest("[data-continuity-delete]");
+  if (deleteButton) deleteContinuityRecord(deleteButton.dataset.continuityDelete);
+});
 loadData();
+loadContinuityRecords();

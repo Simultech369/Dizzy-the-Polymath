@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
-import { buildClientConversationKey, deleteClientContinuity, executionHistoryPath, exportClientContinuity, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
+import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, executionHistoryPath, exportClientContinuity, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
@@ -67,7 +67,11 @@ function isDashboardRoute(pathname) {
     || pathname === "/assets/dashboard.js"
     || pathname === "/assets/dashboard-login.js"
     || pathname === "/api/dashboard-data"
-    || pathname === "/api/dashboard-query";
+    || pathname === "/api/dashboard-query"
+    || pathname === "/api/operator-continuity"
+    || pathname === "/api/operator-continuity/export"
+    || pathname === "/api/operator-continuity/delete"
+    || pathname === "/api/operator-execute";
 }
 
 function parseBool(value, fallback = false) {
@@ -81,7 +85,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -95,6 +99,12 @@ function registerDashboardFallbackRoutes(app, { enabled } = {}) {
     return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
   });
   for (const route of ["/dashboard/session", "/dashboard/logout"]) {
+    app.post(route, (req, res) => {
+      if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
+      return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
+    });
+  }
+  for (const route of ["/api/operator-execute", "/api/operator-continuity/delete"]) {
     app.post(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
@@ -434,6 +444,40 @@ function normalizeIdentifier(value, fallback) {
 
 function normalizeFreeText(value, maxChars = 20_000) {
   return String(value ?? "").trim().slice(0, Math.max(1, Number(maxChars) || 20_000));
+}
+
+function countJsonlRows(filePath) {
+  try {
+    const raw = fs.readFileSync(filePath, "utf8").trim();
+    return raw ? raw.split(/\r?\n/).length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function persistMissingExecuteTranscript({ conversationKey, beforeRows, brief, out }) {
+  const conversationPath = conversationPathForKey(conversationKey);
+  const rowsWritten = countJsonlRows(conversationPath) - beforeRows;
+  const nowIso = new Date().toISOString();
+
+  if (rowsWritten <= 0) {
+    durableAppendJsonl(conversationPath, {
+      t: nowIso,
+      role: "user",
+      text: redactTextPayload(normalizeFreeText(brief)),
+      source: "agent_execute",
+    });
+  }
+
+  if (rowsWritten < 2) {
+    const replyText = normalizeFreeText(out?.text || (out?.kind ? `Result kind: ${out.kind}` : "No textual response."));
+    durableAppendJsonl(conversationPath, {
+      t: new Date().toISOString(),
+      role: "assistant",
+      text: redactTextPayload(replyText),
+      source: "agent_execute",
+    });
+  }
 }
 
 function randomSuffix() {
@@ -778,6 +822,8 @@ export async function createRuntime(opts = {}) {
         verifiedHttps,
         createDashboardSession,
         clearDashboardSession,
+        requestBoundaryAuditGuard,
+        operatorExecute: runAgentExecute,
       });
     } catch (error) {
       console.warn(`[dashboard] initialization_failed=${String(error?.message ?? error)}`);
@@ -1017,11 +1063,10 @@ export async function createRuntime(opts = {}) {
     }
   });
 
-  // POST /agent/execute delegates to dispatch for now.
-  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res, next) => {
-    const { brief } = req.body ?? {};
-    let client_id = req.body?.client_id;
-    let service_id = req.body?.service_id;
+  async function runAgentExecute(req, body = req.body ?? {}) {
+    const { brief } = body ?? {};
+    let client_id = body?.client_id;
+    let service_id = body?.service_id;
 
     if (enforceIdentityHeaders) {
       const clientIp = normalizeIp(req.socket?.remoteAddress || req.ip);
@@ -1035,15 +1080,12 @@ export async function createRuntime(opts = {}) {
       }
     }
 
-    const continuityMode = String(req.body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
+    const continuityMode = String(body?.continuity_mode ?? "ephemeral").trim().toLowerCase();
     const continuityAllowed = continuityMode === "client";
     if (continuityAllowed && (!String(client_id ?? "").trim() || !String(service_id ?? "").trim())) {
-      return res.status(400).json({
-        ok: false,
-        error: "continuity_mode=client requires client_id and service_id",
-      });
+      return { status: 400, body: { ok: false, error: "continuity_mode=client requires client_id and service_id" } };
     }
-    const conversationKey = buildExecuteConversationKey({ ...req.body, client_id, service_id });
+    const conversationKey = buildExecuteConversationKey({ ...body, client_id, service_id });
     const runtimeContext = {
       trust_zone: "paid_public",
       continuity_mode: continuityAllowed ? "client" : "ephemeral",
@@ -1054,48 +1096,54 @@ export async function createRuntime(opts = {}) {
     if (rawIdempotencyKey !== undefined) {
       const trimmed = rawIdempotencyKey.trim();
       if (!trimmed || trimmed.length > 128 || !/^[!-~]{1,128}$/.test(trimmed)) {
-        return res.status(400).json({ ok: false, error: "Invalid Idempotency-Key header format" });
+        return { status: 400, body: { ok: false, error: "Invalid Idempotency-Key header format" } };
       }
       const clientId = client_id ? client_id : "anon";
       const serviceId = service_id ? service_id : "none";
       idempotencyKey = `route:/agent/execute|client:${clientId}|service:${serviceId}|key:${trimmed}`;
     }
 
-    try {
-      scheduleClientContinuityPrune();
-      const message = buildIncomingMessage(
-        { text: brief, meta: { service_id, client_id } },
-        req,
-        {
-          channel: "execute",
-          from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
-          runtime_context: runtimeContext,
-        },
-      );
-      const capabilities = getTrustZoneCapabilities(message, "paid_public");
-      const out = await handleIncomingMessage({
-        message,
-        enqueue: ({ tool, payload, effect, notify }) =>
-          enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
+    scheduleClientContinuityPrune();
+    const message = buildIncomingMessage(
+      { text: brief, meta: { service_id, client_id } },
+      req,
+      {
+        channel: "execute",
+        from: client_id ? `client:${normalizeIdentifier(client_id, "anon")}` : null,
+        runtime_context: runtimeContext,
+      },
+    );
+    const capabilities = getTrustZoneCapabilities(message, "paid_public");
+    const beforeConversationRows = capabilities.retention_scope !== "ephemeral"
+      ? countJsonlRows(conversationPathForKey(conversationKey))
+      : 0;
+    const out = await handleIncomingMessage({
+      message,
+      enqueue: ({ tool, payload, effect, notify }) =>
+        enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
+    });
+    const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
+    if (capabilities.retention_scope !== "ephemeral") {
+      persistMissingExecuteTranscript({ conversationKey, beforeRows: beforeConversationRows, brief, out });
+      durableAppendJsonl(executionHistoryPath(), {
+        t: new Date().toISOString(),
+        route: "/agent/execute",
+        trust_zone: "paid_public",
+        service_id: service_id == null ? null : normalizeIdentifier(service_id, "service"),
+        client_id: client_id == null ? null : normalizeIdentifier(client_id, "client"),
+        continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
+        retention_scope: capabilities.retention_scope,
+        repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
+        durable_memory_allowed: capabilities.durable_memory_allowed,
+        capability_receipt: capabilityReceipt,
+        conversation_key: conversationKey,
+        result_kind: out?.kind || "",
       });
-      const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
-      if (capabilities.retention_scope !== "ephemeral") {
-        durableAppendJsonl(executionHistoryPath(), {
-          t: new Date().toISOString(),
-          route: "/agent/execute",
-          trust_zone: "paid_public",
-          service_id: service_id == null ? null : normalizeIdentifier(service_id, "service"),
-          client_id: client_id == null ? null : normalizeIdentifier(client_id, "client"),
-          continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
-          retention_scope: capabilities.retention_scope,
-          repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
-          durable_memory_allowed: capabilities.durable_memory_allowed,
-          capability_receipt: capabilityReceipt,
-          conversation_key: conversationKey,
-          result_kind: out?.kind || "",
-        });
-      }
-      res.json({
+    }
+
+    return {
+      status: 200,
+      body: {
         ok: true,
         service_id: service_id ?? null,
         continuity_mode: capabilities.continuity_mode === "client" ? "client" : "ephemeral",
@@ -1106,9 +1154,17 @@ export async function createRuntime(opts = {}) {
         capability_receipt: capabilityReceipt,
         conversation_key: conversationKey,
         ...out,
-      });
+      },
+    };
+  }
+
+  // POST /agent/execute delegates to dispatch for now.
+  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res, next) => {
+    try {
+      const result = await runAgentExecute(req);
+      return res.status(result.status).json(result.body);
     } catch (e) {
-      next(e);
+      return next(e);
     }
   });
 

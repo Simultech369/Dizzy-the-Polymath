@@ -125,6 +125,12 @@
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
 
+    .badge-rose {
+      background: rgba(244, 63, 94, 0.18);
+      color: #fecdd3;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+
     .prompt-list {
       list-style: none;
       display: flex;
@@ -182,6 +188,31 @@
 
     .btn:hover {
       background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.18);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fecdd3;
+    }
+
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.28);
+    }
+
+    .btn-small {
+      padding: 0.45rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
     }
 
     .results-table {
@@ -319,6 +350,109 @@
     .tab-content.active {
       display: block;
     }
+
+    .console-grid {
+      display: grid;
+      grid-template-columns: minmax(240px, 300px) minmax(320px, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .console-panel {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 1rem;
+      min-width: 0;
+    }
+
+    .console-panel h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .field-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .field-stack label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .console-input,
+    .console-select,
+    .console-textarea {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 0.65rem 0.75rem;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .console-textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .console-pre {
+      width: 100%;
+      min-height: 280px;
+      max-height: 460px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #d1d5db;
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px;
+      padding: 0.85rem;
+    }
+
+    .record-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .records-wrap {
+      margin-top: 1rem;
+      overflow-x: auto;
+    }
+
+    .console-panel-receipt {
+      grid-column: 1 / -1;
+    }
+
+    @media (min-width: 1500px) {
+      .console-grid {
+        grid-template-columns: minmax(240px, 320px) minmax(320px, 1fr) minmax(260px, 360px);
+      }
+
+      .console-panel-receipt {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .console-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -351,6 +485,7 @@
       <div class="tab-container">
         <div class="tab active" data-tab-target="tab-memory">Memory Database</div>
         <div class="tab" data-tab-target="tab-search">Sieve Retrieval Tester</div>
+        <div class="tab" data-tab-target="tab-console">Operator Console</div>
       </div>
 
       <!-- Tab 1: Memory Database -->
@@ -383,6 +518,69 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Operator Console -->
+      <div id="tab-console" class="tab-content">
+        <div class="console-grid">
+          <div class="console-panel">
+            <h3>Execute</h3>
+            <div class="field-stack">
+              <label>Client ID
+                <input id="console-client-id" class="console-input" value="demo-client" autocomplete="off">
+              </label>
+              <label>Service ID
+                <input id="console-service-id" class="console-input" value="demo-service" autocomplete="off">
+              </label>
+              <label>Continuity
+                <select id="console-continuity-mode" class="console-select">
+                  <option value="ephemeral">Ephemeral</option>
+                  <option value="client">Client</option>
+                </select>
+              </label>
+              <label>Brief
+                <textarea id="console-brief" class="console-textarea">Summarize what continuity and revocation mean in this runtime.</textarea>
+              </label>
+              <button class="btn" id="console-execute-button">Run</button>
+            </div>
+          </div>
+
+          <div class="console-panel">
+            <h3>Trace</h3>
+            <pre id="console-trace" class="console-pre">Idle.</pre>
+          </div>
+
+          <div class="console-panel console-panel-receipt">
+            <h3>Receipt</h3>
+            <pre id="console-receipt" class="console-pre">No receipt yet.</pre>
+          </div>
+        </div>
+
+        <div class="console-panel" style="margin-top: 1rem;">
+          <div class="card-title" style="margin-bottom: 0.75rem;">
+            <span>Continuity Records</span>
+            <button class="btn btn-secondary btn-small" id="console-refresh-records">Refresh</button>
+          </div>
+          <div class="records-wrap">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Client</th>
+                  <th>Service</th>
+                  <th>History</th>
+                  <th>Expiry</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="console-records-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -3598,6 +3598,112 @@ async function testPrivateReadSurfaces() {
 
 await testPrivateReadSurfaces();
 
+async function testDashboardOperatorConsoleApis() {
+  const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+  const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
+  const oldConversationDir = process.env.DIZZY_CONVERSATION_DIR;
+  const oldDeletionLog = process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG;
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-dashboard-console-history.jsonl");
+  const conversationDir = path.resolve(process.cwd(), "runtime", "test-dashboard-console-conversations");
+  const deletionLog = path.resolve(process.cwd(), "runtime", "test-dashboard-console-deletions.jsonl");
+  delete process.env.DIZZY_CHAT_BACKEND;
+  process.env.DIZZY_EXECUTION_HISTORY_PATH = historyPath;
+  process.env.DIZZY_CONVERSATION_DIR = conversationDir;
+  process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG = deletionLog;
+  fs.rmSync(historyPath, { force: true });
+  fs.rmSync(conversationDir, { recursive: true, force: true });
+  fs.rmSync(deletionLog, { force: true });
+
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: STRONG_TEST_AUTH_TOKEN,
+    redisUrl: "",
+    dashboardEnabled: true,
+  });
+
+  try {
+    const baseUrl = `http://127.0.0.1:${started.boundPort}`;
+    const html = await fetch(`${baseUrl}/dashboard`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
+    assert.match(html, /Operator Console/);
+    const dashboardScript = await fetch(`${baseUrl}/assets/dashboard.js`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
+    assert.match(dashboardScript, /operator-execute/);
+
+    const unauthenticated = await fetch(`${baseUrl}/api/operator-continuity`);
+    assert.equal(unauthenticated.status, 401);
+
+    const sessionResponse = await fetch(`${baseUrl}/dashboard/session`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", origin: baseUrl },
+      body: new URLSearchParams({ token: STRONG_TEST_AUTH_TOKEN }),
+    });
+    assert.equal(sessionResponse.status, 303);
+    const sessionCookie = String(sessionResponse.headers.get("set-cookie") || "").split(";", 1)[0];
+    const cookieHeaders = { cookie: sessionCookie };
+
+    const emptyReport = await fetch(`${baseUrl}/api/operator-continuity`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(emptyReport.ok, true);
+    assert.equal(emptyReport.counts.records, 0);
+
+    const execute = await fetch(`${baseUrl}/api/operator-execute`, {
+      method: "POST",
+      headers: { ...cookieHeaders, "content-type": "application/json" },
+      body: JSON.stringify({
+        brief: "Dashboard console continuity test",
+        continuity_mode: "client",
+        client_id: "Dashboard Client",
+        service_id: "Console",
+      }),
+    });
+    assert.equal(execute.status, 200);
+    const executeBody = await execute.json();
+    assert.equal(executeBody.ok, true);
+    assert.equal(executeBody.continuity_mode, "client");
+    assert.equal(executeBody.retention_scope, "conversation_only");
+    assert.equal(executeBody.conversation_key, buildClientConversationKey({ client_id: "Dashboard Client", service_id: "Console" }));
+
+    const report = await fetch(`${baseUrl}/api/operator-continuity`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(report.counts.records, 1);
+    assert.equal(report.records[0].conversation_key, executeBody.conversation_key);
+    assert.equal(report.records[0].file.exists, true);
+    assert.equal(path.isAbsolute(report.records[0].file.path), false);
+
+    const exported = await fetch(`${baseUrl}/api/operator-continuity/export?conversation_key=${encodeURIComponent(executeBody.conversation_key)}`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(exported.ok, true);
+    assert.equal(exported.conversation_key, executeBody.conversation_key);
+    assert.equal(exported.counts.history_rows, 1);
+    assert.equal(exported.counts.conversation_rows >= 1, true);
+
+    const deleted = await fetch(`${baseUrl}/api/operator-continuity/delete`, {
+      method: "POST",
+      headers: { ...cookieHeaders, "content-type": "application/json" },
+      body: JSON.stringify({ conversation_key: executeBody.conversation_key }),
+    }).then((r) => r.json());
+    assert.equal(deleted.deleted, true);
+    assert.equal(deleted.removed_history_rows, 1);
+    const afterDelete = await fetch(`${baseUrl}/api/operator-continuity`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(afterDelete.counts.records, 0);
+    const deletionRows = fs.readFileSync(deletionLog, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+    assert.equal(deletionRows[0].reason, "operator_dashboard_delete");
+  } finally {
+    await started.stop();
+    fs.rmSync(historyPath, { force: true });
+    fs.rmSync(conversationDir, { recursive: true, force: true });
+    fs.rmSync(deletionLog, { force: true });
+    if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+    else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+    if (oldHistoryPath === undefined) delete process.env.DIZZY_EXECUTION_HISTORY_PATH;
+    else process.env.DIZZY_EXECUTION_HISTORY_PATH = oldHistoryPath;
+    if (oldConversationDir === undefined) delete process.env.DIZZY_CONVERSATION_DIR;
+    else process.env.DIZZY_CONVERSATION_DIR = oldConversationDir;
+    if (oldDeletionLog === undefined) delete process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG;
+    else process.env.DIZZY_CLIENT_CONTINUITY_DELETION_LOG = oldDeletionLog;
+  }
+}
+
+await testDashboardOperatorConsoleApis();
+
 async function testDashboardFailureIndependence() {
   let disabledLoaderCalled = false;
   const disabledRuntime = await startServer({
