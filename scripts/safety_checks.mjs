@@ -78,6 +78,27 @@ function testDurableWritePolicy() {
     trustZone: "private_self",
     payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
   }).reason, "secret_material_detected");
+  const structuredDurableText = "This durable payload has enough ordinary words to pass capture eligibility before the secret check.";
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: { note: structuredDurableText, token: ["supersecretvalue123"] },
+  }).reason, "secret_material_detected");
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: JSON.stringify({ note: structuredDurableText, meta: { credentials: { session: ["supersecretvalue123"] } } }),
+  }).reason, "secret_material_detected");
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: { note: structuredDurableText, context: JSON.stringify({ api_key: ["supersecretvalue123"] }) },
+  }).reason, "secret_material_detected");
+  assert.equal(assessDurableWrite({
+    kind: "memory",
+    trustZone: "private_self",
+    payload: { note: structuredDurableText, metrics: { token_count: 12 } },
+  }).allowed, true);
   assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
   assert.equal(redactSecretMaterial("API_KEY = supersecretvalue123"), "API_KEY = [REDACTED]");
   assert.equal(redactSecretMaterial("API_KEY=\"supersecretvalue123\""), "API_KEY=\"[REDACTED]\"");
