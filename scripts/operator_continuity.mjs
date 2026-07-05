@@ -46,18 +46,54 @@ function printHumanList(report) {
 
 function printHumanAudit(audit) {
   console.log(`Continuity audit: ${audit.conversation_key}`);
+  console.log(`audit_basis=${audit.audit_basis}`);
+  console.log(`proof_limit=${audit.proof_limit}`);
+  console.log(`certainty=${audit.certainty}`);
   console.log(`history_rows=${audit.counts.history_rows} conversation_rows=${audit.counts.conversation_rows}`);
+  console.log(`source.history=${audit.source.history_path}`);
+  console.log(`source.conversation=${audit.source.conversation_path || "none"} exists=${audit.source.conversation_file_exists ? "yes" : "no"}`);
+  console.log(`deletion_log=${audit.revocation.deletion_log_path}`);
   console.log(`trust_zones=${audit.boundary.trust_zones.join(", ") || "none"}`);
+  console.log(`continuity_modes=${audit.boundary.continuity_modes.join(", ") || "none"}`);
   console.log(`retention_scopes=${audit.boundary.retention_scopes.join(", ") || "none"}`);
+  console.log(`repo_retrieval_allowed=${audit.boundary.repo_retrieval_allowed ? "yes" : "no"}`);
+  console.log(`durable_memory_allowed=${audit.boundary.durable_memory_allowed ? "yes" : "no"}`);
+  console.log(`private_memory_access=${audit.boundary.private_memory_access ? "yes" : "no"}`);
   console.log(`blocked_context=${audit.boundary.blocked_context.join(", ") || "none"}`);
-  console.log(`retrieved_files=${audit.counts.retrieved_files} filtered_files=${audit.counts.filtered_files}`);
+  console.log(`retrieved_files=${audit.counts.retrieved_files} trajectory_ids=${audit.counts.trajectory_ids} filtered_files=${audit.counts.filtered_files}`);
   console.log(`loaded_skills=${audit.skills.loaded.join(", ") || "none"}`);
+  console.log(`deletion_events=${audit.counts.deletion_events} anomalies=${audit.counts.anomalies}`);
+  console.log(`revocation_command=${audit.revocation.delete_command}`);
 
+  if (audit.retrieval.retrieved_files.length) {
+    console.log("");
+    console.log("Retrieved files reported by receipts:");
+    for (const item of audit.retrieval.retrieved_files) console.log(`- ${item}`);
+  }
+  if (audit.retrieval.trajectory_ids.length) {
+    console.log("");
+    console.log("Trajectory IDs reported by receipts:");
+    for (const item of audit.retrieval.trajectory_ids) console.log(`- ${item}`);
+  }
   if (audit.retrieval.filtered_files.length) {
     console.log("");
-    console.log("Filtered retrieval decisions:");
+    console.log(`Filtered retrieval decisions (${audit.retrieval.filtered_scope.join(", ")}):`);
     for (const item of audit.retrieval.filtered_files) {
       console.log(`- ${item.path} (${item.reason}${item.details ? `; ${item.details}` : ""})`);
+    }
+  }
+  if (audit.skills.manifests.length) {
+    console.log("");
+    console.log("Skill manifests reported by receipts:");
+    for (const manifest of audit.skills.manifests) {
+      console.log(`- ${manifest.name}${manifest.version ? `@${manifest.version}` : ""} (${manifest.provides || "no provides"})`);
+    }
+  }
+  if (audit.integrity.anomalies.length) {
+    console.log("");
+    console.log("Anomalies:");
+    for (const anomaly of audit.integrity.anomalies) {
+      console.log(`- ${anomaly.kind} source=${anomaly.source} count=${anomaly.count}`);
     }
   }
 }

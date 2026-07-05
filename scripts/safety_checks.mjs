@@ -974,6 +974,7 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.retrieval_audit.plan, null);
   assert.equal(paidReceipt.retrieval_audit.blocked_reason, "trust_zone_blocks_repo_retrieval");
   assert.equal(paidReceipt.retrieval_audit.rag.attempted, false);
+  assert.equal(paidReceipt.retrieval_audit.rag.filtered_scope, "not_collected");
   assert.equal(paidReceipt.retrieval_audit.memory_graph.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.trajectories.attempted, false);
   assert.equal(paidReceipt.retrieval_audit.fallback_path, "blocked_by_trust_zone");
@@ -1009,6 +1010,7 @@ function testCapabilityReceipts() {
   assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.rag.count, 0);
   assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.rag.files, []);
   assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.rag.filtered, []);
+  assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.rag.filtered_scope, "not_collected");
   assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.memory_graph.count, 0);
   assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.memory_graph.files, []);
   assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.trajectories.count, 0);
@@ -1024,6 +1026,7 @@ function testCapabilityReceipts() {
           count: 1,
           files: ["MEMORY.md"],
           filtered: [{ path: "memory/topics/revoked.md", reason: "revoked", details: "memory_status=revoked" }],
+          filtered_scope: "query_token_matches_only",
         },
         memory_graph: { count: 1, files: ["memory/topics/civic-doctrine-kernel.md"] },
         trajectories: { count: 0, ids: [] },
@@ -1045,6 +1048,7 @@ function testCapabilityReceipts() {
   assert.deepEqual(privateReceipt.retrieval_audit.rag.filtered, [
     { path: "memory/topics/revoked.md", reason: "revoked", details: "memory_status=revoked" },
   ]);
+  assert.equal(privateReceipt.retrieval_audit.rag.filtered_scope, "query_token_matches_only");
   assert.equal(privateReceipt.retrieval_audit.memory_graph.count, 1);
   assert.equal(privateReceipt.retrieval_audit.fallback_path, "trusted_markdown -> memory_graph -> trajectory_ledger");
   assert.equal(privateReceipt.retrieval_audit.sources[0].source_type, "trusted_markdown");
@@ -2360,6 +2364,7 @@ function testDailyLogFilenameDecayProvenance() {
 testDailyLogFilenameDecayProvenance();
 
 function testRAGFilteredExplainability() {
+  const oldFilteredMax = process.env.DIZZY_RAG_FILTERED_MAX;
   const revokedPath = path.resolve(process.cwd(), "memory", "topics", "test-revoked-doc.md");
   const restrictedPath = path.resolve(process.cwd(), "memory", "topics", "test-restricted-doc.md");
   const zeroPath = path.resolve(process.cwd(), "memory", "topics", "test-zero-score-doc.md");
@@ -2396,6 +2401,8 @@ This is some zeroexplainabilityneedle content that has a matching token but no u
     const snippetsRevoked = getRelevantMarkdownSnippets("revokedexplainabilityneedle", { k: 4, trustZone: "private_self" });
     assert.equal(snippetsRevoked.length, 0);
     assert.equal(Array.isArray(snippetsRevoked.filtered), true);
+    assert.equal(snippetsRevoked.filtered_scope, "query_token_matches_only");
+    assert.equal(snippetsRevoked.filtered_limit, 20);
     const revItem = snippetsRevoked.filtered.find((item) => item.path.endsWith("test-revoked-doc.md"));
     assert.ok(revItem);
     assert.equal(revItem.reason, "revoked");
@@ -2417,11 +2424,19 @@ This is some zeroexplainabilityneedle content that has a matching token but no u
     assert.equal(zeroItem.reason, "score_zero_or_decayed");
     assert.match(zeroItem.details, /confidence=0/);
 
+    process.env.DIZZY_RAG_FILTERED_MAX = "0";
+    const snippetsDisabled = getRelevantMarkdownSnippets("restrictedexplainabilityneedle", { k: 4, trustZone: "paid_public" });
+    assert.equal(Array.isArray(snippetsDisabled.filtered), true);
+    assert.equal(snippetsDisabled.filtered.length, 0);
+    assert.equal(snippetsDisabled.filtered_limit, 0);
+
   } finally {
     fs.rmSync(revokedPath, { force: true });
     fs.rmSync(restrictedPath, { force: true });
     fs.rmSync(zeroPath, { force: true });
     resetMarkdownIndexCacheForTests();
+    if (oldFilteredMax === undefined) delete process.env.DIZZY_RAG_FILTERED_MAX;
+    else process.env.DIZZY_RAG_FILTERED_MAX = oldFilteredMax;
   }
 }
 
@@ -2747,9 +2762,9 @@ function testOperatorContinuityCli() {
     role: "user",
     text: "continuity CLI export should redact API_KEY=supersecretvalue123",
     meta: { api_key: "supersecretvalue123" },
-  })}\n`, "utf8");
+  })}\nnot-json\n`, "utf8");
   fs.mkdirSync(path.dirname(historyPath), { recursive: true });
-  fs.writeFileSync(historyPath, `${JSON.stringify({
+  const historyRows = [{
     t: "2026-07-04T00:00:00.000Z",
     route: "/agent/execute",
     trust_zone: "paid_public",
@@ -2793,6 +2808,7 @@ function testOperatorContinuityCli() {
             reason: "zone_restricted",
             details: "active_zone=paid_public",
           }],
+          filtered_scope: "query_token_matches_only",
         },
         memory_graph: { count: 1, files: ["memory/topics/graph-derived.md"] },
         trajectories: { count: 1, ids: ["trajectory-legacy"] },
@@ -2803,7 +2819,19 @@ function testOperatorContinuityCli() {
       blocked_context: ["private_memory", "repo_docs"],
     },
     conversation_key: conversationKey,
-  })}\n`, "utf8");
+  }, {
+    t: "2026-07-04T00:01:00.000Z",
+    route: "/agent/execute",
+    trust_zone: "paid_public",
+    service_id: "review",
+    client_id: "cli_client",
+    continuity_mode: "client",
+    retention_scope: "conversation_only",
+    repo_retrieval_allowed: false,
+    durable_memory_allowed: false,
+    conversation_key: conversationKey,
+  }];
+  fs.writeFileSync(historyPath, `${historyRows.map((row) => JSON.stringify(row)).join("\n")}\nnot-json\n`, "utf8");
 
   const env = {
     ...process.env,
@@ -2823,15 +2851,21 @@ function testOperatorContinuityCli() {
     assert.equal(listBody.records[0].client_id, "cli_client");
     assert.equal(listBody.records[0].service_id, "review");
     assert.equal(listBody.records[0].file.exists, true);
-    assert.equal(listBody.records[0].history.rows, 1);
+    assert.equal(listBody.records[0].history.rows, 2);
     assert.equal(path.isAbsolute(listBody.records[0].file.path), false);
 
     const audit = buildContinuityAudit({ conversation_key: conversationKey, historyPath, conversationsDir });
     assert.equal(audit.ok, true);
     assert.equal(audit.schema_version, "dizzy.client_continuity.audit.v1");
     assert.equal(audit.conversation_key, conversationKey);
-    assert.equal(audit.counts.history_rows, 1);
+    assert.equal(audit.audit_basis, "best_effort_reconstruction_from_local_logs_and_receipts");
+    assert.equal(audit.proof_limit, "not_tamper_proof_or_cryptographic");
+    assert.equal(audit.certainty, "partial_reconstruction_with_anomalies");
+    assert.equal(audit.counts.history_rows, 2);
     assert.equal(audit.counts.conversation_rows, 1);
+    assert.equal(audit.counts.malformed_history_rows, 1);
+    assert.equal(audit.counts.malformed_conversation_rows, 1);
+    assert.equal(audit.counts.anomalies, 4);
     assert.deepEqual(audit.boundary.trust_zones, ["paid_public"]);
     assert.deepEqual(audit.boundary.retention_scopes, ["conversation_only"]);
     assert.deepEqual(audit.boundary.blocked_context, ["private_memory", "repo_docs"]);
@@ -2842,6 +2876,7 @@ function testOperatorContinuityCli() {
       "memory/topics/legacy-retrieved.md",
     ]);
     assert.deepEqual(audit.retrieval.trajectory_ids, ["trajectory-legacy"]);
+    assert.deepEqual(audit.retrieval.filtered_scope, ["query_token_matches_only"]);
     assert.deepEqual(audit.retrieval.filtered_files, [{
       path: "memory/topics/blocked.md",
       reason: "zone_restricted",
@@ -2851,6 +2886,15 @@ function testOperatorContinuityCli() {
     assert.equal(audit.skills.manifests[0].name, "legacy-skill");
     assert.equal(path.isAbsolute(audit.source.history_path), false);
     assert.equal(path.isAbsolute(audit.source.conversation_path), false);
+    assert.equal(audit.source.conversation_file_exists, true);
+    assert.equal(audit.provenance.retrieval, "persisted capability receipt claims, not live re-retrieval");
+    assert.equal(audit.revocation.delete_command, `node scripts/operator_continuity.mjs delete ${conversationKey}`);
+    assert.deepEqual(audit.integrity.anomalies.map((item) => item.kind).sort(), [
+      "conversation_file_has_malformed_rows",
+      "history_file_has_malformed_rows",
+      "missing_capability_receipt",
+      "retrieval_reported_while_repo_retrieval_blocked",
+    ]);
     assert.doesNotMatch(JSON.stringify(audit), /supersecretvalue123/);
 
     const auditRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "audit", conversationKey, "--json"], { cwd: process.cwd(), env, encoding: "utf8" });
@@ -2858,21 +2902,32 @@ function testOperatorContinuityCli() {
     const auditBody = JSON.parse(auditRun.stdout);
     assert.equal(auditBody.schema_version, "dizzy.client_continuity.audit.v1");
     assert.equal(auditBody.conversation_key, conversationKey);
+    assert.equal(auditBody.audit_basis, "best_effort_reconstruction_from_local_logs_and_receipts");
+    assert.equal(auditBody.certainty, "partial_reconstruction_with_anomalies");
     assert.deepEqual(auditBody.boundary.blocked_context, ["private_memory", "repo_docs"]);
     assert.equal(auditBody.retrieval.filtered_files[0].reason, "zone_restricted");
+    assert.equal(auditBody.integrity.status, "review_anomalies");
     assert.doesNotMatch(auditRun.stdout, /supersecretvalue123/);
 
     const humanAuditRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "audit", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
     assert.equal(humanAuditRun.status, 0, humanAuditRun.stderr);
     assert.match(humanAuditRun.stdout, /Continuity audit:/);
-    assert.match(humanAuditRun.stdout, /Filtered retrieval decisions:/);
+    assert.match(humanAuditRun.stdout, /audit_basis=best_effort_reconstruction_from_local_logs_and_receipts/);
+    assert.match(humanAuditRun.stdout, /proof_limit=not_tamper_proof_or_cryptographic/);
+    assert.match(humanAuditRun.stdout, /certainty=partial_reconstruction_with_anomalies/);
+    assert.match(humanAuditRun.stdout, /source\.history=/);
+    assert.match(humanAuditRun.stdout, /repo_retrieval_allowed=no/);
+    assert.match(humanAuditRun.stdout, /Retrieved files reported by receipts:/);
+    assert.match(humanAuditRun.stdout, /Filtered retrieval decisions \(query_token_matches_only\):/);
+    assert.match(humanAuditRun.stdout, /Anomalies:/);
+    assert.match(humanAuditRun.stdout, /revocation_command=node scripts\/operator_continuity\.mjs delete/);
 
     const exportRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "export", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
     assert.equal(exportRun.status, 0, exportRun.stderr);
     assert.doesNotMatch(exportRun.stdout, /supersecretvalue123/);
     const exportBody = JSON.parse(exportRun.stdout);
     assert.equal(exportBody.conversation_key, conversationKey);
-    assert.equal(exportBody.counts.history_rows, 1);
+    assert.equal(exportBody.counts.history_rows, 2);
     assert.equal(exportBody.counts.conversation_rows, 1);
     assert.equal(exportBody.conversation[0].meta.api_key, "[REDACTED]");
 
@@ -2881,11 +2936,19 @@ function testOperatorContinuityCli() {
     const deleteBody = JSON.parse(deleteRun.stdout);
     assert.equal(deleteBody.deleted, true);
     assert.equal(deleteBody.conversation_key, conversationKey);
-    assert.equal(deleteBody.removed_history_rows, 1);
+    assert.equal(deleteBody.removed_history_rows, 2);
     assert.equal(fs.existsSync(conversationPath), false);
-    assert.equal(fs.readFileSync(historyPath, "utf8").trim(), "");
+    assert.match(fs.readFileSync(historyPath, "utf8").trim(), /"malformed":true/);
     const deletionRows = fs.readFileSync(deletionPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
     assert.equal(deletionRows[0].reason, "operator_cli_delete");
+
+    const postDeleteAudit = buildContinuityAudit({ conversation_key: conversationKey, historyPath, conversationsDir, deletionPath });
+    assert.equal(postDeleteAudit.counts.history_rows, 0);
+    assert.equal(postDeleteAudit.counts.conversation_rows, 0);
+    assert.equal(postDeleteAudit.source.conversation_file_exists, false);
+    assert.equal(postDeleteAudit.counts.deletion_events, 1);
+    assert.equal(postDeleteAudit.revocation.latest_deleted_at, deletionRows[0].t);
+    assert.equal(postDeleteAudit.certainty, "partial_reconstruction_with_anomalies");
   } finally {
     fs.rmSync(historyPath, { force: true });
     fs.rmSync(conversationsDir, { recursive: true, force: true });
