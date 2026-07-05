@@ -72,9 +72,15 @@ DELETE /agent/continuity
 POST /agent/continuity/prune
 ```
 
-After deletion or expiry pruning removes a continuity file and its history rows, the export route should return an empty export for that conversation key rather than resurrect deleted records.
+After deletion or expiry pruning removes a continuity file and its history rows, the export route (or the CLI/dashboard equivalents) returns an empty export for that conversation key rather than resurrecting deleted records.
 
-Deletion events are logged through the client-continuity deletion log. That log is an operator audit surface, not part of the client continuity export.
+Deletion events are logged through the client-continuity deletion log (`runtime/client_continuity_deletions.jsonl`). That log is a local operator audit surface, not part of the client continuity export.
+
+For a full revocation audit in practice, the operator can:
+- List current records via the CLI (`node scripts/operator_continuity.mjs list`) or the loopback dashboard (`/dashboard` Console tab).
+- Export the target record for inspection before deletion.
+- Delete the record (`node scripts/operator_continuity.mjs delete <key>` or click **Revoke** on the dashboard).
+- Verify the conversation file is deleted, history rows are purged, and the deletion is logged.
 
 ## Formats
 

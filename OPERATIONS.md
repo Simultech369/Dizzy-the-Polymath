@@ -378,6 +378,11 @@ To prevent accidental data retention or authority leaks, client-facing operation
 2. The operator retains direct authority to audit, inspect, and revoke these records.
 3. The operator can run off-server CLI inspection (`node scripts/operator_continuity.mjs list/export/delete`) or loopback-only dashboard controls (`/dashboard` Console tab) to view capability/retrieval receipts and instantly delete/purge conversation histories.
 
+Client continuity remains strictly local; no cloud sync or external sharing surfaces exist. A boundary is verified in practice by:
+- Inspecting the `capability_receipt` in the execution response or dashboard to verify blocked skills and retrieval boundaries.
+- Running the CLI tool (`node scripts/operator_continuity.mjs list`) or checking the dashboard to ensure no unexpected continuity files are written.
+- Confirming that deletions remove files from `runtime/conversations/` and append entries to `runtime/client_continuity_deletions.jsonl`.
+
 ---
 
 # Final Principle
