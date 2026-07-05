@@ -17,6 +17,16 @@ The route returns `dizzy.client_continuity.export.v1`.
 
 The route relies on the same server boundary as other `/agent/*` routes: global bearer authentication when `DIZZY_AUTH_TOKEN` is configured, and loopback-only startup rules in unauthenticated `direct_local` mode. Do not expose continuity export over non-loopback, proxied, hosted, or client-facing surfaces without strong `DIZZY_AUTH_TOKEN` protection and an explicit scoped export design.
 
+Local operator inspection does not require launching the HTTP server:
+
+```text
+node scripts/operator_continuity.mjs list
+node scripts/operator_continuity.mjs export <conversation_key>
+node scripts/operator_continuity.mjs delete <conversation_key>
+```
+
+The CLI is an operator/admin tool. It reads the active execution history and conversation directory, uses the same scrubbed export helper as the HTTP route, and uses the same deletion helper as `/agent/continuity`.
+
 ## Exported Data
 
 The JSON export may include:

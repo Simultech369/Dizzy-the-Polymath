@@ -2630,6 +2630,81 @@ function testClientContinuityExpiryPrune() {
   fs.rmSync(automationReceiptPath, { force: true });
 }
 
+function testOperatorContinuityCli() {
+  const historyPath = path.resolve(process.cwd(), "runtime", "test-operator-continuity-history.jsonl");
+  const conversationsDir = path.resolve(process.cwd(), "runtime", "test-operator-continuity-conversations");
+  const deletionPath = path.resolve(process.cwd(), "runtime", "test-operator-continuity-deletions.jsonl");
+  fs.rmSync(historyPath, { force: true });
+  fs.rmSync(conversationsDir, { recursive: true, force: true });
+  fs.rmSync(deletionPath, { force: true });
+
+  const conversationKey = buildClientConversationKey({ client_id: "CLI Client", service_id: "Review" });
+  const conversationPath = conversationPathForKey(conversationKey, conversationsDir);
+  fs.mkdirSync(path.dirname(conversationPath), { recursive: true });
+  fs.writeFileSync(conversationPath, `${JSON.stringify({
+    role: "user",
+    text: "continuity CLI export should redact API_KEY=supersecretvalue123",
+    meta: { api_key: "supersecretvalue123" },
+  })}\n`, "utf8");
+  fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+  fs.writeFileSync(historyPath, `${JSON.stringify({
+    t: "2026-07-04T00:00:00.000Z",
+    route: "/agent/execute",
+    trust_zone: "paid_public",
+    service_id: "review",
+    client_id: "cli_client",
+    continuity_mode: "client",
+    retention_scope: "conversation_only",
+    conversation_key: conversationKey,
+  })}\n`, "utf8");
+
+  const env = {
+    ...process.env,
+    DIZZY_EXECUTION_HISTORY_PATH: historyPath,
+    DIZZY_CONVERSATION_DIR: conversationsDir,
+    DIZZY_CLIENT_CONTINUITY_DELETION_LOG: deletionPath,
+    DIZZY_CLIENT_CONTINUITY_EXPIRY_DAYS: "7",
+  };
+
+  try {
+    const listRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "list", "--json"], { cwd: process.cwd(), env, encoding: "utf8" });
+    assert.equal(listRun.status, 0, listRun.stderr);
+    const listBody = JSON.parse(listRun.stdout);
+    assert.equal(listBody.schema_version, "dizzy.operator_continuity.list.v1");
+    assert.equal(listBody.counts.records, 1);
+    assert.equal(listBody.records[0].conversation_key, conversationKey);
+    assert.equal(listBody.records[0].client_id, "cli_client");
+    assert.equal(listBody.records[0].service_id, "review");
+    assert.equal(listBody.records[0].file.exists, true);
+    assert.equal(listBody.records[0].history.rows, 1);
+    assert.equal(path.isAbsolute(listBody.records[0].file.path), false);
+
+    const exportRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "export", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
+    assert.equal(exportRun.status, 0, exportRun.stderr);
+    assert.doesNotMatch(exportRun.stdout, /supersecretvalue123/);
+    const exportBody = JSON.parse(exportRun.stdout);
+    assert.equal(exportBody.conversation_key, conversationKey);
+    assert.equal(exportBody.counts.history_rows, 1);
+    assert.equal(exportBody.counts.conversation_rows, 1);
+    assert.equal(exportBody.conversation[0].meta.api_key, "[REDACTED]");
+
+    const deleteRun = spawnSync(process.execPath, ["scripts/operator_continuity.mjs", "delete", conversationKey], { cwd: process.cwd(), env, encoding: "utf8" });
+    assert.equal(deleteRun.status, 0, deleteRun.stderr);
+    const deleteBody = JSON.parse(deleteRun.stdout);
+    assert.equal(deleteBody.deleted, true);
+    assert.equal(deleteBody.conversation_key, conversationKey);
+    assert.equal(deleteBody.removed_history_rows, 1);
+    assert.equal(fs.existsSync(conversationPath), false);
+    assert.equal(fs.readFileSync(historyPath, "utf8").trim(), "");
+    const deletionRows = fs.readFileSync(deletionPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+    assert.equal(deletionRows[0].reason, "operator_cli_delete");
+  } finally {
+    fs.rmSync(historyPath, { force: true });
+    fs.rmSync(conversationsDir, { recursive: true, force: true });
+    fs.rmSync(deletionPath, { force: true });
+  }
+}
+
 async function testClientContinuityPruneRunsOffExecuteHotPath() {
   let pruneCalls = 0;
   const started = await startServer({
@@ -3163,6 +3238,7 @@ testTrajectoryDistilleryManualPath();
 testMemoryMetabolismReportMode();
 testFrictionLedgerManualPath();
 testClientContinuityExpiryPrune();
+testOperatorContinuityCli();
 await testClientContinuityPruneRunsOffExecuteHotPath();
 await testClientContinuityExportRequiresAuthWhenConfigured();
 await testCommandAvailabilityWithoutChatBackend();
