@@ -986,12 +986,45 @@ function testCapabilityReceipts() {
   assert.equal(paidReceipt.blocked_context.includes("private_memory"), true);
   assert.equal(paidReceipt.blocked_context.includes("repo_docs"), true);
 
+  const paidReceiptWithLeakyAudit = buildCapabilityReceipt(
+    { channel: "execute", runtime_context: { trust_zone: "paid_public", continuity_mode: "client" } },
+    {
+      retrieved_files: ["memory/topics/private-note.md"],
+      retrieval_audit: {
+        rag: {
+          count: 1,
+          files: ["memory/topics/private-note.md"],
+          filtered: [{ path: "memory/topics/private-note.md", reason: "zone_restricted", details: "private" }],
+        },
+        memory_graph: { count: 1, files: ["memory/topics/private-note.md"] },
+        trajectories: { count: 1, ids: ["private-trajectory"] },
+      },
+      retrieval_sources: [
+        { source_type: "trusted_markdown", label: "rag", authority: "supporting_context", fallback_path: "local_markdown_index", count: 1, items: [{ id: "memory/topics/private-note.md" }] },
+      ],
+    },
+  );
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieved_files, []);
+  assert.equal(paidReceiptWithLeakyAudit.retrieved_count, 0);
+  assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.rag.count, 0);
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.rag.files, []);
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.rag.filtered, []);
+  assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.memory_graph.count, 0);
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.memory_graph.files, []);
+  assert.equal(paidReceiptWithLeakyAudit.retrieval_audit.trajectories.count, 0);
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.trajectories.ids, []);
+  assert.deepEqual(paidReceiptWithLeakyAudit.retrieval_audit.sources, []);
+
   const privateReceipt = buildCapabilityReceipt(
     { channel: "local", runtime_context: { trusted_local: true, trust_zone: "private_self", purpose: "maintain_private_context" } },
     {
       retrieved_files: ["MEMORY.md", "memory/topics/civic-doctrine-kernel.md"],
       retrieval_audit: {
-        rag: { count: 1, files: ["MEMORY.md"] },
+        rag: {
+          count: 1,
+          files: ["MEMORY.md"],
+          filtered: [{ path: "memory/topics/revoked.md", reason: "revoked", details: "memory_status=revoked" }],
+        },
         memory_graph: { count: 1, files: ["memory/topics/civic-doctrine-kernel.md"] },
         trajectories: { count: 0, ids: [] },
       },
@@ -1009,6 +1042,9 @@ function testCapabilityReceipts() {
   assert.equal(privateReceipt.retrieval_audit.allowed, true);
   assert.equal(privateReceipt.retrieval_audit.blocked_reason, "");
   assert.equal(privateReceipt.retrieval_audit.rag.count, 1);
+  assert.deepEqual(privateReceipt.retrieval_audit.rag.filtered, [
+    { path: "memory/topics/revoked.md", reason: "revoked", details: "memory_status=revoked" },
+  ]);
   assert.equal(privateReceipt.retrieval_audit.memory_graph.count, 1);
   assert.equal(privateReceipt.retrieval_audit.fallback_path, "trusted_markdown -> memory_graph -> trajectory_ledger");
   assert.equal(privateReceipt.retrieval_audit.sources[0].source_type, "trusted_markdown");
@@ -2323,6 +2359,72 @@ function testDailyLogFilenameDecayProvenance() {
 
 testDailyLogFilenameDecayProvenance();
 
+function testRAGFilteredExplainability() {
+  const revokedPath = path.resolve(process.cwd(), "memory", "topics", "test-revoked-doc.md");
+  const restrictedPath = path.resolve(process.cwd(), "memory", "topics", "test-restricted-doc.md");
+  const zeroPath = path.resolve(process.cwd(), "memory", "topics", "test-zero-score-doc.md");
+
+  fs.writeFileSync(revokedPath, `---
+memory_class: user_claim
+memory_status: revoked
+confidence: 1.0
+---
+# Revoked content
+This is some revokedexplainabilityneedle content that is revoked.
+`, "utf8");
+
+  fs.writeFileSync(restrictedPath, `---
+memory_class: user_claim
+zone_allowed: private_self
+confidence: 1.0
+---
+# Restricted content
+This is some restrictedexplainabilityneedle content that is restricted.
+`, "utf8");
+
+  fs.writeFileSync(zeroPath, `---
+memory_class: user_claim
+confidence: 0
+---
+# Zero-score content
+This is some zeroexplainabilityneedle content that has a matching token but no usable score.
+`, "utf8");
+
+  try {
+    resetMarkdownIndexCacheForTests();
+
+    const snippetsRevoked = getRelevantMarkdownSnippets("revokedexplainabilityneedle", { k: 4, trustZone: "private_self" });
+    assert.equal(snippetsRevoked.length, 0);
+    assert.equal(Array.isArray(snippetsRevoked.filtered), true);
+    const revItem = snippetsRevoked.filtered.find((item) => item.path.endsWith("test-revoked-doc.md"));
+    assert.ok(revItem);
+    assert.equal(revItem.reason, "revoked");
+    assert.equal(revItem.details, "memory_status=revoked");
+
+    const snippetsRestricted = getRelevantMarkdownSnippets("restrictedexplainabilityneedle", { k: 4, trustZone: "paid_public" });
+    assert.equal(snippetsRestricted.length, 0);
+    assert.equal(Array.isArray(snippetsRestricted.filtered), true);
+    const restItem = snippetsRestricted.filtered.find((item) => item.path.endsWith("test-restricted-doc.md"));
+    assert.ok(restItem);
+    assert.equal(restItem.reason, "zone_restricted");
+    assert.equal(restItem.details, "zone_allowed=private_self, active_zone=paid_public");
+
+    const snippetsZero = getRelevantMarkdownSnippets("zeroexplainabilityneedle", { k: 4, trustZone: "private_self" });
+    assert.equal(snippetsZero.length, 0);
+    assert.equal(Array.isArray(snippetsZero.filtered), true);
+    const zeroItem = snippetsZero.filtered.find((item) => item.path.endsWith("test-zero-score-doc.md"));
+    assert.ok(zeroItem);
+    assert.equal(zeroItem.reason, "score_zero_or_decayed");
+    assert.match(zeroItem.details, /confidence=0/);
+
+  } finally {
+    fs.rmSync(revokedPath, { force: true });
+    fs.rmSync(restrictedPath, { force: true });
+    fs.rmSync(zeroPath, { force: true });
+    resetMarkdownIndexCacheForTests();
+  }
+}
+
 async function testAgentExecuteContinuityLifecycleResponse() {
   const oldBackend = process.env.DIZZY_CHAT_BACKEND;
   const oldHistoryPath = process.env.DIZZY_EXECUTION_HISTORY_PATH;
@@ -3228,6 +3330,7 @@ testFrontmatterStrip();
 testMemoryGraph();
 testMarkdownRetrieverSignals();
 testClassAwareMemoryDecay();
+testRAGFilteredExplainability();
 testMarkdownRetrieverExcludesUntrustedRoots();
 testMarkdownRetrieverAuthorityTieBreaks();
 testRetrieverDoesNotCreateMatchesFromTopicBias();
