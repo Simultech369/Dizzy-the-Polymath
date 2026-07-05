@@ -79,8 +79,11 @@ function testDurableWritePolicy() {
     payload: "Store API_KEY=supersecretvalue123 in durable memory for later use.",
   }).reason, "secret_material_detected");
   assert.match(redactSecretMaterial("API_KEY=supersecretvalue123"), /API_KEY=\[REDACTED\]/);
+  assert.equal(redactSecretMaterial("API_KEY = supersecretvalue123"), "API_KEY = [REDACTED]");
   assert.equal(redactSecretMaterial("API_KEY=\"supersecretvalue123\""), "API_KEY=\"[REDACTED]\"");
   assert.equal(redactSecretMaterial("API_KEY='supersecretvalue123'"), "API_KEY='[REDACTED]'");
+  assert.equal(redactSecretMaterial("API_KEY=`supersecretvalue123`"), "API_KEY=`[REDACTED]`");
+  assert.equal(redactSecretMaterial("API_KEY = `supersecretvalue123`"), "API_KEY = `[REDACTED]`");
   for (const input of [
     "{\"token\":\"my-secret-value\"}",
     "{\"token\": \"my-secret-value\"}",
@@ -98,8 +101,16 @@ function testDurableWritePolicy() {
     assert.match(redacted, /\\\"token\\\"/);
     assert.match(redacted, /\\\"\[REDACTED\]\\\"/);
   }
+  for (const input of [
+    "{\\\\\\\"token\\\\\\\":\\\\\\\"my-secret-value\\\\\\\"}",
+    "{\\\\\\\"token\\\\\\\": \\\\\\\"my-secret-value\\\\\\\"}",
+  ]) {
+    assert.equal(redactSecretMaterial(input), input.replace("my-secret-value", "[REDACTED]"));
+  }
   assert.equal(redactSecretMaterial("authorization: Bearer abcdefghijk"), "authorization: Bearer [REDACTED]");
+  assert.equal(redactSecretMaterial("authorization = `Bearer abcdefghijk`"), "authorization = `Bearer [REDACTED]`");
   assert.equal(redactSecretMaterial("cookie=sessionsecret123;"), "cookie=[REDACTED];");
+  assert.equal(redactSecretMaterial("cookie = `sessionsecret123`;"), "cookie = `[REDACTED]`;");
   assert.match(redactSecretMaterial("token ghp_mockgithubtokenvalueextended"), /\[REDACTED_GITHUB_TOKEN\]/);
   assert.match(redactSecretMaterial("token sk-ant-mockanthropictokenextended"), /\[REDACTED_API_KEY\]/);
   assert.match(redactSecretMaterial("token xoxb-mockslacktokenvalueextended"), /\[REDACTED_SLACK_TOKEN\]/);
@@ -2550,6 +2561,34 @@ function testClientContinuityExpiryPrune() {
   assert.match(automationReceipt.reason, /Deleted 2 expired client continuity record/);
   assert.match(automationReceipt.veto_command, /DIZZY_CLIENT_CONTINUITY_EXPIRY_DAYS/);
 
+  const vanishingKey = buildClientConversationKey({ client_id: "Vanishing Client", service_id: "Review" });
+  const vanishingPath = conversationPathForKey(vanishingKey, conversationsDir);
+  fs.writeFileSync(vanishingPath, "{\"role\":\"user\",\"text\":\"vanishing\"}\n", "utf8");
+  const originalStatSync = fs.statSync;
+  fs.statSync = (target, ...args) => {
+    if (path.resolve(String(target)) === vanishingPath) {
+      const err = new Error("simulated concurrent delete");
+      err.code = "ENOENT";
+      throw err;
+    }
+    return originalStatSync.call(fs, target, ...args);
+  };
+  try {
+    const raceResult = pruneExpiredClientContinuity({
+      nowMs: Date.parse("2026-05-31T00:00:00.000Z"),
+      historyPath,
+      conversationsDir,
+      deletionPath,
+      automationReceiptPath,
+      expiryMs: 7 * 24 * 60 * 60 * 1000,
+    });
+    assert.equal(raceResult.deleted, 0);
+    assert.equal(raceResult.orphaned, 0);
+  } finally {
+    fs.statSync = originalStatSync;
+    fs.rmSync(vanishingPath, { force: true });
+  }
+
   const deleteResult = deleteClientContinuity({
     conversation_key: "execute/client/fresh client/review",
     historyPath,
@@ -2663,8 +2702,8 @@ function testMarkdownRetrieverAuthorityTieBreaks() {
 
   fs.rmSync(fixtureDir, { recursive: true, force: true });
   fs.mkdirSync(fixtureDir, { recursive: true });
+  writeFixture("B-operator.md", "operator_reviewed");
   writeFixture("a-operator.md", "operator_reviewed");
-  writeFixture("b-operator.md", "operator_reviewed");
   writeFixture("z-runtime.md", "runtime_generated");
   process.env.DIZZY_RAG_ROOT = fixtureRel;
   process.env.DIZZY_RAG_ALLOWED_ROOTS = fixtureRel;
@@ -2675,8 +2714,8 @@ function testMarkdownRetrieverAuthorityTieBreaks() {
     resetMarkdownIndexCacheForTests();
     const snippets = getRelevantMarkdownSnippets("authoritytiefixture identical claim", { k: 10, trustZone: "private_self" });
     assert.deepEqual(snippets.slice(0, 3).map((item) => item.path), [
+      "runtime/test-rag-authority/B-operator.md",
       "runtime/test-rag-authority/a-operator.md",
-      "runtime/test-rag-authority/b-operator.md",
       "runtime/test-rag-authority/z-runtime.md",
     ]);
   } finally {
