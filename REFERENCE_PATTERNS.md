@@ -10,6 +10,9 @@ Reviewed sources:
 - `ClaudioDrews/project-samantha`
 - `ClaudioDrews/icarus-plugin`
 - `quarqlabs/agent-oss`
+- `polyxmedia/mnemos`
+- `EurekaClaw/EurekaClaw`
+- `cmxdev1/MNEMOS`
 
 ## Intake Rule
 
@@ -32,6 +35,25 @@ Leave patterns unpromoted when they:
 - add heavy infrastructure before the simpler contract is proven
 - rank private continuity by commercial or engagement value
 - turn noisy session residue into durable authority
+
+## External Reference Hygiene
+
+Local clones under `_ext/` and `_external/` are research inputs, not first-party project surfaces.
+
+Default extraction target:
+
+- procedural memory: repeatable rules, workflows, failure contracts, and verification habits
+- correction memory: specific mistakes, why they were wrong, and the smallest reliable fix
+- skepticism patterns: gates, review loops, rollback paths, provenance checks, and claim/evidence separation
+
+Do not promote:
+
+- names, logos, slogans, README prose, screenshots, or visual identity
+- copied source code or distinctive structure unless the license and attribution path are explicitly reviewed
+- external project claims as Dizzy claims
+- clone inventory as client-facing proof of capability
+
+Public/product surfaces may generalize lessons learned from research, but must not launder provenance. If a source materially shapes a first-party mechanism, keep a private or repo-local provenance trail in this file, `DESIGN.md`, a decision record, or a review note. If distribution, license, or attribution duties apply, honor them instead of hiding the source.
 
 ## Memory OS
 
@@ -135,6 +157,72 @@ Reference-only unless a concrete need appears:
 - Automatic memory creation, update, or deletion.
 - Benchmark optimization.
 - Full LangGraph orchestration or broad tool routing.
+
+## Polyxmedia Mnemos
+
+Useful patterns:
+
+- Correction journal: store `tried / wrong_because / fix` instead of generic "remember this" residue.
+- Verification harness: test retrieval, behavior, and capture separately instead of claiming memory lift by vibe.
+- Composed prewarm: return a small session-start block of conventions, recent sessions, skills, corrections, and hot files.
+- Write-time prompt-injection scan: treat memory writes as an attack surface before they can appear in future context.
+- Deterministic skill promotion: promote repeated corrections into procedural guidance without an LLM silently deciding authority.
+- Rumination/review of stale skills: require a falsifiable new prediction before editing a decayed skill.
+
+Translate into Dizzy:
+
+- Prefer procedural/correction memory for repeated operator or reviewer failures.
+- Add capture tests that prove whether corrections are actually recorded.
+- Keep prewarm/context recovery budgeted, source-labeled, and trust-zone aware.
+- Treat any auto-promoted skill as a proposal until reviewed through Dizzy's skill intake gate.
+
+Avoid:
+
+- Treating an external memory sidecar as Dizzy's memory authority.
+- Allowing MCP memory writes to bypass `MEMORY_OWNERSHIP.md`.
+- Turning every correction into a durable rule before repetition or outcome evidence exists.
+
+## EurekaClaw
+
+Useful patterns:
+
+- Research artifact review gates: generated papers, proofs, or experiments should survive a skeptical review loop before being treated as deliverable.
+- Rewrite rollback: revision workflows need backup, acceptance, and failure recovery instead of overwriting artifacts optimistically.
+- Session review: completed runs remain inspectable and can be questioned later without rerunning the whole pipeline.
+- UI gate failure handling: a dead or stale gate must not trap the operator.
+- Tool-backed Q&A: reviewer questions should cite the artifact section or tool result used as evidence.
+
+Translate into Dizzy:
+
+- Improve Dizzy's skepticism around generated artifacts: separate draft, reviewed, accepted, and delivered states.
+- Prefer no-edits reviewer passes that anchor branch/commit/status and return file/line evidence.
+- Add rollback/recovery expectations to any future rewrite or artifact-generation workflow.
+- Treat proof/research automation as a pattern source, not as an autonomous truth engine.
+
+Avoid:
+
+- Importing autonomous publishable-result claims.
+- Treating literature crawling, proof generation, or experiment running as safe defaults.
+- Copying EurekaClaw branding, UI language, or pipeline structure into first-party Dizzy surfaces.
+
+## cmxdev1 MNEMOS
+
+Useful patterns:
+
+- Wallet-owned encrypted memory vault framing: user-controlled portability and client-side encryption are valuable constraints.
+- Memory categories: goals, decisions, relationships, health, principles, and context are distinct classes with different sensitivity.
+- MCP access to a memory vault can separate storage from assistant runtime.
+
+Translate into Dizzy:
+
+- Use it as a reference for portability, encryption posture, and category separation.
+- Treat health, relationship, and principle memory as high-sensitivity surfaces requiring explicit scope and revocation.
+
+Avoid:
+
+- Making a hosted wallet/database provider authoritative for Dizzy continuity.
+- Importing product copy, brand language, or "your AI knows you" framing.
+- Assuming client-side encryption solves consent, deletion, or context-injection risk by itself.
 
 ## Dizzy Translation Queue
 

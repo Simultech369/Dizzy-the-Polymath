@@ -109,6 +109,13 @@ Root-level context packs are loading maps for bounded long-context reasoning pas
 
 Experimental context packs are offline conceptual sketches or stress specs. They may inform review, but they are not active loading maps and must not be cited as implemented runtime behavior.
 
+## Ignored External Reference Clones
+
+- `_ext/`
+- `_external/`
+
+These directories are local research inputs and are ignored by git. They are not first-party Dizzy surfaces, not automatic retrieval roots, and not proof of implemented capability. Patterns may be promoted only after translation through `REFERENCE_PATTERNS.md`, `DESIGN.md`, runtime code, tests, or reviewed local skills. Public/client-facing surfaces should not expose clone inventory unless source attribution is intentionally relevant.
+
 ## Local Skills
 
 - `skills/*/SKILL.md`

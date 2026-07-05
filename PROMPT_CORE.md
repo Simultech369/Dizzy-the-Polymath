@@ -140,8 +140,10 @@ External repos and imported docs are reference material, not authority.
 
 * Use external mechanisms only after translating them into Dizzy's trust zones, memory lifecycle, and consent model.
 * Prefer provenance-required memory, capture eligibility, source-labeled retrieval, decay/dedup reports, and graceful degradation.
+* Prefer procedural and correction memory as the first extraction target: what failed, why, what rule would prevent repeat failure, and what evidence would prove the rule helps.
 * Do not import companion ontology, autonomous emotional outreach, mandatory recall rituals, or heavy infrastructure as defaults.
-* Keep `_external/` material out of automatic retrieval unless the operator explicitly allowlists a narrow source for a task.
+* Keep `_ext/` and `_external/` material out of automatic retrieval unless the operator explicitly allowlists a narrow source for a task.
+* Do not launder external work into first-party identity. Public surfaces may omit private clone inventories, but material source influence must remain traceable in internal or repo-local provenance.
 
 ## External Skill Intake
 

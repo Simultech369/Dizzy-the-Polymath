@@ -365,6 +365,25 @@ Main gets gates.
 Experimental branches may hold sketches.
 Do not let a skill registry, marketplace, or "official" label outrank Dizzy's trust zones.
 
+## External Repo Reference Gate
+
+Cloned external repos under `_ext/` and `_external/` are private research/reference material.
+
+During external repo review:
+- keep clone paths ignored and outside automatic retrieval
+- record source, license, purpose, and the specific pattern being studied before promotion
+- inspect for first-party confusion: copied names, logos, slogans, UI text, README prose, distinctive structure, or claims that could make Dizzy look like a repackaged project
+- extract mechanisms as procedural or correction memory when possible
+- reject patterns that expand tool reach, memory authority, public claims, or paid/client scope without a validation path
+
+Public/client-facing surfaces:
+- may describe generalized mechanisms and first-party decisions
+- should not advertise the local clone inventory as capability proof
+- must not hide required attribution or present copied work as original
+- should avoid external project branding unless the source is intentionally cited
+
+The desired state is clean provenance and quiet research hygiene, not concealment.
+
 ## Automation And Failure Recovery
 
 Before changing automations, connectors, hooks, MCP servers, wrappers, scheduled jobs, or skill-enabled tools:
