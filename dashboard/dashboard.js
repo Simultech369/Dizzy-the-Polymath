@@ -746,3 +746,48 @@ document.getElementById("btn-run-simulation").addEventListener("click", async ()
 loadData();
 loadContinuityRecords();
 loadGovernanceData();
+
+// Developer Mode Toggle initialization
+const devModeCheckbox = document.getElementById("dev-mode-checkbox");
+if (devModeCheckbox) {
+  // Default to off (add dev-mode-off class to body)
+  document.body.classList.add("dev-mode-off");
+  devModeCheckbox.addEventListener("change", () => {
+    if (devModeCheckbox.checked) {
+      document.body.classList.remove("dev-mode-off");
+    } else {
+      document.body.classList.add("dev-mode-off");
+    }
+  });
+}
+
+// Download Audit Report listener
+const downloadBtn = document.getElementById("btn-download-audit-report");
+if (downloadBtn) {
+  downloadBtn.addEventListener("click", async () => {
+    try {
+      const data = await fetchJson("/api/dashboard-data");
+      const consensus = await fetchJson("/api/operator/consensus-map");
+      const report = {
+        disclaimer: "WARNING: THIS REPORT IS A BEST-EFFORT RECONSTRUCTION AND IS NOT TAMPER-PROOF OR CRYPTOGRAPHICALLY SECURE.",
+        generated_at: new Date().toISOString(),
+        projection: data.projection,
+        prompt_sources: data.prompt_sources,
+        docs: data.docs,
+        consensus_state: consensus
+      };
+      
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dizzy-audit-report-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Failed to download audit report: " + error.message);
+    }
+  });
+}

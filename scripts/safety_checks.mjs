@@ -4854,11 +4854,52 @@ async function testQueueIdempotency() {
   console.log("-> Queue enqueuing idempotency checks passed");
 }
 
+async function testConsensusStateTransitions() {
+  const { getConsensusState, signOffOperator, vetoOperator, initializeNewProposal } = await import("../lib/consensus.mjs");
+  const statePath = path.resolve(process.cwd(), "runtime", "consensus_state.json");
+  
+  fs.rmSync(statePath, { force: true });
+  fs.rmSync(`${statePath}.lock`, { force: true });
+
+  const defaultState = getConsensusState();
+  assert.equal(defaultState.consensus_status, "Awaiting Operator");
+  assert.equal(defaultState.signing_chain.antigravity, "PENDING");
+  assert.equal(defaultState.signing_chain.codex, "SIGNED");
+  assert.equal(defaultState.signing_chain.openclaude, "SIGNED");
+
+  const signoffRes = signOffOperator();
+  assert.equal(signoffRes.consensus_status, "Consensus Reached");
+  assert.equal(signoffRes.signing_chain.antigravity, "SIGNED");
+
+  const persistedState = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  assert.equal(persistedState.consensus_status, "Consensus Reached");
+  assert.equal(persistedState.signing_chain.antigravity, "SIGNED");
+
+  const vetoRes = vetoOperator();
+  assert.equal(vetoRes.consensus_status, "Vetoed");
+  assert.equal(vetoRes.signing_chain.codex, "VETOED");
+  assert.equal(vetoRes.signing_chain.openclaude, "VETOED");
+  assert.equal(vetoRes.signing_chain.antigravity, "VETOED");
+
+  const persistedVeto = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  assert.equal(persistedVeto.consensus_status, "Vetoed");
+  assert.equal(persistedVeto.signing_chain.codex, "VETOED");
+
+  const newProposal = initializeNewProposal();
+  assert.equal(newProposal.consensus_status, "Awaiting Operator");
+  assert.equal(newProposal.signing_chain.antigravity, "PENDING");
+
+  fs.rmSync(statePath, { force: true });
+  fs.rmSync(`${statePath}.lock`, { force: true });
+  console.log("-> Consensus state transitions checks passed");
+}
+
 await testRateLimiting();
 await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 await testNewHardeningFeatures();
 await testQueueIdempotency();
+await testConsensusStateTransitions();
 
 console.log("SAFETY_CHECKS_OK");

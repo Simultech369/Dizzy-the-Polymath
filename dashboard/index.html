@@ -745,6 +745,10 @@
         stroke-dashoffset: -1000;
       }
     }
+
+    body.dev-mode-off .dev-only {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -756,7 +760,16 @@
         <div class="title-sub">Drift & Epistemic Memory Dashboard</div>
       </div>
     </div>
-    <span class="badge badge-emerald">Online</span>
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <button class="btn btn-secondary btn-small" id="btn-download-audit-report" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
+        📥 Download Audit Report
+      </button>
+      <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; cursor: pointer; user-select: none; color: var(--text-muted);">
+        <input type="checkbox" id="dev-mode-checkbox" style="accent-color: var(--primary);">
+        Developer Mode
+      </label>
+      <span class="badge badge-emerald">Online</span>
+    </div>
   </header>
 
   <div class="grid">
@@ -899,7 +912,7 @@
             <h3>Bounded Inference &amp; Routing Monitor</h3>
             <div id="routing-warning-banner"></div>
             <div class="field-stack" style="margin-top: 1rem;">
-              <div class="metric-row">
+              <div class="metric-row dev-only">
                 <span class="metric-label">System Memory / VRAM:</span>
                 <div class="progress-wrap">
                   <div class="bar-container" style="width: 150px; height: 16px; border-radius: 8px;">
@@ -914,12 +927,12 @@
                 <span id="active-model-route" class="badge badge-primary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Loading...</span>
               </div>
 
-              <div class="metric-row">
+              <div class="metric-row dev-only">
                 <span class="metric-label">Routing Logic Basis:</span>
                 <span id="active-routing-basis" style="color: var(--text-muted); font-size: 0.875rem;">Loading...</span>
               </div>
 
-              <div class="metric-row">
+              <div class="metric-row dev-only">
                 <span class="metric-label">Context Compression Ratio:</span>
                 <div class="progress-wrap">
                   <div class="bar-container" style="width: 150px; height: 16px; border-radius: 8px;">
@@ -983,7 +996,7 @@
           </div>
 
           <!-- Sandbox Simulation Terminal (System C) -->
-          <div class="console-panel console-panel-receipt">
+          <div class="console-panel console-panel-receipt dev-only">
             <h3>Sandbox Simulation Terminal</h3>
             <div class="field-stack" style="margin-top: 1rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
