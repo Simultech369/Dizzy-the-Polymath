@@ -586,6 +586,165 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .governance-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .governance-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .consensus-map-container {
+      width: 100%;
+      min-height: 120px !important;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fef3c7;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .consensus-coordinate-container {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      background: radial-gradient(circle, rgba(16, 24, 48, 0.9) 0%, rgba(5, 7, 12, 0.95) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+      margin-bottom: 1rem;
+    }
+
+    .coordinate-grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .consensus-node {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .consensus-node::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      right: -6px;
+      bottom: -6px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,255,255,0.25);
+      animation: spin 8s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .consensus-node:hover {
+      width: 18px;
+      height: 18px;
+      box-shadow: 0 0 25px currentColor;
+    }
+
+    .node-tooltip {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      background: rgba(11, 15, 25, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      color: var(--text-main);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .validator-chain-svg {
+      width: 100%;
+      height: 90px;
+      background: rgba(5, 7, 12, 0.4);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 0.5rem;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .chain-node-circle {
+      transition: fill 0.3s, stroke 0.3s, filter 0.3s;
+    }
+
+    .chain-connection-line {
+      stroke-dasharray: 8;
+      animation: dash-pulse 20s linear infinite;
+    }
+
+    @keyframes dash-pulse {
+      to {
+        stroke-dashoffset: -1000;
+      }
+    }
   </style>
 </head>
 <body>
@@ -619,6 +778,7 @@
         <div class="tab active" data-tab-target="tab-memory">Memory Database</div>
         <div class="tab" data-tab-target="tab-search">Sieve Retrieval Tester</div>
         <div class="tab" data-tab-target="tab-console">Operator Console</div>
+        <div class="tab" data-tab-target="tab-governance">Governance &amp; Routing</div>
       </div>
 
       <!-- Tab 1: Memory Database -->
@@ -727,6 +887,111 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Governance & Routing -->
+      <div id="tab-governance" class="tab-content">
+        <div class="governance-grid">
+          <!-- Bounded Inference & Routing Monitor (System A) -->
+          <div class="console-panel">
+            <h3>Bounded Inference &amp; Routing Monitor</h3>
+            <div id="routing-warning-banner"></div>
+            <div class="field-stack" style="margin-top: 1rem;">
+              <div class="metric-row">
+                <span class="metric-label">System Memory / VRAM:</span>
+                <div class="progress-wrap">
+                  <div class="bar-container" style="width: 150px; height: 16px; border-radius: 8px;">
+                    <div id="vram-bar-fill" class="bar-fill" style="width: 0%; background: var(--emerald);"></div>
+                  </div>
+                  <span id="vram-val" class="metric-value" style="font-size: 0.9rem;">Loading...</span>
+                </div>
+              </div>
+              
+              <div class="metric-row">
+                <span class="metric-label">Active Model Routing:</span>
+                <span id="active-model-route" class="badge badge-primary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Loading...</span>
+              </div>
+
+              <div class="metric-row">
+                <span class="metric-label">Routing Logic Basis:</span>
+                <span id="active-routing-basis" style="color: var(--text-muted); font-size: 0.875rem;">Loading...</span>
+              </div>
+
+              <div class="metric-row">
+                <span class="metric-label">Context Compression Ratio:</span>
+                <div class="progress-wrap">
+                  <div class="bar-container" style="width: 150px; height: 16px; border-radius: 8px;">
+                    <div id="compression-bar-fill" class="bar-fill" style="width: 0%; background: var(--primary);"></div>
+                  </div>
+                  <span id="compression-val" class="metric-value" style="font-size: 0.9rem;">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pluralistic Consensus & Operator Veto (System B) -->
+          <div class="console-panel">
+            <h3>Pluralistic Consensus &amp; Governance</h3>
+            <div class="field-stack" style="margin-top: 1rem;">
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+                <span class="metric-label">Multi-Agent Validator Signing Chain:</span>
+                <svg class="validator-chain-svg" viewBox="0 0 400 80">
+                  <defs>
+                    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <line x1="80" y1="40" x2="200" y2="40" stroke="#22304d" stroke-width="3" id="line-codex-openclaude" class="chain-connection-line" />
+                  <line x1="200" y1="40" x2="320" y2="40" stroke="#22304d" stroke-width="3" id="line-openclaude-antigravity" class="chain-connection-line" />
+                  <circle cx="80" cy="40" r="16" fill="#161e31" stroke="#f59e0b" stroke-width="3" id="node-circle-codex" class="chain-node-circle" />
+                  <text x="80" y="44" fill="#f3f4f6" font-size="9" text-anchor="middle" font-family="monospace">CDX</text>
+                  <text x="80" y="68" fill="#9ca3af" font-size="8" text-anchor="middle" id="node-text-codex">PENDING</text>
+                  <circle cx="200" cy="40" r="16" fill="#161e31" stroke="#f59e0b" stroke-width="3" id="node-circle-openclaude" class="chain-node-circle" />
+                  <text x="200" y="44" fill="#f3f4f6" font-size="9" text-anchor="middle" font-family="monospace">OCD</text>
+                  <text x="200" y="68" fill="#9ca3af" font-size="8" text-anchor="middle" id="node-text-openclaude">PENDING</text>
+                  <circle cx="320" cy="40" r="16" fill="#161e31" stroke="#f59e0b" stroke-width="3" id="node-circle-antigravity" class="chain-node-circle" />
+                  <text x="320" y="44" fill="#f3f4f6" font-size="9" text-anchor="middle" font-family="monospace">AGV</text>
+                  <text x="320" y="68" fill="#9ca3af" font-size="8" text-anchor="middle" id="node-text-antigravity">PENDING</text>
+                </svg>
+              </div>
+
+              <div class="metric-row">
+                <span class="metric-label">Consensus Status:</span>
+                <span id="consensus-status-badge" class="badge badge-amber">Awaiting Operator</span>
+              </div>
+
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+                <span class="metric-label">Pluralistic Options Space Map (Friction Coordinates):</span>
+                <div class="consensus-coordinate-container" id="coordinate-map">
+                  <div class="coordinate-grid-overlay"></div>
+                  <div id="node-tooltip-element" class="node-tooltip">Hover over a proposal coordinate to inspect tension metrics.</div>
+                </div>
+                <div id="consensus-options-map" style="display:none;"></div>
+              </div>
+
+              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-success" id="btn-operator-signoff" style="flex: 1;">Explicit Operator Sign-Off</button>
+                <button class="btn btn-danger" id="btn-veto-override" style="flex: 1;">Veto Override</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sandbox Simulation Terminal (System C) -->
+          <div class="console-panel console-panel-receipt">
+            <h3>Sandbox Simulation Terminal</h3>
+            <div class="field-stack" style="margin-top: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="color: var(--text-muted); font-size: 0.875rem;">Dry-Run Preflight &amp; Red-Team Sanitization Checks</span>
+                <button class="btn btn-secondary btn-small" id="btn-run-simulation">Trigger Simulation Run</button>
+              </div>
+              <pre id="sandbox-terminal-log" style="background: #05070c; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.85rem; color: #10b981; max-height: 250px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;"></pre>
+            </div>
           </div>
         </div>
       </div>

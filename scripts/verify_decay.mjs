@@ -134,7 +134,7 @@ try {
   process.env.DIZZY_PROMPT_OVERLAYS = "overlays/verify-temp-expired.md,overlays/verify-temp-active.md";
   
   try {
-    const sources = getPromptSources();
+    const { sources } = getPromptSources();
     const hasExpired = sources.some(s => s.path.includes("verify-temp-expired.md"));
     const hasActive = sources.some(s => s.path.includes("verify-temp-active.md"));
     

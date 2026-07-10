@@ -298,6 +298,69 @@ function renderExportTrace(result, raw = result) {
   `, { focus: true });
 }
 
+function renderAuditList(title, items, formatter) {
+  if (!items?.length) {
+    return summaryCard({
+      title,
+      lines: ["None reported in persisted audit sources."],
+    });
+  }
+  return `
+    <div class="summary-card">
+      <div class="summary-title">${escapeHtml(title)}</div>
+      <div class="summary-lines">
+        ${items.map((item) => `<div>${escapeHtml(formatter(item))}</div>`).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderAuditTrace(audit, raw = audit) {
+  const recordState = audit.record_state || audit.integrity?.status || "unknown";
+  const retrievalStatus = audit.retrieval?.status || "unknown";
+  const tone = recordState === "failed"
+    ? "danger"
+    : recordState === "review_anomalies" || recordState === "deleted"
+      ? "warning"
+      : "";
+  const anomalies = audit.integrity?.anomalies || [];
+  setPanel("console-trace", `
+    ${summaryCard({
+      title: "Continuity audit",
+      tone,
+      lines: [
+        "Best-effort reconstruction from local logs and persisted receipts.",
+        `Proof limit: ${audit.proof_limit || "unknown"}`,
+        `Certainty: ${audit.certainty || "unknown"}`,
+      ],
+      facts: [
+        { label: "Record", value: audit.conversation_key || "unknown" },
+        { label: "Lifecycle", value: recordState },
+        { label: "Retrieval status", value: retrievalStatus },
+        { label: "History rows", value: String(audit.counts?.history_rows ?? 0) },
+        { label: "Conversation rows", value: String(audit.counts?.conversation_rows ?? 0) },
+        { label: "Deletion events", value: String(audit.counts?.deletion_events ?? 0) },
+        { label: "Anomalies", value: String(audit.counts?.anomalies ?? anomalies.length) },
+        { label: "Repo retrieval", value: boolLabel(audit.boundary?.repo_retrieval_allowed, "allowed", "blocked") },
+        { label: "Private memory", value: boolLabel(audit.boundary?.private_memory_access, "accessed", "not accessed") },
+      ],
+    })}
+    ${summaryCard({
+      title: "Audit sources",
+      lines: [
+        `History: ${audit.source?.history_path || "unknown"}`,
+        `Conversation: ${audit.source?.conversation_path || "none"} (${audit.source?.conversation_file_exists ? "exists" : "missing"})`,
+        `Deletion log: ${audit.revocation?.deletion_log_path || "unknown"}`,
+        `Revocation command: ${audit.revocation?.delete_command || "unknown"}`,
+      ],
+    })}
+    ${renderAuditList("Retrieved files reported by receipts", audit.retrieval?.retrieved_files || [], (item) => item)}
+    ${renderAuditList("Filtered retrieval decisions (query token matches only)", audit.retrieval?.filtered_files || [], (item) => `${item.path || "unknown"} - ${item.reason || "unknown"}${item.details ? ` - ${item.details}` : ""}`)}
+    ${renderAuditList("Anomalies", anomalies, (item) => `${item.kind || "unknown"} from ${item.source || "unknown"} (${item.severity || "notice"})`)}
+    ${rawDetails("Raw audit JSON", raw, true)}
+  `, { focus: true });
+}
+
 function renderRevocationTrace(result, raw = result) {
   setPanel("console-trace", `
     ${summaryCard({
@@ -363,6 +426,7 @@ function renderRecords(report) {
         <td>${expiry}</td>
         <td>
           <div class="record-actions">
+            <button class="btn btn-secondary btn-small" data-continuity-audit="${escapeHtml(record.conversation_key)}">Audit</button>
             <button class="btn btn-secondary btn-small" data-continuity-export="${escapeHtml(record.conversation_key)}">Export</button>
             <button class="btn btn-danger btn-small" data-continuity-delete="${escapeHtml(record.conversation_key)}">Revoke</button>
           </div>
@@ -425,6 +489,24 @@ async function runOperatorExecute() {
   }
 }
 
+async function auditContinuityRecord(key, button) {
+  setButtonBusy(button, "Auditing...");
+  setTrace({ status: "auditing", conversation_key: key });
+  try {
+    const result = await fetchJson(`/api/operator-continuity/audit?conversation_key=${encodeURIComponent(key)}`);
+    renderAuditTrace(result);
+    flashButtonDone(button, "Audited");
+  } catch (error) {
+    resetButton(button);
+    setPanel("console-trace", `${summaryCard({
+      title: "Audit failed",
+      tone: "danger",
+      lines: [error.message],
+      facts: [{ label: "Record", value: key }],
+    })}${rawDetails("Raw error", { status: "audit_failed", conversation_key: key, error: error.message }, true)}`, { focus: true });
+  }
+}
+
 async function exportContinuityRecord(key, button) {
   setButtonBusy(button, "Exporting...");
   setTrace({ status: "exporting", conversation_key: key });
@@ -467,8 +549,142 @@ async function deleteContinuityRecord(key, button) {
   }
 }
 
+async function loadGovernanceData() {
+  try {
+    const hw = await fetchJson("/api/operator/hardware-status");
+    const vramPct = Math.round((16.0 - hw.free_memory_gb) / 16.0 * 100);
+    document.getElementById("vram-bar-fill").style.width = `${vramPct}%`;
+    document.getElementById("vram-val").textContent = `${hw.free_memory_gb} GB Free / ${hw.total_memory_gb} GB Total (${vramPct}% Used)`;
+    document.getElementById("active-model-route").textContent = hw.active_model_route;
+    document.getElementById("active-routing-basis").textContent = hw.active_routing_basis;
+
+    const compPct = Math.round(hw.context_compression_ratio * 100);
+    document.getElementById("compression-bar-fill").style.width = `${compPct}%`;
+    document.getElementById("compression-val").textContent = `${compPct}% of Original`;
+
+    const warningBanner = document.getElementById("routing-warning-banner");
+    if (hw.context_compression_ratio < 0.50) {
+      warningBanner.innerHTML = `
+        <div class="warning-banner">
+          <span style="font-weight: 700;">⚠ WARNING:</span>
+          Context compression active — potential minor coherence loss on deep history.
+        </div>
+      `;
+    } else {
+      warningBanner.innerHTML = "";
+    }
+
+    const con = await fetchJson("/api/operator/consensus-map");
+    
+    // Update SVG Chain Nodes
+    updateSvgNode("node-circle-codex", "node-text-codex", con.signing_chain.codex);
+    updateSvgNode("node-circle-openclaude", "node-text-openclaude", con.signing_chain.openclaude);
+    updateSvgNode("node-circle-antigravity", "node-text-antigravity", con.signing_chain.antigravity);
+
+    // Update SVG Connection lines
+    updateSvgLine("line-codex-openclaude", con.signing_chain.codex, con.signing_chain.openclaude);
+    updateSvgLine("line-openclaude-antigravity", con.signing_chain.openclaude, con.signing_chain.antigravity);
+
+    const statusBadge = document.getElementById("consensus-status-badge");
+    statusBadge.textContent = con.consensus_status;
+    statusBadge.className = "badge " + (con.consensus_status === "Consensus Reached" ? "badge-emerald" : con.consensus_status === "Vetoed" ? "badge-rose" : "badge-amber");
+
+    // Render 2D Options Coordinates Map
+    const coordMap = document.getElementById("coordinate-map");
+    // Clear old nodes (keep grid and tooltip)
+    const oldNodes = coordMap.querySelectorAll(".consensus-node");
+    oldNodes.forEach(node => node.remove());
+
+    const tooltip = document.getElementById("node-tooltip-element");
+
+    // Coordinates mapping presets
+    const coords = [
+      { left: "25%", top: "35%", color: "#10b981" }, // Low friction
+      { left: "60%", top: "65%", color: "#f59e0b" }, // Medium friction
+      { left: "80%", top: "20%", color: "#f43f5e" }  // High friction
+    ];
+
+    con.options.forEach((opt, idx) => {
+      const coord = coords[idx] || { left: `${20 + idx * 25}%`, top: `${30 + (idx % 2) * 30}%`, color: "#6366f1" };
+      const dot = document.createElement("div");
+      dot.className = "consensus-node";
+      dot.style.left = coord.left;
+      dot.style.top = coord.top;
+      dot.style.color = coord.color;
+      dot.style.backgroundColor = coord.color;
+      
+      dot.addEventListener("mouseenter", () => {
+        tooltip.innerHTML = `
+          <strong style="color: ${coord.color};">${escapeHtml(opt.option_id.toUpperCase())}</strong>: 
+          ${escapeHtml(opt.description)} 
+          (<span style="color: ${coord.color}; font-weight: bold;">${escapeHtml(opt.friction)} friction</span>)
+        `;
+        tooltip.style.opacity = "1";
+      });
+
+      dot.addEventListener("mouseleave", () => {
+        tooltip.style.opacity = "0";
+      });
+
+      coordMap.appendChild(dot);
+    });
+
+    const pre = await fetchJson("/api/operator/sandbox-preflight");
+    document.getElementById("sandbox-terminal-log").textContent = pre.logs;
+
+  } catch (error) {
+    console.error("Failed to load governance details:", error);
+  }
+}
+
+function updateSvgNode(circleId, textId, status) {
+  const circle = document.getElementById(circleId);
+  const text = document.getElementById(textId);
+  if (!circle || !text) return;
+
+  text.textContent = status;
+
+  if (status === "SIGNED") {
+    circle.setAttribute("fill", "#064e3b");
+    circle.setAttribute("stroke", "#10b981");
+    circle.setAttribute("filter", "url(#neon-glow)");
+    text.setAttribute("fill", "#34d399");
+  } else if (status === "VETOED") {
+    circle.setAttribute("fill", "#4c0519");
+    circle.setAttribute("stroke", "#f43f5e");
+    circle.setAttribute("filter", "url(#neon-glow)");
+    text.setAttribute("fill", "#fda4af");
+  } else {
+    circle.setAttribute("fill", "#161e31");
+    circle.setAttribute("stroke", "#f59e0b");
+    circle.removeAttribute("filter");
+    text.setAttribute("fill", "#9ca3af");
+  }
+}
+
+function updateSvgLine(lineId, leftStatus, rightStatus) {
+  const line = document.getElementById(lineId);
+  if (!line) return;
+
+  if (leftStatus === "SIGNED" && rightStatus === "SIGNED") {
+    line.setAttribute("stroke", "#10b981");
+  } else if (leftStatus === "VETOED" || rightStatus === "VETOED") {
+    line.setAttribute("stroke", "#f43f5e");
+  } else if (leftStatus === "SIGNED") {
+    line.setAttribute("stroke", "#6366f1");
+  } else {
+    line.setAttribute("stroke", "#22304d");
+  }
+}
+
 document.querySelectorAll("[data-tab-target]").forEach((tab) => {
-  tab.addEventListener("click", () => switchTab(tab.dataset.tabTarget));
+  tab.addEventListener("click", () => {
+    const target = tab.dataset.tabTarget;
+    switchTab(target);
+    if (target === "tab-governance") {
+      loadGovernanceData();
+    }
+  });
 });
 document.getElementById("search-button").addEventListener("click", runSearch);
 document.getElementById("search-query").addEventListener("keydown", (event) => {
@@ -477,6 +693,11 @@ document.getElementById("search-query").addEventListener("keydown", (event) => {
 document.getElementById("console-execute-button").addEventListener("click", runOperatorExecute);
 document.getElementById("console-refresh-records").addEventListener("click", loadContinuityRecords);
 document.getElementById("console-records-body").addEventListener("click", (event) => {
+  const auditButton = event.target.closest("[data-continuity-audit]");
+  if (auditButton) {
+    auditContinuityRecord(auditButton.dataset.continuityAudit, auditButton);
+    return;
+  }
   const exportButton = event.target.closest("[data-continuity-export]");
   if (exportButton) {
     exportContinuityRecord(exportButton.dataset.continuityExport, exportButton);
@@ -485,5 +706,43 @@ document.getElementById("console-records-body").addEventListener("click", (event
   const deleteButton = event.target.closest("[data-continuity-delete]");
   if (deleteButton) deleteContinuityRecord(deleteButton.dataset.continuityDelete, deleteButton);
 });
+
+document.getElementById("btn-operator-signoff").addEventListener("click", async () => {
+  try {
+    const res = await fetchJson("/api/operator/signoff", { method: "POST" });
+    alert(res.message);
+    await loadGovernanceData();
+  } catch (e) {
+    alert("Sign-off failed: " + e.message);
+  }
+});
+
+document.getElementById("btn-veto-override").addEventListener("click", async () => {
+  try {
+    const res = await fetchJson("/api/operator/veto", { method: "POST" });
+    alert(res.message);
+    await loadGovernanceData();
+  } catch (e) {
+    alert("Veto failed: " + e.message);
+  }
+});
+
+document.getElementById("btn-run-simulation").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-run-simulation");
+  const terminal = document.getElementById("sandbox-terminal-log");
+  terminal.textContent += "\n[terminal] Starting live simulation run...\n";
+  btn.disabled = true;
+  try {
+    const res = await fetchJson("/api/operator/run-simulation", { method: "POST" });
+    terminal.textContent += res.logs;
+  } catch (e) {
+    terminal.textContent += `\n[error] Simulation failed: ${e.message}\n`;
+  } finally {
+    btn.disabled = false;
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+});
+
 loadData();
 loadContinuityRecords();
+loadGovernanceData();

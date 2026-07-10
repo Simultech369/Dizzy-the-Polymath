@@ -143,3 +143,9 @@ Any new export surface must answer:
 - What is excluded by default?
 - How are credentials and third-party data prevented from leaking?
 - How does deletion affect future export?
+
+---
+
+## Input Sanitization
+
+To protect the integrity of exported data and prevent downstream systems from being compromised by malicious payloads, all untrusted text is sanitized before it is stored or exported. This process, handled by `lib/janitor.mjs`, neutralizes common prompt injection and obfuscation techniques. This ensures that even if hostile input is received, it is rendered inert before it can be included in a data export. (Verification command: `node scripts/seclists_fuzzing_checks.mjs`)

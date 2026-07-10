@@ -60,6 +60,7 @@ function printHumanAudit(audit) {
   console.log(`durable_memory_allowed=${audit.boundary.durable_memory_allowed ? "yes" : "no"}`);
   console.log(`private_memory_access=${audit.boundary.private_memory_access ? "yes" : "no"}`);
   console.log(`blocked_context=${audit.boundary.blocked_context.join(", ") || "none"}`);
+  console.log(`retrieval_status=${audit.retrieval.status || "unknown"}`);
   console.log(`retrieved_files=${audit.counts.retrieved_files} trajectory_ids=${audit.counts.trajectory_ids} filtered_files=${audit.counts.filtered_files}`);
   console.log(`loaded_skills=${audit.skills.loaded.join(", ") || "none"}`);
   console.log(`deletion_events=${audit.counts.deletion_events} anomalies=${audit.counts.anomalies}`);
@@ -98,7 +99,7 @@ function printHumanAudit(audit) {
   }
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || "help";
 
@@ -151,7 +152,7 @@ function main() {
     if (command === "delete") {
       const key = args[1] || "";
       if (!key) throw new Error("delete requires <conversation_key>");
-      const result = deleteClientContinuity({ conversation_key: key, reason: "operator_cli_delete" });
+      const result = await deleteClientContinuity({ conversation_key: key, reason: "operator_cli_delete" });
       if (!result.ok) {
         console.error(result.error || "delete failed");
         process.exitCode = 1;

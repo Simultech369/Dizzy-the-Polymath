@@ -70,6 +70,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/dashboard-query"
     || pathname === "/api/operator-continuity"
     || pathname === "/api/operator-continuity/export"
+    || pathname === "/api/operator-continuity/audit"
     || pathname === "/api/operator-continuity/delete"
     || pathname === "/api/operator-execute";
 }
@@ -85,7 +86,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -623,9 +624,9 @@ export async function createRuntime(opts = {}) {
     if (clientContinuityPruneScheduled || nowMs < nextClientContinuityPruneAt) return false;
     nextClientContinuityPruneAt = nowMs + clientContinuityPruneIntervalMs;
     clientContinuityPruneScheduled = true;
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
-        pruneClientContinuity();
+        await pruneClientContinuity();
       } catch (error) {
         const message = redactTextPayload(String(error?.message ?? error)).slice(0, 300);
         console.warn(`[client_continuity] prune_failed=${message}`);
@@ -1170,7 +1171,7 @@ export async function createRuntime(opts = {}) {
 
   app.delete("/agent/continuity", async (req, res, next) => {
     try {
-      const result = deleteClientContinuity({
+      const result = await deleteClientContinuity({
         client_id: req.body?.client_id,
         service_id: req.body?.service_id,
         conversation_key: req.body?.conversation_key,
@@ -1200,7 +1201,7 @@ export async function createRuntime(opts = {}) {
 
   app.post("/agent/continuity/prune", async (req, res, next) => {
     try {
-      const result = pruneClientContinuity();
+      const result = await pruneClientContinuity();
       return res.json(result);
     } catch (e) {
       return next(e);

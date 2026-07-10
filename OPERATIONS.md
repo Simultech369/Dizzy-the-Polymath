@@ -385,6 +385,20 @@ Client continuity remains strictly local; no cloud sync or external sharing surf
 
 ---
 
+# XI. Input Sanitization and Fuzzing
+
+All untrusted inputs are processed by a sanitization janitor (`lib/janitor.mjs`) before they are used. This system is designed to neutralize common prompt injection and obfuscation techniques, including:
+- Instruction overrides (e.g., "Ignore previous instructions")
+- XML/HTML envelope bypasses
+- Encoding obfuscation (HTML entities, Base64)
+- Whitespace manipulation
+
+This provides a critical layer of defense, ensuring that user-provided text cannot manipulate the agent's core instructions.
+
+The robustness of this system is verified by a dedicated fuzzing suite, which injects a variety of known-hostile payloads and asserts that they are correctly neutralized. These checks are integrated into the main test suite (`npm test`) and can be run directly for inspection. (Verification command: `node scripts/seclists_fuzzing_checks.mjs`)
+
+---
+
 # Final Principle
 
 Dizzy operates as a **builder system**, not a passive assistant.
