@@ -913,12 +913,12 @@
             <div id="routing-warning-banner"></div>
             <div class="field-stack" style="margin-top: 1rem;">
               <div class="metric-row dev-only">
-                <span class="metric-label">System Memory / VRAM:</span>
+                <span class="metric-label">System Memory:</span>
                 <div class="progress-wrap">
                   <div class="bar-container" style="width: 150px; height: 16px; border-radius: 8px;">
-                    <div id="vram-bar-fill" class="bar-fill" style="width: 0%; background: var(--emerald);"></div>
+                    <div id="memory-bar-fill" class="bar-fill" style="width: 0%; background: var(--emerald);"></div>
                   </div>
-                  <span id="vram-val" class="metric-value" style="font-size: 0.9rem;">Loading...</span>
+                  <span id="memory-val" class="metric-value" style="font-size: 0.9rem;">Loading...</span>
                 </div>
               </div>
               
@@ -979,6 +979,11 @@
                 <span id="consensus-status-badge" class="badge badge-amber">Awaiting Operator</span>
               </div>
 
+              <div class="metric-row dev-only">
+                <span class="metric-label">Consensus Proof Limit:</span>
+                <span id="consensus-proof-limit" style="color: var(--text-muted); font-size: 0.875rem;">Not cryptographic</span>
+              </div>
+
               <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
                 <span class="metric-label">Pluralistic Options Space Map (Friction Coordinates):</span>
                 <div class="consensus-coordinate-container" id="coordinate-map">
@@ -1000,8 +1005,8 @@
             <h3>Sandbox Simulation Terminal</h3>
             <div class="field-stack" style="margin-top: 1rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="color: var(--text-muted); font-size: 0.875rem;">Dry-Run Preflight &amp; Red-Team Sanitization Checks</span>
-                <button class="btn btn-secondary btn-small" id="btn-run-simulation">Trigger Simulation Run</button>
+                <span style="color: var(--text-muted); font-size: 0.875rem;">Bounded static smoke harness; not full red-team fuzzing</span>
+                <button class="btn btn-secondary btn-small" id="btn-run-simulation">Run Static Smoke</button>
               </div>
               <pre id="sandbox-terminal-log" style="background: #05070c; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.85rem; color: #10b981; max-height: 250px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;"></pre>
             </div>

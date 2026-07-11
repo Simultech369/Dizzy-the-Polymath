@@ -2244,6 +2244,15 @@ function testModelRoutingRoles() {
   assert.equal(getModelRoute("utility").backend, "gemini");
   assert.equal(getModelRoute("utility").reason, "cloud:utility_uses_chat_backend");
 
+  delete process.env.DIZZY_CHAT_BACKEND;
+  assert.equal(getModelRoute("chat").backend, "");
+  assert.equal(getModelRoute("chat").reason, "cloud:chat_backend");
+
+  process.env.DIZZY_CHAT_BACKEND = "local";
+  assert.equal(getModelRoute("chat").backend, "");
+  assert.equal(getModelRoute("chat").reason, "local_backend_not_implemented");
+
+  process.env.DIZZY_CHAT_BACKEND = "gemini";
   process.env.DIZZY_UTILITY_BACKEND = "openrouter";
   assert.equal(getModelRoute("utility").backend, "openai_compat");
   assert.equal(getModelRoute("utility").reason, "cloud:utility_backend_override");
@@ -3759,6 +3768,9 @@ async function testPrivateReadSurfaces() {
   try {
     const baseUrl = `http://127.0.0.1:${protectedRuntime.boundPort}`;
 
+    const unauthenticatedGraph = await fetch(`${baseUrl}/memory/graph`);
+    assert.equal(unauthenticatedGraph.status, 401);
+
     const loginPage = await fetch(`${baseUrl}/dashboard/login`);
     assert.equal(loginPage.status, 200);
     const loginHtml = await loginPage.text();
@@ -3893,11 +3905,14 @@ async function testDashboardOperatorConsoleApis() {
     assert.match(html, /Operator Console/);
     assert.match(html, /summary-card/);
     assert.match(html, /trace-stack/);
+    assert.match(html, /System Memory:/);
+    assert.doesNotMatch(html, /System Memory \/ VRAM/);
     const dashboardScript = await fetch(`${baseUrl}/assets/dashboard.js`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
     assert.match(dashboardScript, /operator-execute/);
     assert.match(dashboardScript, /Export complete/);
     assert.match(dashboardScript, /Record revoked/);
     assert.match(dashboardScript, /formatExpiry/);
+    assert.match(dashboardScript, /memory-bar-fill/);
     assert.doesNotMatch(dashboardScript, /âœ/);
 
     const unauthenticated = await fetch(`${baseUrl}/api/operator-continuity`);
@@ -3913,13 +3928,58 @@ async function testDashboardOperatorConsoleApis() {
     const sessionCookie = String(sessionResponse.headers.get("set-cookie") || "").split(";", 1)[0];
     const cookieHeaders = { cookie: sessionCookie };
 
+    const csrfSignoff = await fetch(`${baseUrl}/api/operator/signoff`, {
+      method: "POST",
+      headers: cookieHeaders,
+    });
+    assert.equal(csrfSignoff.status, 403);
+    assert.match((await csrfSignoff.json()).error, /same-origin/i);
+
+    const hostileOriginSignoff = await fetch(`${baseUrl}/api/operator/signoff`, {
+      method: "POST",
+      headers: { ...cookieHeaders, origin: "http://localhost:5173" },
+    });
+    assert.equal(hostileOriginSignoff.status, 403);
+
+    const sameOriginSignoff = await fetch(`${baseUrl}/api/operator/signoff`, {
+      method: "POST",
+      headers: { ...cookieHeaders, origin: baseUrl },
+    }).then((r) => r.json());
+    assert.equal(sameOriginSignoff.ok, true);
+    assert.equal(sameOriginSignoff.proof_limit, "not_cryptographic_not_live_multi_agent_protocol");
+
+    const hardware = await fetch(`${baseUrl}/api/operator/hardware-status`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(hardware.ok, true);
+    assert.match(hardware.active_routing_basis, /System RAM telemetry/i);
+    assert.match(hardware.active_routing_basis, /VRAM is not measured/i);
+    assert.doesNotMatch(hardware.active_model_route, /full-power|quantized-mistral|speculative-decoding/);
+
+    const preflight = await fetch(`${baseUrl}/api/operator/sandbox-preflight`, { headers: cookieHeaders }).then((r) => r.json());
+    assert.equal(preflight.ok, true);
+    assert.equal(preflight.proof_limit, "static_harness_only_not_generated_code_fuzzing");
+    assert.equal(preflight.report.generated_code_executed, false);
+
+    const simulationCsrf = await fetch(`${baseUrl}/api/operator/run-simulation`, {
+      method: "POST",
+      headers: cookieHeaders,
+    });
+    assert.equal(simulationCsrf.status, 403);
+
+    const simulation = await fetch(`${baseUrl}/api/operator/run-simulation`, {
+      method: "POST",
+      headers: { ...cookieHeaders, origin: baseUrl },
+    }).then((r) => r.json());
+    assert.equal(simulation.ok, true);
+    assert.equal(simulation.proof_limit, "static_escape_harness_only_not_real_prompt_injection_fuzzing");
+    assert.equal(simulation.report.generated_code_executed, false);
+
     const emptyReport = await fetch(`${baseUrl}/api/operator-continuity`, { headers: cookieHeaders }).then((r) => r.json());
     assert.equal(emptyReport.ok, true);
     assert.equal(emptyReport.counts.records, 0);
 
     const execute = await fetch(`${baseUrl}/api/operator-execute`, {
       method: "POST",
-      headers: { ...cookieHeaders, "content-type": "application/json" },
+      headers: { ...cookieHeaders, "content-type": "application/json", origin: baseUrl },
       body: JSON.stringify({
         brief: "Dashboard console continuity test",
         continuity_mode: "client",
@@ -3948,7 +4008,7 @@ async function testDashboardOperatorConsoleApis() {
 
     const deleted = await fetch(`${baseUrl}/api/operator-continuity/delete`, {
       method: "POST",
-      headers: { ...cookieHeaders, "content-type": "application/json" },
+      headers: { ...cookieHeaders, "content-type": "application/json", origin: baseUrl },
       body: JSON.stringify({ conversation_key: executeBody.conversation_key }),
     }).then((r) => r.json());
     assert.equal(deleted.deleted, true);
@@ -3995,6 +4055,12 @@ async function testDashboardFailureIndependence() {
       headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(disabled.status, 404);
+    assert.equal((await disabled.json()).error, "Dashboard disabled");
+    const disabledOperator = await fetch(`${baseUrl}/api/operator/hardware-status`, {
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
+    });
+    assert.equal(disabledOperator.status, 404);
+    assert.equal((await disabledOperator.json()).error, "Dashboard disabled");
     assert.equal(disabledLoaderCalled, false);
   } finally {
     await disabledRuntime.stop();
@@ -4022,6 +4088,12 @@ async function testDashboardFailureIndependence() {
     });
     assert.equal(unavailable.status, 503);
     assert.equal((await unavailable.json()).error, "Dashboard unavailable");
+    const unavailableOperator = await fetch(`${baseUrl}/api/operator/run-simulation`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
+    });
+    assert.equal(unavailableOperator.status, 503);
+    assert.equal((await unavailableOperator.json()).error, "Dashboard unavailable");
   } finally {
     await failedRuntime.stop();
   }

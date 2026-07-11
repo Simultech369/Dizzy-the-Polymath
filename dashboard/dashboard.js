@@ -552,9 +552,9 @@ async function deleteContinuityRecord(key, button) {
 async function loadGovernanceData() {
   try {
     const hw = await fetchJson("/api/operator/hardware-status");
-    const vramPct = Math.round((16.0 - hw.free_memory_gb) / 16.0 * 100);
-    document.getElementById("vram-bar-fill").style.width = `${vramPct}%`;
-    document.getElementById("vram-val").textContent = `${hw.free_memory_gb} GB Free / ${hw.total_memory_gb} GB Total (${vramPct}% Used)`;
+    const memoryUsedPct = Math.max(0, Math.min(100, Math.round(((hw.total_memory_gb - hw.free_memory_gb) / Math.max(hw.total_memory_gb, 0.01)) * 100)));
+    document.getElementById("memory-bar-fill").style.width = `${memoryUsedPct}%`;
+    document.getElementById("memory-val").textContent = `${hw.free_memory_gb} GB Free / ${hw.total_memory_gb} GB Total (${memoryUsedPct}% Used)`;
     document.getElementById("active-model-route").textContent = hw.active_model_route;
     document.getElementById("active-routing-basis").textContent = hw.active_routing_basis;
 
@@ -588,6 +588,7 @@ async function loadGovernanceData() {
     const statusBadge = document.getElementById("consensus-status-badge");
     statusBadge.textContent = con.consensus_status;
     statusBadge.className = "badge " + (con.consensus_status === "Consensus Reached" ? "badge-emerald" : con.consensus_status === "Vetoed" ? "badge-rose" : "badge-amber");
+    document.getElementById("consensus-proof-limit").textContent = con.proof_limit || "not_cryptographic_not_live_multi_agent_protocol";
 
     // Render 2D Options Coordinates Map
     const coordMap = document.getElementById("coordinate-map");
@@ -730,13 +731,13 @@ document.getElementById("btn-veto-override").addEventListener("click", async () 
 document.getElementById("btn-run-simulation").addEventListener("click", async () => {
   const btn = document.getElementById("btn-run-simulation");
   const terminal = document.getElementById("sandbox-terminal-log");
-  terminal.textContent += "\n[terminal] Starting live simulation run...\n";
+  terminal.textContent += "\n[terminal] Starting bounded static smoke harness...\n";
   btn.disabled = true;
   try {
     const res = await fetchJson("/api/operator/run-simulation", { method: "POST" });
     terminal.textContent += res.logs;
   } catch (e) {
-    terminal.textContent += `\n[error] Simulation failed: ${e.message}\n`;
+    terminal.textContent += `\n[error] Static smoke failed: ${e.message}\n`;
   } finally {
     btn.disabled = false;
     terminal.scrollTop = terminal.scrollHeight;

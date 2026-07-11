@@ -92,7 +92,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit", "/api/operator/hardware-status", "/api/operator/consensus-map", "/api/operator/sandbox-preflight"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -111,7 +111,7 @@ function registerDashboardFallbackRoutes(app, { enabled } = {}) {
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
     });
   }
-  for (const route of ["/api/operator-execute", "/api/operator-continuity/delete"]) {
+  for (const route of ["/api/operator-execute", "/api/operator-continuity/delete", "/api/operator/signoff", "/api/operator/veto", "/api/operator/run-simulation"]) {
     app.post(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
