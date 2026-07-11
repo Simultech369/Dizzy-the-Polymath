@@ -13,9 +13,8 @@ Terminal A:
 Terminal B:
 - `Invoke-RestMethod http://127.0.0.1:3000/health`
 - `Invoke-RestMethod http://127.0.0.1:3000/prompt`
-- `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`
 
-This starts the local API, exposes governance/prompt/memory inspection endpoints, and does not require Telegram, Redis, or a model backend.
+This starts the local API, exposes governance and prompt inspection endpoints, and does not require Telegram, Redis, or a model backend. The `/memory/graph` HTTP inspection endpoint is opt-in; set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server, then run `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`.
 
 The optional dashboard is disabled by default. Its read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Disabled mode does not load the module; module or asset failure leaves core routes such as `/health` available.
 
@@ -187,7 +186,7 @@ Relevant-note injection (uses local `.md` files to reduce genericness without st
 - Enabled by default: `DIZZY_RAG_ENABLED=1`
 - Control: `DIZZY_RAG_TOP_K=4`, `DIZZY_RAG_CACHE_MS=10000`, `DIZZY_RAG_MAX_FILE_BYTES=200000`
 - Structural memory graph:
-  - Enabled by default: `DIZZY_MEMORY_GRAPH_ENABLED=1`
+  - Internal graph context is available by default; the HTTP inspection route is disabled by default and requires `DIZZY_MEMORY_GRAPH_ENABLED=1` before server start.
   - Control: `DIZZY_MEMORY_GRAPH_TOP_K=3`, `DIZZY_MEMORY_GRAPH_CACHE_MS=10000`
   - Inspect live summary: `GET /memory/graph`
   - Query graph context: `GET /memory/graph?q=wikimedia`

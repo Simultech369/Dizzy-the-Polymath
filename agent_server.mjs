@@ -72,7 +72,12 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator-continuity/export"
     || pathname === "/api/operator-continuity/audit"
     || pathname === "/api/operator-continuity/delete"
-    || pathname.startsWith("/api/operator/")
+    || pathname === "/api/operator/hardware-status"
+    || pathname === "/api/operator/consensus-map"
+    || pathname === "/api/operator/sandbox-preflight"
+    || pathname === "/api/operator/signoff"
+    || pathname === "/api/operator/veto"
+    || pathname === "/api/operator/run-simulation"
     || pathname === "/api/operator-execute";
 }
 

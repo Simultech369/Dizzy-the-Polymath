@@ -426,6 +426,8 @@ pause execution and analyze before responding.
 
 Allows querying of smart contracts on Ethereum-compatible networks using read-only JSON-RPC calls.
 
+Runtime status: direct/internal `runToolJob` only; chat `tool:` routes only `http_get` and `cheerio_extract`.
+
 **Permission Level**: Level 2 — External Queries
 
 **Payload Schema**:
