@@ -31,6 +31,8 @@ import { parseReferencedQueueItems, validateNextConsistency } from "../lib/next_
 import { discoverLocalSkills, formatSelectedSkills, selectLocalSkills } from "../lib/skill_registry.mjs";
 import { assessDurableWrite, durableAppendJsonl, logAutomationReceipt, redactSecretMaterial } from "../lib/durable_write_policy.mjs";
 import { sanitizeUntrustedInput } from "../lib/janitor.mjs";
+import { runInSandbox } from "../lib/sandbox_executor.mjs";
+import { getHardwareState } from "../lib/hardware_monitor.mjs";
 
 const STRONG_TEST_AUTH_TOKEN = "test-master-token-32-chars-minimum";
 const STRONG_TEST_EXECUTE_TOKEN = "test-execute-token-16-minimum";
@@ -4929,7 +4931,7 @@ async function testQueueIdempotency() {
 async function testConsensusStateTransitions() {
   const { getConsensusState, signOffOperator, vetoOperator, initializeNewProposal } = await import("../lib/consensus.mjs");
   const statePath = path.resolve(process.cwd(), "runtime", "consensus_state.json");
-  
+
   fs.rmSync(statePath, { force: true });
   fs.rmSync(`${statePath}.lock`, { force: true });
 
@@ -4966,6 +4968,46 @@ async function testConsensusStateTransitions() {
   console.log("-> Consensus state transitions checks passed");
 }
 
+async function testSandboxExecutor() {
+  // Test 1: Successful execution of a safe script
+  const safeResult = await runInSandbox({
+    scriptContent: "console.log('hello');",
+  });
+  assert.equal(safeResult.ok, true);
+  assert.equal(safeResult.exitCode, 0);
+  assert.match(safeResult.stdout, /hello/);
+
+  // Test 2: Pre-filter blocks dangerous script content
+  const dangerousResult = await runInSandbox({
+    scriptContent: "const fs = require('fs'); fs.writeFileSync('test.txt', 'pwned');",
+  });
+  assert.equal(dangerousResult.ok, false);
+  assert.match(dangerousResult.stderr, /Blocked potentially dangerous script content/);
+
+  // Test 3: Script times out
+  const timeoutResult = await runInSandbox({
+    scriptContent: "while(true) {}",
+    timeout: 100, // 100ms timeout
+  });
+  assert.equal(timeoutResult.ok, false);
+  // Depending on the OS, timeout might result in a non-zero exit code or an error
+  const timedOut = timeoutResult.exitCode !== 0 || (timeoutResult.error && /spawn/i.test(timeoutResult.error));
+  assert.ok(timedOut, "Expected script to time out");
+
+  console.log("-> Sandbox executor checks passed");
+}
+
+async function testHardwareMonitor() {
+  const state = getHardwareState();
+  assert.equal(state.ok, true);
+  assert.ok(typeof state.free_memory_gb === 'number' && state.free_memory_gb >= 0);
+  assert.ok(typeof state.total_memory_gb === 'number' && state.total_memory_gb > 0);
+  assert.ok(typeof state.memory_usage_percent === 'number' && state.memory_usage_percent >= 0 && state.memory_usage_percent <= 100);
+  assert.ok(state.free_memory_gb <= state.total_memory_gb);
+
+  console.log("-> Hardware monitor checks passed");
+}
+
 await testRateLimiting();
 await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
@@ -4973,5 +5015,7 @@ await testReadContractTool();
 await testNewHardeningFeatures();
 await testQueueIdempotency();
 await testConsensusStateTransitions();
+await testSandboxExecutor();
+await testHardwareMonitor();
 
 console.log("SAFETY_CHECKS_OK");
