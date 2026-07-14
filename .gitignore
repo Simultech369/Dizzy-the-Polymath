@@ -24,3 +24,4 @@ __pycache__/
 /core/target/
 /handoff/
 .openclaude/
+scratch/goose-runtime/

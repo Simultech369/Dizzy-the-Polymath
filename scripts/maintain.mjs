@@ -15,6 +15,12 @@ const CHECKS = [
     severity: "red",
   },
   {
+    id: "fuzzing",
+    label: "Prompt-injection fuzzing checks",
+    command: ["node", "--disable-warning=ExperimentalWarning", "scripts/fuzzing_and_injection_tests.mjs"],
+    severity: "red",
+  },
+  {
     id: "smoke",
     label: "Smoke test",
     command: ["node", "smoke_test.mjs"],

@@ -4,9 +4,10 @@
     "description":  "Local-first continuity-and-judgment runtime for Dizzy",
     "main":  "index.js",
     "scripts":  {
-                    "test":  "node --disable-warning=ExperimentalWarning ./scripts/safety_checks.mjs",
+                    "test":  "node --disable-warning=ExperimentalWarning ./scripts/safety_checks.mjs && node --disable-warning=ExperimentalWarning ./scripts/fuzzing_and_injection_tests.mjs",
                     "smoke":  "node ./smoke_test.mjs",
                     "check:safety":  "node --disable-warning=ExperimentalWarning ./scripts/safety_checks.mjs",
+                    "check:fuzzing":  "node --disable-warning=ExperimentalWarning ./scripts/fuzzing_and_injection_tests.mjs",
                     "check:state":  "node ./scripts/sync_state.mjs --check",
                     "check:memory":  "node ./scripts/memory_validate.mjs",
                     "check:prompt":  "node ./scripts/prompt_drift_check.mjs",

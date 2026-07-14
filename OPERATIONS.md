@@ -387,15 +387,15 @@ Client continuity remains strictly local; no cloud sync or external sharing surf
 
 # XI. Input Sanitization and Fuzzing
 
-All untrusted inputs are processed by a sanitization janitor (`lib/janitor.mjs`) before they are used. This system is designed to neutralize common prompt injection and obfuscation techniques, including:
+Retrieved/tool-extracted untrusted content and retained paid/client continuity text are processed by a sanitization janitor (`lib/janitor.mjs`) before they are inserted into downstream prompts or exports. This system is designed to neutralize common prompt injection and obfuscation techniques, including:
 - Instruction overrides (e.g., "Ignore previous instructions")
 - XML/HTML envelope bypasses
 - Encoding obfuscation (HTML entities, Base64)
 - Whitespace manipulation
 
-This provides a critical layer of defense, ensuring that user-provided text cannot manipulate the agent's core instructions.
+This provides a critical layer of defense around non-authoritative context. Current-turn user messages remain user messages, while flagged retained paid/client continuity, retrieved excerpts, and extracted web content are redacted or blocked rather than echoed back inside the neutralization marker.
 
-The robustness of this system is verified by a dedicated fuzzing suite, which injects a variety of known-hostile payloads and asserts that they are correctly neutralized. These checks are integrated into the main test suite (`npm test`) and can be run directly for inspection. (Verification command: `node scripts/seclists_fuzzing_checks.mjs`)
+The robustness of this system is verified by a dedicated fuzzing suite, which injects a variety of known-hostile payloads and asserts that they are correctly neutralized. These checks are integrated into the main test suite (`npm test`) and can be run directly for inspection. (Verification command: `node scripts/fuzzing_and_injection_tests.mjs`)
 
 ---
 
