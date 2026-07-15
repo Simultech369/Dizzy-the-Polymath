@@ -439,7 +439,7 @@ async function main() {
 
   let autoBindNonce = "";
   if (allowAutoBind && !allowSet.size) {
-    autoBindNonce = crypto.randomBytes(4).toString("hex");
+    autoBindNonce = crypto.randomBytes(16).toString("hex");
     console.log(`[telegram_relay] AUTO_BIND_NONCE=${autoBindNonce}`);
     console.log(`[telegram_relay] To bind this bot, send "/bind ${autoBindNonce}" from your private chat.`);
   }

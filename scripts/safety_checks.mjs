@@ -3896,6 +3896,9 @@ async function testPrivateReadSurfaces() {
     redisUrl: "",
     dashboardEnabled: true,
     memoryGraphEnabled: true,
+    deploymentMode: "proxied",
+    trustedProxies: "127.0.0.1",
+    verifiedHttps: true,
   });
   const headers = { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` };
   try {
@@ -3934,6 +3937,7 @@ async function testPrivateReadSurfaces() {
     assert.match(setCookie, /^dizzy_dashboard_session=[A-Za-z0-9_-]+;/);
     assert.match(setCookie, /HttpOnly/i);
     assert.match(setCookie, /SameSite=Strict/i);
+    assert.match(setCookie, /Secure/i);
     assert.equal(setCookie.includes(STRONG_TEST_AUTH_TOKEN), false);
     const sessionCookie = setCookie.split(";", 1)[0];
     const cookieHeaders = { cookie: sessionCookie };
@@ -4525,6 +4529,100 @@ async function testCheerioExtractFailClosed() {
   }
 }
 
+async function testHttpToolResourceBounds() {
+  console.log("Running HTTP tool resource bound checks...");
+  const oldAllowLocal = process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+  const oldMaxBytes = process.env.DIZZY_TOOL_MAX_RESPONSE_BYTES;
+  process.env.DIZZY_TOOL_ALLOW_LOCALHOST = "1";
+  process.env.DIZZY_TOOL_MAX_RESPONSE_BYTES = "64";
+
+  const server = http.createServer((req, res) => {
+    if (req.url === "/declared-large") {
+      res.writeHead(200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Length": "1024",
+      });
+      res.end("small");
+      return;
+    }
+
+    if (req.url === "/chunked-large") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.write(Buffer.alloc(40, "a"));
+      res.write(Buffer.alloc(40, "b"));
+      res.end();
+      return;
+    }
+
+    if (req.url === "/slow-trickle") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      let sent = 0;
+      const timer = setInterval(() => {
+        if (res.destroyed || res.writableEnded) {
+          clearInterval(timer);
+          return;
+        }
+        res.write("x");
+        sent += 1;
+        if (sent > 20) {
+          clearInterval(timer);
+          res.end();
+        }
+      }, 20);
+      res.on("close", () => clearInterval(timer));
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("ok");
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const ok = await runToolJob({
+      tool: "http_get",
+      payload: { url: `${baseUrl}/ok`, timeoutMs: 1000 },
+    });
+    assert.equal(ok.bytes, 2);
+
+    await assert.rejects(
+      () => runToolJob({
+        tool: "http_get",
+        payload: { url: `${baseUrl}/declared-large`, timeoutMs: 1000 },
+      }),
+      /DIZZY_TOOL_MAX_RESPONSE_BYTES/,
+    );
+
+    await assert.rejects(
+      () => runToolJob({
+        tool: "http_get",
+        payload: { url: `${baseUrl}/chunked-large`, timeoutMs: 1000 },
+      }),
+      /DIZZY_TOOL_MAX_RESPONSE_BYTES/,
+    );
+
+    await assert.rejects(
+      () => runToolJob({
+        tool: "http_get",
+        payload: { url: `${baseUrl}/slow-trickle`, timeoutMs: 70 },
+      }),
+      /absolute timeout/,
+    );
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    if (oldAllowLocal === undefined) delete process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+    else process.env.DIZZY_TOOL_ALLOW_LOCALHOST = oldAllowLocal;
+    if (oldMaxBytes === undefined) delete process.env.DIZZY_TOOL_MAX_RESPONSE_BYTES;
+    else process.env.DIZZY_TOOL_MAX_RESPONSE_BYTES = oldMaxBytes;
+  }
+
+  console.log("-> HTTP tool resource bound checks passed");
+}
+
 async function testNewHardeningFeatures() {
   console.log("Running new hardening features safety tests...");
 
@@ -4576,6 +4674,18 @@ async function testNewHardeningFeatures() {
     }
   }), /hash mismatch/);
   assert.equal(fs.readFileSync(path.join(liveRuntime, "rollback.txt"), "utf8"), "preserve2");
+
+  const runtimeLink = path.join(recoveryRoot, "runtime-link");
+  try {
+    fs.symlinkSync(liveRuntime, runtimeLink, process.platform === "win32" ? "junction" : "dir");
+    await assert.rejects(
+      () => backupRuntime({ runtimeDir: liveRuntime, destination: path.join(runtimeLink, "snapshot-through-link") }),
+      /Backup destination cannot be inside the runtime directory/,
+    );
+  } catch (error) {
+    if (!["EPERM", "EACCES", "ENOTSUP"].includes(error?.code)) throw error;
+    console.log("-> Symlink backup containment check skipped by OS permissions");
+  }
 
   fs.rmSync(recoveryRoot, { recursive: true, force: true });
 
@@ -5171,6 +5281,7 @@ await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
 await testReadContractTool();
 await testCheerioExtractFailClosed();
+await testHttpToolResourceBounds();
 await testNewHardeningFeatures();
 await testQueueIdempotency();
 await testConsensusStateTransitions();

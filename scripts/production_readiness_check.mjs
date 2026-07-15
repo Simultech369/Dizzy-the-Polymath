@@ -48,7 +48,10 @@ function main() {
   const packageJson = read("package.json");
   const envExample = read(".env.example");
   const server = read("agent_server.mjs");
+  const worker = read("worker.mjs");
   const runtimeConfig = read("lib/runtime_config.mjs");
+  const telegramRelay = read("scripts/telegram_relay.mjs");
+  const sqliteStore = read("lib/sqlite_operational_store.mjs");
 
   if (!readiness) issues.push("PRODUCTION_READINESS.md is missing.");
   for (const area of REQUIRED_AREAS) {
@@ -68,6 +71,15 @@ function main() {
 
   checkContains("agent_server.mjs", server, "DIZZY_AUTH_TOKEN", issues);
   checkContains("lib/runtime_config.mjs", runtimeConfig, "DIZZY_BIND_HOST", issues);
+  checkContains("scripts/telegram_relay.mjs", telegramRelay, "randomBytes(16)", issues);
+
+  checkContains("README.md", readme, "Experimental", issues);
+  checkContains("PRODUCTION_READINESS.md", readiness, "SQLite is an experimental v0 smoke-test sidecar", issues);
+  checkContains("DESIGN.md", read("DESIGN.md"), "is not opened by the live server or worker", issues);
+  checkContains("lib/sqlite_operational_store.mjs", sqliteStore, "DatabaseSync", issues);
+  if (/sqlite_operational_store\.mjs/.test(server) || /sqlite_operational_store\.mjs/.test(worker)) {
+    issues.push("SQLite operational store is still synchronous and experimental; live server/worker must not open it.");
+  }
 
   if (!hasFile("scripts/production_readiness_check.mjs")) {
     issues.push("scripts/production_readiness_check.mjs is missing.");

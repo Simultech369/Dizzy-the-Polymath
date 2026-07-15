@@ -140,7 +140,7 @@ try {
   assert.equal(frontmatterResults.length, 0, "frontmatter should not be searchable body text");
 
   const missingResults = getRelevantMarkdownSnippets("termthatdoesnotexistanywhere", { k: 20 });
-  assert.deepEqual(missingResults, [], "missing terms should return no snippets");
+  assert.equal(missingResults.length, 0, "missing terms should return no snippets");
 
   const revokedResults = getRelevantMarkdownSnippets("revokedzircon", { k: 20, trustZone: "private_self" });
   assert.equal(revokedResults.length, 0, "explicitly revoked memory should not be retrieved");

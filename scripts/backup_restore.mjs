@@ -14,6 +14,23 @@ function isWithin(candidate, parent) {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
+function realPathForContainment(candidate) {
+  let current = path.resolve(candidate);
+  const missing = [];
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    missing.unshift(path.basename(current));
+    current = parent;
+  }
+  const realCurrent = fs.existsSync(current) ? fs.realpathSync.native(current) : path.resolve(current);
+  return missing.length ? path.join(realCurrent, ...missing) : realCurrent;
+}
+
+function isWithinRealPath(candidate, parent) {
+  return isWithin(realPathForContainment(candidate), realPathForContainment(parent));
+}
+
 function printUsage() {
   console.log(`
 Dizzy Runtime Snapshot and JSONL Repair Utility
@@ -147,7 +164,7 @@ export async function backupRuntime({
   if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
     throw new Error(`Runtime directory not found: ${source}`);
   }
-  if (isWithin(target, source)) throw new Error("Backup destination cannot be inside the runtime directory.");
+  if (isWithinRealPath(target, source)) throw new Error("Backup destination cannot be inside the runtime directory.");
   if (fs.existsSync(target)) throw new Error(`Backup destination already exists: ${target}`);
 
   const sqlitePath = path.join(source, "operational.sqlite");
@@ -179,7 +196,7 @@ export function restoreRuntime({
   if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
     throw new Error(`Snapshot directory not found: ${source}`);
   }
-  if (isWithin(source, target)) throw new Error("Restore source cannot be inside the runtime directory.");
+  if (isWithinRealPath(source, target)) throw new Error("Restore source cannot be inside the runtime directory.");
   verifySnapshotManifest(source);
 
   const recoveryPath = path.resolve(recoveryRoot, `pre-restore-${timestamp()}`);
