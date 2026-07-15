@@ -5336,7 +5336,8 @@ async function testCodexHttpAndIpChecks() {
       { ip: "0.0.0.0", isV6: false },
       { ip: "100.64.0.1", isV6: false },
       { ip: "::ffff:127.0.0.1", isV6: true },
-      { ip: "::ffff:7f00:1", isV6: true }
+      { ip: "::ffff:7f00:1", isV6: true },
+      { ip: "0000:0000:0000:0000:0000:ffff:7f00:0001", isV6: true }
     ];
     process.env.DIZZY_TOOL_ALLOW_LOCALHOST = "0";
     for (const item of testIps) {
