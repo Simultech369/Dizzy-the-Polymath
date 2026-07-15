@@ -4,7 +4,7 @@ Looking at this comprehensive review, I'll analyze each area systematically.
 
 - **Repository**: https://github.com/Simultech369/Dizzy-the-Polymath
 - **Branches**: experiments and main
-- **Test commands and results**: 
+- **Test commands and results**:
   - `npm test` - passing (safety_checks.mjs and fuzzing_and_injection_tests.mjs)
   - `npm run maintain` - passing
   - `npm run check:state` - passing
@@ -26,7 +26,7 @@ Looking at this comprehensive review, I'll analyze each area systematically.
 - **Blocks implementation**: Yes - security vulnerability
 
 **SQLite Event Loop Blocking in Production Server**
-- **Classification**: Verified defect  
+- **Classification**: Verified defect
 - **File**: `lib/sqlite_operational_store.mjs`, line 13
 - **Concrete failure scenario**: The `DatabaseSync` class performs all operations synchronously on the Node.js event loop. In a production server handling concurrent requests, any SQLite operation (even simple reads) will block all other requests, causing request queuing and timeout failures under load.
 - **Evidence**: Line 13 imports `DatabaseSync` from `node:sqlite`. All functions (`appendConversationExchange`, `createJob`, `transitionJob`, `claimNextJob`) use synchronous operations like `db.prepare().run()` and `db.exec()`.
@@ -198,8 +198,8 @@ Looking at this comprehensive review, I'll analyze each area systematically.
 
 **Objective**: Fix the AUTO_BIND_NONCE weakness and SQLite event loop blocking that could compromise security or reliability.
 
-**Verified findings addressed**: 
-- Weak AUTO_BIND_NONCE Entropy
+**Verified findings addressed**:
+- `Weak AUTO_BIND_NONCE Entropy`
 - SQLite Event Loop Blocking
 
 **Acceptance criteria**:

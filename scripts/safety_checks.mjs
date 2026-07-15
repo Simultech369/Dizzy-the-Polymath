@@ -2614,7 +2614,7 @@ async function testAgentExecuteContinuityLifecycleResponse() {
     assert.equal(body.capability_receipt.retrieval_audit.rag.attempted, false);
     assert.equal(body.capability_receipt.blocked_context.includes("repo_docs"), true);
     assert.equal(body.capability_receipt.blocked_context.includes("private_memory"), true);
-    assert.match(body.conversation_key, /^execute_client_client_a_review$/);
+    assert.match(body.conversation_key, /^execute_client_client_a_[a-f0-9]{16}_review_[a-f0-9]{16}$/);
     assert.doesNotMatch(body.conversation_key, /caller|shared/);
     assert.equal(fs.existsSync(historyPath), true);
     const history = fs.readFileSync(historyPath, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
@@ -5276,6 +5276,231 @@ async function testHardwareMonitor() {
   console.log("-> Hardware monitor checks passed");
 }
 
+async function testCodexHttpAndIpChecks() {
+  console.log("Running Codex HTTP and IP validation safety tests...");
+  const oldAllowLocal = process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+  process.env.DIZZY_TOOL_ALLOW_LOCALHOST = "1";
+
+  const server = http.createServer((req, res) => {
+    if (req.url === "/redirect1") {
+      res.writeHead(302, { "Location": "/redirect2" });
+      res.end();
+      return;
+    }
+    if (req.url === "/redirect2") {
+      res.writeHead(302, { "Location": "/target" });
+      res.end();
+      return;
+    }
+    if (req.url === "/target") {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("targetReached");
+      return;
+    }
+    if (req.url === "/slow-redirect") {
+      setTimeout(() => {
+        res.writeHead(302, { "Location": "/target" });
+        res.end();
+      }, 150);
+      return;
+    }
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port = address.port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    const oldMaxRedirects = process.env.DIZZY_TOOL_MAX_REDIRECTS;
+    process.env.DIZZY_TOOL_MAX_REDIRECTS = "0";
+    await assert.rejects(
+      () => runToolJob({
+        tool: "http_get",
+        payload: { url: `${baseUrl}/redirect1`, timeoutMs: 1000 },
+      }),
+      /Too many redirects/,
+    );
+    if (oldMaxRedirects === undefined) delete process.env.DIZZY_TOOL_MAX_REDIRECTS;
+    else process.env.DIZZY_TOOL_MAX_REDIRECTS = oldMaxRedirects;
+
+    await assert.rejects(
+      () => runToolJob({
+        tool: "http_get",
+        payload: { url: `${baseUrl}/slow-redirect`, timeoutMs: 100 },
+      }),
+      /absolute timeout/,
+    );
+
+    const testIps = [
+      { ip: "0.0.0.0", isV6: false },
+      { ip: "100.64.0.1", isV6: false },
+      { ip: "::ffff:127.0.0.1", isV6: true },
+      { ip: "::ffff:7f00:1", isV6: true }
+    ];
+    process.env.DIZZY_TOOL_ALLOW_LOCALHOST = "0";
+    for (const item of testIps) {
+      const url = item.isV6 ? `http://[${item.ip}]/` : `http://${item.ip}/`;
+      await assert.rejects(
+        () => runToolJob({
+          tool: "http_get",
+          payload: { url, timeoutMs: 1000 },
+        }),
+        /require DIZZY_TOOL_ALLOW_|blocked/i,
+      );
+    }
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    if (oldAllowLocal === undefined) delete process.env.DIZZY_TOOL_ALLOW_LOCALHOST;
+    else process.env.DIZZY_TOOL_ALLOW_LOCALHOST = oldAllowLocal;
+  }
+  console.log("-> Codex HTTP and IP checks passed");
+}
+
+async function testClientKeyCollision() {
+  console.log("Running Client Key Collision checks...");
+  const { buildClientConversationKey } = await import("../lib/client_continuity.mjs");
+
+  const c1 = buildClientConversationKey({ client_id: "Acme Inc", service_id: "review" });
+  const c2 = buildClientConversationKey({ client_id: "acme@inc", service_id: "review" });
+  assert.notEqual(c1, c2, "Acme Inc and acme@inc must not collide");
+
+  const longId1 = "A".repeat(40) + "1";
+  const longId2 = "A".repeat(40) + "2";
+  const c3 = buildClientConversationKey({ client_id: longId1, service_id: "review" });
+  const c4 = buildClientConversationKey({ client_id: longId2, service_id: "review" });
+  assert.notEqual(c3, c4, "Long IDs differing after 40 characters must not collide");
+
+  console.log("-> Client Key Collision checks passed");
+}
+
+async function testMemoryGraphFiltering() {
+  console.log("Running Memory Graph filtration safety checks...");
+  const { getRelevantMemoryGraphContext, getMemoryGraph } = await import("../lib/memory_graph.mjs");
+
+  const oldRoot = process.env.DIZZY_MEMORY_GRAPH_ROOT;
+  const tempMemoryDir = path.resolve(process.cwd(), `temp-memory-${process.pid}`);
+  process.env.DIZZY_MEMORY_GRAPH_ROOT = tempMemoryDir;
+  fs.mkdirSync(tempMemoryDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(tempMemoryDir, "revoked-doc.md"),
+    `---
+memory_status: revoked
+zone_allowed: private_self
+---
+# Revoked Decision
+This is a secret revoked decision about autonomy.
+`,
+    "utf8"
+  );
+
+  fs.writeFileSync(
+    path.join(tempMemoryDir, "private-doc.md"),
+    `---
+memory_status: active
+zone_allowed: private_self,trusted_collaborator
+---
+# Private Decision
+This is a private decision about autonomy and system structure.
+`,
+    "utf8"
+  );
+
+  fs.writeFileSync(
+    path.join(tempMemoryDir, "public-doc.md"),
+    `---
+memory_status: active
+zone_allowed: paid_public,private_self,trusted_collaborator
+---
+# Public Decision
+This is a public decision about autonomy.
+`,
+    "utf8"
+  );
+
+  try {
+    const oldCacheMs = process.env.DIZZY_MEMORY_GRAPH_CACHE_MS;
+    process.env.DIZZY_MEMORY_GRAPH_CACHE_MS = "0";
+
+    const graph = getMemoryGraph();
+    const hasRevokedNode = graph.docs.some((d) => d.path.includes("revoked-doc"));
+    assert.equal(hasRevokedNode, false, "Revoked document must not produce a node in the memory graph");
+
+    const hasPrivateNode = graph.docs.some((d) => d.path.includes("private-doc"));
+    assert.equal(hasPrivateNode, true, "Private document should be in the raw memory graph");
+
+    const publicCtx = getRelevantMemoryGraphContext("autonomy", { trustZone: "paid_public" });
+    const publicHasPrivate = publicCtx.docs.some((d) => d.path.includes("private-doc"));
+    assert.equal(publicHasPrivate, false, "Private document must not be returned in paid_public context");
+
+    const edgeMatchesPrivate = publicCtx.edges.some((e) => e.from.includes("private-doc") || e.to.includes("private-doc"));
+    assert.equal(edgeMatchesPrivate, false, "No edges linking to/from private document should be in paid_public context");
+
+    const privateCtx = getRelevantMemoryGraphContext("autonomy", { trustZone: "private_self" });
+    const privateHasPrivate = privateCtx.docs.some((d) => d.path.includes("private-doc"));
+    assert.equal(privateHasPrivate, true, "Private document should be returned in private_self context");
+
+    if (oldCacheMs === undefined) delete process.env.DIZZY_MEMORY_GRAPH_CACHE_MS;
+    else process.env.DIZZY_MEMORY_GRAPH_CACHE_MS = oldCacheMs;
+  } finally {
+    fs.rmSync(tempMemoryDir, { recursive: true, force: true });
+    if (oldRoot === undefined) delete process.env.DIZZY_MEMORY_GRAPH_ROOT;
+    else process.env.DIZZY_MEMORY_GRAPH_ROOT = oldRoot;
+  }
+  console.log("-> Memory Graph filtration safety checks passed");
+}
+
+async function testCodexSymlinkJunctionBackupRestore() {
+  console.log("Running Codex symlink/junction backup and restore safety checks...");
+  const { backupRuntime, restoreRuntime, verifySnapshotManifest } = await import("../scripts/backup_restore.mjs");
+
+  const testRoot = path.resolve(process.cwd(), "runtime", `test-symlink-junction-${process.pid}`);
+  const liveRuntime = path.join(testRoot, "live");
+  const snapshot = path.join(testRoot, "snapshot");
+  const backups = path.join(testRoot, "backups");
+
+  fs.mkdirSync(liveRuntime, { recursive: true });
+  fs.writeFileSync(path.join(liveRuntime, "normal.txt"), "hello", "utf8");
+
+  const symlinkPath = path.join(liveRuntime, "link.txt");
+  try {
+    fs.symlinkSync("normal.txt", symlinkPath);
+  } catch (err) {
+    console.log("-> Symlink creation skipped by OS permission");
+  }
+
+  if (fs.existsSync(symlinkPath)) {
+    await assert.rejects(
+      () => backupRuntime({ runtimeDir: liveRuntime, destination: snapshot }),
+      /symlink\/junction detected/,
+    );
+    fs.unlinkSync(symlinkPath);
+  }
+
+  await backupRuntime({ runtimeDir: liveRuntime, destination: snapshot });
+  assert.doesNotThrow(() => verifySnapshotManifest(snapshot));
+
+  const snapshotLinkPath = path.join(snapshot, "bad-link.txt");
+  let linkCreated = false;
+  try {
+    fs.symlinkSync("normal.txt", snapshotLinkPath);
+    linkCreated = true;
+  } catch {
+    // skip
+  }
+
+  if (linkCreated) {
+    await assert.rejects(
+      () => restoreRuntime({ sourceDir: snapshot, runtimeDir: liveRuntime, recoveryRoot: backups }),
+      /symlink\/junction detected/,
+    );
+  }
+
+  fs.rmSync(testRoot, { recursive: true, force: true });
+  console.log("-> Codex symlink/junction backup and restore safety checks passed");
+}
+
 await testRateLimiting();
 await testLoopbackBrowserOriginGuard();
 await testAdversarialTrustZoneBypass();
@@ -5283,6 +5508,10 @@ await testReadContractTool();
 await testCheerioExtractFailClosed();
 await testHttpToolResourceBounds();
 await testNewHardeningFeatures();
+await testCodexHttpAndIpChecks();
+await testClientKeyCollision();
+await testMemoryGraphFiltering();
+await testCodexSymlinkJunctionBackupRestore();
 await testQueueIdempotency();
 await testConsensusStateTransitions();
 await testSandboxExecutor();

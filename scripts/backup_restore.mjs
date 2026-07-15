@@ -48,13 +48,31 @@ function walkFiles(rootDir) {
   const root = path.resolve(rootDir);
   const files = [];
   function walk(current) {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
+    for (const entry of fs.readdirSync(current)) {
+      const fullPath = path.join(current, entry);
+      const stat = fs.lstatSync(fullPath);
+
+      let isSymOrJunction = stat.isSymbolicLink();
+      if (!isSymOrJunction) {
+        try {
+          fs.readlinkSync(fullPath);
+          isSymOrJunction = true;
+        } catch {
+          // not a link
+        }
+      }
+
+      if (isSymOrJunction) {
+        throw new Error(`Unsupported file type (symlink/junction detected): ${fullPath}`);
+      }
+
+      if (stat.isDirectory()) {
         walk(fullPath);
-      } else if (entry.isFile()) {
+      } else if (stat.isFile()) {
         const relPath = path.relative(root, fullPath).replace(/\\/g, "/");
         if (relPath !== MANIFEST_FILE) files.push(relPath);
+      } else {
+        throw new Error(`Unsupported file type (not a file or directory): ${fullPath}`);
       }
     }
   }
@@ -166,6 +184,9 @@ export async function backupRuntime({
   }
   if (isWithinRealPath(target, source)) throw new Error("Backup destination cannot be inside the runtime directory.");
   if (fs.existsSync(target)) throw new Error(`Backup destination already exists: ${target}`);
+
+  // Pre-flight check: walk and validate source for symlinks/unsupported files
+  walkFiles(source);
 
   const sqlitePath = path.join(source, "operational.sqlite");
   if (fs.existsSync(sqlitePath)) {
