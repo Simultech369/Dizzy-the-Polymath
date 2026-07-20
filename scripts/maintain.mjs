@@ -2,7 +2,7 @@ import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-import { summarizeFriction } from "../lib/friction_ledger.mjs";
+import { summarizeFrictionSync as summarizeFriction } from "../lib/friction_ledger.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
 
 const ROOT = process.cwd();
@@ -83,7 +83,7 @@ const CHECKS = [
   {
     id: "connections",
     label: "Connection hypothesis scan",
-    command: ["node", "scripts/connection_scan.mjs"],
+    command: ["node", "scripts/connection_scan.mjs", "--check"],
     severity: "yellow",
   },
 ];

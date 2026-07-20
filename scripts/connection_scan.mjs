@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { getMemoryGraph } from "../lib/memory_graph.mjs";
+import { getBridgeId } from "../lib/bridging_scan.mjs";
 
 const ROOT = process.cwd();
 const STOPWORDS = new Set([
@@ -113,12 +114,44 @@ function renderReport(graph, findings) {
 }
 
 function main() {
-  const outPath = path.resolve(ROOT, process.argv[2] || "runtime/reports/connections.md");
+  const isCheck = process.argv.includes("--check") || process.argv.includes("--dry-run");
   const graph = getMemoryGraph();
   const findings = buildFindings(graph);
   const report = renderReport(graph, findings);
+
+  if (isCheck) {
+    console.log(report);
+    console.log(`CONNECTION_SCAN_OK (dry run: 0 files written, ${findings.length} findings)`);
+    return;
+  }
+
+  const outPath = path.resolve(ROOT, process.argv[2] || "runtime/reports/connections.md");
   ensureDir(path.dirname(outPath));
   fs.writeFileSync(outPath, report, "utf8");
+
+  // Stage findings as quarantined bridges
+  const quarantineDir = process.env.DIZZY_QUARANTINE_PATH
+    ? path.resolve(process.env.DIZZY_QUARANTINE_PATH)
+    : path.resolve(ROOT, "runtime/quarantine");
+  ensureDir(quarantineDir);
+  for (const f of findings) {
+    const bridgeId = getBridgeId(f.a.path, f.b.path);
+    const bridgeFile = path.join(quarantineDir, `bridge_${bridgeId}.json`);
+    const bridgePayload = {
+      id: bridgeId,
+      source_file: f.a.path,
+      target_file: f.b.path,
+      score: Number((f.score / 15).toFixed(3)),
+      bridge_concepts: f.tokens,
+      shared_entities: f.entities,
+      shared_signals: f.signals,
+      status: "quarantined",
+      approved_by_operator: false,
+      suggested_at: new Date().toISOString()
+    };
+    fs.writeFileSync(bridgeFile, JSON.stringify(bridgePayload, null, 2), "utf8");
+  }
+
   console.log(`CONNECTION_SCAN_OK wrote ${path.relative(ROOT, outPath).replace(/\\/g, "/")} (${findings.length} findings)`);
 }
 

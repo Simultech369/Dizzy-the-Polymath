@@ -1,11 +1,12 @@
 import assert from "assert";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 import { ActivePolicyEngine } from "../lib/active_policy_engine.mjs";
 
-const statePath = path.join(process.cwd(), `temp-active-policy-state-${Date.now()}.json`);
-const configPath = path.join(process.cwd(), `temp-active-policy-config-${Date.now()}.json`);
+const statePath = path.join(os.tmpdir(), `temp-active-policy-state-${Date.now()}.json`);
+const configPath = path.join(os.tmpdir(), `temp-active-policy-config-${Date.now()}.json`);
 
 try {
   const writerEngine = new ActivePolicyEngine({ statePath, configPath });
@@ -25,7 +26,7 @@ try {
     "separate bridge policy readers must observe persisted active containment"
   );
 
-  readerEngine.resolveContainment();
+  readerEngine.resolveContainment("Operator verified resolution reason requirement");
 
   const resolvedState = JSON.parse(fs.readFileSync(statePath, "utf8"));
   assert.strictEqual(resolvedState.containment_active, false, "resolve must persistently clear containment");

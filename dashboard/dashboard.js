@@ -792,3 +792,32 @@ if (downloadBtn) {
     }
   });
 }
+
+const btnResolveContainment = document.getElementById("btn-resolve-containment");
+if (btnResolveContainment) {
+  btnResolveContainment.addEventListener("click", async () => {
+    const reason = prompt("Enter a reason for manually resolving active policy containment:");
+    if (!reason || !reason.trim()) {
+      alert("A non-empty reason is required to resolve active policy containment.");
+      return;
+    }
+    btnResolveContainment.disabled = true;
+    try {
+      const res = await fetchJson("/api/operator/resolve-containment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason })
+      });
+      if (res.ok) {
+        await loadFrictionTelemetry();
+        await loadGovernanceData();
+      } else {
+        throw new Error(res.error || "Failed to resolve");
+      }
+    } catch (e) {
+      alert("Resolution failed: " + e.message);
+    } finally {
+      btnResolveContainment.disabled = false;
+    }
+  });
+}
