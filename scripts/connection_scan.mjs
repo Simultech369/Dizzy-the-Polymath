@@ -1,10 +1,16 @@
 import fs from "fs";
 import path from "path";
 
+import crypto from "crypto";
 import { getMemoryGraph } from "../lib/memory_graph.mjs";
-import { getBridgeId } from "../lib/bridging_scan.mjs";
 
 const ROOT = process.cwd();
+
+function getBridgeId(sourceFile, targetFile) {
+  const parts = [sourceFile, targetFile || "active_session"].map(p => p.replace(/\\/g, "/").toLowerCase());
+  parts.sort();
+  return crypto.createHash("sha256").update(parts.join("|")).digest("hex").slice(0, 16);
+}
 const STOPWORDS = new Set([
   "the", "and", "not", "that", "this", "with", "from", "into", "for", "but", "are", "was", "were",
   "you", "your", "all", "can", "should", "would", "could", "has", "have", "had", "they", "their",

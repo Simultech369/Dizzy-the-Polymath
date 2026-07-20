@@ -78,7 +78,15 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/signoff"
     || pathname === "/api/operator/veto"
     || pathname === "/api/operator/run-simulation"
-    || pathname === "/api/operator-execute";
+    || pathname === "/api/operator-execute"
+    || pathname === "/api/operator/resolve-containment"
+    || pathname === "/api/operator/friction-telemetry"
+    || pathname === "/api/operator/quarantined-bridges"
+    || pathname === "/api/operator/quarantined-bridges/accept"
+    || pathname === "/api/operator/quarantined-bridges/reject"
+    || pathname === "/api/operator/prune-continuity"
+    || pathname === "/api/operator/prune-receipts"
+    || pathname === "/api/operator/run-scenario-simulation";
 }
 
 function parseBool(value, fallback = false) {

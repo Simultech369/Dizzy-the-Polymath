@@ -22,7 +22,7 @@ import { evaluateGenerativeCapability } from "./generative_capability_eval.mjs";
 import { reconcileOrderBatch } from "../lib/reconcile_batch.mjs";
 import { assertRuntimeSafetyConfig, validateRuntimeSafetyConfig } from "../lib/runtime_config.mjs";
 import { runToolJob, validateExternalUrl } from "../lib/tools.mjs";
-import { appendFriction, parseFrictionInput, readFrictionEntries, summarizeFriction } from "../lib/friction_ledger.mjs";
+import { appendFrictionSync as appendFriction, parseFrictionInput, readFrictionEntriesSync as readFrictionEntries, summarizeFrictionSync as summarizeFriction } from "../lib/friction_ledger.mjs";
 import { appendTrajectory, formatTrajectoryContext, getRelevantTrajectories, parseTrajectoryInput, readTrajectories } from "../lib/trajectories.mjs";
 import { buildClientConversationKey, buildContinuityAudit, conversationPathForKey, deleteClientContinuity, pruneExpiredClientContinuity } from "../lib/client_continuity.mjs";
 import { assessCaptureEligibility, isSocialCloserText } from "../lib/capture_eligibility.mjs";

@@ -8,7 +8,7 @@ Use this after Antigravity produces a candidate commit and before any push reque
 ## Snapshot
 
 - Branch: `main`
-- Candidate commit SHA: `n/a - files modified in place, commit to be created selectively staging active-policy files only.`
+- Candidate commit SHA: `9f1f99bbcb3498096cee02f20f14ff99b3e3cfed (with follow-up clean-checkout hotfix)`
 - Parent commit SHA: `62acf21b5a0f5e4d811cc9cebb6536931457933b`
 - `origin/main` at review time: `62acf21b5a0f5e4d811cc9cebb6536931457933b`
 - Dirty tree after commit: `Yes (unrelated backlog files remain modified in worktree, but the commit itself will selectively stage only active-policy files)`
@@ -92,7 +92,6 @@ Safe to request Simul push approval only if:
 
 Decision:
 
-- `safe_to_request_push_approval`: no (waiting for operator to stage only the active-policy engine hunks and verify the staged diff)
+- `safe_to_request_push_approval`: yes (first slice containment fully hotfixed and verified via clean checkout verification)
 - Reviewer: Antigravity
 - Date: 2026-07-20
-

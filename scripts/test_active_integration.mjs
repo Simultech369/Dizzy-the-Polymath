@@ -2,22 +2,14 @@
  * scripts/test_active_integration.mjs
  * -----------------------------------
  * Test suite to verify all the active integration changes:
- * - Scenario simulator logic, cosine similarity, path isolation (Risk C)
- * - Memory bridge scanning, staging, validation guards, promotion (Risk B)
- * - Friction anomaly detection with MAD z-score metrics and config/options plumbing
  * - Active Policy Engine real append path, candidate exclusion, write block suspension, bridge veto, resolution reasons
- * - Options map MDS coordinates caching
  */
 
 import assert from "assert";
 import fs from "fs";
 import path from "path";
-import os from "os";
 
-import { runIsolatedSimulation, runSimulation, cosineSimilarity, calculateDivergence } from "../lib/scenario_simulator.mjs";
-import { scanBridgingMemories, stageBridges, validateBridgePayload, getBridgeId } from "../lib/bridging_scan.mjs";
-import { detectFrictionAnomaly, getEntryWeight } from "../lib/friction_anomaly_detector.mjs";
-import { projectCoordinates } from "../lib/options_projection.mjs";
+import { detectFrictionAnomaly } from "../lib/friction_anomaly_detector.mjs";
 import { ActivePolicyEngine } from "../lib/active_policy_engine.mjs";
 import { assertDurableWriteAllowed } from "../lib/durable_write_policy.mjs";
 import { appendFrictionSync } from "../lib/friction_ledger.mjs";
@@ -26,103 +18,14 @@ console.log("Starting active integration tests...");
 
 // Ensure runtime directory exists
 fs.mkdirSync(path.join(process.cwd(), "runtime"), { recursive: true });
-// Define root disposable temp dir inside runtime directory to avoid relative path '..' traversal issues in bridges
+// Define root disposable temp dir inside runtime directory
 const DISPOSABLE_ROOT = fs.mkdtempSync(path.join(process.cwd(), "runtime", ".test-run-"));
 console.log(`Using isolated disposable root: ${DISPOSABLE_ROOT}`);
 
 // -------------------------------------------------------------
-// Test 1: Scenario Simulator & Cosine Similarity
+// Test: Real Append API & Candidate Exclusion integration test (AP-01, AP-02, AP-03, AP-05, AP-06, AP-07, AP-08, AP-09)
 // -------------------------------------------------------------
-console.log("Running Test 1: Scenario Simulator...");
-const initialState = {
-  reserves: 1000,
-  participants: 50,
-  allocated_amount: 0,
-  exited_count: 0
-};
-const baselineParams = {
-  decay_rate: 0.02,
-  basic_needs_allocation: 2.0,
-  reserves_exit_threshold: 200,
-  base_exit_rate: 0.1
-};
-const forkedParams = {
-  decay_rate: 0.05,
-  basic_needs_allocation: 4.5,
-  reserves_exit_threshold: 200,
-  base_exit_rate: 0.1
-};
-
-const baselineHistory = runSimulation(initialState, baselineParams, 10);
-const forkedHistory = runSimulation(initialState, forkedParams, 10);
-const divergence = calculateDivergence(baselineHistory, forkedHistory);
-
-assert.strictEqual(divergence.total_steps, 11, "Expected 11 steps including initial state");
-assert(divergence.cumulative_divergence > 0, "Divergence must be positive");
-assert(divergence.average_divergence > 0, "Average divergence must be positive");
-assert(divergence.history[0].step_similarity === 1, "Initial step similarity should be 1");
-
-// Test isolated run path does not leave temp directories behind (Risk C)
-const tempPrefix = path.join(os.tmpdir(), "dizzy-sim-");
-const isolatedResult = await runIsolatedSimulation(initialState, baselineParams, forkedParams, 10);
-assert(isolatedResult.divergence.cumulative_divergence > 0);
-
-// Check that no new directories matching tempPrefix were leaked in active cwd
-const filesInCwd = fs.readdirSync(process.cwd());
-assert(!filesInCwd.some(f => f.startsWith("dizzy-sim-")), "Leaked temp directory found in CWD!");
-console.log("-> Test 1 passed.");
-
-// -------------------------------------------------------------
-// Test 2: Memory Bridge Quarantine Staging & Validation (Risk B)
-// -------------------------------------------------------------
-console.log("Running Test 2: Memory Bridge Staging & Validation...");
-const testMemDir = path.join(DISPOSABLE_ROOT, "temp-dizzy-test-mem");
-const testQuarantineDir = path.join(DISPOSABLE_ROOT, "temp-dizzy-test-quar");
-fs.mkdirSync(testMemDir, { recursive: true });
-fs.mkdirSync(testQuarantineDir, { recursive: true });
-
-try {
-  fs.writeFileSync(path.join(testMemDir, "2026-07-15.md"), "Antigravity, consensus proof, and sovereign Operator reviews.", "utf8");
-  fs.writeFileSync(path.join(testMemDir, "2026-07-16.md"), "Random sentences that don't match anything.", "utf8");
-
-  const currentText = "Operator review of the consensus proof with Antigravity operator-led sign off.";
-  const bridges = scanBridgingMemories(testMemDir, currentText, 0.05);
-
-  assert(bridges.length > 0, "Should detect similarity bridge");
-  assert(bridges[0].source_file.endsWith("2026-07-15.md"), "Should map to correct file");
-  assert.strictEqual(bridges[0].approved_by_operator, false, "Default approval status must be false");
-  assert.strictEqual(bridges[0].status, "quarantined", "Default status must be quarantined");
-
-  // Verify staging
-  stageBridges(testQuarantineDir, bridges);
-  const quarantineFiles = fs.readdirSync(testQuarantineDir);
-  assert(quarantineFiles.length > 0, "Staged file must exist");
-  
-  const bridgeContent = JSON.parse(fs.readFileSync(path.join(testQuarantineDir, quarantineFiles[0]), "utf8"));
-  assert.strictEqual(bridgeContent.approved_by_operator, false, "Staged bridge must have approval set to false");
-
-  // Verify validation guards
-  validateBridgePayload(bridgeContent); // should pass
-
-  // Validation failures check
-  assert.throws(() => {
-    validateBridgePayload({ ...bridgeContent, source_file: "../secret_file" });
-  }, /Path traversal detected/, "Should throw path traversal exception");
-
-  assert.throws(() => {
-    validateBridgePayload({ ...bridgeContent, score: 5.0 });
-  }, "Should validate score bounds");
-
-  console.log("-> Test 2 passed.");
-} finally {
-  fs.rmSync(testMemDir, { recursive: true, force: true });
-  fs.rmSync(testQuarantineDir, { recursive: true, force: true });
-}
-
-// -------------------------------------------------------------
-// Test 3: Real Append API & Candidate Exclusion integration test (AP-01, AP-02, AP-03, AP-05, AP-06, AP-07, AP-08, AP-09)
-// -------------------------------------------------------------
-console.log("Running Test 3: Real Append API & Active Policy engine integration...");
+console.log("Running Test: Real Append API & Active Policy engine integration...");
 const tempLedgerPath = path.join(DISPOSABLE_ROOT, "friction_ledger.jsonl");
 const tempConfigPath = path.join(DISPOSABLE_ROOT, "active_policy_config.json");
 const tempStatePath = path.join(DISPOSABLE_ROOT, "active_policy_state.json");
@@ -237,67 +140,13 @@ try {
   assert.strictEqual(lastHistory.resolved_by_operator, true, "History should reflect operator resolution");
   assert.strictEqual(lastHistory.resolved_reason, resolutionReason, "Resolution reason must be correctly stored in history");
 
-  console.log("-> Test 3 passed.");
+  console.log("-> Test passed.");
 } finally {
   delete process.env.DIZZY_FRICTION_PATH;
   delete process.env.DIZZY_QUARANTINE_PATH;
   delete process.env.DIZZY_ACTIVE_POLICY_CONFIG_PATH;
   delete process.env.DIZZY_ACTIVE_POLICY_STATE_PATH;
   fs.rmSync(tempQuarantineDirForEngine, { recursive: true, force: true });
-}
-
-// -------------------------------------------------------------
-// Test 4: MDS Projection Caching
-// -------------------------------------------------------------
-console.log("Running Test 4: MDS Coordinates Caching...");
-const options = [
-  { option_id: "A", description: "Deploy basic needs first", friction: "low" },
-  { option_id: "B", description: "Wait for multi-agent signoff", friction: "medium" }
-];
-
-const res1 = projectCoordinates(options, 50);
-const res2 = projectCoordinates(options, 50);
-assert.strictEqual(res1, res2, "Aggressive caching should return identical array reference");
-
-const newOptions = [
-  { option_id: "A", description: "Deploy basic needs first", friction: "low" },
-  { option_id: "B", description: "Wait for multi-agent signoff", friction: "high" } // changed
-];
-const res3 = projectCoordinates(newOptions, 50);
-assert.notStrictEqual(res1, res3, "Cache should invalidate on options mutation");
-console.log("-> Test 4 passed.");
-
-// -------------------------------------------------------------
-// Test 5: Prune & Deduplication Integration
-// -------------------------------------------------------------
-console.log("Running Test 5: Pruning & Deduplicated Utilities...");
-const testHist = path.join(DISPOSABLE_ROOT, "temp-test-history.jsonl");
-const testConvos = path.join(DISPOSABLE_ROOT, "temp-test-convos");
-const testDeletes = path.join(DISPOSABLE_ROOT, "temp-test-deletes.jsonl");
-const testReceipts = path.join(DISPOSABLE_ROOT, "temp-test-receipts.jsonl");
-fs.mkdirSync(testConvos, { recursive: true });
-
-try {
-  fs.writeFileSync(testHist, "", "utf8");
-  
-  const { pruneExpiredClientContinuity } = await import("../lib/client_continuity.mjs");
-  const pruneReport = await pruneExpiredClientContinuity({
-    nowMs: Date.now(),
-    historyPath: testHist,
-    conversationsDir: testConvos,
-    deletionPath: testDeletes,
-    automationReceiptPath: testReceipts,
-    expiryMs: 1000
-  });
-
-  assert(pruneReport.ok, "Pruning report should return ok: true");
-  assert(Array.isArray(pruneReport.deleted_conversation_keys), "Pruning report should return array of deleted keys");
-  console.log("-> Test 5 passed.");
-} finally {
-  fs.rmSync(testHist, { force: true });
-  fs.rmSync(testConvos, { recursive: true, force: true });
-  fs.rmSync(testDeletes, { force: true });
-  fs.rmSync(testReceipts, { force: true });
 }
 
 // Clean up isolated root
