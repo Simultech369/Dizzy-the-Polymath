@@ -16,6 +16,8 @@
   <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
 </p>
 
+> Quickstart guide: See [QUICKSTART.md](QUICKSTART.md) for first-run setup, health checks, and repo navigation.
+
 </div>
 
 ### Repository Structure and Authority
@@ -33,7 +35,7 @@ The repo is transparent without turning every working note into doctrine: the ru
 
 ## What Runs Today
 
-| Surface | Proof |
+| Surface | Current evidence / check |
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | Prompt governance | Prompt sources are loaded through a scoped bundle and budget checks |

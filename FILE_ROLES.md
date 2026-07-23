@@ -80,6 +80,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 
 ## Operations And Interfaces
 
+- `QUICKSTART.md`
 - `RUNBOOK.md`
 - `OPERATIONS.md`
 - `OPERATOR.md`
