@@ -3,7 +3,7 @@ id: U-tension-map
 status: active
 tier: 2
 owner_surface: DESIGN.md
-last_reviewed: 2026-06-01
+last_reviewed: 2026-07-22
 next_action: Use to decide which contradictions deserve runtime implementation or explicit deferral.
 ---
 
@@ -15,7 +15,7 @@ Living document of core contradictions in Dizzy's design. Each tension should pr
 
 Tension: More private memory and stricter trust zones reduce context quality. Looser zones increase usefulness but risk leakage and boundary erosion.
 
-Experiment: Implement capability receipts: every tool call, memory retrieval, and trust-zone decision reports what it saw, what it did not see, and why. Receipts are operator-visible in `private_self` and summarized in maintenance reports.
+Experiment: Implement capability receipts and router execution receipts (`dizzy.router_receipt.v1`): every tool call, routing decision, memory retrieval, and trust-zone decision reports what it saw, what it did not see, and why. Receipts are operator-visible in `private_self` and summarized in maintenance reports.
 
 Failure mode: Usefulness wins by default through gradual scope creep until private memory becomes ambient.
 
@@ -34,6 +34,14 @@ Tension: The private system depends on strong continuity, while public and marke
 Experiment: Define projection rules: `paid_public` can use only explicit request context and scoped client conversation history. Any proposed private-memory use becomes a hard rejection plus operator-visible receipt.
 
 Failure mode: Commercial pressure quietly relaxes boundaries until private continuity leaks into public outputs.
+
+## Knowledge Validity vs Context Residency
+
+Tension: Storing structured memory graph data requires strict schema validation to eliminate "ontology vibes," but passing full schemas into every LLM prompt burns context budget and increases latency.
+
+Experiment: Enforce JSON Schema contracts on memory write and extraction gates, while using a lightweight Context Scheduler to decide which validated records earn temporary residency in the prompt window.
+
+Failure mode: Either dumping raw memory graphs into prompt context (context sludge) or forcing a monolithic, rigid ontology that stalls flexible exploration.
 
 ## Creativity vs Governance
 

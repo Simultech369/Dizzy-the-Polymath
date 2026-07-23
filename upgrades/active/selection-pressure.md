@@ -3,7 +3,7 @@ id: U-selection-pressure
 status: active
 tier: 2
 owner_surface: CHOKEPOINTS.md
-last_reviewed: 2026-06-01
+last_reviewed: 2026-07-22
 next_action: Use before adding layers to decide what can be simplified, deferred, or removed.
 ---
 
@@ -55,6 +55,14 @@ Use for memory, routing, doctrine, trust zones, public surfaces, and prompt arch
 - **Compression**: Does this reduce future explanation burden?
 - **Failure containment**: If the model/provider/operator fails, what remains bounded?
 - **Self-obsolescence**: What repeated task should become easier, shorter, or unnecessary?
+
+## Local Memory & Context Scheduler Pass
+
+Use before introducing new RAG, graph, or context allocation layers:
+
+- **Schema as Contract**: Enforce node/edge contracts via plain JSON Schema in Node validators, keeping Python out of the runtime hot path.
+- **Residency Separation**: Do not confuse durable knowledge validity with temporary prompt-cache residency. Memory records are durable; context budget is ephemeral.
+- **Minimal Infrastructure**: Avoid building heavy serving infrastructure (e.g. internal KV managers) inside clawd when a simple allocation scheduler is sufficient.
 
 ## PBMRebate / PFC Questions
 
