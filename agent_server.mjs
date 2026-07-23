@@ -11,6 +11,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
+import { getChosenModelString } from "./lib/model_router.mjs";
 
 function isMainModule() {
   try {
@@ -1020,7 +1021,10 @@ export async function createRuntime(opts = {}) {
           enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
       });
 
-      res.json({ ok: true, ...out });
+      const capabilities = getTrustZoneCapabilities(message);
+      const routerReceipt = buildRouterReceipt(req, capabilities, out?.execution_metadata);
+
+      res.json({ ok: true, ...out, router_receipt: routerReceipt });
     } catch (e) {
       next(e);
     }
@@ -1077,6 +1081,92 @@ export async function createRuntime(opts = {}) {
       next(e);
     }
   });
+
+  function buildRouterReceipt(req, capabilities, executionMetadata = null, taskClass = "route_classify", activatedModes = ["route_classify"]) {
+    let chosenModel = executionMetadata?.chosen_model || getChosenModelString("chat");
+    const isNoneModel = !chosenModel || chosenModel === "none" || chosenModel.startsWith("none");
+    const noExecutionReason = isNoneModel
+      ? String(chosenModel).replace(/^none:?/, "").trim() || "no_model_execution"
+      : "";
+
+    let costBand = executionMetadata?.estimated_cost_band || (isNoneModel ? "free" : "unknown");
+    let dataBoundary = executionMetadata?.data_boundary || (isNoneModel ? "none" : "google_gemini_api");
+    let modelOriginRisk = executionMetadata?.model_origin_risk || (isNoneModel ? "unknown" : "unknown");
+    let fallback = executionMetadata?.fallback || {
+      configured: false,
+      used: false,
+      path: "none",
+      blocked_reason: noExecutionReason
+    };
+
+    if (!executionMetadata && !isNoneModel) {
+      // In the absence of metadata, default to derived env estimates
+      const lowerModel = chosenModel.toLowerCase();
+      if (
+        lowerModel.includes("flash") ||
+        lowerModel.includes("mini") ||
+        lowerModel.includes("gemma") ||
+        lowerModel.includes("free") ||
+        /\b\d+b\b/.test(lowerModel)
+      ) {
+        costBand = "low";
+      } else {
+        costBand = "standard";
+      }
+
+      if (chosenModel.startsWith("openai_compat:")) {
+        const isLocal = String(process.env.DIZZY_CHAT_BACKEND).toLowerCase() === "local";
+        dataBoundary = isLocal ? "local_machine" : "openai_compatible_api";
+      }
+
+      if (lowerModel.includes("qwen") || lowerModel.includes("deepseek") || lowerModel.includes("yi") || lowerModel.includes("glm")) {
+        modelOriginRisk = "high";
+      } else {
+        modelOriginRisk = "low";
+      }
+    }
+
+    const receipt = {
+      schema_version: "dizzy.router_receipt.v1",
+      task_id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      task_class: taskClass,
+      activated_modes: activatedModes,
+      chosen_model: chosenModel,
+      data_boundary: dataBoundary,
+      model_origin_risk: modelOriginRisk,
+      estimated_cost_band: costBand,
+      reason: executionMetadata?.reason || (isNoneModel ? `no_model_execution:${noExecutionReason}` : "default_triage_routing_to_chat"),
+      fallback,
+      trust_zone: capabilities.trust_zone || "paid_public",
+      durable_memory_allowed: capabilities.durable_memory_allowed ?? false,
+      voice_consent: false,
+      persisted: false
+    };
+
+    let persisted = false;
+    if (capabilities.retention_scope !== "ephemeral") {
+      try {
+        const persistedReceipt = { ...receipt, persisted: true };
+        if (capabilities.retention_scope === "conversation_only") {
+          const key = buildExecuteConversationKey(req.body);
+          const convoPath = conversationPathForKey(key);
+          fs.mkdirSync(path.dirname(convoPath), { recursive: true });
+          fs.appendFileSync(convoPath, `${JSON.stringify({ t: new Date().toISOString(), role: "system", event: "router_receipt", payload: persistedReceipt })}\n`, "utf8");
+          persisted = true;
+        } else {
+          const receiptsPath = path.resolve(process.cwd(), process.env.DIZZY_ROUTER_RECEIPT_PATH || "runtime/router_receipts.jsonl");
+          fs.mkdirSync(path.dirname(receiptsPath), { recursive: true });
+          fs.appendFileSync(receiptsPath, `${JSON.stringify(persistedReceipt)}\n`, "utf8");
+          persisted = true;
+        }
+      } catch (e) {
+        console.error(`[router_receipt] Failed to persist router receipt: ${e.message}`);
+      }
+    }
+    receipt.persisted = persisted;
+    return receipt;
+  }
 
   async function runAgentExecute(req, body = req.body ?? {}) {
     const { brief } = body ?? {};
@@ -1138,6 +1228,8 @@ export async function createRuntime(opts = {}) {
         enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
     });
     const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
+    const routerReceipt = buildRouterReceipt(req, capabilities, out?.execution_metadata);
+
     if (capabilities.retention_scope !== "ephemeral") {
       persistMissingExecuteTranscript({ conversationKey, beforeRows: beforeConversationRows, brief, out });
       durableAppendJsonl(executionHistoryPath(), {
@@ -1151,6 +1243,7 @@ export async function createRuntime(opts = {}) {
         repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
         durable_memory_allowed: capabilities.durable_memory_allowed,
         capability_receipt: capabilityReceipt,
+        router_receipt: routerReceipt,
         conversation_key: conversationKey,
         result_kind: out?.kind || "",
       });
@@ -1167,6 +1260,7 @@ export async function createRuntime(opts = {}) {
         repo_retrieval_allowed: capabilities.repo_retrieval_allowed,
         durable_memory_allowed: capabilities.durable_memory_allowed,
         capability_receipt: capabilityReceipt,
+        router_receipt: routerReceipt,
         conversation_key: conversationKey,
         ...out,
       },

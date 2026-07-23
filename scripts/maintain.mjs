@@ -93,6 +93,7 @@ function runCheck(check) {
     cwd: ROOT,
     encoding: "utf8",
     shell: false,
+    timeout: 300000,
   });
 
   const stdout = String(result.stdout || "").trim();

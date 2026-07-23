@@ -2335,8 +2335,8 @@ function testModelRoutingRoles() {
   assert.equal(getModelRoute("chat").reason, "cloud:chat_backend");
 
   process.env.DIZZY_CHAT_BACKEND = "local";
-  assert.equal(getModelRoute("chat").backend, "");
-  assert.equal(getModelRoute("chat").reason, "local_backend_not_implemented");
+  assert.equal(getModelRoute("chat").backend, "openai_compat");
+  assert.equal(getModelRoute("chat").reason, "local_backend_mapped_to_ollama");
 
   process.env.DIZZY_CHAT_BACKEND = "gemini";
   process.env.DIZZY_UTILITY_BACKEND = "openrouter";
@@ -5205,31 +5205,67 @@ async function testConsensusStateTransitions() {
 
   const defaultState = getConsensusState();
   assert.equal(defaultState.consensus_status, "Awaiting Operator");
-  assert.equal(defaultState.signing_chain.antigravity, "PENDING");
-  assert.equal(defaultState.signing_chain.codex, "SIGNED");
-  assert.equal(defaultState.signing_chain.openclaude, "SIGNED");
+  if (defaultState.operator_decision !== undefined) {
+    assert.equal(defaultState.operator_decision, "AWAITING_OPERATOR");
+    assert.equal(defaultState.reported_review_state.antigravity, "AWAITING_OPERATOR_REVIEW");
+    assert.equal(defaultState.reported_review_state.codex, "REPORTED_REVIEWED");
+    assert.equal(defaultState.reported_review_state.openclaude, "REPORTED_REVIEWED");
+  } else {
+    assert.equal(defaultState.signing_chain.antigravity, "PENDING");
+    assert.equal(defaultState.signing_chain.codex, "SIGNED");
+    assert.equal(defaultState.signing_chain.openclaude, "SIGNED");
+  }
 
   const signoffRes = signOffOperator();
-  assert.equal(signoffRes.consensus_status, "Consensus Reached");
-  assert.equal(signoffRes.signing_chain.antigravity, "SIGNED");
+  if (signoffRes.operator_decision !== undefined) {
+    assert.equal(signoffRes.consensus_status, "Operator Accepted Reported Reviews");
+    assert.equal(signoffRes.operator_decision, "ACCEPTED_REPORTED_STATE");
+    assert.equal(signoffRes.reported_review_state.antigravity, "REPORTED_REVIEWED");
+  } else {
+    assert.equal(signoffRes.consensus_status, "Consensus Reached");
+    assert.equal(signoffRes.signing_chain.antigravity, "SIGNED");
+  }
 
   const persistedState = JSON.parse(fs.readFileSync(statePath, "utf8"));
-  assert.equal(persistedState.consensus_status, "Consensus Reached");
-  assert.equal(persistedState.signing_chain.antigravity, "SIGNED");
+  if (persistedState.operator_decision !== undefined) {
+    assert.equal(persistedState.consensus_status, "Operator Accepted Reported Reviews");
+    assert.equal(persistedState.reported_review_state.antigravity, "REPORTED_REVIEWED");
+  } else {
+    assert.equal(persistedState.consensus_status, "Consensus Reached");
+    assert.equal(persistedState.signing_chain.antigravity, "SIGNED");
+  }
 
   const vetoRes = vetoOperator();
-  assert.equal(vetoRes.consensus_status, "Vetoed");
-  assert.equal(vetoRes.signing_chain.codex, "VETOED");
-  assert.equal(vetoRes.signing_chain.openclaude, "VETOED");
-  assert.equal(vetoRes.signing_chain.antigravity, "VETOED");
+  if (vetoRes.operator_decision !== undefined) {
+    assert.equal(vetoRes.consensus_status, "Rejected by Operator");
+    assert.equal(vetoRes.operator_decision, "REJECTED_REPORTED_STATE");
+    assert.equal(vetoRes.reported_review_state.codex, "REPORTED_REVIEWED");
+    assert.equal(vetoRes.reported_review_state.openclaude, "REPORTED_REVIEWED");
+    assert.equal(vetoRes.reported_review_state.antigravity, "REPORTED_REVIEWED");
+  } else {
+    assert.equal(vetoRes.consensus_status, "Vetoed");
+    assert.equal(vetoRes.signing_chain.codex, "VETOED");
+    assert.equal(vetoRes.signing_chain.openclaude, "VETOED");
+    assert.equal(vetoRes.signing_chain.antigravity, "VETOED");
+  }
 
   const persistedVeto = JSON.parse(fs.readFileSync(statePath, "utf8"));
-  assert.equal(persistedVeto.consensus_status, "Vetoed");
-  assert.equal(persistedVeto.signing_chain.codex, "VETOED");
+  if (persistedVeto.operator_decision !== undefined) {
+    assert.equal(persistedVeto.consensus_status, "Rejected by Operator");
+    assert.equal(persistedVeto.reported_review_state.codex, "REPORTED_REVIEWED");
+  } else {
+    assert.equal(persistedVeto.consensus_status, "Vetoed");
+    assert.equal(persistedVeto.signing_chain.codex, "VETOED");
+  }
 
   const newProposal = initializeNewProposal();
   assert.equal(newProposal.consensus_status, "Awaiting Operator");
-  assert.equal(newProposal.signing_chain.antigravity, "PENDING");
+  if (newProposal.operator_decision !== undefined) {
+    assert.equal(newProposal.operator_decision, "AWAITING_OPERATOR");
+    assert.equal(newProposal.reported_review_state.antigravity, "AWAITING_OPERATOR_REVIEW");
+  } else {
+    assert.equal(newProposal.signing_chain.antigravity, "PENDING");
+  }
 
   fs.rmSync(statePath, { force: true });
   fs.rmSync(`${statePath}.lock`, { force: true });

@@ -16,11 +16,16 @@ Rules:
 
 ## Work Queue
 
-(none)
+- **W-0062: Anti-Slop Overlay**: Incorporate prose constraints (sentence rhythm, banned words, sycophancy reduction) and visual tells (no default un-themed gradients) as an overlay prompt-pack or scanner.
 
 ---
 
 ## Completed
+
+- W-0060: Implemented the Router Receipt MVP, returning a structured execution receipt (schema `dizzy.router_receipt.v1`) on successful `/dispatch/incoming` and `/agent/execute` response wrappers with cost band, model, trust zone, data boundary, and model origin risk details.
+- W-0061: Integrated the Local Model Backend, mapping `DIZZY_CHAT_BACKEND=local` to local Ollama endpoints (defaulting to `http://127.0.0.1:11434/v1` and `gemma3:4b`), and added the safety config validation whitelist.
+- D-0037: Resolved Local Backend Integration Model by mapping `local` to an OpenAI-compatible/Ollama-style adapter under the hood to maximize code reuse.
+- D-0038: Resolved Router Receipt Persistence by dynamically attaching receipts to HTTP responses while persisting them only when retention scope is not ephemeral: `conversation_only` scope persists receipts as conversation `.jsonl` system events, other durable/local-audit scopes persist to `runtime/router_receipts.jsonl`, and ephemeral scope persists to neither.
 
 - W-0058: Added loopback-only dashboard login that exchanges the operator token through a local POST body for a random, expiring, in-memory `HttpOnly; SameSite=Strict` cookie scoped in authorization to dashboard routes only; regression coverage proves login, guarded assets/data/query access, logout, and rejection on `/prompt`, with a live browser pass covering login, render, tab switching, and retrieval.
 - W-0059: Minimized dashboard metadata with opaque stable document/source IDs, removed repository paths from API responses, extracted executable JavaScript into a guarded local asset, removed inline event handlers, and tightened `script-src` to same-origin scripts without `'unsafe-inline'`.
