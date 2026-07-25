@@ -447,6 +447,18 @@ function schemaCheckFiles() {
   return issues;
 }
 
+function scanVisualSlopOverlay() {
+  const warnings = [];
+  const dashboardHtml = path.resolve(ROOT, "dashboard", "index.html");
+  if (fs.existsSync(dashboardHtml)) {
+    const html = fs.readFileSync(dashboardHtml, "utf8");
+    if (/style=["'][^"']*linear-gradient/i.test(html)) {
+      warnings.push("dashboard/index.html contains inline un-themed gradient styles (W-0062 advisory slop warning).");
+    }
+  }
+  return warnings;
+}
+
 function main() {
   const results = CHECKS.map(runCheck);
   const staleFindings = listStaleUpgradeSignals();
@@ -463,11 +475,13 @@ function main() {
   const dateIssues = checkFileDates();
   const zoneViolations = scanZoneViolations();
   const schemaFailures = schemaCheckFiles();
+  const slopWarnings = scanVisualSlopOverlay();
 
   let overall = "green";
   if (
     softFailures.length ||
     staleFindings.length ||
+    slopWarnings.length ||
     upgrades.status === "yellow" ||
     rootRoles.status === "yellow" ||
     ownership.status === "yellow" ||
@@ -564,6 +578,12 @@ function main() {
     console.log("");
     console.log("[yellow] Ledger schema");
     for (const issue of schemaFailures) console.log(`  - ${issue}`);
+  }
+
+  if (slopWarnings.length) {
+    console.log("");
+    console.log("[yellow] Anti-slop visual scan");
+    for (const warning of slopWarnings) console.log(`  - ${warning}`);
   }
 
   console.log("");

@@ -81,8 +81,24 @@ Derived mechanically from model critiques for future implementation slices:
 In this synthesis slice, DO NOT modify:
 - `lib/*`
 - `dashboard/*`
-- `QUICKSTART.md`
-- `README.md`
-- W-0062 files
+- W-0062 scanner runtime code
 - Prototype / scenario files
 - Memory files
+
+---
+
+## 6. Dropped & Deferred Claims Appendix (W-0062 / W-0063 Discipline)
+
+| Source Model | Claim / Proposal | Classification | Disposition | Rationale & Evidence |
+| :--- | :--- | :--- | :--- | :--- |
+| **DeepSeek R1 (7B)** | Formal proof verification gating before any UI refactoring | Governance Rule | **ACCEPTED** | Confirms dashboard volatility guardrail; dashboard changes require CSP test harness first. |
+| **GLM4 / Kimi (Long-Context)** | Automated CI/CD version control command checks | Feature Proposal | **DEFERRED** | Maintainer script `npm run maintain` already handles local checks; CI automation deferred to avoid scope churn. |
+| **Terra / Mistral (Cleanup)** | Forced git worktree cleaning / stashing of untracked backlog | Cleanup Rule | **REJECTED** | Worktree backlog is intentionally dirty/untracked; forced clean or reset violates pause boundary. |
+| **Qwen 2.5 Coder 7B** | Automate git snapshot gate into CI/CD pipeline | Feature Proposal | **DEFERRED** | Snapshot gate is an operator-controlled handoff tool; automating into CI/CD prematurely adds pipeline complexity. |
+| **Qwen 2.5 Coder 7B** | Continuous background file linter on `lib/*` | Code Change | **REJECTED** | Off-limits rule: `lib/*` is parked until an explicit runtime slice is selected. |
+| **Llama-Audit** | Immediate refactoring of dashboard HTML/JS | Code Change | **REJECTED** | Disregards dashboard volatility warning; high breakage risk without CSP test suite. |
+| **DeepSeek 16B** | Early import path refactoring across core modules | Refactoring | **REJECTED** | Violates minimality boundary; creates unverified cross-module churn. |
+| **Laguna XS 2.1** | Unprompted secret scrubbing / git history rewrite | Provenance Hazard | **REJECTED** | Violates §5b integrity clause; non-auditable history modification. |
+
+
+

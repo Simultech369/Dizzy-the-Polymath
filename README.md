@@ -16,7 +16,7 @@
   <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
 </p>
 
-> Quickstart guide: See [QUICKSTART.md](QUICKSTART.md) for first-run setup, health checks, and repo navigation.
+> **Quickstart Guide**: See [QUICKSTART.md](QUICKSTART.md) for the **"Try Dizzy in 5 Minutes"** guided walk-through (`/health` + `/prompt`), trust-zone demo, and visual identity map.
 
 </div>
 

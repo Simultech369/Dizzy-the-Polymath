@@ -1,6 +1,6 @@
 # QUICKSTART.md - First Run & Orientation Guide
 
-Welcome to **Dizzy** (clawd). This guide provides a 5-minute path to launch the local runtime, verify health, and navigate the repository structure.
+Welcome to **Dizzy** (clawd). This guide provides a 5-minute path to launch the local runtime, verify health, understand trust boundaries, and navigate the repository structure.
 
 ---
 
@@ -12,10 +12,10 @@ It ensures that an assistant carries forward only the context that improves pres
 
 ---
 
-## 2. 5-Minute First-Run Path
+## 2. ⚡ "Try Dizzy in 5 Minutes" Guided Walk-Through
 
 ### Step 1: Install Dependencies
-Node.js 20.18.1+ is required. On Windows PowerShell, use `npm.cmd`:
+Node.js 20.18.1+ is required. On Windows PowerShell, install local dependencies:
 
 ```powershell
 npm.cmd install
@@ -28,19 +28,58 @@ Start the local agent server:
 node .\agent_server.mjs
 ```
 
-The server listens on `http://127.0.0.1:3000` by default.
+The server listens locally at `http://127.0.0.1:3000`.
 
-### Step 3: Verify Local Endpoint
-In a separate terminal window, query the local `/health` and `/prompt` endpoints:
+### Step 3: Walkthrough Local Endpoints (`/health` & `/prompt`)
+In a separate terminal window, test the local endpoints:
 
 ```powershell
+# 1. Query health status
 Invoke-RestMethod http://127.0.0.1:3000/health
+```
+
+**Expected Response**:
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "timestamp": "2026-07-25T14:30:00.000Z"
+}
+```
+
+```powershell
+# 2. Inspect active live prompt-pack bundle metadata
 Invoke-RestMethod http://127.0.0.1:3000/prompt
+```
+
+**Expected Response**:
+```json
+{
+  "status": "ok",
+  "pack": "default",
+  "budget_bytes": 60000,
+  "sources": ["CONSTITUTIONAL_KERNEL.md", "IDENTITY.md", "SOUL.md", "TOOLS.md", "USER.md", "PROMPT_CORE.md"]
+}
 ```
 
 ---
 
-## 3. How to Verify System Health
+## 3. Trust-Zone Demo (Plain English)
+
+Dizzy enforces 4 strict **Trust Zones** to control memory retention and context leakage:
+
+| Trust Zone | Plain English Meaning | Default Retention Posture |
+| :--- | :--- | :--- |
+| **`private_self`** | Private strategy, architecture, personal memory, system design | Retained continuity & durable memory allowed |
+| **`trusted_collaborator`** | Shared team work where selective context is useful | Selective continuity, narrower disclosure |
+| **`outside_contact`** | Fresh-context interactions with external tools/users | Ephemeral, fresh-context reasoning by default |
+| **`paid_public`** | Client / public work (marketplaces, API endpoints) | Ephemeral by default; scoped to `client_id + service_id` |
+
+*Demo Rule*: A request tagged `paid_public` cannot read private repo memory or write to `private_self` memory.
+
+---
+
+## 4. How to Verify System Health
 
 Run these three standard commands to verify repository state and execution integrity:
 
@@ -57,9 +96,30 @@ npm.cmd run maintain
 
 ---
 
-## 4. Clawd Navigator - Where to Look Next
+## 5. 🧭 Progressive Disclosure Reading Path
 
-To explore the codebase without reading every file first, follow this functional taxonomy map:
+Navigate the repository according to your current depth of investigation:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                     PROGRESSIVE DISCLOSURE PATH                        │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+    ┌───────────────────────────────┼───────────────────────────────┐
+    ▼                               ▼                               ▼
+┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
+│ 1. NEW USER           │ │ 2. INTERMEDIATE       │ │ 3. ADVANCED ARCHITECT │
+│ First-Run & Overview  │ │ Operational Mechanics │ │ Doctrine & Governance │
+│ ───────────────       │ │ ───────────────       │ │ ───────────────       │
+│ • QUICKSTART.md       │ │ • REPO_GUIDE.md       │ │ • CONSTITUTION.md     │
+│ • README.md           │ │ • OPERATING_LOOP.md   │ │ • MECHANISMS.md       │
+│                       │ │ • FILE_ROLES.md       │ │ • CHOKEPOINTS.md      │
+└───────────────────────┘ └───────────────────────┘ └───────────────────────┘
+```
+
+---
+
+## 6. Clawd Navigator Taxonomy Map
 
 ```text
 +--------------------------------------------------------------------------+
@@ -85,15 +145,13 @@ To explore the codebase without reading every file first, follow this functional
 
 ---
 
-## 5. Visual Identity v0 Strategy
+## 7. 🎨 Visual Identity & Color Semantics
 
-Our interface identity adheres to three core design principles:
+Our interface visual system relies on three semantic color accents:
 
-> **Operationally legible under repeat use.**
-> **Calm at rest.**
-> **Precise when live.**
+> **Operationally legible under repeat use. Calm at rest. Precise when live.**
 
-### Tri-Layer Visual Architecture
-- **Layer 1 (Warm Tactical Base)**: Deep charcoal-navy atmosphere (`#0B0F0C` / `#111613`) providing high contrast without eye strain.
-- **Layer 2 (Jazz Cyan Live Signal)**: Luminous Jazz Cyan (`#00E5FF`) illuminates **strictly** during active execution, routing, receipt, or live status states. Zero decorative glow on idle elements.
-- **Layer 3 (Industrial Monolith Restraint)**: Crisp 1px structural borders, monospace code typography (`JetBrains Mono`), and clear layout whitespace.
+### Tri-Accent Visual System
+- ⬛ **Obsidian Base (`#0B0F0C` / `#111613`)**: Control, focus, atmosphere, and baseline state.
+- ⚡ **Jazz Cyan Signal (`#00E5FF`)**: Luminous live execution, HTTP routing, active model dispatch, and capability receipt states.
+- 🔶 **Warm Amber Accent (`#FFB300`)**: Operator judgment, continuity alerts, human intervention prompts, and attention gates.
