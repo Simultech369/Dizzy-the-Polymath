@@ -46,6 +46,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 ## Planning Maps
 
+- `context-tree.json`
 - `EXPERIMENT_RECONCILIATION.md`
 
 Planning maps coordinate review and promotion work. They are non-authoritative until their decisions are promoted into `DESIGN.md`, `NEXT.md`, runtime code, or tests.
