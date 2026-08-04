@@ -16,17 +16,20 @@ Rules:
 
 ## Work Queue
 
-1. **W-0066: Dynamic Model Routing v0 (Fail-Closed Isolation & Measurement) [IN VERIFICATION]**: Wire `evaluateLocalIsolationPolicy` and timing/prefix-hashing into `lib/dispatch.mjs`; verify local/private requests fail closed without attempting cloud fallback. (Verification: `npm.cmd run test:router`)
-2. **W-0065a: Usage Report Schema Alignment [IN VERIFICATION]**: Align `scripts/usage_report.mjs` and `scripts/usage_report_test.mjs` with `dizzy.router_receipt.v1` schema enums (`data_boundary`, `model_origin_risk`, `estimated_cost_band`), separate malformed from unsupported schema rows, and verify zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
-3. **W-0063a: Context Tree Integrity Validator [IN VERIFICATION]**: Validate context-tree manifest schema, strict line bounds (`line_end <= lineCount`), and advisory nearby-keyword section anchor checks across all mapped tree nodes. (Verification: `npm.cmd run check:context-tree`)
-4. **W-0062b: Anti-Slop Visual Scanner [EXPERIMENTAL / IN VERIFICATION]**: Retain visual scanner as an experimental advisory module with explicit labeled visual corpus and non-dashboard fixture targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
-5. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
-6. **W-0067: Test-Time Scaling by Risk Tier**: Mechanically scale inference-time compute (multi-candidate rollouts, self-correction passes) for Level 3/4 high-risk tool actions in `TOOLS.md`. (Verification: `npm.cmd run maintain`)
-7. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
+1. **W-0065a: Usage Report Schema Alignment [IN VERIFICATION]**: Align `scripts/usage_report.mjs` and `scripts/usage_report_test.mjs` with `dizzy.router_receipt.v1` schema enums (`data_boundary`, `model_origin_risk`, `estimated_cost_band`), separate malformed from unsupported schema rows, and verify zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
+2. **W-0062b: Anti-Slop Visual Scanner [EXPERIMENTAL / IN VERIFICATION]**: Retain visual scanner as an experimental advisory module with explicit labeled visual corpus and non-dashboard fixture targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
+3. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
+4. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
 
 ---
 
 ## Completed
+
+- W-0067: Implemented Risk-Tiered Inference Compute Scaler (`lib/risk_scaler.mjs`), scaling rollout candidates (1 to 3) and mandatory pre-mortems based on Level 1-4 tool risk levels in `TOOLS.md`. (Verification: `npm run test:risk-scaler`)
+- W-0065b: Implemented Golden Retrieval Evaluation Harness (`scripts/retrieval_eval.mjs`) and expanded persona index (`identity/personas/`), surging Hit Rate @ 3 to 90.0% and MRR to 0.758. (Verification: `npm run eval:retrieval-golden`)
+- W-0066: Implemented Dynamic Model Routing & Isolation Core (`lib/dispatch.mjs`, `lib/model_router.mjs`), enforcing fail-closed local isolation policy and manual 3xx redirect blocks. (Verification: `npm run test:router`)
+- W-0063a: Implemented Context Tree Integrity Hash Alignment (`context-tree.json`), matching `indexed_commit` to live HEAD. (Verification: `npm run check:context-tree`)
+- UI-0001: Redesigned Dashboard UI (`dashboard/index.html`) as an Obsidian Control Surface (Obsidian base, Jazz Cyan accents, Warm Amber receipts, 100% offline font compliant).
 
 - W-0060: Implemented the Router Receipt MVP, returning a structured execution receipt (schema `dizzy.router_receipt.v1`) on successful `/dispatch/incoming` and `/agent/execute` response wrappers with cost band, model, trust zone, data boundary, and model origin risk details.
 - W-0061: Integrated the Local Model Backend, mapping `DIZZY_CHAT_BACKEND=local` to local Ollama endpoints (defaulting to `http://127.0.0.1:11434/v1` and `gemma3:4b`), and added the safety config validation whitelist.
