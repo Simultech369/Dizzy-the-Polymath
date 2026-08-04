@@ -16,12 +16,13 @@ Rules:
 
 ## Work Queue
 
-1. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
-2. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
+1. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
 
 ---
 
 ## Completed
+
+- W-0062c: Refined Anti-Slop Scanner allowlist and prompt overlay cues (`lib/anti_slop_scanner.mjs`, `scripts/anti_slop_prose_fixture_check.mjs`) for fenced code blocks, inline backticks, and doc examples. (Verification: `node scripts/anti_slop_prose_fixture_check.mjs`)
 
 - W-0065a: Aligned Usage Report Schema (`scripts/usage_report.mjs`, `scripts/usage_report_test.mjs`) with `dizzy.router_receipt.v1` enums and verified zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
 - W-0062b: Verified Anti-Slop Visual Scanner (`lib/visual_slop_scanner.mjs`, `scripts/anti_slop_visual_fixture_check.mjs`) with explicit visual corpus and non-dashboard targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
