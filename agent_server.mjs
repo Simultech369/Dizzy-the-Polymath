@@ -1083,48 +1083,21 @@ export async function createRuntime(opts = {}) {
   });
 
   function buildRouterReceipt(req, capabilities, executionMetadata = null, taskClass = "route_classify", activatedModes = ["route_classify"]) {
-    let chosenModel = executionMetadata?.chosen_model || getChosenModelString("chat");
+    let chosenModel = executionMetadata?.chosen_model || (executionMetadata ? getChosenModelString("chat") : "none:no_model_execution");
     const isNoneModel = !chosenModel || chosenModel === "none" || chosenModel.startsWith("none");
     const noExecutionReason = isNoneModel
       ? String(chosenModel).replace(/^none:?/, "").trim() || "no_model_execution"
       : "";
 
     let costBand = executionMetadata?.estimated_cost_band || (isNoneModel ? "free" : "unknown");
-    let dataBoundary = executionMetadata?.data_boundary || (isNoneModel ? "none" : "google_gemini_api");
-    let modelOriginRisk = executionMetadata?.model_origin_risk || (isNoneModel ? "unknown" : "unknown");
+    let dataBoundary = executionMetadata?.data_boundary || (isNoneModel ? "none" : capabilities.data_boundary || "none");
+    let modelOriginRisk = executionMetadata?.model_origin_risk || "unknown";
     let fallback = executionMetadata?.fallback || {
       configured: false,
       used: false,
       path: "none",
       blocked_reason: noExecutionReason
     };
-
-    if (!executionMetadata && !isNoneModel) {
-      // In the absence of metadata, default to derived env estimates
-      const lowerModel = chosenModel.toLowerCase();
-      if (
-        lowerModel.includes("flash") ||
-        lowerModel.includes("mini") ||
-        lowerModel.includes("gemma") ||
-        lowerModel.includes("free") ||
-        /\b\d+b\b/.test(lowerModel)
-      ) {
-        costBand = "low";
-      } else {
-        costBand = "standard";
-      }
-
-      if (chosenModel.startsWith("openai_compat:")) {
-        const isLocal = String(process.env.DIZZY_CHAT_BACKEND).toLowerCase() === "local";
-        dataBoundary = isLocal ? "local_machine" : "openai_compatible_api";
-      }
-
-      if (lowerModel.includes("qwen") || lowerModel.includes("deepseek") || lowerModel.includes("yi") || lowerModel.includes("glm")) {
-        modelOriginRisk = "high";
-      } else {
-        modelOriginRisk = "low";
-      }
-    }
 
     const receipt = {
       schema_version: "dizzy.router_receipt.v1",
@@ -1136,6 +1109,9 @@ export async function createRuntime(opts = {}) {
       data_boundary: dataBoundary,
       model_origin_risk: modelOriginRisk,
       estimated_cost_band: costBand,
+      latency_ms: Number.isFinite(Number(executionMetadata?.latency_ms)) ? Math.max(0, Math.round(Number(executionMetadata.latency_ms))) : 0,
+      prompt_prefix_hash: typeof executionMetadata?.prompt_prefix_hash === "string" ? executionMetadata.prompt_prefix_hash : "none",
+      provider_health: typeof executionMetadata?.provider_health === "string" ? executionMetadata.provider_health : (isNoneModel ? "unconfigured" : "healthy"),
       reason: executionMetadata?.reason || (isNoneModel ? `no_model_execution:${noExecutionReason}` : "default_triage_routing_to_chat"),
       fallback,
       trust_zone: capabilities.trust_zone || "paid_public",

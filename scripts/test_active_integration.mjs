@@ -87,7 +87,7 @@ assert.strictEqual(isPrivateLanBackendHost("169.254.10.20"), true, "169.254/16 l
 assert.strictEqual(isPrivateLanBackendHost("fc00::1"), true, "fc00::/7 private IPv6 lower range must be allowed");
 assert.strictEqual(isPrivateLanBackendHost("fd12::1"), true, "fc00::/7 private IPv6 upper range must be allowed");
 assert.strictEqual(isPrivateLanBackendHost("fe80::1"), true, "fe80::/10 link-local IPv6 must be allowed");
-assert.strictEqual(isPrivateLanBackendHost("ollama.local"), true, ".local hostnames must be allowed");
+assert.strictEqual(isPrivateLanBackendHost("ollama.local"), false, ".local hostnames must not be trusted without literal private IP resolution");
 assert.strictEqual(isPrivateLanBackendHost("172.15.255.255"), false, "172.15/16 must not be allowed");
 assert.strictEqual(isPrivateLanBackendHost("172.32.0.1"), false, "172.32/16 must not be allowed");
 assert.strictEqual(isPrivateLanBackendHost("169.255.0.1"), false, "169.255/16 must not be allowed");
@@ -469,7 +469,7 @@ try {
     });
     assert.strictEqual(wanOverrideRes.status, 200);
     const wanOverrideData = await wanOverrideRes.json();
-    assert.match(wanOverrideData.text, /not loopback, private LAN, or \.local/, "WAN host must remain blocked even when LAN override is enabled");
+    assert.match(wanOverrideData.text, /not loopback or a literal private LAN IP/, "WAN host must remain blocked even when LAN override is enabled");
     assert.strictEqual(wanOverrideData.router_receipt.fallback.blocked_reason, "security_exception_non_private_lan", "Receipt should log private LAN override blockade reason");
   } finally {
     // Restore environment

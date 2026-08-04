@@ -16,7 +16,13 @@ Rules:
 
 ## Work Queue
 
-- **W-0062: Anti-Slop Overlay**: Incorporate prose constraints (sentence rhythm, banned words, sycophancy reduction) and visual tells (no default un-themed gradients) as an overlay prompt-pack or scanner.
+1. **W-0066: Dynamic Model Routing v0 (Fail-Closed Isolation & Measurement) [IN VERIFICATION]**: Wire `evaluateLocalIsolationPolicy` and timing/prefix-hashing into `lib/dispatch.mjs`; verify local/private requests fail closed without attempting cloud fallback. (Verification: `npm.cmd run test:router`)
+2. **W-0065a: Usage Report Schema Alignment [IN VERIFICATION]**: Align `scripts/usage_report.mjs` and `scripts/usage_report_test.mjs` with `dizzy.router_receipt.v1` schema enums (`data_boundary`, `model_origin_risk`, `estimated_cost_band`), separate malformed from unsupported schema rows, and verify zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
+3. **W-0063a: Context Tree Integrity Validator [IN VERIFICATION]**: Validate context-tree manifest schema, strict line bounds (`line_end <= lineCount`), and advisory nearby-keyword section anchor checks across all mapped tree nodes. (Verification: `npm.cmd run check:context-tree`)
+4. **W-0062b: Anti-Slop Visual Scanner [EXPERIMENTAL / IN VERIFICATION]**: Retain visual scanner as an experimental advisory module with explicit labeled visual corpus and non-dashboard fixture targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
+5. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
+6. **W-0067: Test-Time Scaling by Risk Tier**: Mechanically scale inference-time compute (multi-candidate rollouts, self-correction passes) for Level 3/4 high-risk tool actions in `TOOLS.md`. (Verification: `npm.cmd run maintain`)
+7. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
 
 ---
 

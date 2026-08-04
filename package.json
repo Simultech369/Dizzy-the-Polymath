@@ -17,12 +17,17 @@
                     "check:next":  "node ./scripts/next_consistency_check.mjs",
                     "check:skills":  "node ./scripts/skill_registry_check.mjs",
                     "check:docs":  "node ./scripts/doc_reference_check.mjs",
+                    "check:context-tree": "node ./scripts/context_tree_check.mjs",
+                    "usage:report": "node ./scripts/usage_report.mjs",
+                    "test:router": "node ./scripts/dynamic_router_test.mjs",
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
                     "connection:scan":  "node ./scripts/connection_scan.mjs",
                     "eval:divergence":  "node ./scripts/generative_capability_eval.mjs",
                     "eval:dacr:smoke":  "node ./scripts/dacr_bench_eval.mjs",
                     "eval:retrieval-integrity":  "node ./scripts/retrieval_integrity_eval.mjs",
+                    "eval:anti-slop-prose":  "node ./scripts/anti_slop_prose_fixture_check.mjs",
+                    "eval:anti-slop-visual": "node ./scripts/anti_slop_visual_fixture_check.mjs",
                     "maintain":  "node ./scripts/maintain.mjs"
                 },
     "keywords":  [
