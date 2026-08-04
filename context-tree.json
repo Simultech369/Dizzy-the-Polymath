@@ -1,7 +1,7 @@
 {
   "schema": "dizzy.context_tree.v0",
   "version": "0.1.0",
-  "indexed_commit": "99a480d465ac54aa0bb658af69fed86dbd7362fd",
+  "indexed_commit": "d8af4dec0b284675958ed1d8d359878896c5ffca",
   "selection_policy": {
     "mode": "reasoned_context_loading",
     "default": "select_node_ids_and_line_ranges_before_loading",
@@ -47,17 +47,7 @@
       "sections": [
         { "title": "Consensus Findings & Disagreements", "line_start": 45, "line_end": 56 },
         { "title": "Next-Slice Recommendation & Exclusions", "line_start": 72, "line_end": 85 },
-        { "title": "Dropped & Deferred Claims Appendix", "line_start": 87, "line_end": 102 }
-      ]
-    },
-    {
-      "id": "reviews.control_handoff",
-      "path": "reviews/low_credit_antigravity_oss_orchestration.md",
-      "authority": "control_handoff",
-      "summary": "Orchestration handoff packet specifying snapshot gates, role boundaries, low-credit rules, and pause envelopes.",
-      "sections": [
-        { "title": "Snapshot & Context Anchor", "line_start": 7, "line_end": 22 },
-        { "title": "Operating Diagnosis", "line_start": 23, "line_end": 35 }
+        { "title": "Dropped & Deferred Claims Appendix", "line_start": 91, "line_end": 110 }
       ]
     },
     {
@@ -66,7 +56,7 @@
       "authority": "supporting_memory",
       "summary": "Curated durable memory index; explicit supporting context rather than runtime authority.",
       "sections": [
-        { "title": "Memory Index", "line_start": 1, "line_end": 40 }
+        { "title": "Memory Index", "line_start": 1, "line_end": 28 }
       ]
     },
     {
@@ -75,7 +65,7 @@
       "authority": "runtime_enforced",
       "summary": "Markdown context retriever enforcing path restrictions and trusted doctrine boundaries.",
       "sections": [
-        { "title": "Markdown Retrieval Engine", "line_start": 1, "line_end": 50 }
+        { "title": "parseFrontmatter", "line_start": 4, "line_end": 50 }
       ]
     },
     {
@@ -84,16 +74,7 @@
       "authority": "runtime_enforced",
       "summary": "Retrieval plan builder implementing report-only attention pools (core, stale_important, edge_hypothesis).",
       "sections": [
-        { "title": "Retrieval Plan Generator", "line_start": 1, "line_end": 50 }
-      ]
-    },
-    {
-      "id": "lib.retrieval.memory_graph",
-      "path": "lib/memory_graph.mjs",
-      "authority": "runtime_enforced",
-      "summary": "Memory graph loader and topic filtration engine.",
-      "sections": [
-        { "title": "Memory Graph Engine", "line_start": 350, "line_end": 410 }
+        { "title": "keywordList", "line_start": 6, "line_end": 50 }
       ]
     }
   ]
