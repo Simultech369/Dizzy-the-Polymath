@@ -16,15 +16,15 @@ Rules:
 
 ## Work Queue
 
-1. **W-0065a: Usage Report Schema Alignment [IN VERIFICATION]**: Align `scripts/usage_report.mjs` and `scripts/usage_report_test.mjs` with `dizzy.router_receipt.v1` schema enums (`data_boundary`, `model_origin_risk`, `estimated_cost_band`), separate malformed from unsupported schema rows, and verify zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
-2. **W-0062b: Anti-Slop Visual Scanner [EXPERIMENTAL / IN VERIFICATION]**: Retain visual scanner as an experimental advisory module with explicit labeled visual corpus and non-dashboard fixture targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
-3. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
-4. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
+1. **W-0062c: Anti-Slop Allowlist & Prompt Overlay**: Refine false-positive handling for fenced code blocks, quoted examples, and docs in `lib/anti_slop_scanner.mjs`. (Verification: `npm.cmd run maintain`)
+2. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
 
 ---
 
 ## Completed
 
+- W-0065a: Aligned Usage Report Schema (`scripts/usage_report.mjs`, `scripts/usage_report_test.mjs`) with `dizzy.router_receipt.v1` enums and verified zero private text leaks. (Verification: `node scripts/usage_report_test.mjs`)
+- W-0062b: Verified Anti-Slop Visual Scanner (`lib/visual_slop_scanner.mjs`, `scripts/anti_slop_visual_fixture_check.mjs`) with explicit visual corpus and non-dashboard targets. (Verification: `node scripts/anti_slop_visual_fixture_check.mjs`)
 - W-0067: Implemented Risk-Tiered Inference Compute Scaler (`lib/risk_scaler.mjs`), scaling rollout candidates (1 to 3) and mandatory pre-mortems based on Level 1-4 tool risk levels in `TOOLS.md`. (Verification: `npm run test:risk-scaler`)
 - W-0065b: Implemented Golden Retrieval Evaluation Harness (`scripts/retrieval_eval.mjs`) and expanded persona index (`identity/personas/`), surging Hit Rate @ 3 to 90.0% and MRR to 0.758. (Verification: `npm run eval:retrieval-golden`)
 - W-0066: Implemented Dynamic Model Routing & Isolation Core (`lib/dispatch.mjs`, `lib/model_router.mjs`), enforcing fail-closed local isolation policy and manual 3xx redirect blocks. (Verification: `npm run test:router`)
