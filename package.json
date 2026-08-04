@@ -20,6 +20,7 @@
                     "check:context-tree": "node ./scripts/context_tree_check.mjs",
                     "usage:report": "node ./scripts/usage_report.mjs",
                     "test:router": "node ./scripts/dynamic_router_test.mjs",
+                    "test:risk-scaler": "node --disable-warning=ExperimentalWarning ./scripts/risk_scaler_test.mjs",
                     "check:council": "node --disable-warning=ExperimentalWarning ./scripts/oss_council_audit.mjs",
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
