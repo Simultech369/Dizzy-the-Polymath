@@ -700,6 +700,9 @@ export async function createRuntime(opts = {}) {
       const headerToken = bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim() || queryToken;
 
       if (!headerToken) {
+        if ((req.path === "/dashboard" || req.path === "/dashboard/") && req.method === "GET" && (String(req.headers?.accept || "").includes("text/html") || req.headers?.["sec-fetch-dest"] === "document")) {
+          return res.status(401).type("text/html").send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/dashboard/login"><script>window.location.href='/dashboard/login';</script></head><body style="background:#07090e;color:#45f3ff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><p>Session unauthorized. Redirecting to login...</p><a href="/dashboard/login" style="color:#ffb703;">Click here if not redirected</a></div></body></html>`);
+        }
         return res.status(401).json({ ok: false, error: "Unauthorized" });
       }
 
