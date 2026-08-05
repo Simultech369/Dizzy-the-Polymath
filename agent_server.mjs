@@ -73,6 +73,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator-continuity/export"
     || pathname === "/api/operator-continuity/audit"
     || pathname === "/api/operator-continuity/delete"
+    || pathname === "/dispatch/incoming"
     || pathname === "/api/operator/hardware-status"
     || pathname === "/api/operator/consensus-map"
     || pathname === "/api/operator/sandbox-preflight"
@@ -695,7 +696,8 @@ export async function createRuntime(opts = {}) {
 
       const auth = String(req.headers?.authorization ?? "");
       const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
-      const headerToken = bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim();
+      const queryToken = String(req.query?.token ?? "").trim();
+      const headerToken = bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim() || queryToken;
 
       if (!headerToken) {
         return res.status(401).json({ ok: false, error: "Unauthorized" });
