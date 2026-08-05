@@ -821,3 +821,176 @@ if (btnResolveContainment) {
     }
   });
 }
+
+// Interactive Chat Surface Controller
+function initChatSurface() {
+  const chatMessagesList = document.getElementById("chat-messages-list");
+  const chatInputText = document.getElementById("chat-input-text");
+  const chatSendBtn = document.getElementById("chat-send-btn");
+  const chatClearBtn = document.getElementById("chat-clear-btn");
+  const suggestionChips = document.querySelectorAll(".suggestion-chip");
+
+  if (!chatMessagesList || !chatInputText || !chatSendBtn) return;
+
+  function scrollToBottom() {
+    chatMessagesList.scrollTop = chatMessagesList.scrollHeight;
+  }
+
+  function saveMessageToHistory(role, text, receipt) {
+    let history = [];
+    try {
+      history = JSON.parse(localStorage.getItem("dizzy_chat_history") || "[]");
+    } catch {}
+    history.push({ role, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt });
+    if (history.length > 50) history = history.slice(-50);
+    localStorage.setItem("dizzy_chat_history", JSON.stringify(history));
+  }
+
+  function createBubbleHtml(role, text, time = "Just now", receipt = null) {
+    const isUser = role === "user";
+    const bubbleClass = isUser ? "user-bubble" : "assistant-bubble";
+    const avatar = isUser ? "US" : "DZ";
+    const speaker = isUser ? "Simul (Operator)" : "Dizzy";
+    
+    let formattedText = escapeHtml(text)
+      .replace(/```([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.5); padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-family: monospace; border: 1px solid rgba(255,255,255,0.1);">$1</pre>')
+      .replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.4); padding: 0.2rem 0.4rem; border-radius: 4px; color: var(--cyan); font-family: monospace;">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    let receiptHtml = "";
+    if (receipt) {
+      receiptHtml = `
+        <details style="margin-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; font-size: 0.78rem;">
+          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">🛡️ Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
+          <div style="margin-top: 0.4rem; color: var(--text-dim); line-height: 1.4;">
+            <div>Mode: <code>${escapeHtml(receipt.retention_scope || "ephemeral")}</code></div>
+            <div>Model Route: <code>${escapeHtml(receipt.chosen_model || "local")}</code></div>
+          </div>
+        </details>
+      `;
+    }
+
+    return `
+      <div class="chat-bubble ${bubbleClass}">
+        <div class="chat-bubble-header">
+          <span class="avatar-badge">${avatar}</span>
+          <span class="speaker-name">${speaker}</span>
+          <span class="bubble-timestamp">${escapeHtml(time)}</span>
+        </div>
+        <div class="chat-bubble-body">${formattedText}</div>
+        ${receiptHtml}
+      </div>
+    `;
+  }
+
+  // Load chat history from localStorage
+  const savedHistory = localStorage.getItem("dizzy_chat_history");
+  if (savedHistory) {
+    try {
+      const messages = JSON.parse(savedHistory);
+      if (Array.isArray(messages) && messages.length > 0) {
+        chatMessagesList.innerHTML = messages.map(msg => createBubbleHtml(msg.role, msg.text, msg.time, msg.receipt)).join("");
+        scrollToBottom();
+      }
+    } catch (e) {
+      console.warn("Failed to load chat history:", e);
+    }
+  }
+
+  async function handleSend() {
+    const text = chatInputText.value.trim();
+    if (!text) return;
+
+    chatInputText.value = "";
+    chatInputText.style.height = "auto";
+    chatSendBtn.disabled = true;
+
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("user", text, timeStr));
+    saveMessageToHistory("user", text);
+    scrollToBottom();
+
+    const typingId = "typing-" + Date.now();
+    chatMessagesList.insertAdjacentHTML("beforeend", `
+      <div id="${typingId}" class="chat-bubble assistant-bubble" style="opacity: 0.85;">
+        <div class="chat-bubble-header">
+          <span class="avatar-badge">DZ</span>
+          <span class="speaker-name">Dizzy</span>
+          <span class="bubble-timestamp">Thinking...</span>
+        </div>
+        <div class="chat-bubble-body">
+          <span class="pulse-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
+        </div>
+      </div>
+    `);
+    scrollToBottom();
+
+    try {
+      const response = await fetch("/dispatch/incoming", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "dashboard_chat", text })
+      }).then(r => r.json());
+
+      const typingElem = document.getElementById(typingId);
+      if (typingElem) typingElem.remove();
+
+      const assistantText = response.text || (response.ok ? "Task acknowledged and processed." : ("Execution issue: " + (response.error || "Unknown error")));
+      const receipt = response.capability_receipt || response.router_receipt || null;
+
+      chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", assistantText, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt));
+      saveMessageToHistory("assistant", assistantText, receipt);
+      scrollToBottom();
+
+    } catch (err) {
+      const typingElem = document.getElementById(typingId);
+      if (typingElem) typingElem.remove();
+
+      const errorMsg = "Dispatch error: " + err.message;
+      chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", errorMsg));
+      saveMessageToHistory("assistant", errorMsg);
+      scrollToBottom();
+    } finally {
+      chatSendBtn.disabled = false;
+    }
+  }
+
+  chatSendBtn.addEventListener("click", handleSend);
+  chatInputText.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  chatInputText.addEventListener("input", () => {
+    chatInputText.style.height = "auto";
+    chatInputText.style.height = Math.min(chatInputText.scrollHeight, 120) + "px";
+  });
+
+  suggestionChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      const promptText = chip.getAttribute("data-prompt");
+      if (promptText) {
+        chatInputText.value = promptText;
+        chatInputText.focus();
+      }
+    });
+  });
+
+  if (chatClearBtn) {
+    chatClearBtn.addEventListener("click", () => {
+      if (confirm("Clear live chat history?")) {
+        localStorage.removeItem("dizzy_chat_history");
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings Simul. Chat history cleared. How can I assist you today?");
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initChatSurface();
+});
+initChatSurface();
