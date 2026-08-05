@@ -937,7 +937,10 @@ function initChatSurface() {
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
 
-      const assistantText = response.text || (response.ok ? "Task acknowledged and processed." : ("Execution issue: " + (response.error || "Unknown error")));
+      const isUnauthorized = response.status === 401 || response.error === "Unauthorized" || response.error === "Dashboard requires DIZZY_AUTH_TOKEN";
+      const assistantText = isUnauthorized 
+        ? 'Session expired or unauthorized. Please <a href="/dashboard/login" style="color: var(--cyan); text-decoration: underline; font-weight: bold;">click here to log in</a> with your operator token.'
+        : (response.text || (response.ok ? "Task acknowledged and processed." : ("Execution issue: " + (response.error || "Unknown error"))));
       const receipt = response.capability_receipt || response.router_receipt || null;
 
       chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", assistantText, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt));
