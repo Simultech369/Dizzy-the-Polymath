@@ -46,10 +46,14 @@ async function runAudit() {
   const targetFiles = [
     "agent_server.mjs",
     "lib/dispatch.mjs",
+    "lib/ingress_gateway.mjs",
     "lib/model_router.mjs",
     "lib/openai_compat_client.mjs",
+    "lib/sqlite_operational_store.mjs",
     "scripts/dynamic_router_test.mjs",
+    "scripts/ingress_gateway_test.mjs",
     "scripts/model_router_test.mjs",
+    "scripts/replay_safety_test.mjs",
     "scripts/test_active_integration.mjs",
   ];
 
@@ -118,6 +122,8 @@ async function runAudit() {
   const testSuites = [
     { name: "Router Integration Suite", script: "scripts/dynamic_router_test.mjs" },
     { name: "Model Router Suite", script: "scripts/model_router_test.mjs" },
+    { name: "Ingress Gateway Suite", script: "scripts/ingress_gateway_test.mjs" },
+    { name: "Replay Safety Suite", script: "scripts/replay_safety_test.mjs" },
     { name: "Risk Scaler Suite", script: "scripts/risk_scaler_test.mjs" },
     { name: "Golden Retrieval Eval Suite", script: "scripts/retrieval_eval.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },

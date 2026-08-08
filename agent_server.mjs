@@ -12,6 +12,15 @@ import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } fro
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
 import { getAllDivisions, getAllRoles, getChosenModelString } from "./lib/model_router.mjs";
+import {
+  createIngressGatewayMiddleware,
+  getIngressGatewayConfig,
+  normalizeIp,
+  normalizeTrustedProxies,
+  pruneExpiredRateLimitBuckets,
+} from "./lib/ingress_gateway.mjs";
+
+export { pruneExpiredRateLimitBuckets };
 
 function isMainModule() {
   try {
@@ -28,17 +37,6 @@ function isLoopbackRemoteAddress(address) {
   return value === "127.0.0.1"
     || value === "::1"
     || value === "::ffff:127.0.0.1";
-}
-
-function normalizeIp(ip) {
-  if (!ip) return "";
-  let s = String(ip).trim().toLowerCase();
-  if (s.startsWith("::ffff:")) {
-    s = s.substring(7);
-  }
-  if (s === "::1") return "127.0.0.1";
-  if (s === "localhost") return "127.0.0.1";
-  return s;
 }
 
 function tokensEqual(candidate, expected) {
@@ -128,88 +126,6 @@ function registerDashboardFallbackRoutes(app, { enabled } = {}) {
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
     });
   }
-}
-
-function getRateLimitConfig(opts = {}) {
-  const enabled = opts.rateLimitEnabled !== undefined
-    ? Boolean(opts.rateLimitEnabled)
-    : parseBool(process.env.DIZZY_RATE_LIMIT_ENABLED, false);
-  return {
-    enabled,
-    windowMs: parsePositiveInt(opts.rateLimitWindowMs ?? process.env.DIZZY_RATE_LIMIT_WINDOW_MS, 60000),
-    max: parsePositiveInt(opts.rateLimitMax ?? process.env.DIZZY_RATE_LIMIT_MAX, 120),
-  };
-}
-
-export function pruneExpiredRateLimitBuckets(buckets, now = Date.now()) {
-  let removed = 0;
-  for (const [key, bucket] of buckets.entries()) {
-    if (!bucket || Number(bucket.resetAt) <= now) {
-      buckets.delete(key);
-      removed += 1;
-    }
-  }
-  return removed;
-}
-
-function forwardedClientIp(req, trustedProxies = []) {
-  const forwardedFor = String(req.headers?.["x-forwarded-for"] || "")
-    .split(",")
-    .map(normalizeIp)
-    .filter(Boolean);
-  for (let i = forwardedFor.length - 1; i >= 0; i -= 1) {
-    if (!trustedProxies.includes(forwardedFor[i])) return forwardedFor[i];
-  }
-  if (forwardedFor.length > 0) return forwardedFor[0];
-  return normalizeIp(req.headers?.["x-real-ip"]);
-}
-
-function rateLimitClientKey(req, { deploymentMode, trustedProxies = [] } = {}) {
-  const remote = normalizeIp(req.socket?.remoteAddress || req.ip);
-  if (["proxied", "hosted"].includes(deploymentMode) && trustedProxies.includes(remote)) {
-    return forwardedClientIp(req, trustedProxies) || remote || "unknown";
-  }
-  return remote || normalizeIp(req.ip) || "unknown";
-}
-
-function createRateLimitMiddleware(config, trust = {}) {
-  const buckets = new Map();
-  let nextPruneAt = 0;
-
-  return function rateLimit(req, res, next) {
-    if (!config.enabled || req.path === "/health") return next();
-
-    const now = Date.now();
-    if (now >= nextPruneAt) {
-      pruneExpiredRateLimitBuckets(buckets, now);
-      nextPruneAt = now + config.windowMs;
-    }
-    const key = rateLimitClientKey(req, trust);
-    const current = buckets.get(key);
-    const bucket = current && current.resetAt > now
-      ? current
-      : { count: 0, resetAt: now + config.windowMs };
-
-    bucket.count += 1;
-    buckets.set(key, bucket);
-
-    const remaining = Math.max(0, config.max - bucket.count);
-    const resetSeconds = Math.ceil(bucket.resetAt / 1000);
-    res.setHeader("RateLimit-Limit", String(config.max));
-    res.setHeader("RateLimit-Remaining", String(remaining));
-    res.setHeader("RateLimit-Reset", String(resetSeconds));
-
-    if (bucket.count > config.max) {
-      res.setHeader("Retry-After", String(Math.ceil((bucket.resetAt - now) / 1000)));
-      return res.status(429).json({
-        ok: false,
-        error: "Rate limit exceeded",
-        retry_after_ms: Math.max(0, bucket.resetAt - now),
-      });
-    }
-
-    return next();
-  };
 }
 
 function normalizeAllowedOrigins(value) {
@@ -567,7 +483,8 @@ export async function createRuntime(opts = {}) {
   const authToken = String(opts.authToken ?? process.env.DIZZY_AUTH_TOKEN ?? "").trim();
   const redisUrl = String(opts.redisUrl ?? process.env.REDIS_URL ?? "");
   const queuePrefix = String(opts.queuePrefix ?? process.env.DIZZY_QUEUE_PREFIX ?? "dizzy");
-  const rateLimit = getRateLimitConfig(opts);
+  const ingressGateway = getIngressGatewayConfig(opts);
+  const rateLimit = ingressGateway.rateLimit;
   const allowedOrigins = opts.allowedOrigins ?? process.env.DIZZY_ALLOWED_ORIGINS ?? "";
   const deploymentMode = String(opts.deploymentMode ?? process.env.DIZZY_DEPLOYMENT_MODE ?? "direct_local").trim().toLowerCase();
   const publicSurfaceMode = String(opts.publicSurfaceMode ?? process.env.DIZZY_PUBLIC_SURFACES ?? "closed").trim().toLowerCase();
@@ -583,10 +500,7 @@ export async function createRuntime(opts = {}) {
   const executeToken = String(opts.executeToken ?? process.env.DIZZY_EXECUTE_TOKEN ?? "").trim();
   const notifyToken = String(opts.notifyToken ?? process.env.DIZZY_NOTIFY_TOKEN ?? "").trim();
   const trustedProxiesInput = opts.trustedProxies ?? process.env.DIZZY_TRUSTED_PROXIES ?? "";
-  const trustedProxies = String(trustedProxiesInput)
-    .split(",")
-    .map(normalizeIp)
-    .filter(Boolean);
+  const trustedProxies = normalizeTrustedProxies(trustedProxiesInput);
 
   const verifiedHttps = opts.verifiedHttps ?? parseBool(process.env.DIZZY_VERIFIED_HTTPS, false);
 
@@ -617,7 +531,7 @@ export async function createRuntime(opts = {}) {
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
-  app.use(createRateLimitMiddleware(rateLimit, { deploymentMode, trustedProxies }));
+  app.use(createIngressGatewayMiddleware(ingressGateway, { deploymentMode, trustedProxies }));
 
   if (enforceIdentityHeaders && deploymentMode !== "proxied") {
     throw new Error("DIZZY_ENFORCE_IDENTITY_HEADERS=1 requires DIZZY_DEPLOYMENT_MODE=proxied.");
@@ -776,6 +690,13 @@ export async function createRuntime(opts = {}) {
         enabled: rateLimit.enabled,
         window_ms: rateLimit.windowMs,
         max: rateLimit.max,
+        health_exempted: true,
+      },
+      ingress_budget: {
+        enabled: ingressGateway.budget.enabled,
+        window_ms: ingressGateway.budget.windowMs,
+        max: ingressGateway.budget.max,
+        request_cost: ingressGateway.budget.requestCost,
         health_exempted: true,
       },
     };
@@ -1322,7 +1243,7 @@ export async function createRuntime(opts = {}) {
     return res.status(500).json({ ok: false, error: "Internal server error" });
   });
 
-  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit };
+  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit, ingressGateway };
 }
 
 export async function startServer(opts = {}) {

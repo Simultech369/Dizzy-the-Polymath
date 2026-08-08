@@ -316,7 +316,7 @@ async function testFallbackIncludesCurrentUserTurn() {
           channel: "local",
           text: currentText,
           runtime_context: {
-            trusted_local: true,
+            trust_zone: "paid_public",
             conversation_key: `fallback-current-turn-${index}`,
           },
         },
@@ -331,7 +331,7 @@ async function testFallbackIncludesCurrentUserTurn() {
       message: {
         channel: "local",
         text: "STATUS_400",
-        runtime_context: { trusted_local: true, conversation_key: "fallback-permanent-failure" },
+        runtime_context: { trust_zone: "paid_public", conversation_key: "fallback-permanent-failure" },
       },
       enqueue: async () => "unused",
     });
@@ -346,7 +346,7 @@ async function testFallbackIncludesCurrentUserTurn() {
       message: {
         channel: "local",
         text: "STATUS_503 GLOBAL_FIRST",
-        runtime_context: { trusted_local: true, conversation_key: "global-cap-a" },
+        runtime_context: { trust_zone: "paid_public", conversation_key: "global-cap-a" },
       },
       enqueue: async () => "unused",
     });
@@ -355,7 +355,7 @@ async function testFallbackIncludesCurrentUserTurn() {
       message: {
         channel: "local",
         text: "STATUS_503 GLOBAL_SECOND",
-        runtime_context: { trusted_local: true, conversation_key: "global-cap-b" },
+        runtime_context: { trust_zone: "paid_public", conversation_key: "global-cap-b" },
       },
       enqueue: async () => "unused",
     });
@@ -1228,7 +1228,7 @@ async function testCommandAvailabilityWithoutChatBackend() {
 
   assert.equal(out.kind, "reply");
   assert.doesNotMatch(String(out.text), /^Ack:/);
-  assert.match(String(out.text), /unknown chat backend|missing/i);
+  assert.match(String(out.text), /unknown chat backend|missing|not configured/i);
 
   if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
   else process.env.DIZZY_CHAT_BACKEND = oldBackend;
