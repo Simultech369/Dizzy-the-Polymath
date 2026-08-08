@@ -11,7 +11,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
-import { getChosenModelString } from "./lib/model_router.mjs";
+import { getAllDivisions, getAllRoles, getChosenModelString } from "./lib/model_router.mjs";
 
 function isMainModule() {
   try {
@@ -81,6 +81,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/veto"
     || pathname === "/api/operator/run-simulation"
     || pathname === "/api/operator-execute"
+    || pathname === "/api/operator/router-divisions"
     || pathname === "/api/operator/resolve-containment"
     || pathname === "/api/operator/friction-telemetry"
     || pathname === "/api/operator/quarantined-bridges"
@@ -974,6 +975,16 @@ export async function createRuntime(opts = {}) {
         { id: "dizzy_image_gen", title: "Narrative Visual", pricing: "informal_quote", category: "image_gen" },
         { id: "dizzy_visual_pack", title: "Visual Pack", pricing: "informal_quote", category: "image_gen" },
       ],
+    });
+  });
+
+  app.get("/api/operator/router-divisions", (req, res) => {
+    const roles = getAllRoles();
+    res.json({
+      ok: true,
+      role_count: Object.keys(roles).length,
+      active_model: getChosenModelString("chat"),
+      divisions: getAllDivisions(),
     });
   });
 

@@ -106,11 +106,59 @@ async function runIntegrationTests() {
       }
     }
 
+    async function withCapturingOpenAICompat(content, fn) {
+      const requests = [];
+      const server = http.createServer((req, res) => {
+        let body = "";
+        req.setEncoding("utf8");
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", () => {
+          requests.push({ url: req.url, body: JSON.parse(body || "{}") });
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+        });
+      });
+      await new Promise((r) => server.listen(0, "127.0.0.1", r));
+      const port = server.address().port;
+      try {
+        process.env.DIZZY_CHAT_BACKEND = "openai_compat";
+        process.env.OPENAI_COMPAT_BASE_URL = `http://127.0.0.1:${port}/v1`;
+        process.env.OPENAI_COMPAT_MODEL = "qwen/qwen3-32b";
+        process.env.OPENAI_COMPAT_API_KEY = "local_nop";
+        delete process.env.OLLAMA_MODEL;
+        await fn({ requests });
+      } finally {
+        await new Promise((r) => server.close(r));
+        delete process.env.DIZZY_CHAT_BACKEND;
+        delete process.env.OPENAI_COMPAT_BASE_URL;
+        delete process.env.OPENAI_COMPAT_MODEL;
+        delete process.env.OPENAI_COMPAT_API_KEY;
+        delete process.env.OLLAMA_MODEL;
+      }
+    }
+
     function seedConversationHistory(conversationKey = "cli") {
       const convoFile = conversationArtifactPath(FIXTURE_DIR, conversationKey, ".jsonl");
       fs.writeFileSync(convoFile, JSON.stringify({ t: new Date().toISOString(), role: "user", text: "Hello test history for improve command" }) + "\n", "utf8");
       return convoFile;
     }
+
+    await withCapturingOpenAICompat("normalized dispatch response", async ({ requests }) => {
+      const res = await handleIncomingMessage({
+        message: {
+          text: "Hello normalized model dispatch test",
+          runtime_context: { trust_zone: "paid_public" },
+          channel: "cli",
+        }
+      });
+      assert.equal(res.kind, "reply");
+      assert.ok(res.text.includes("normalized dispatch response"));
+      assert.equal(requests.length, 1, "Dispatch must issue exactly one provider request");
+      assert.equal(requests[0].body.model, "gemma3:4b", "Local OpenAI-compatible dispatch must not send cloud-only qwen slug to a local endpoint");
+      assert.equal(res.execution_metadata.chosen_model, "openai_compat:gemma3:4b", "Receipt must match the model sent to the provider");
+    });
 
     // Test Case A: Offline Local Backend
     process.env.DIZZY_CHAT_BACKEND = "local";
