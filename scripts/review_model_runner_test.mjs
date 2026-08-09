@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   buildModelReviewPackets,
   executeReviewerModelReview,
+  isLocalOllamaModelName,
   parseReviewerResponseText,
   runModelReviewBatch,
 } from "../lib/review_model_runner.mjs";
@@ -33,6 +34,20 @@ const cloudAllowedPacket = buildModelReviewPackets(plan, {
 }).find((packet) => packet.reviewer.role_key === "systems_architect");
 assert.equal(cloudAllowedPacket.target.skipped_reason.includes("cloud_review_blocked"), false);
 
+assert.equal(isLocalOllamaModelName("gemma3:4b"), true);
+assert.equal(isLocalOllamaModelName("llama-audit:latest"), true);
+assert.equal(isLocalOllamaModelName("nvidia/nemotron-3-super-120b-a12b:free"), false);
+assert.equal(isLocalOllamaModelName("moonshotai/kimi-k2.7-code:batch"), false);
+
+const localFallbackPacket = buildModelReviewPackets(plan, {
+  diffText: "diff",
+  preferLocalFallbacks: true,
+}).find((packet) => packet.reviewer.role_key === "systems_architect");
+assert.equal(localFallbackPacket.target.executable, true);
+assert.equal(localFallbackPacket.target.model, "gemma3:4b");
+assert.equal(localFallbackPacket.target.original_model, "claude-3-7-sonnet");
+assert.equal(localFallbackPacket.target.selected_reason, "local_free_fallback");
+
 const parsed = parseReviewerResponseText(`\`\`\`json
 {
   "summary": "Looks bounded.",
@@ -62,6 +77,31 @@ const executed = await executeReviewerModelReview({
 });
 assert.equal(executed.status, "submitted");
 assert.equal(executed.findings.some((finding) => finding.kind === "disagreement"), true);
+
+const fallbackExecuted = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "systems_architect", primary_model: "claude-3-7-sonnet", lens: "architecture" },
+  diffText: "diff",
+  preferLocalFallbacks: true,
+  generateText: async ({ model }) => {
+    assert.equal(model, "gemma3:4b");
+    return JSON.stringify({ summary: "Fallback lens preserved.", findings: [], disagreements: [] });
+  },
+});
+assert.equal(fallbackExecuted.status, "submitted");
+assert.equal(fallbackExecuted.target.model, "gemma3:4b");
+assert.equal(fallbackExecuted.target.original_model, "claude-3-7-sonnet");
+
+const parseFailed = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "gemma3_local", primary_model: "gemma3:4b", lens: "local" },
+  diffText: "diff",
+  generateText: async () => "{\"summary\":\"bad\",\"findings\":[{\"claim\":\"x\"} token=secret_should_not_survive",
+});
+assert.equal(parseFailed.status, "failed");
+assert.equal(parseFailed.failure_stage, "parse");
+assert.match(parseFailed.response_excerpt, /token=\[REDACTED\]/);
+assert.doesNotMatch(JSON.stringify(parseFailed), /secret_should_not_survive/);
 
 const localUnavailable = await executeReviewerModelReview({
   plan,
@@ -94,15 +134,28 @@ assert.equal(skipped.status, "skipped");
 assert.equal(skipped.diagnosis.likely_root_cause, "cloud_blocked_by_policy");
 assert.equal(skipped.findings.length, 0);
 
+const progressEvents = [];
 const batch = await runModelReviewBatch({
   plan,
   diffText: "diff",
   executeModels: true,
+  onProgress: (event) => progressEvents.push(event),
   generateText: async () => "{\"summary\":\"ok\",\"findings\":[],\"disagreements\":[]}",
 });
 assert.equal(batch.schema_version, "dizzy.model_review_batch.v1");
 assert.equal(batch.reviews.length, 4);
 assert.equal(batch.packets.length, 4);
+assert.equal(progressEvents.filter((event) => event.event === "reviewer_started").length, 4);
+assert.equal(progressEvents.filter((event) => event.event === "reviewer_finished").length, 4);
+for (let i = 0; i < plan.reviewer_assignments.length; i++) {
+  const start = progressEvents[i * 2];
+  const finish = progressEvents[(i * 2) + 1];
+  assert.equal(start.event, "reviewer_started");
+  assert.equal(finish.event, "reviewer_finished");
+  assert.equal(start.role_key, plan.reviewer_assignments[i].role_key);
+  assert.equal(finish.role_key, plan.reviewer_assignments[i].role_key);
+  assert.equal(typeof finish.seconds, "number");
+}
 
 const notEnough = reconcileReviewBatch({
   reviews: [

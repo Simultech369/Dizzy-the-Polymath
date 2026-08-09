@@ -83,6 +83,8 @@ const useWorktree = args.includes("--worktree");
 const executeModels = args.includes("--execute");
 const allowCloud = args.includes("--allow-cloud");
 const noWrite = args.includes("--no-write");
+const preferLocalFallbacks = args.includes("--prefer-local-fallbacks");
+const progress = args.includes("--progress");
 
 const changedFiles = changedArg
   ? changedArg.split(",").map((item) => item.trim()).filter(Boolean)
@@ -109,6 +111,16 @@ const batch = await runModelReviewBatch({
   trustZone,
   timeoutMs,
   maxTokens,
+  preferLocalFallbacks,
+  ...(progress ? {
+    onProgress: (event) => {
+      console.error(JSON.stringify({
+        schema_version: "dizzy.model_review_progress.v1",
+        created_at: new Date().toISOString(),
+        ...event,
+      }));
+    },
+  } : {}),
 });
 
 let receiptPath = "";
@@ -120,6 +132,7 @@ console.log(JSON.stringify({
   candidate_id: batch.candidate_id,
   execute_models: batch.execute_models,
   allow_cloud: batch.allow_cloud,
+  prefer_local_fallbacks: batch.prefer_local_fallbacks,
   packet_count: batch.packets.length,
   review_count: batch.reviews.length,
   statuses: batch.reviews.reduce((acc, review) => {
@@ -131,6 +144,7 @@ console.log(JSON.stringify({
     role_key: review.role_key || review.source || "",
     status: review.status || "unknown",
     skipped_reason: review.skipped_reason || "",
+    failure_stage: review.failure_stage || "",
     error: review.error || "",
     likely_root_cause: review.diagnosis?.likely_root_cause || "",
     next_actions: Array.isArray(review.diagnosis?.next_actions) ? review.diagnosis.next_actions.slice(0, 2) : [],
