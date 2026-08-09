@@ -58,6 +58,7 @@ const minReviewsForPush = Number(argValue(args, "--min-reviews-for-push", "3"));
 const timeoutMs = Number(argValue(args, "--timeout-ms", "120000")) || 120000;
 const candidateId = argValue(args, "--candidate-id", "");
 const changedArg = argValue(args, "--changed", "");
+const reviewsPath = argValue(args, "--reviews", "");
 const historyPath = argValue(args, "--history", "reviews/review_cycle_history.json");
 const outPath = argValue(args, "--out", "reviews/review_cycle_latest.json");
 const useWorktree = args.includes("--worktree");
@@ -75,6 +76,12 @@ const changedFiles = changedArg
 
 const packageJson = readJson("package.json", {});
 const history = loadReviewCycleHistory(historyPath);
+const reviewPayload = reviewsPath ? readJson(reviewsPath, {}) : {};
+const reviews = Array.isArray(reviewPayload)
+  ? reviewPayload
+  : Array.isArray(reviewPayload.reviews)
+    ? reviewPayload.reviews
+    : [];
 const plan = buildReviewCyclePlan({
   changedFiles,
   packageJson,
@@ -91,6 +98,7 @@ if (planOnly) {
 
 const receipt = await runReviewCycle({
   plan,
+  reviews,
   rootDir: process.cwd(),
   timeoutMs,
   minReviewsForPush: Number.isFinite(minReviewsForPush) ? minReviewsForPush : 3,
