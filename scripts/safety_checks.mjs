@@ -574,8 +574,8 @@ testRetrievedContextEscaping();
 function testLocalSkillRegistry() {
   const registry = discoverLocalSkills();
   assert.equal(registry.issues.length, 0, registry.issues.join("; "));
-  assert.equal(registry.skills.length, 25);
-  assert.equal(registry.skills.filter((skill) => skill.status === "active").length, 14);
+  assert.equal(registry.skills.length, 26);
+  assert.equal(registry.skills.filter((skill) => skill.status === "active").length, 15);
   assert.equal(registry.skills.filter((skill) => skill.status === "restricted").length, 1);
   assert.equal(registry.skills.filter((skill) => skill.status === "standby").length, 10);
   const intakeSkill = registry.skills.find((skill) => skill.name === "skill-intake-review");

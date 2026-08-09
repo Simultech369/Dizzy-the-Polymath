@@ -60,6 +60,10 @@
       "status": "restricted",
       "trigger_terms": ["external skill", "third-party skill", "skill marketplace", "install skill", "skill intake", "skill review", "skill supply chain", "skill security"]
     },
+    "rhythm-coaching": {
+      "status": "active",
+      "trigger_terms": ["rhythm", "groove", "drum", "timing", "tempo", "beat", "coach"]
+    },
     "web-request-skill": {
       "status": "active",
       "trigger_terms": ["http", "api request", "endpoint", "webhook", "curl", "request headers", "auth failure", "claude api", "anthropic sdk"]
