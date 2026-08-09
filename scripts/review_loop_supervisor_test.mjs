@@ -43,10 +43,12 @@ assert.equal(noWrite.write_mode.receipt_harnesses, false);
 assert.equal(noWrite.model_batch_summary.packet_count, 4);
 assert.equal(noWrite.model_batch_summary.review_count, 0);
 assert.equal(noWrite.run_summary.state_transition, "ready-for-review");
+assert.equal(noWrite.synthesis_summary.proposed_state_transition, "ready-for-review");
+assert.equal(noWrite.synthesis_summary.authority, "synthesis_is_triage_not_authority");
 assert.equal(noWrite.coverage_summary.harnesses.touched, noWriteOrder.length);
 assert.equal(noWrite.plan_summary.skipped_receipt_harnesses.some((harness) => harness.script === "check:council"), true);
 assert.equal(noWriteOrder.includes("check:council"), false);
-assert.deepEqual(Object.values(noWrite.receipt_paths), ["", "", "", ""]);
+assert.deepEqual(Object.values(noWrite.receipt_paths), ["", "", "", "", ""]);
 assert.equal(noWrite.authority, "automation_proposes_simul_approves");
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dizzy-review-supervisor-"));
@@ -81,8 +83,10 @@ try {
   assert.equal(writeOrder.includes("check:council"), true);
   assert.equal(fs.existsSync(written.receipt_paths.model_review_batch), true);
   assert.equal(fs.existsSync(written.receipt_paths.review_cycle), true);
+  assert.equal(fs.existsSync(written.receipt_paths.review_synthesis), true);
   assert.equal(fs.existsSync(written.receipt_paths.review_history), true);
   assert.equal(fs.existsSync(written.receipt_paths.supervisor), true);
+  assert.equal(JSON.parse(fs.readFileSync(written.receipt_paths.review_synthesis, "utf8")).schema_version, "dizzy.review_synthesis.v1");
   assert.equal(JSON.parse(fs.readFileSync(written.receipt_paths.supervisor, "utf8")).schema_version, "dizzy.review_loop_supervisor.v1");
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });

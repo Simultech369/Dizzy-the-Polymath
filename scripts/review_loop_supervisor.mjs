@@ -40,6 +40,7 @@ const summary = await runReviewLoopSupervisor({
   writeHistory: args.includes("--write-history"),
   modelReviewOutPath: argValue(args, "--model-review-out", "reviews/model_review_batch_latest.json"),
   reviewCycleOutPath: argValue(args, "--cycle-out", "reviews/review_cycle_latest.json"),
+  reviewSynthesisOutPath: argValue(args, "--synthesis-out", "reviews/review_synthesis_latest.json"),
   supervisorOutPath: argValue(args, "--supervisor-out", "reviews/review_loop_supervisor_latest.json"),
 });
 
