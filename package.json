@@ -26,6 +26,8 @@
                     "test:replay-safety": "node --disable-warning=ExperimentalWarning ./scripts/replay_safety_test.mjs",
                     "test:trajectory-snapshot": "node ./scripts/trajectory_snapshot_store_test.mjs",
                     "test:model-registry": "node ./scripts/model_registry_test.mjs",
+                    "test:review-cycle": "node ./scripts/review_cycle_orchestrator_test.mjs",
+                    "review:plan": "node ./scripts/review_cycle_plan.mjs",
                     "check:council": "node --disable-warning=ExperimentalWarning ./scripts/oss_council_audit.mjs",
                     "verify:bm25":  "node ./scripts/verify_bm25.mjs",
                     "drift:scan":  "node ./scripts/drift_scan.mjs",
