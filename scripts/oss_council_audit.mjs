@@ -45,6 +45,7 @@ async function runAudit() {
   logStep("Layer 1: Auditing JS/MJS syntax integrity (Synthesizer Layer)...");
   const targetFiles = [
     "agent_server.mjs",
+    "lib/backend_connection_rca.mjs",
     "lib/dispatch.mjs",
     "lib/ingress_gateway.mjs",
     "lib/model_registry.mjs",
@@ -56,6 +57,8 @@ async function runAudit() {
     "lib/review_model_runner.mjs",
     "lib/sqlite_operational_store.mjs",
     "lib/trajectory_snapshot_store.mjs",
+    "scripts/backend_connection_rca.mjs",
+    "scripts/backend_connection_rca_test.mjs",
     "scripts/dynamic_router_test.mjs",
     "scripts/ingress_gateway_test.mjs",
     "scripts/model_registry_test.mjs",
@@ -146,6 +149,7 @@ async function runAudit() {
     { name: "Review Cycle Orchestrator Suite", script: "scripts/review_cycle_orchestrator_test.mjs" },
     { name: "Review Cycle Run Suite", script: "scripts/review_cycle_run_test.mjs" },
     { name: "Model Review Runner Suite", script: "scripts/review_model_runner_test.mjs" },
+    { name: "Backend Connection RCA Suite", script: "scripts/backend_connection_rca_test.mjs" },
     { name: "Risk Scaler Suite", script: "scripts/risk_scaler_test.mjs" },
     { name: "Golden Retrieval Eval Suite", script: "scripts/retrieval_eval.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },

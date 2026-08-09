@@ -132,6 +132,8 @@ console.log(JSON.stringify({
     status: review.status || "unknown",
     skipped_reason: review.skipped_reason || "",
     error: review.error || "",
+    likely_root_cause: review.diagnosis?.likely_root_cause || "",
+    next_actions: Array.isArray(review.diagnosis?.next_actions) ? review.diagnosis.next_actions.slice(0, 2) : [],
     findings: Array.isArray(review.findings) ? review.findings.length : 0,
   })),
   receipt_path: receiptPath,

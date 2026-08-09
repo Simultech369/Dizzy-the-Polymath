@@ -73,15 +73,25 @@ const localUnavailable = await executeReviewerModelReview({
 });
 assert.equal(localUnavailable.status, "skipped");
 assert.equal(localUnavailable.skipped_reason, "local_review_backend_unavailable");
+assert.equal(localUnavailable.diagnosis.likely_root_cause, "local_backend_unreachable");
+assert.equal(localUnavailable.diagnosis.authority, "diagnostic_evidence_not_authority");
 assert.doesNotMatch(JSON.stringify(localUnavailable), /secret_should_not_survive/);
 
+const originalOpenAICompatBaseUrl = process.env.OPENAI_COMPAT_BASE_URL;
+process.env.OPENAI_COMPAT_BASE_URL = "https://openrouter.ai/api/v1";
 const skipped = await executeReviewerModelReview({
   plan,
   reviewer: { role_key: "systems_architect", primary_model: "claude-3-7-sonnet", lens: "architecture" },
   diffText: "diff",
   allowCloud: false,
 });
+if (originalOpenAICompatBaseUrl === undefined) {
+  delete process.env.OPENAI_COMPAT_BASE_URL;
+} else {
+  process.env.OPENAI_COMPAT_BASE_URL = originalOpenAICompatBaseUrl;
+}
 assert.equal(skipped.status, "skipped");
+assert.equal(skipped.diagnosis.likely_root_cause, "cloud_blocked_by_policy");
 assert.equal(skipped.findings.length, 0);
 
 const batch = await runModelReviewBatch({
