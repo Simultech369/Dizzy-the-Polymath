@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
+  RUNTIME_AUTONOMY_BOUNDARY,
   buildReviewCyclePlan,
   discoverHarnesses,
   getReviewerRoster,
@@ -11,6 +12,15 @@ import {
 } from "../lib/review_cycle_orchestrator.mjs";
 
 console.log("=== W-0068 Review Cycle Orchestrator Test Suite ===");
+
+assert.deepEqual(RUNTIME_AUTONOMY_BOUNDARY.allowed_actions, [
+  "orchestration",
+  "evidence_capture",
+  "disagreement_mining",
+  "test_execution",
+]);
+assert.equal(RUNTIME_AUTONOMY_BOUNDARY.authority, "automation_proposes_simul_approves");
+assert.equal(RUNTIME_AUTONOMY_BOUNDARY.denied_authority.includes("model_vote_as_truth"), true);
 
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 const roster = getReviewerRoster();
@@ -67,6 +77,7 @@ assert.equal(plan.schema_version, "dizzy.review_cycle_plan.v1");
 assert.equal(plan.candidate_id, "w0068-fixture");
 assert.equal(plan.blast_radius, "high");
 assert.equal(plan.available_reviewers, 40);
+assert.equal(plan.autonomy_boundary.meaning, "bounded_local_orchestration");
 assert.equal(plan.reviewer_assignments.length, 14);
 assert.equal(plan.reviewer_assignments.some((role) => role.role_key === "adversarial_critic"), true);
 assert.equal(plan.reviewer_assignments.some((role) => role.role_key === "systems_architect"), true);

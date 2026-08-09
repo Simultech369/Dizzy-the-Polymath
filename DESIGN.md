@@ -838,6 +838,25 @@ Consequences:
 
 ---
 
+### D-0041: Runtime autonomy is bounded orchestration, not authority
+
+Decision:
+- Use runtime autonomy only for bounded local orchestration, evidence capture, disagreement mining, and deterministic test execution.
+- It may rotate reviewers/models, select harnesses, preserve evidence receipts, and propose state transitions.
+- It may not treat model votes, harness scores, or receipts as authority, and it may not cross external, public, irreversible, expensive, or shared-state gates.
+
+Rationale:
+- The project needs active review loops without drifting into autonomous-agency claims.
+- Useful disagreement should sharpen implementation, not become permission to act.
+- Evidence is stronger when the boundary between measurement and authority stays explicit.
+
+Consequences:
+- Review loops must expose their allowed state transitions and authority boundary.
+- Pushes, merges, publication, and equivalent boundary actions remain Simul-gated.
+- Autonomy language in prompts, fine-tuning data, docs, and dashboards should be read through this bounded runtime meaning.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -993,6 +1012,7 @@ Edit this block when you want to change what agents read.
     "non_negotiables": [
       "bounded_ontology",
       "operator_execution_authority",
+      "bounded_runtime_autonomy",
       "trust_zones_fail_closed",
       "private_continuity_non_commercial",
       "no_commercial_override",
@@ -1018,6 +1038,25 @@ Edit this block when you want to change what agents read.
     "zone_a_private": "non_export_default",
     "zone_b_transform": "exportable_with_explicit_intent_and_redaction",
     "zone_c_commercial": "minimal_scoped_no_sensitive_private_carryover"
+  },
+  "runtime_autonomy_boundary": {
+    "meaning": "bounded_local_orchestration",
+    "allowed": [
+      "orchestration",
+      "evidence_capture",
+      "disagreement_mining",
+      "deterministic_test_execution",
+      "state_transition_proposal"
+    ],
+    "not_authority_for": [
+      "external_actions",
+      "public_actions",
+      "irreversible_actions",
+      "expensive_actions",
+      "shared_state_actions",
+      "model_vote_as_truth"
+    ],
+    "operator_gate": "Simul approval remains required for push, merge, publication, or equivalent boundary actions."
   },
   "memory_lifecycle": {
     "claim_metadata": [
@@ -1287,7 +1326,7 @@ Edit this block when you want to change what agents read.
   "constitutional_coverage": {
     "manifest": "scripts/constitutional_claims.json",
     "checker": "scripts/prompt_drift_check.mjs",
-    "claim_count": 12,
+    "claim_count": 13,
     "required_anchors": [
       "constitution",
       "prompt_pack"

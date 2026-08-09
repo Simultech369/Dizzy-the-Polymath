@@ -74,5 +74,14 @@
     "id": "C-12-drift-surfaces-as-maintenance",
     "constitution": ["maintenance must surface the mismatch"],
     "prompt": ["surface the mismatch as maintenance debt"]
+  },
+  {
+    "id": "C-13-runtime-autonomy-boundary",
+    "constitution": ["Runtime autonomy", "evidence capture", "disagreement mining", "deterministic test execution"],
+    "prompt": ["Runtime autonomy means bounded local orchestration", "proposes state transitions"],
+    "runtime": {
+      "files": ["lib/review_cycle_orchestrator.mjs", "scripts/review_cycle_orchestrator_test.mjs"],
+      "terms": ["RUNTIME_AUTONOMY_BOUNDARY", "orchestration", "evidence_capture", "disagreement_mining", "test_execution", "automation_proposes_simul_approves"]
+    }
   }
 ]

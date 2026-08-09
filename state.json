@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-02T22:30:12.646Z",
+  "updated_at": "2026-08-09T04:02:40.828Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -80,6 +80,7 @@
     "non_negotiables": [
       "bounded_ontology",
       "operator_execution_authority",
+      "bounded_runtime_autonomy",
       "trust_zones_fail_closed",
       "private_continuity_non_commercial",
       "no_commercial_override",
@@ -105,6 +106,25 @@
     "zone_a_private": "non_export_default",
     "zone_b_transform": "exportable_with_explicit_intent_and_redaction",
     "zone_c_commercial": "minimal_scoped_no_sensitive_private_carryover"
+  },
+  "runtime_autonomy_boundary": {
+    "meaning": "bounded_local_orchestration",
+    "allowed": [
+      "orchestration",
+      "evidence_capture",
+      "disagreement_mining",
+      "deterministic_test_execution",
+      "state_transition_proposal"
+    ],
+    "not_authority_for": [
+      "external_actions",
+      "public_actions",
+      "irreversible_actions",
+      "expensive_actions",
+      "shared_state_actions",
+      "model_vote_as_truth"
+    ],
+    "operator_gate": "Simul approval remains required for push, merge, publication, or equivalent boundary actions."
   },
   "memory_lifecycle": {
     "claim_metadata": [
@@ -379,7 +399,7 @@
   "constitutional_coverage": {
     "manifest": "scripts/constitutional_claims.json",
     "checker": "scripts/prompt_drift_check.mjs",
-    "claim_count": 12,
+    "claim_count": 13,
     "required_anchors": [
       "constitution",
       "prompt_pack"
@@ -531,6 +551,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "eadbc422d7d43972e519a4e3880d53581fbe22f71179627c91ae51021d01ab0c"
+    "design_md_sha256": "1999586b182cf6c84f472196f3255f1d4309f20b0e526133f42139479464cc15"
   }
 }
