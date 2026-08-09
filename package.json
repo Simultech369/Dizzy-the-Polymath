@@ -36,6 +36,7 @@
                     "review:plan": "node ./scripts/review_cycle_plan.mjs",
                     "review:run": "node ./scripts/review_cycle_run.mjs",
                     "review:models": "node ./scripts/review_model_batch.mjs",
+                    "review:ollama-availability": "node ./scripts/ollama_availability_check.mjs",
                     "review:coverage": "node ./scripts/review_cycle_coverage.mjs",
                     "review:supervise": "node ./scripts/review_loop_supervisor.mjs",
                     "review:synthesize": "node ./scripts/review_synthesis.mjs",

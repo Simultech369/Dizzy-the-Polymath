@@ -65,6 +65,7 @@ async function runAudit() {
     "scripts/ingress_gateway_test.mjs",
     "scripts/model_registry_test.mjs",
     "scripts/model_router_test.mjs",
+    "scripts/ollama_availability_check.mjs",
     "scripts/replay_safety_test.mjs",
     "scripts/review_cycle_coverage.mjs",
     "scripts/review_cycle_coverage_test.mjs",
