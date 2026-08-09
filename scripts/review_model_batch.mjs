@@ -1,12 +1,18 @@
 import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { pathToFileURL } from "url";
 import { buildReviewCyclePlan } from "../lib/review_cycle_orchestrator.mjs";
 import { loadReviewCycleHistory } from "../lib/review_cycle_runner.mjs";
 import {
   runModelReviewBatch,
   writeModelReviewBatch,
 } from "../lib/review_model_runner.mjs";
+
+const DEFAULT_REVIEW_CANDIDATE_EXCLUDE_PATTERNS = [
+  /^reviews\/[^/]+_latest\.json$/i,
+  /^(?:runtime|memory|artifacts|\.review-harness)\//i,
+];
 
 function readJson(filePath, fallback = {}) {
   try {
@@ -22,10 +28,42 @@ function argValue(args, name, fallback = "") {
   return fallback;
 }
 
+function hasArg(args, name) {
+  return args.includes(name);
+}
+
 function git(args) {
   const result = spawnSync("git", args, { encoding: "utf8", cwd: process.cwd() });
   if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${String(result.stderr || result.stdout).trim()}`);
   return result.stdout;
+}
+
+function normalizeGitPath(filePath = "") {
+  return String(filePath || "").replace(/\\/g, "/").trim();
+}
+
+export function isDefaultReviewCandidateExcluded(filePath = "") {
+  const normalized = normalizeGitPath(filePath);
+  if (!normalized) return false;
+  return DEFAULT_REVIEW_CANDIDATE_EXCLUDE_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function splitReviewCandidateFiles(files = [], { includeGeneratedEvidence = false } = {}) {
+  const included = [];
+  const excluded = [];
+  for (const filePath of files) {
+    const normalized = normalizeGitPath(filePath);
+    if (!normalized) continue;
+    if (!includeGeneratedEvidence && isDefaultReviewCandidateExcluded(normalized)) {
+      excluded.push(normalized);
+    } else {
+      included.push(normalized);
+    }
+  }
+  return {
+    changedFiles: [...new Set(included)].sort(),
+    excludedFiles: [...new Set(excluded)].sort(),
+  };
 }
 
 function changedFilesFromGit(base, head) {
@@ -44,7 +82,8 @@ function changedFilesFromWorktree() {
   return [...new Set(files)].sort();
 }
 
-function diffText({ base, head, changedFiles, useWorktree, maxDiffChars }) {
+export function diffText({ base, head, changedFiles, useWorktree, maxDiffChars }) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) return "";
   const args = useWorktree ? ["diff", "--"] : ["diff", `${base}..${head}`, "--"];
   let out = git([...args, ...changedFiles]).trim();
   if (useWorktree) {
@@ -66,90 +105,116 @@ function diffText({ base, head, changedFiles, useWorktree, maxDiffChars }) {
   return `[truncated ${out.length - maxDiffChars} chars]\n${out.slice(-maxDiffChars)}`;
 }
 
-const args = process.argv.slice(2);
-const base = argValue(args, "--base", "HEAD~1");
-const head = argValue(args, "--head", "HEAD");
-const maxReviewers = Number(argValue(args, "--max-reviewers", "8")) || 8;
-const maxHarnesses = Number(argValue(args, "--max-harnesses", "6")) || 6;
-const maxDiffChars = Number(argValue(args, "--max-diff-chars", "12000")) || 12000;
-const timeoutMs = Number(argValue(args, "--timeout-ms", "60000")) || 60000;
-const maxTokens = Number(argValue(args, "--max-tokens", "900")) || 900;
-const candidateId = argValue(args, "--candidate-id", "");
-const changedArg = argValue(args, "--changed", "");
-const historyPath = argValue(args, "--history", "reviews/review_cycle_history.json");
-const outPath = argValue(args, "--out", "reviews/model_review_batch_latest.json");
-const trustZone = argValue(args, "--trust-zone", "private_self");
-const useWorktree = args.includes("--worktree");
-const executeModels = args.includes("--execute");
-const allowCloud = args.includes("--allow-cloud");
-const noWrite = args.includes("--no-write");
-const preferLocalFallbacks = args.includes("--prefer-local-fallbacks");
-const progress = args.includes("--progress");
+export async function main(argv = process.argv.slice(2)) {
+  const args = argv;
+  const localFast = hasArg(args, "--local-fast");
+  const base = argValue(args, "--base", "HEAD~1");
+  const head = argValue(args, "--head", "HEAD");
+  const maxReviewers = Number(argValue(args, "--max-reviewers", localFast ? "4" : "8")) || (localFast ? 4 : 8);
+  const maxHarnesses = Number(argValue(args, "--max-harnesses", "6")) || 6;
+  const maxDiffChars = Number(argValue(args, "--max-diff-chars", localFast ? "1000" : "12000")) || (localFast ? 1000 : 12000);
+  const timeoutMs = Number(argValue(args, "--timeout-ms", localFast ? "220000" : "60000")) || (localFast ? 220000 : 60000);
+  const maxTokens = Number(argValue(args, "--max-tokens", localFast ? "320" : "900")) || (localFast ? 320 : 900);
+  const maxFindings = Number(argValue(args, "--max-findings", localFast ? "2" : "0")) || 0;
+  const candidateId = argValue(args, "--candidate-id", "");
+  const changedArg = argValue(args, "--changed", "");
+  const historyPath = argValue(args, "--history", "reviews/review_cycle_history.json");
+  const outPath = argValue(args, "--out", "reviews/model_review_batch_latest.json");
+  const partialOutPath = argValue(args, "--partial-out", outPath);
+  const resumeFrom = argValue(args, "--resume-from", "");
+  const reviewProfile = argValue(args, "--review-profile", localFast ? "local_fast" : "standard");
+  const trustZone = argValue(args, "--trust-zone", "private_self");
+  const useWorktree = args.includes("--worktree");
+  const executeModels = args.includes("--execute");
+  const allowCloud = args.includes("--allow-cloud");
+  const noWrite = args.includes("--no-write");
+  const preferLocalFallbacks = args.includes("--prefer-local-fallbacks") || localFast;
+  const progress = args.includes("--progress") || localFast;
+  const includeGeneratedEvidence = args.includes("--include-generated-evidence");
 
-const changedFiles = changedArg
-  ? changedArg.split(",").map((item) => item.trim()).filter(Boolean)
-  : useWorktree
-    ? changedFilesFromWorktree()
-    : changedFilesFromGit(base, head);
+  const rawChangedFiles = changedArg
+    ? changedArg.split(",").map((item) => item.trim()).filter(Boolean)
+    : useWorktree
+      ? changedFilesFromWorktree()
+      : changedFilesFromGit(base, head);
+  const { changedFiles, excludedFiles } = splitReviewCandidateFiles(rawChangedFiles, { includeGeneratedEvidence });
 
-const packageJson = readJson("package.json", {});
-const history = loadReviewCycleHistory(historyPath);
-const plan = buildReviewCyclePlan({
-  changedFiles,
-  packageJson,
-  history,
-  maxReviewers,
-  maxHarnesses,
-  candidateId,
-});
-const diff = diffText({ base, head, changedFiles, useWorktree, maxDiffChars });
-const batch = await runModelReviewBatch({
-  plan,
-  diffText: diff,
-  executeModels,
-  allowCloud,
-  trustZone,
-  timeoutMs,
-  maxTokens,
-  preferLocalFallbacks,
-  ...(progress ? {
-    onProgress: (event) => {
-      console.error(JSON.stringify({
-        schema_version: "dizzy.model_review_progress.v1",
-        created_at: new Date().toISOString(),
-        ...event,
-      }));
-    },
-  } : {}),
-});
+  const packageJson = readJson("package.json", {});
+  const history = loadReviewCycleHistory(historyPath);
+  const resumeBatch = resumeFrom ? readJson(resumeFrom, {}) : {};
+  const resumeReviews = Array.isArray(resumeBatch.reviews) ? resumeBatch.reviews : [];
+  const plan = buildReviewCyclePlan({
+    changedFiles,
+    packageJson,
+    history,
+    maxReviewers,
+    maxHarnesses,
+    candidateId,
+  });
+  const diff = diffText({ base, head, changedFiles, useWorktree, maxDiffChars });
+  const batch = await runModelReviewBatch({
+    plan,
+    diffText: diff,
+    executeModels,
+    allowCloud,
+    trustZone,
+    timeoutMs,
+    maxTokens,
+    preferLocalFallbacks,
+    reviewProfile,
+    maxFindings,
+    partialOutPath: noWrite ? "" : partialOutPath,
+    resumeReviews,
+    ...(progress ? {
+      onProgress: (event) => {
+        console.error(JSON.stringify({
+          schema_version: "dizzy.model_review_progress.v1",
+          created_at: new Date().toISOString(),
+          ...event,
+        }));
+      },
+    } : {}),
+  });
 
-let receiptPath = "";
-if (!noWrite) receiptPath = writeModelReviewBatch(batch, { outPath });
+  let receiptPath = "";
+  if (!noWrite) receiptPath = writeModelReviewBatch(batch, { outPath });
 
-console.log(JSON.stringify({
-  schema_version: "dizzy.model_review_batch_summary.v1",
-  batch_id: batch.batch_id,
-  candidate_id: batch.candidate_id,
-  execute_models: batch.execute_models,
-  allow_cloud: batch.allow_cloud,
-  prefer_local_fallbacks: batch.prefer_local_fallbacks,
-  packet_count: batch.packets.length,
-  review_count: batch.reviews.length,
-  statuses: batch.reviews.reduce((acc, review) => {
-    const status = review.status || "unknown";
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {}),
-  review_results: batch.reviews.map((review) => ({
-    role_key: review.role_key || review.source || "",
-    status: review.status || "unknown",
-    skipped_reason: review.skipped_reason || "",
-    failure_stage: review.failure_stage || "",
-    error: review.error || "",
-    likely_root_cause: review.diagnosis?.likely_root_cause || "",
-    next_actions: Array.isArray(review.diagnosis?.next_actions) ? review.diagnosis.next_actions.slice(0, 2) : [],
-    findings: Array.isArray(review.findings) ? review.findings.length : 0,
-  })),
-  receipt_path: receiptPath,
-  authority: batch.authority,
-}, null, 2));
+  console.log(JSON.stringify({
+    schema_version: "dizzy.model_review_batch_summary.v1",
+    batch_id: batch.batch_id,
+    candidate_id: batch.candidate_id,
+    execute_models: batch.execute_models,
+    allow_cloud: batch.allow_cloud,
+    prefer_local_fallbacks: batch.prefer_local_fallbacks,
+    review_profile: batch.review_profile,
+    completion_status: batch.completion_status,
+    expected_reviews: batch.expected_reviews,
+    completed_reviews: batch.completed_reviews,
+    resumed_review_count: batch.resumed_review_count,
+    changed_files: changedFiles,
+    excluded_candidate_files: excludedFiles,
+    packet_count: batch.packets.length,
+    review_count: batch.reviews.length,
+    statuses: batch.reviews.reduce((acc, review) => {
+      const status = review.status || "unknown";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {}),
+    review_results: batch.reviews.map((review) => ({
+      role_key: review.role_key || review.source || "",
+      status: review.status || "unknown",
+      skipped_reason: review.skipped_reason || "",
+      failure_stage: review.failure_stage || "",
+      error: review.error || "",
+      likely_root_cause: review.diagnosis?.likely_root_cause || "",
+      next_actions: Array.isArray(review.diagnosis?.next_actions) ? review.diagnosis.next_actions.slice(0, 2) : [],
+      findings: Array.isArray(review.findings) ? review.findings.length : 0,
+    })),
+    receipt_path: receiptPath,
+    authority: batch.authority,
+  }, null, 2));
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}

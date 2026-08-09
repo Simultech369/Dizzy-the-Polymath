@@ -1,15 +1,26 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   buildModelReviewPackets,
   executeReviewerModelReview,
+  getModelExecutionProfile,
   isLocalOllamaModelName,
+  isReviewUsableLocalOllamaModelName,
   parseReviewerResponseText,
+  resolveReviewerExecutionTarget,
   runModelReviewBatch,
 } from "../lib/review_model_runner.mjs";
 import {
   buildReviewCyclePlan,
   reconcileReviewBatch,
 } from "../lib/review_cycle_orchestrator.mjs";
+import {
+  diffText,
+  isDefaultReviewCandidateExcluded,
+  splitReviewCandidateFiles,
+} from "./review_model_batch.mjs";
 
 console.log("=== W-0068 Model Review Runner Test Suite ===");
 
@@ -38,6 +49,31 @@ assert.equal(isLocalOllamaModelName("gemma3:4b"), true);
 assert.equal(isLocalOllamaModelName("llama-audit:latest"), true);
 assert.equal(isLocalOllamaModelName("nvidia/nemotron-3-super-120b-a12b:free"), false);
 assert.equal(isLocalOllamaModelName("moonshotai/kimi-k2.7-code:batch"), false);
+assert.equal(getModelExecutionProfile("deepseek-r1:7b").review_usable, false);
+assert.equal(isReviewUsableLocalOllamaModelName("deepseek-r1:7b"), false);
+assert.equal(isReviewUsableLocalOllamaModelName("gemma3:4b"), true);
+assert.equal(isDefaultReviewCandidateExcluded("reviews/retrieval_eval_latest.json"), true);
+assert.equal(isDefaultReviewCandidateExcluded("reviews/gemma4_review.md"), false);
+assert.deepEqual(splitReviewCandidateFiles([
+  "lib/review_model_runner.mjs",
+  "reviews/retrieval_eval_latest.json",
+  "runtime/local_fast_final_latest.json",
+]).changedFiles, ["lib/review_model_runner.mjs"]);
+assert.deepEqual(splitReviewCandidateFiles([
+  "lib/review_model_runner.mjs",
+  "reviews/retrieval_eval_latest.json",
+], { includeGeneratedEvidence: true }).changedFiles, [
+  "lib/review_model_runner.mjs",
+  "reviews/retrieval_eval_latest.json",
+]);
+assert.equal(diffText({ changedFiles: [], useWorktree: true }), "");
+
+const r1Target = resolveReviewerExecutionTarget(
+  { role_key: "chain_of_thought_critic", primary_model: "deepseek-r1", lens: "reasoning" },
+  { preferLocalFallbacks: true },
+);
+assert.equal(r1Target.executable, false);
+assert.equal(r1Target.skipped_reason, "cloud_review_blocked_without_allow_cloud");
 
 const localFallbackPacket = buildModelReviewPackets(plan, {
   diffText: "diff",
@@ -47,6 +83,17 @@ assert.equal(localFallbackPacket.target.executable, true);
 assert.equal(localFallbackPacket.target.model, "gemma3:4b");
 assert.equal(localFallbackPacket.target.original_model, "claude-3-7-sonnet");
 assert.equal(localFallbackPacket.target.selected_reason, "local_free_fallback");
+assert.equal(localFallbackPacket.target.model_profile.review_usable, true);
+
+const localFastPacket = buildModelReviewPackets(plan, {
+  diffText: "diff",
+  preferLocalFallbacks: true,
+  reviewProfile: "local_fast",
+  maxFindings: 2,
+}).find((packet) => packet.reviewer.role_key === "systems_architect");
+assert.equal(localFastPacket.review_profile, "local_fast");
+assert.match(localFastPacket.system_prompt, /Local-fast profile/);
+assert.match(localFastPacket.system_prompt, /at most 2 total findings/);
 
 const parsed = parseReviewerResponseText(`\`\`\`json
 {
@@ -91,6 +138,18 @@ const fallbackExecuted = await executeReviewerModelReview({
 assert.equal(fallbackExecuted.status, "submitted");
 assert.equal(fallbackExecuted.target.model, "gemma3:4b");
 assert.equal(fallbackExecuted.target.original_model, "claude-3-7-sonnet");
+
+const localFastExecuted = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "gemma3_local", primary_model: "gemma3:4b", lens: "local" },
+  diffText: "diff",
+  reviewProfile: "local_fast",
+  generateText: async ({ responseFormat }) => {
+    assert.deepEqual(responseFormat, { type: "json_object" });
+    return JSON.stringify({ summary: "JSON mode honored.", findings: [], disagreements: [] });
+  },
+});
+assert.equal(localFastExecuted.status, "submitted");
 
 const parseFailed = await executeReviewerModelReview({
   plan,
@@ -156,6 +215,53 @@ for (let i = 0; i < plan.reviewer_assignments.length; i++) {
   assert.equal(finish.role_key, plan.reviewer_assignments[i].role_key);
   assert.equal(typeof finish.seconds, "number");
 }
+
+const partialDir = fs.mkdtempSync(path.join(os.tmpdir(), "dizzy_review_partial_"));
+const partialPath = path.join(partialDir, "partial.json");
+const localOnlyPlan = {
+  ...plan,
+  reviewer_assignments: [
+    { role_key: "gemma3_local", primary_model: "gemma3:4b", lens: "local" },
+    { role_key: "qwen_local", primary_model: "qwen2.5-coder:7b", lens: "implementation" },
+  ],
+};
+let partialCalls = 0;
+const partialBatch = await runModelReviewBatch({
+  plan: localOnlyPlan,
+  diffText: "diff",
+  executeModels: true,
+  partialOutPath: partialPath,
+  generateText: async () => {
+    partialCalls++;
+    if (partialCalls === 2) {
+      const partialReceipt = JSON.parse(fs.readFileSync(partialPath, "utf8"));
+      assert.equal(partialReceipt.completion_status, "partial");
+      assert.equal(partialReceipt.completed_reviews, 1);
+      assert.equal(partialReceipt.reviews.length, 1);
+    }
+    return "{\"summary\":\"ok\",\"findings\":[],\"disagreements\":[]}";
+  },
+});
+assert.equal(partialBatch.completion_status, "completed");
+assert.equal(partialBatch.completed_reviews, 2);
+assert.equal(JSON.parse(fs.readFileSync(partialPath, "utf8")).completion_status, "completed");
+
+let resumedCalls = 0;
+const resumedBatch = await runModelReviewBatch({
+  plan: localOnlyPlan,
+  diffText: "diff",
+  executeModels: true,
+  resumeReviews: [partialBatch.reviews[0]],
+  generateText: async () => {
+    resumedCalls++;
+    return "{\"summary\":\"ok\",\"findings\":[],\"disagreements\":[]}";
+  },
+});
+assert.equal(resumedBatch.resumed_review_count, 1);
+assert.equal(resumedBatch.completion_status, "completed");
+assert.equal(resumedBatch.completed_reviews, 2);
+assert.equal(resumedCalls, 1);
+fs.rmSync(partialDir, { recursive: true, force: true });
 
 const notEnough = reconcileReviewBatch({
   reviews: [
