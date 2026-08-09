@@ -87,6 +87,7 @@ assert.doesNotMatch(JSON.stringify(failed), /secret_should_not_survive/);
 const history = updateReviewCycleHistory({}, passed);
 assert.equal(history.harnesses[plan.harness_plan[0].script].runs, 1);
 assert.equal(history.harnesses[plan.harness_plan[0].script].passes, 1);
+assert.equal(history.reviewers.qwen_local.attempts, 1);
 assert.equal(history.reviewers.qwen_local.runs, 1);
 assert.equal(history.reviewers.gemma3_local.useful_disagreements, 1);
 assert.equal(history.cycles[0].state_transition, "ready-for-push");

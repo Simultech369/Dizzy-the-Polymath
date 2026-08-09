@@ -15,6 +15,15 @@ const history = {
   reviewers: {
     qwen_local: { runs: 2, confirmed_findings: 3, useful_disagreements: 1, false_positive_findings: 0 },
     universal_judge: { runs: 2, confirmed_findings: 0, useful_disagreements: 0, false_positive_findings: 4 },
+    gemma3_local: {
+      attempts: 2,
+      runs: 0,
+      skipped: 2,
+      failures: 0,
+      last_status: "skipped",
+      last_skipped_reason: "local_review_backend_unavailable",
+      last_likely_root_cause: "local_backend_unreachable",
+    },
   },
   harnesses: {
     "test:router": { runs: 3, passes: 3, failures: 0, total_duration_ms: 9000, last_status: "passed" },
@@ -32,8 +41,12 @@ const report = buildReviewCoverageReport({
 assert.equal(report.schema_version, "dizzy.review_cycle_coverage.v1");
 assert.equal(report.authority, "coverage_informs_rotation_only");
 assert.equal(report.reviewers.total, 40);
+assert.equal(report.reviewers.attempted, 3);
 assert.equal(report.reviewers.touched, 2);
 assert.equal(report.reviewers.untouched, 38);
+assert.equal(report.reviewers.availability_recheck[0].role_key, "gemma3_local");
+assert.equal(report.reviewers.availability_recheck[0].runs, 0);
+assert.equal(report.reviewers.availability_recheck[0].last_likely_root_cause, "local_backend_unreachable");
 assert.equal(report.reviewers.high_signal[0].role_key, "qwen_local");
 assert.equal(report.reviewers.needs_recheck[0].role_key, "universal_judge");
 assert.equal(report.reviewers.next_rotation.length, 3);

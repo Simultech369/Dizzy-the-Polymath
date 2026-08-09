@@ -151,10 +151,25 @@ const updated = updateReviewHistory({}, [
       { disposition: "rejected", claim: "false positive" },
     ],
   },
+  {
+    role_key: "gemma3_local",
+    status: "skipped",
+    skipped_reason: "local_review_backend_unavailable",
+    diagnosis: { likely_root_cause: "local_backend_unreachable" },
+    findings: [
+      { disposition: "accepted", category: "disagreement", claim: "skipped output should not count" },
+    ],
+  },
 ]);
+assert.equal(updated.reviewers.qwen_local.attempts, 1);
 assert.equal(updated.reviewers.qwen_local.runs, 1);
 assert.equal(updated.reviewers.qwen_local.confirmed_findings, 1);
 assert.equal(updated.reviewers.qwen_local.false_positive_findings, 1);
 assert.equal(updated.reviewers.qwen_local.useful_disagreements, 1);
+assert.equal(updated.reviewers.gemma3_local.attempts, 1);
+assert.equal(updated.reviewers.gemma3_local.runs, 0);
+assert.equal(updated.reviewers.gemma3_local.skipped, 1);
+assert.equal(updated.reviewers.gemma3_local.useful_disagreements, 0);
+assert.equal(updated.reviewers.gemma3_local.last_likely_root_cause, "local_backend_unreachable");
 
 console.log("REVIEW_CYCLE_ORCHESTRATOR_TESTS_OK");
