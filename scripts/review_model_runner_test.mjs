@@ -63,6 +63,18 @@ const executed = await executeReviewerModelReview({
 assert.equal(executed.status, "submitted");
 assert.equal(executed.findings.some((finding) => finding.kind === "disagreement"), true);
 
+const localUnavailable = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "gemma3_local", primary_model: "gemma3:4b", lens: "local" },
+  diffText: "diff",
+  generateText: async () => {
+    throw new Error("fetch failed token=secret_should_not_survive");
+  },
+});
+assert.equal(localUnavailable.status, "skipped");
+assert.equal(localUnavailable.skipped_reason, "local_review_backend_unavailable");
+assert.doesNotMatch(JSON.stringify(localUnavailable), /secret_should_not_survive/);
+
 const skipped = await executeReviewerModelReview({
   plan,
   reviewer: { role_key: "systems_architect", primary_model: "claude-3-7-sonnet", lens: "architecture" },
