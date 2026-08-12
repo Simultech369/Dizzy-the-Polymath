@@ -51,6 +51,12 @@ const CHECKS = [
     severity: "yellow",
   },
   {
+    id: "dashboard-safety",
+    label: "Dashboard HTML/JS safety harness",
+    command: ["node", "scripts/dashboard_safety_harness_test.mjs"],
+    severity: "red",
+  },
+  {
     id: "dependencies",
     label: "Dependency/API drift gate",
     command: ["node", "scripts/dependency_api_drift_check.mjs"],
@@ -72,6 +78,12 @@ const CHECKS = [
     id: "docs",
     label: "Document references",
     command: ["node", "scripts/doc_reference_check.mjs"],
+    severity: "yellow",
+  },
+  {
+    id: "context-tree",
+    label: "Context tree integrity",
+    command: ["node", "scripts/context_tree_check.mjs"],
     severity: "yellow",
   },
   {

@@ -16,11 +16,13 @@ Rules:
 
 ## Work Queue
 
-1. **W-0064: Dashboard Safety & Volatility Harness [PARKED]**: Specify joint HTML/JS CSP test assertions before modifying dashboard components. (Verification: `npm.cmd run maintain`)
+(none)
 
 ---
 
 ## Completed
+
+- W-0064: Added the Dashboard Safety & Volatility Harness (`scripts/dashboard_safety_harness_test.mjs`) to specify joint HTML/JS, route allowlist, and CSP assertions before modifying dashboard components; also restored context-tree integrity coverage as a maintenance/council gate. (Verification: `npm run test:dashboard-safety`; `npm run maintain`)
 
 - W-0062c: Refined Anti-Slop Scanner allowlist and prompt overlay cues (`lib/anti_slop_scanner.mjs`, `scripts/anti_slop_prose_fixture_check.mjs`) for fenced code blocks, inline backticks, and doc examples. (Verification: `node scripts/anti_slop_prose_fixture_check.mjs`)
 

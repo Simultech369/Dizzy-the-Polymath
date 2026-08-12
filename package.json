@@ -22,6 +22,7 @@
                     "test:router": "node ./scripts/dynamic_router_test.mjs",
                     "test:risk-scaler": "node --disable-warning=ExperimentalWarning ./scripts/risk_scaler_test.mjs",
                     "test:model-router": "node ./scripts/model_router_test.mjs",
+                    "test:dashboard-safety": "node ./scripts/dashboard_safety_harness_test.mjs",
                     "test:ingress-gateway": "node ./scripts/ingress_gateway_test.mjs",
                     "test:replay-safety": "node --disable-warning=ExperimentalWarning ./scripts/replay_safety_test.mjs",
                     "test:trajectory-snapshot": "node ./scripts/trajectory_snapshot_store_test.mjs",
