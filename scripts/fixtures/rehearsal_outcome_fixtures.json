@@ -1,0 +1,60 @@
+{
+  "outcomes": [
+    {
+      "id": "outcome_001",
+      "targetComponents": ["model_router", "dispatch"],
+      "riskLevel": "Level 4 - Irreversible Actions",
+      "keywords": ["unconstrained", "raw_sql", "unbounded"],
+      "outcome": "failure",
+      "severity": "high",
+      "rootCause": "Unconstrained multi-agent query execution caused loop deadlock and token explosion",
+      "lessons": "Enforce Knowledge Graph edge bounding on queries"
+    },
+    {
+      "id": "outcome_002",
+      "targetComponents": ["eval_gate", "retrieval"],
+      "riskLevel": "Level 1 - Local Analysis",
+      "keywords": ["retrieval_floor", "offline_verification"],
+      "outcome": "success",
+      "severity": "high",
+      "rootCause": "Golden retrieval eval floor enforcement prevented quality regression",
+      "lessons": "Always enforce golden retrieval floor at >= 85.0%"
+    },
+    {
+      "id": "outcome_003",
+      "targetComponents": ["dashboard"],
+      "riskLevel": "Level 2 - External Queries",
+      "keywords": ["inline_script", "csp_bypass"],
+      "outcome": "blocked",
+      "severity": "medium",
+      "rootCause": "Inline event handlers violated CSP security policy",
+      "lessons": "Use strict external script assets only"
+    }
+  ],
+  "sample_candidates": [
+    {
+      "id": "plan_alpha",
+      "name": "Knowledge Graph Bounded Traversal",
+      "targetComponents": ["eval_gate", "retrieval"],
+      "riskLevel": "Level 1 - Local Analysis",
+      "changes": ["retrieval_floor", "offline_verification"],
+      "baseScore": 80
+    },
+    {
+      "id": "plan_beta",
+      "name": "Unconstrained Multi-Agent Query Sprawl",
+      "targetComponents": ["model_router", "dispatch"],
+      "riskLevel": "Level 4 - Irreversible Actions",
+      "changes": ["unconstrained", "raw_sql", "unbounded"],
+      "baseScore": 75
+    },
+    {
+      "id": "plan_gamma",
+      "name": "Dashboard Safety Refactor",
+      "targetComponents": ["dashboard"],
+      "riskLevel": "Level 2 - External Queries",
+      "changes": ["inline_script"],
+      "baseScore": 70
+    }
+  ]
+}
