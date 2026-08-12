@@ -15,6 +15,8 @@ console.log("=== W-0072 Request Trace Receipt Chain Test Suite ===");
 // Test 1: Route template sanitization
 assert.equal(sanitizeRouteTemplate("/dispatch/incoming?token=secret123#fragment"), "/dispatch/incoming");
 assert.equal(sanitizeRouteTemplate("/agent/execute?query=user_data"), "/agent/execute");
+assert.equal(sanitizeRouteTemplate("https://example.com/api/operator/receipts?token=secret123"), "/api/operator/receipts");
+assert.equal(sanitizeRouteTemplate("api/operator/router-divisions?debug=true"), "/api/operator/router-divisions");
 
 // Test 2: Full 9-stage Request Lifecycle Construction
 const trace = createTraceChain({
