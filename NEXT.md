@@ -22,7 +22,9 @@ Rules:
 
 ## Completed
 
-- W-0064: Added the Dashboard Safety & Volatility Harness (`scripts/dashboard_safety_harness_test.mjs`) to specify joint HTML/JS, route allowlist, and CSP assertions before modifying dashboard components; also restored context-tree integrity coverage as a maintenance/council gate. (Verification: `npm run test:dashboard-safety`; `npm run maintain`)
+- W-0070: Added Receipts & Review Observability Panel telemetry (`/api/operator/receipts-telemetry`, `dashboard/index.html`, `dashboard/dashboard.js`) with bounded router receipt summaries, model usage, latency/cost bands, trust-zone distribution, and latest review/council verdict metadata. (Verification: `npm run test:dashboard-safety`; `npm run check:council`)
+- W-0069: Added deterministic GitHub Actions CI gate (`.github/workflows/ci.yml`) for Node 20.18.1, `npm ci`, `npm test`, `npm run maintain`, and `npm run check:council` without live provider secrets. (Verification: local workflow inspection; GitHub Actions run after push)
+- W-0064: Implemented Dashboard Safety & Volatility Harness (`scripts/dashboard_safety_harness_test.mjs`), adding CSP/HTML/JS/route-contract assertions and wiring `test:dashboard-safety` into `maintain.mjs` and `oss_council_audit.mjs`. (Verification: `npm run test:dashboard-safety`)
 
 - W-0062c: Refined Anti-Slop Scanner allowlist and prompt overlay cues (`lib/anti_slop_scanner.mjs`, `scripts/anti_slop_prose_fixture_check.mjs`) for fenced code blocks, inline backticks, and doc examples. (Verification: `node scripts/anti_slop_prose_fixture_check.mjs`)
 

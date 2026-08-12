@@ -49,6 +49,7 @@ async function loadData() {
         </div>
       `;
     }).join("");
+    await loadReceiptsTelemetry();
   } catch (error) {
     console.error(error);
   }
@@ -990,6 +991,117 @@ function initChatSurface() {
         chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings Simul. Chat history cleared. How can I assist you today?");
       }
     });
+  }
+}
+
+async function loadReceiptsTelemetry() {
+  try {
+    const data = await fetchJson("/api/operator/receipts-telemetry");
+    const totalElem = document.getElementById("receipts-summary-total");
+    const latencyElem = document.getElementById("receipts-summary-latency");
+    const cycleElem = document.getElementById("latest-review-cycle-verdict");
+    const councilElem = document.getElementById("latest-council-verdict-badge");
+    const modelsElem = document.getElementById("receipts-models-breakdown");
+    const trustElem = document.getElementById("receipts-trust-zones");
+    const latencyBandsElem = document.getElementById("receipts-latency-bands");
+    const costBandsElem = document.getElementById("receipts-cost-bands");
+    const historyElem = document.getElementById("receipts-history-list");
+
+    if (totalElem) totalElem.innerText = String(data.receipt_count || 0);
+    if (latencyElem) latencyElem.innerText = `${data.summary?.avg_latency_ms || 0} ms`;
+
+    if (cycleElem) {
+      const cycleState = data.latest_review_cycle?.state_transition || "none";
+      cycleElem.innerText = escapeHtml(cycleState);
+    }
+
+    if (councilElem) {
+      const verdict = data.latest_council_verdict?.verdict || "UNKNOWN";
+      councilElem.innerText = escapeHtml(verdict);
+    }
+
+    if (modelsElem) {
+      const models = data.summary?.models || {};
+      const keys = Object.keys(models);
+      if (!keys.length) {
+        modelsElem.innerHTML = '<div style="color: var(--text-muted);">No model dispatch data available.</div>';
+      } else {
+        modelsElem.innerHTML = keys.map((m) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${escapeHtml(m)}</span>
+            <span class="badge badge-primary">${models[m]} calls</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    if (trustElem) {
+      const zones = data.summary?.trust_zones || {};
+      const keys = Object.keys(zones);
+      if (!keys.length) {
+        trustElem.innerHTML = '<div style="color: var(--text-muted);">No trust zone data available.</div>';
+      } else {
+        trustElem.innerHTML = keys.map((tz) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--amber);">${escapeHtml(tz)}</span>
+            <span class="badge badge-amber">${zones[tz]} requests</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    if (latencyBandsElem) {
+      const bands = data.summary?.latency_bands || {};
+      const keys = Object.keys(bands);
+      if (!keys.length) {
+        latencyBandsElem.innerHTML = '<div style="color: var(--text-muted);">No latency band data available.</div>';
+      } else {
+        latencyBandsElem.innerHTML = keys.map((band) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--emerald);">${escapeHtml(band)}</span>
+            <span class="badge badge-primary">${bands[band]} receipts</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    if (costBandsElem) {
+      const bands = data.summary?.cost_bands || {};
+      const keys = Object.keys(bands);
+      if (!keys.length) {
+        costBandsElem.innerHTML = '<div style="color: var(--text-muted);">No cost band data available.</div>';
+      } else {
+        costBandsElem.innerHTML = keys.map((band) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--rose);">${escapeHtml(band)}</span>
+            <span class="badge badge-amber">${bands[band]} receipts</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    if (historyElem) {
+      const receipts = data.recent_receipts || [];
+      if (!receipts.length) {
+        historyElem.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No recent receipts logged.</div>';
+      } else {
+        historyElem.innerHTML = receipts.map((r) => `
+          <div style="padding: 0.65rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; margin-bottom: 0.2rem;">
+              <span style="color: var(--cyan); font-weight: 600;">${escapeHtml(r.chosen_model || r.model || "receipt")}</span>
+              <span style="color: var(--text-muted);">${escapeHtml(r.created_at || r.timestamp || "")}</span>
+            </div>
+            <div style="display: flex; gap: 0.75rem; color: var(--text-dim); font-size: 0.775rem;">
+              <span>Zone: <strong style="color: var(--text-muted);">${escapeHtml(r.trust_zone || "private_self")}</strong></span>
+              <span>Cost Band: <strong style="color: var(--text-muted);">${escapeHtml(r.estimated_cost_band || r.cost_band || "unknown")}</strong></span>
+              <span>Latency: <strong style="color: var(--text-muted);">${r.latency_ms || 0}ms</strong></span>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
+  } catch (err) {
+    console.error("Receipts telemetry error:", err);
   }
 }
 

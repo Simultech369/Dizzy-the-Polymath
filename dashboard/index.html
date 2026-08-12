@@ -889,6 +889,7 @@
         <div class="tab" data-tab-target="tab-search">🔍 Sieve Retrieval Tester</div>
         <div class="tab" data-tab-target="tab-console">⚡ Operator Console</div>
         <div class="tab" data-tab-target="tab-governance">🛡️ Governance &amp; Routing</div>
+        <div class="tab" data-tab-target="tab-receipts">📊 Receipts &amp; Observability</div>
       </div>
 
       <!-- Tab 0: Interactive Chat Surface -->
@@ -1152,6 +1153,54 @@
                 <button class="btn btn-secondary btn-small" id="btn-run-simulation">Run Static Smoke</button>
               </div>
               <pre id="sandbox-terminal-log" style="background: #04060a; border: 1px solid rgba(69, 243, 255, 0.2); border-radius: 8px; padding: 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.825rem; color: var(--cyan); max-height: 240px; overflow-y: auto; white-space: pre-wrap; line-height: 1.45;"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: RECEIPTS & OBSERVABILITY -->
+        <div id="tab-receipts" class="tab-content">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Total Router Receipts</div>
+              <div id="receipts-summary-total" style="font-size: 1.8rem; font-weight: 700; color: var(--cyan); margin-top: 0.25rem;">0</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Avg Model Latency</div>
+              <div id="receipts-summary-latency" style="font-size: 1.8rem; font-weight: 700; color: var(--amber); margin-top: 0.25rem;">0 ms</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Latest Review Cycle</div>
+              <div id="latest-review-cycle-verdict" style="font-size: 1.1rem; font-weight: 600; color: var(--emerald); margin-top: 0.4rem;">None</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Council Audit Verdict</div>
+              <div id="latest-council-verdict-badge" style="font-size: 1.1rem; font-weight: 600; color: var(--cyan); margin-top: 0.4rem;">VERIFIED_PASSED</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <h3 class="control-heading" style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--cyan);">Model Dispatch Distribution</h3>
+              <div id="receipts-models-breakdown" style="color: var(--text-muted); font-size: 0.9rem;">No model dispatch data available.</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <h3 class="control-heading" style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--amber);">Trust Zones Enforced</h3>
+              <div id="receipts-trust-zones" style="color: var(--text-muted); font-size: 0.9rem;">No trust zone data available.</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <h3 class="control-heading" style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--emerald);">Latency Bands</h3>
+              <div id="receipts-latency-bands" style="color: var(--text-muted); font-size: 0.9rem;">No latency band data available.</div>
+            </div>
+            <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+              <h3 class="control-heading" style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--rose);">Cost Bands Observed</h3>
+              <div id="receipts-cost-bands" style="color: var(--text-muted); font-size: 0.9rem;">No cost band data available.</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+            <h3 class="control-heading" style="font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--text-main);">Recent Execution Receipts</h3>
+            <div id="receipts-history-list">
+              <div style="color: var(--text-muted); text-align: center; padding: 1rem;">No recent receipts logged.</div>
             </div>
           </div>
         </div>

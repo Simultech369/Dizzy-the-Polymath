@@ -87,6 +87,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/quarantined-bridges/reject"
     || pathname === "/api/operator/prune-continuity"
     || pathname === "/api/operator/prune-receipts"
+    || pathname === "/api/operator/receipts-telemetry"
     || pathname === "/api/operator/run-scenario-simulation";
 }
 
@@ -907,6 +908,128 @@ export async function createRuntime(opts = {}) {
       active_model: getChosenModelString("chat"),
       divisions: getAllDivisions(),
     });
+  });
+
+  app.get("/api/operator/receipts-telemetry", (req, res) => {
+    try {
+      function readJsonFileIfPresent(filePath) {
+        if (!fs.existsSync(filePath)) return null;
+        try {
+          return JSON.parse(fs.readFileSync(filePath, "utf8"));
+        } catch {
+          return null;
+        }
+      }
+
+      function latencyBand(ms) {
+        const n = Number(ms);
+        if (!Number.isFinite(n) || n <= 0) return "unknown";
+        if (n < 1000) return "under_1s";
+        if (n < 5000) return "1s_to_5s";
+        return "over_5s";
+      }
+
+      function summarizeReceipt(receipt = {}) {
+        return {
+          schema_version: receipt.schema_version || "",
+          task_id: receipt.task_id || "",
+          timestamp: receipt.timestamp || receipt.created_at || "",
+          task_class: receipt.task_class || "",
+          chosen_model: receipt.chosen_model || receipt.model || "unknown",
+          trust_zone: receipt.trust_zone || "private_self",
+          estimated_cost_band: receipt.estimated_cost_band || receipt.cost_band || "unknown",
+          latency_ms: Number.isFinite(Number(receipt.latency_ms)) ? Math.max(0, Math.round(Number(receipt.latency_ms))) : 0,
+          provider_health: receipt.provider_health || "unknown",
+          persisted: Boolean(receipt.persisted),
+        };
+      }
+
+      function summarizeReviewCycle(receipt) {
+        if (!receipt || typeof receipt !== "object") return null;
+        return {
+          run_id: receipt.run_id || "",
+          candidate_id: receipt.candidate_id || "",
+          created_at: receipt.created_at || "",
+          state_transition: receipt.reconciliation?.state_transition || receipt.state_transition || "unknown",
+          reason: receipt.reconciliation?.reason || receipt.reason || "",
+          authority: receipt.reconciliation?.authority || receipt.authority || "evidence_surfaced_not_authority",
+          review_count: Array.isArray(receipt.reviews) ? receipt.reviews.length : Number(receipt.review_count || 0),
+          harness_count: Array.isArray(receipt.harnesses) ? receipt.harnesses.length : Number(receipt.harness_count || 0),
+        };
+      }
+
+      function summarizeCouncilVerdict(receipt) {
+        if (!receipt || typeof receipt !== "object") return null;
+        return {
+          verdict: receipt.verdict || "UNKNOWN",
+          timestamp: receipt.timestamp || "",
+          syntax_status: receipt.layers?.syntax?.status || "UNKNOWN",
+          governance_status: receipt.layers?.governance?.status || "UNKNOWN",
+          execution_status: receipt.layers?.execution?.status || "UNKNOWN",
+          execution_suite_count: Array.isArray(receipt.layers?.execution?.details) ? receipt.layers.execution.details.length : 0,
+        };
+      }
+
+      const receiptsPath = path.resolve(process.cwd(), process.env.DIZZY_ROUTER_RECEIPT_PATH || "runtime/router_receipts.jsonl");
+      let recentReceipts = [];
+      if (fs.existsSync(receiptsPath)) {
+        const lines = fs.readFileSync(receiptsPath, "utf8").split(/\r?\n/).filter(Boolean).slice(-50);
+        for (const line of lines) {
+          try {
+            recentReceipts.push(summarizeReceipt(JSON.parse(line)));
+          } catch {
+            // ignore malformed lines
+          }
+        }
+      }
+
+      const reviewCyclePath = path.resolve(process.cwd(), "reviews/review_cycle_latest.json");
+      const latestReviewCycle = summarizeReviewCycle(readJsonFileIfPresent(reviewCyclePath));
+
+      const councilVerdictPath = path.resolve(process.cwd(), "reviews/oss_council_verdict_latest.json");
+      const latestCouncilVerdict = summarizeCouncilVerdict(readJsonFileIfPresent(councilVerdictPath));
+
+      const modelsSummary = {};
+      const trustZonesSummary = {};
+      const costBandsSummary = {};
+      const latencyBandsSummary = {};
+      let totalLatencyMs = 0;
+      let latencyCount = 0;
+
+      for (const r of recentReceipts) {
+        const m = r.chosen_model || "unknown";
+        modelsSummary[m] = (modelsSummary[m] || 0) + 1;
+        const tz = r.trust_zone || "private_self";
+        trustZonesSummary[tz] = (trustZonesSummary[tz] || 0) + 1;
+        const costBand = r.estimated_cost_band || "unknown";
+        costBandsSummary[costBand] = (costBandsSummary[costBand] || 0) + 1;
+        const band = latencyBand(r.latency_ms);
+        latencyBandsSummary[band] = (latencyBandsSummary[band] || 0) + 1;
+        if (typeof r.latency_ms === "number" && r.latency_ms > 0) {
+          totalLatencyMs += r.latency_ms;
+          latencyCount++;
+        }
+      }
+
+      res.setHeader("Cache-Control", "no-store");
+      res.json({
+        ok: true,
+        receipt_count: recentReceipts.length,
+        summary: {
+          models: modelsSummary,
+          trust_zones: trustZonesSummary,
+          cost_bands: costBandsSummary,
+          latency_bands: latencyBandsSummary,
+          avg_latency_ms: latencyCount > 0 ? Math.round(totalLatencyMs / latencyCount) : 0,
+        },
+        recent_receipts: recentReceipts.slice(-10).reverse(),
+        latest_review_cycle: latestReviewCycle,
+        latest_council_verdict: latestCouncilVerdict,
+        authority: "evidence_surfaced_not_authority",
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: "receipts_telemetry_unavailable" });
+    }
   });
 
   // GET /agent/portfolio
