@@ -1,0 +1,70 @@
+{
+  "failure_scenarios": [
+    {
+      "id": "scenario_provider_timeout",
+      "failure_class": "provider",
+      "trigger": "HTTP request timeout after 30000ms",
+      "expected_classification": "provider",
+      "expected_status": "timeout",
+      "allowed_fallback": false,
+      "private_zone_leak": false
+    },
+    {
+      "id": "scenario_malformed_json",
+      "failure_class": "validation",
+      "raw_output": "{\"model\": \"gemma3:4b\", \"content\": {broken-json}",
+      "expected_classification": "validation",
+      "expected_status": "malformed",
+      "fail_closed": true
+    },
+    {
+      "id": "scenario_empty_reasoning",
+      "failure_class": "provider",
+      "raw_output": "",
+      "expected_classification": "provider",
+      "expected_status": "empty_output",
+      "quarantine": true
+    },
+    {
+      "id": "scenario_rate_limit_429",
+      "failure_class": "ingress",
+      "http_code": 429,
+      "expected_classification": "ingress",
+      "expected_status": "rate_limited",
+      "degrade_path": true
+    },
+    {
+      "id": "scenario_backend_dropout",
+      "failure_class": "provider",
+      "error": "connect ECONNREFUSED 127.0.0.1:11434",
+      "expected_classification": "provider",
+      "expected_status": "local_backend_unreachable",
+      "no_remote_fallback_in_private_zone": true
+    },
+    {
+      "id": "scenario_context_exhaustion",
+      "failure_class": "validation",
+      "prompt_tokens": 128000,
+      "max_context": 32768,
+      "expected_classification": "validation",
+      "expected_status": "context_window_exhausted",
+      "bounded_truncation": true
+    },
+    {
+      "id": "scenario_receipt_write_failure",
+      "failure_class": "persistence",
+      "error": "EACCES: permission denied, write 'runtime/router_receipts.jsonl'",
+      "expected_classification": "persistence",
+      "expected_status": "write_failed",
+      "prevent_false_verified_state": true
+    },
+    {
+      "id": "scenario_route_misuse",
+      "failure_class": "auth",
+      "http_code": 401,
+      "pathname": "/api/operator/receipts-telemetry",
+      "expected_classification": "auth",
+      "expected_status": "unauthorized"
+    }
+  ]
+}
