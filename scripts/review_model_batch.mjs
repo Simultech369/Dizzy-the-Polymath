@@ -13,12 +13,22 @@ const DEFAULT_REVIEW_CANDIDATE_EXCLUDE_PATTERNS = [
   /^reviews\/[^/]+_latest\.json$/i,
   /^(?:runtime|memory|artifacts|\.review-harness)\//i,
 ];
+const DEFAULT_GROQ_FAST_MODEL = "llama-3.1-8b-instant";
 
 function readJson(filePath, fallback = {}) {
   try {
     return JSON.parse(fs.readFileSync(path.resolve(process.cwd(), filePath), "utf8"));
   } catch {
     return fallback;
+  }
+}
+
+function readTextIfExists(filePath = "") {
+  if (!filePath) return "";
+  try {
+    return fs.readFileSync(path.resolve(process.cwd(), filePath), "utf8").trim();
+  } catch {
+    return "";
   }
 }
 
@@ -66,6 +76,23 @@ export function splitReviewCandidateFiles(files = [], { includeGeneratedEvidence
   };
 }
 
+export function applyReviewerModelRotation(plan = {}, models = []) {
+  const providerModels = (Array.isArray(models) ? models : String(models || "").split(","))
+    .map((model) => String(model || "").trim())
+    .filter(Boolean);
+  if (!providerModels.length) return plan;
+  const assignments = Array.isArray(plan.reviewer_assignments) ? plan.reviewer_assignments : [];
+  return {
+    ...plan,
+    reviewer_assignments: assignments.map((reviewer, index) => ({
+      ...reviewer,
+      original_primary_model: reviewer.primary_model || "",
+      primary_model: providerModels[index % providerModels.length],
+      provider_model_override: true,
+    })),
+  };
+}
+
 function changedFilesFromGit(base, head) {
   return git(["diff", "--name-only", `${base}..${head}`]).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
@@ -108,28 +135,40 @@ export function diffText({ base, head, changedFiles, useWorktree, maxDiffChars }
 export async function main(argv = process.argv.slice(2)) {
   const args = argv;
   const localFast = hasArg(args, "--local-fast");
+  const groqFast = hasArg(args, "--groq-fast");
+  const compactFast = localFast || groqFast;
   const base = argValue(args, "--base", "HEAD~1");
   const head = argValue(args, "--head", "HEAD");
-  const maxReviewers = Number(argValue(args, "--max-reviewers", localFast ? "4" : "8")) || (localFast ? 4 : 8);
+  const maxReviewers = Number(argValue(args, "--max-reviewers", compactFast ? "4" : "8")) || (compactFast ? 4 : 8);
   const maxHarnesses = Number(argValue(args, "--max-harnesses", "6")) || 6;
-  const maxDiffChars = Number(argValue(args, "--max-diff-chars", localFast ? "1000" : "12000")) || (localFast ? 1000 : 12000);
-  const timeoutMs = Number(argValue(args, "--timeout-ms", localFast ? "220000" : "60000")) || (localFast ? 220000 : 60000);
-  const maxTokens = Number(argValue(args, "--max-tokens", localFast ? "320" : "900")) || (localFast ? 320 : 900);
-  const maxFindings = Number(argValue(args, "--max-findings", localFast ? "2" : "0")) || 0;
+  const maxDiffChars = Number(argValue(args, "--max-diff-chars", compactFast ? "1000" : "12000")) || (compactFast ? 1000 : 12000);
+  const timeoutMs = Number(argValue(args, "--timeout-ms", localFast ? "220000" : groqFast ? "60000" : "60000")) || (localFast ? 220000 : 60000);
+  const maxTokens = Number(argValue(args, "--max-tokens", compactFast ? "320" : "900")) || (compactFast ? 320 : 900);
+  const maxFindings = Number(argValue(args, "--max-findings", compactFast ? "2" : "0")) || 0;
   const candidateId = argValue(args, "--candidate-id", "");
   const changedArg = argValue(args, "--changed", "");
   const historyPath = argValue(args, "--history", "reviews/review_cycle_history.json");
   const outPath = argValue(args, "--out", "reviews/model_review_batch_latest.json");
   const partialOutPath = argValue(args, "--partial-out", outPath);
   const resumeFrom = argValue(args, "--resume-from", "");
-  const reviewProfile = argValue(args, "--review-profile", localFast ? "local_fast" : "standard");
-  const trustZone = argValue(args, "--trust-zone", "private_self");
+  const reviewProfile = argValue(args, "--review-profile", localFast ? "local_fast" : groqFast ? "groq_fast" : "standard");
+  const trustZone = argValue(args, "--trust-zone", groqFast ? "trusted_collaborator" : "private_self");
+  const cloudProvider = argValue(args, "--provider", groqFast ? "groq" : "");
+  const cloudBaseUrl = argValue(args, "--base-url", "");
+  const apiKeyFile = argValue(args, "--api-key-file", groqFast ? "runtime/secrets/GROQ_API_KEY.txt" : "");
+  const cloudApiKey = readTextIfExists(apiKeyFile);
+  const allowProviderEnv = !groqFast;
+  const apiKeySource = cloudApiKey ? "file" : "";
+  const providerModels = argValue(args, "--provider-models", groqFast ? DEFAULT_GROQ_FAST_MODEL : "")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
   const useWorktree = args.includes("--worktree");
   const executeModels = args.includes("--execute");
-  const allowCloud = args.includes("--allow-cloud");
+  const allowCloud = args.includes("--allow-cloud") || groqFast;
   const noWrite = args.includes("--no-write");
-  const preferLocalFallbacks = args.includes("--prefer-local-fallbacks") || localFast;
-  const progress = args.includes("--progress") || localFast;
+  const preferLocalFallbacks = args.includes("--prefer-local-fallbacks") || (localFast && !groqFast);
+  const progress = args.includes("--progress") || compactFast;
   const includeGeneratedEvidence = args.includes("--include-generated-evidence");
 
   const rawChangedFiles = changedArg
@@ -143,14 +182,14 @@ export async function main(argv = process.argv.slice(2)) {
   const history = loadReviewCycleHistory(historyPath);
   const resumeBatch = resumeFrom ? readJson(resumeFrom, {}) : {};
   const resumeReviews = Array.isArray(resumeBatch.reviews) ? resumeBatch.reviews : [];
-  const plan = buildReviewCyclePlan({
+  const plan = applyReviewerModelRotation(buildReviewCyclePlan({
     changedFiles,
     packageJson,
     history,
     maxReviewers,
     maxHarnesses,
     candidateId,
-  });
+  }), providerModels);
   const diff = diffText({ base, head, changedFiles, useWorktree, maxDiffChars });
   const batch = await runModelReviewBatch({
     plan,
@@ -161,6 +200,10 @@ export async function main(argv = process.argv.slice(2)) {
     timeoutMs,
     maxTokens,
     preferLocalFallbacks,
+    cloudProvider,
+    cloudBaseUrl,
+    cloudApiKey,
+    allowProviderEnv,
     reviewProfile,
     maxFindings,
     partialOutPath: noWrite ? "" : partialOutPath,
@@ -186,6 +229,10 @@ export async function main(argv = process.argv.slice(2)) {
     execute_models: batch.execute_models,
     allow_cloud: batch.allow_cloud,
     prefer_local_fallbacks: batch.prefer_local_fallbacks,
+    trust_zone: trustZone,
+    cloud_provider: cloudProvider,
+    provider_models: providerModels,
+    api_key_source: apiKeySource,
     review_profile: batch.review_profile,
     completion_status: batch.completion_status,
     expected_reviews: batch.expected_reviews,

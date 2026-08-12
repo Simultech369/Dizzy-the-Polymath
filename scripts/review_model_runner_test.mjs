@@ -17,6 +17,7 @@ import {
   reconcileReviewBatch,
 } from "../lib/review_cycle_orchestrator.mjs";
 import {
+  applyReviewerModelRotation,
   diffText,
   isDefaultReviewCandidateExcluded,
   splitReviewCandidateFiles,
@@ -52,6 +53,7 @@ assert.equal(isLocalOllamaModelName("moonshotai/kimi-k2.7-code:batch"), false);
 assert.equal(getModelExecutionProfile("deepseek-r1:7b").review_usable, false);
 assert.equal(isReviewUsableLocalOllamaModelName("deepseek-r1:7b"), false);
 assert.equal(isReviewUsableLocalOllamaModelName("gemma3:4b"), true);
+assert.equal(getModelExecutionProfile("llama-3.1-8b-instant").json_reliability, "high");
 assert.equal(isDefaultReviewCandidateExcluded("reviews/retrieval_eval_latest.json"), true);
 assert.equal(isDefaultReviewCandidateExcluded("reviews/gemma4_review.md"), false);
 assert.deepEqual(splitReviewCandidateFiles([
@@ -67,6 +69,11 @@ assert.deepEqual(splitReviewCandidateFiles([
   "reviews/retrieval_eval_latest.json",
 ]);
 assert.equal(diffText({ changedFiles: [], useWorktree: true }), "");
+const rotatedPlan = applyReviewerModelRotation(plan, ["llama-3.1-8b-instant", "qwen/qwen3.6-27b"]);
+assert.equal(rotatedPlan.reviewer_assignments[0].primary_model, "llama-3.1-8b-instant");
+assert.equal(rotatedPlan.reviewer_assignments[1].primary_model, "qwen/qwen3.6-27b");
+assert.equal(rotatedPlan.reviewer_assignments[2].primary_model, "llama-3.1-8b-instant");
+assert.equal(rotatedPlan.reviewer_assignments[0].provider_model_override, true);
 
 const r1Target = resolveReviewerExecutionTarget(
   { role_key: "chain_of_thought_critic", primary_model: "deepseek-r1", lens: "reasoning" },
@@ -94,6 +101,18 @@ const localFastPacket = buildModelReviewPackets(plan, {
 assert.equal(localFastPacket.review_profile, "local_fast");
 assert.match(localFastPacket.system_prompt, /Local-fast profile/);
 assert.match(localFastPacket.system_prompt, /at most 2 total findings/);
+const groqFastPacket = buildModelReviewPackets(rotatedPlan, {
+  diffText: "diff",
+  allowCloud: true,
+  trustZone: "trusted_collaborator",
+  cloudProvider: "groq",
+  cloudApiKey: "test-key",
+  allowProviderEnv: false,
+  reviewProfile: "groq_fast",
+  maxFindings: 2,
+}).find((packet) => packet.reviewer.role_key === "systems_architect");
+assert.equal(groqFastPacket.review_profile, "groq_fast");
+assert.match(groqFastPacket.system_prompt, /Groq-fast profile/);
 
 const parsed = parseReviewerResponseText(`\`\`\`json
 {
@@ -150,6 +169,49 @@ const localFastExecuted = await executeReviewerModelReview({
   },
 });
 assert.equal(localFastExecuted.status, "submitted");
+
+const groqTarget = resolveReviewerExecutionTarget(
+  { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "fast cloud sanity" },
+  { allowCloud: true, trustZone: "trusted_collaborator", cloudProvider: "groq", cloudApiKey: "test-key" },
+);
+assert.equal(groqTarget.executable, true);
+assert.equal(groqTarget.baseUrl, "https://api.groq.com/openai/v1");
+assert.equal(groqTarget.model, "llama-3.1-8b-instant");
+assert.equal(groqTarget.selected_reason, "groq_cloud_provider");
+assert.equal(groqTarget.model_profile.expected_latency_band, "groq_fast");
+
+const groqMissingKeyTarget = resolveReviewerExecutionTarget(
+  { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "fast cloud sanity" },
+  { allowCloud: true, trustZone: "trusted_collaborator", cloudProvider: "groq", allowProviderEnv: false },
+);
+assert.equal(groqMissingKeyTarget.executable, false);
+assert.equal(groqMissingKeyTarget.skipped_reason, "openai_compat_api_key_missing");
+
+const groqQwenTarget = resolveReviewerExecutionTarget(
+  { role_key: "qwen_local", primary_model: "qwen/qwen3.6-27b", lens: "provider slug preservation" },
+  { allowCloud: true, trustZone: "trusted_collaborator", cloudProvider: "groq", cloudApiKey: "test-key" },
+);
+assert.equal(groqQwenTarget.model, "qwen/qwen3.6-27b");
+
+const groqExecuted = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "fast cloud sanity" },
+  diffText: "diff",
+  allowCloud: true,
+  trustZone: "trusted_collaborator",
+  cloudProvider: "groq",
+  cloudApiKey: "test-key",
+  reviewProfile: "groq_fast",
+  generateText: async ({ baseUrl, apiKey, model, responseFormat, isLocalIsolationRequired }) => {
+    assert.equal(baseUrl, "https://api.groq.com/openai/v1");
+    assert.equal(apiKey, "test-key");
+    assert.equal(model, "llama-3.1-8b-instant");
+    assert.deepEqual(responseFormat, { type: "json_object" });
+    assert.equal(isLocalIsolationRequired, false);
+    return JSON.stringify({ summary: "Groq lane honored.", findings: [], disagreements: [] });
+  },
+});
+assert.equal(groqExecuted.status, "submitted");
 
 const parseFailed = await executeReviewerModelReview({
   plan,

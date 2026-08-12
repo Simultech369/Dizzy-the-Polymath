@@ -110,6 +110,13 @@ assert.strictEqual(
 );
 assert.strictEqual(
   normalizeOpenAICompatModelForBaseUrl({
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: "qwen/qwen3.6-27b",
+  }),
+  "qwen/qwen3.6-27b",
+);
+assert.strictEqual(
+  normalizeOpenAICompatModelForBaseUrl({
     baseUrl: "http://127.0.0.1:11434/v1",
     model: "openrouter/auto",
     localFallbackModel: "gemma3:4b",
