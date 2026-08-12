@@ -11,7 +11,9 @@ import {
   parseReviewerResponseText,
   resolveReviewerExecutionTarget,
   runModelReviewBatch,
+  stripReasoningContent,
 } from "../lib/review_model_runner.mjs";
+import { openaiCompatGenerateText } from "../lib/openai_compat_client.mjs";
 import {
   buildReviewCyclePlan,
   reconcileReviewBatch,
@@ -50,8 +52,50 @@ assert.equal(isLocalOllamaModelName("gemma3:4b"), true);
 assert.equal(isLocalOllamaModelName("llama-audit:latest"), true);
 assert.equal(isLocalOllamaModelName("nvidia/nemotron-3-super-120b-a12b:free"), false);
 assert.equal(isLocalOllamaModelName("moonshotai/kimi-k2.7-code:batch"), false);
-assert.equal(getModelExecutionProfile("deepseek-r1:7b").review_usable, false);
-assert.equal(isReviewUsableLocalOllamaModelName("deepseek-r1:7b"), false);
+assert.equal(getModelExecutionProfile("deepseek-r1:7b").review_usable, true);
+assert.equal(isReviewUsableLocalOllamaModelName("deepseek-r1:7b"), true);
+
+// Reasoning tag stripping tests (DeepSeek R1 adapter)
+assert.equal(stripReasoningContent("<think>Step 1... Step 2...</think>\nHello world"), "Hello world");
+assert.equal(stripReasoningContent("<think>Unclosed thinking block..."), "");
+const r1Parsed = parseReviewerResponseText("<think>Analyzing diff...\nThinking done.</think>\n```json\n{\"summary\":\"R1 reasoning passed\",\"findings\":[]}\n```");
+assert.equal(r1Parsed.summary, "R1 reasoning passed");
+assert.equal(r1Parsed.status, "submitted");
+const r1RawJsonParsed = parseReviewerResponseText("<think>Reason privately.</think>\n{\"summary\":\"R1 raw JSON passed\",\"findings\":[]}");
+assert.equal(r1RawJsonParsed.summary, "R1 raw JSON passed");
+assert.throws(
+  () => parseReviewerResponseText("<think>Unclosed reasoning with {\"summary\":\"not final\",\"findings\":[]}"),
+  /empty model review response/,
+);
+
+const originalFetchForR1Adapter = globalThis.fetch;
+try {
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: "", reasoning_content: "{\"summary\":\"Reasoning content fallback\",\"findings\":[]}" } }],
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  const reasoningFallbackText = await openaiCompatGenerateText({
+    baseUrl: "http://127.0.0.1:11434/v1",
+    model: "deepseek-r1:7b",
+    messages: [{ role: "user", content: "return final json" }],
+    timeoutMs: 1000,
+    maxTokens: 80,
+  });
+  assert.equal(reasoningFallbackText, "{\"summary\":\"Reasoning content fallback\",\"findings\":[]}");
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: [{ text: "Array " }, { text: "content" }], reasoning_content: "ignored" } }],
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  const arrayContentText = await openaiCompatGenerateText({
+    baseUrl: "http://127.0.0.1:11434/v1",
+    model: "gemma3:4b",
+    messages: [{ role: "user", content: "return content array" }],
+    timeoutMs: 1000,
+    maxTokens: 80,
+  });
+  assert.equal(arrayContentText, "Array content");
+} finally {
+  globalThis.fetch = originalFetchForR1Adapter;
+}
 assert.equal(isReviewUsableLocalOllamaModelName("gemma3:4b"), true);
 assert.equal(getModelExecutionProfile("llama-3.1-8b-instant").json_reliability, "high");
 assert.equal(isDefaultReviewCandidateExcluded("reviews/retrieval_eval_latest.json"), true);
@@ -79,8 +123,9 @@ const r1Target = resolveReviewerExecutionTarget(
   { role_key: "chain_of_thought_critic", primary_model: "deepseek-r1", lens: "reasoning" },
   { preferLocalFallbacks: true },
 );
-assert.equal(r1Target.executable, false);
-assert.equal(r1Target.skipped_reason, "cloud_review_blocked_without_allow_cloud");
+assert.equal(r1Target.executable, true);
+assert.equal(r1Target.model, "deepseek-r1:7b");
+assert.equal(r1Target.selected_reason, "local_free_fallback");
 
 const localFallbackPacket = buildModelReviewPackets(plan, {
   diffText: "diff",
