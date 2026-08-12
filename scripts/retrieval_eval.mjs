@@ -95,10 +95,23 @@ const GOLDEN_DATASET = [
   },
 ];
 
-export function runRetrievalEval() {
-  console.log("==================================================");
-  console.log("   W-0065b: Golden Retrieval Evaluation Harness   ");
-  console.log("==================================================\n");
+function parseNumberArg(args, name, fallback) {
+  const prefix = `${name}=`;
+  const direct = args.find((arg) => arg.startsWith(prefix));
+  const value = direct ? direct.slice(prefix.length) : "";
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export function runRetrievalEval({
+  writeReceipt = true,
+  minHitRateTop3 = 75.0,
+  minMrr = 0.60,
+  logger = console,
+} = {}) {
+  logger.log("==================================================");
+  logger.log("   W-0065b: Golden Retrieval Evaluation Harness   ");
+  logger.log("==================================================\n");
 
   let hitCountTop1 = 0;
   let hitCountTop3 = 0;
@@ -136,7 +149,7 @@ export function runRetrievalEval() {
     });
 
     const statusSymbol = hitTop3 ? "\x1b[32m[PASS]\x1b[0m" : "\x1b[31m[MISS]\x1b[0m";
-    console.log(`${statusSymbol} Q: "${item.query}" -> First hit rank: ${firstHitRank ? `#${firstHitRank}` : "NONE"}`);
+    logger.log(`${statusSymbol} Q: "${item.query}" -> First hit rank: ${firstHitRank ? `#${firstHitRank}` : "NONE"}`);
   }
 
   const total = GOLDEN_DATASET.length;
@@ -144,11 +157,11 @@ export function runRetrievalEval() {
   const hitRateTop3 = (hitCountTop3 / total) * 100;
   const mrr = reciprocalRankSum / total;
 
-  console.log("\n--------------------------------------------------");
-  console.log(` Hit Rate @ 1 : ${hitRateTop1.toFixed(1)}% (${hitCountTop1}/${total})`);
-  console.log(` Hit Rate @ 3 : ${hitRateTop3.toFixed(1)}% (${hitCountTop3}/${total})`);
-  console.log(` Mean Reciprocal Rank (MRR) : ${mrr.toFixed(3)}`);
-  console.log("--------------------------------------------------\n");
+  logger.log("\n--------------------------------------------------");
+  logger.log(` Hit Rate @ 1 : ${hitRateTop1.toFixed(1)}% (${hitCountTop1}/${total})`);
+  logger.log(` Hit Rate @ 3 : ${hitRateTop3.toFixed(1)}% (${hitCountTop3}/${total})`);
+  logger.log(` Mean Reciprocal Rank (MRR) : ${mrr.toFixed(3)}`);
+  logger.log("--------------------------------------------------\n");
 
   const receipt = {
     schema: "dizzy.retrieval_eval_receipt.v1",
@@ -162,23 +175,41 @@ export function runRetrievalEval() {
     evalDetails,
   };
 
-  const reviewsDir = path.join(ROOT_DIR, "reviews");
-  if (!fs.existsSync(reviewsDir)) {
-    fs.mkdirSync(reviewsDir, { recursive: true });
+  let receiptPath = "";
+  if (writeReceipt) {
+    const reviewsDir = path.join(ROOT_DIR, "reviews");
+    if (!fs.existsSync(reviewsDir)) {
+      fs.mkdirSync(reviewsDir, { recursive: true });
+    }
+    receiptPath = path.join(reviewsDir, "retrieval_eval_latest.json");
+    fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2), "utf8");
+    logger.log(`Saved evaluation receipt to: ${receiptPath}`);
   }
-  const receiptPath = path.join(reviewsDir, "retrieval_eval_latest.json");
-  fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2), "utf8");
-  console.log(`Saved evaluation receipt to: ${receiptPath}`);
 
-  // Assert minimum quality threshold: Hit Rate @ 3 >= 75%, MRR >= 0.60
-  if (hitRateTop3 < 75.0 || mrr < 0.60) {
-    console.error(`\x1b[31m[FAIL] Retrieval quality below threshold (HitRate@3 >= 75%, MRR >= 0.60 required)\x1b[0m`);
-    process.exit(1);
+  const ok = hitRateTop3 >= minHitRateTop3 && mrr >= minMrr;
+  if (!ok) {
+    logger.error(`\x1b[31m[FAIL] Retrieval quality below threshold (HitRate@3 >= ${minHitRateTop3}%, MRR >= ${minMrr.toFixed(2)} required)\x1b[0m`);
   } else {
-    console.log(`\x1b[32m[SUCCESS] Retrieval evaluation passed quality threshold!\x1b[0m\n`);
+    logger.log(`\x1b[32m[SUCCESS] Retrieval evaluation passed quality threshold!\x1b[0m\n`);
   }
+
+  return {
+    ok,
+    receipt,
+    receiptPath,
+    thresholds: {
+      hit_rate_top_3_pct: minHitRateTop3,
+      mrr: minMrr,
+    },
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith("retrieval_eval.mjs")) {
-  runRetrievalEval();
+  const args = process.argv.slice(2);
+  const result = runRetrievalEval({
+    writeReceipt: !args.includes("--no-write"),
+    minHitRateTop3: parseNumberArg(args, "--min-hit-rate-top-3", 75.0),
+    minMrr: parseNumberArg(args, "--min-mrr", 0.60),
+  });
+  process.exit(result.ok ? 0 : 1);
 }

@@ -30,5 +30,8 @@ jobs:
       - name: Run Maintenance Suite
         run: npm run maintain
 
+      - name: Run Eval Gate Promotion Policy
+        run: npm run check:eval-gate
+
       - name: Run OSS Council 3-Layer Audit
         run: npm run check:council

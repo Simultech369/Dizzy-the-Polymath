@@ -370,7 +370,10 @@ function workQueueStatus() {
   if (!fs.existsSync(nextPath)) return { open: 0, tier1: 0, next: "" };
   const text = fs.readFileSync(nextPath, "utf8");
   const workSection = text.split("## Work Queue")[1]?.split("## Completed")[0] || "";
-  const work = workSection.split(/\r?\n/).filter((line) => /^- W-\d+/.test(line));
+  const work = workSection.split(/\r?\n/).filter((line) => {
+    const trimmed = line.trim();
+    return /^-\s+(?:\*\*)?W-\d+/.test(trimmed) || /^\d+\.\s+\*\*W-\d+/.test(trimmed);
+  });
   const tier1 = work.filter((line) => /\[Tier 1\]/.test(line)).length;
   return { open: work.length, tier1, next: work[0] || "" };
 }
