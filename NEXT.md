@@ -16,14 +16,15 @@ Rules:
 
 ## Work Queue
 
-1. **W-0075: Rehearsal Gate & Focused Outcome Memory**: Add a bounded pre-execution proposal gate (`lib/rehearsal_gate.mjs`) that compares candidate implementation plans against focused prior outcomes from review history, RCA, eval gates, and harness failures before recommending one path. (Verification: `npm run test:rehearsal-gate`)
-2. **W-0072: Request Trace Receipt Chain**: Add `dizzy.trace_chain.v1` in `lib/trace_chain.mjs` to link request, router decision, model call, fallback, receipt, and eval outcome without storing private prompt/output text. (Verification: `npm run test:trace-chain`)
-3. **W-0073: Local Chaos & Provider Failure Harness**: Add `scripts/local_chaos_harness_test.mjs` to simulate provider timeouts, malformed JSON, empty reasoning output, local backend dropouts, 429s, and context-window exhaustion with bounded offline fixtures. (Verification: `npm run test:local-chaos`)
+1. **W-0072: Request Trace Receipt Chain**: Add `dizzy.trace_chain.v1` in `lib/trace_chain.mjs` to link request, router decision, model call, fallback, receipt, and eval outcome without storing private prompt/output text. (Verification: `npm run test:trace-chain`)
+2. **W-0073: Local Chaos & Provider Failure Harness**: Add `scripts/local_chaos_harness_test.mjs` to simulate provider timeouts, malformed JSON, empty reasoning output, local backend dropouts, 429s, and context-window exhaustion with bounded offline fixtures. (Verification: `npm run test:local-chaos`)
+3. **W-0076: Context Hygiene Audit & Instruction Pruning**: Audit always-loaded prompt sources (`.agents/AGENTS.md`, `PROMPT_CORE.md`), separate rules into standing brief, indexed docs, callable skills, and script-enforced gates. (Verification: `node scripts/prompt_drift_check.mjs`)
 
 ---
 
 ## Completed
 
+- W-0075: Implemented Rehearsal Gate & Focused Outcome Memory (`lib/rehearsal_gate.mjs`), ranking candidate implementation plans against outcome memory while enforcing authority boundary (`automation_recommends_simul_approves`). (Verification: `npm run test:rehearsal-gate`; `npm run check:council`)
 - W-0071: Added AI Reliability Incident Runbooks & Diagnostic Tool (`scripts/ai_sre_diagnose.mjs`, `docs/runbooks/ai_sre_incident_response.md`) with the nine-class failure taxonomy: ingress, auth, validation, routing, provider, persistence, retrieval, review-loop, and operator-gate. (Verification: `npm run test:ai-sre-diagnose`; `npm run check:council`)
 - W-0074: Implemented Eval Gate Promotion Policy (`scripts/eval_gate_policy_check.mjs`), enforcing golden retrieval floor (>= 85.0%), review loop safety floor, dashboard safety compliance, and generated receipt exclusion checks. (Verification: `npm run check:eval-gate`; `npm run check:council`)
 - W-0069: Implemented Deterministic CI Gate (`.github/workflows/ci.yml`), running Node 20.18.1 offline verification (`npm ci`, static checks, `npm test`, `npm run maintain`, `npm run check:council`). (Verification: GitHub Actions clean run)
