@@ -12,6 +12,7 @@
                     "check:active-policy":  "node ./scripts/check_active_policy_state.mjs",
                     "check:memory":  "node ./scripts/memory_validate.mjs",
                     "check:prompt":  "node ./scripts/prompt_drift_check.mjs",
+                    "check:context-hygiene": "node ./scripts/context_hygiene_audit.mjs",
                     "check:production":  "node ./scripts/production_readiness_check.mjs",
                     "check:dependencies":  "node ./scripts/dependency_api_drift_check.mjs",
                     "check:next":  "node ./scripts/next_consistency_check.mjs",

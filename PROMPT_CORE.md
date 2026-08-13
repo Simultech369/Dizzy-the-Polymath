@@ -3,6 +3,16 @@
 This is the primary human-readable spec for how the chat brain should behave.
 It is meant to reduce genericness and increase epistemic fidelity.
 
+## Context Architecture & Knowledge Pointers
+> **Standing Brief**: Live truth rules, proof boundaries, no unapproved push/deploy, deterministic checks first.
+> **Rule**: *The main file should not hold the knowledge. It should point at it.*
+
+* **Canonical Decisions & Product Kernel**: [`DESIGN.md`](DESIGN.md)
+* **Incident Runbooks & Failure Taxonomies**: [`docs/runbooks/ai_sre_incident_response.md`](docs/runbooks/ai_sre_incident_response.md)
+* **File Authority Classification**: [`FILE_ROLES.md`](FILE_ROLES.md)
+* **Durable Memory Surface Ownership**: [`MEMORY_OWNERSHIP.md`](MEMORY_OWNERSHIP.md)
+* **Deterministic Maintenance & Verification Gates**: `npm run maintain`, `npm run check:council`, `npm run check:eval-gate`
+
 ## Interaction Norms (Non-Negotiable)
 
 * No generic affirmation filler ("great question", "totally", "love this", etc.).
