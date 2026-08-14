@@ -16,12 +16,14 @@ Rules:
 
 ## Work Queue
 
-1. **W-0076: Context Hygiene Audit & Instruction Pruning**: Audit always-loaded prompt sources (`.agents/AGENTS.md`, `PROMPT_CORE.md`), separate rules into standing brief, indexed docs, callable skills, and script-enforced gates. (Verification: `node scripts/prompt_drift_check.mjs`)
+(none)
 
 ---
 
 ## Completed
 
+- W-0080: Added Self-Monitoring Signal Calibration Harness (`lib/self_monitoring_calibration.mjs`) with `dizzy.self_monitoring_calibration.v1`, telemetry-only TP/FP/FN/TN/Unknown classification, narrow model/claim/failure/task scope isolation, no subjective-awareness ontology, and zero recommendation authority. (Verification: `npm run test:self-monitoring`; `npm run check:council`)
+- W-0076: Added Context Hygiene Audit & Instruction Pruning (`scripts/context_hygiene_audit.mjs`) to classify always-loaded prompt guidance across standing brief, workflow skill, memory reference, and deterministic gate layers. (Verification: `npm run check:context-hygiene`; `npm run check:council`)
 - W-0073: Added Local Chaos & Provider Failure Harness (`scripts/local_chaos_harness_test.mjs`, `scripts/fixtures/local_chaos_fixtures.json`) with offline failure fixtures for provider timeout, malformed JSON, empty reasoning, local backend dropout, 429s, context exhaustion, receipt write failure, and route misuse. Emits in-memory chaos evidence receipts only. (Verification: `npm run test:local-chaos`; `npm run check:council`)
 - W-0072: Added Request Trace Receipt Chain (`lib/trace_chain.mjs`) with `dizzy.trace_chain.v1`, nine-stage diagnostic lifecycle metadata, query-string stripping, full-URL route sanitization, SHA-256 `chain_hash`, and prompt/output body leak assertions. (Verification: `npm run test:trace-chain`; `npm run check:council`)
 - W-0075: Implemented Rehearsal Gate & Focused Outcome Memory (`lib/rehearsal_gate.mjs`), ranking candidate implementation plans against outcome memory while enforcing authority boundary (`automation_recommends_simul_approves`). (Verification: `npm run test:rehearsal-gate`; `npm run check:council`)

@@ -40,6 +40,7 @@
                     "test:rehearsal-gate": "node --disable-warning=ExperimentalWarning ./scripts/rehearsal_gate_test.mjs",
                     "test:trace-chain": "node --disable-warning=ExperimentalWarning ./scripts/trace_chain_test.mjs",
                     "test:local-chaos": "node --disable-warning=ExperimentalWarning ./scripts/local_chaos_harness_test.mjs",
+                    "test:self-monitoring": "node ./scripts/self_monitoring_calibration_test.mjs",
                     "test:eval-gate": "node --disable-warning=ExperimentalWarning ./scripts/eval_gate_policy_check_test.mjs",
                     "test:provider-matrix": "node ./scripts/provider_capability_matrix_test.mjs",
                     "review:plan": "node ./scripts/review_cycle_plan.mjs",
