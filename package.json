@@ -4,6 +4,7 @@
     "description":  "Local-first continuity-and-judgment runtime for Dizzy",
     "main":  "index.js",
     "scripts":  {
+                    "start": "node agent_server.mjs",
                     "test":  "node --disable-warning=ExperimentalWarning ./scripts/safety_checks.mjs && node --disable-warning=ExperimentalWarning ./scripts/fuzzing_and_injection_tests.mjs",
                     "smoke":  "node ./smoke_test.mjs",
                     "check:safety":  "node --disable-warning=ExperimentalWarning ./scripts/safety_checks.mjs",

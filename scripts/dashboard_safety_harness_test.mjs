@@ -81,6 +81,13 @@ assert.equal(attrIssues($).length, 0, `Unsafe dashboard attributes: ${attrIssues
 const tabTargets = $("[data-tab-target]").map((_, el) => $(el).attr("data-tab-target")).get();
 for (const target of tabTargets) {
   assert.equal(htmlIds.has(target), true, `Tab target is missing content panel: ${target}`);
+  const targetEl = $(`#${target}`);
+  assert.equal(targetEl.hasClass("tab-content"), true, `Tab target panel must have class 'tab-content': ${target}`);
+  assert.equal(
+    targetEl.parents(".tab-content").length,
+    0,
+    `Tab content panel #${target} must be top-level and not nested inside another .tab-content panel`
+  );
 }
 
 const jsIds = unique([...staticDomIds(dashboardJs), ...svgUpdateIds(dashboardJs)]);

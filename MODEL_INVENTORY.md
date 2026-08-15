@@ -51,6 +51,31 @@ Observed via `ollama list` on 2026-07-21.
 | `deepseek-r1:7b` | 4.7 GB | local reasoning experiments | local |
 | `deepseek-r1:1.5b` | 1.1 GB | cheap local reasoning probe, low reliability ceiling | local |
 
+## Model Candidate Watchlist & Evidence Matrix
+
+Models move through explicit evidence gates before promotion to active review or router pools:
+`unverified_candidate` -> `installed/reachable` -> `callable` -> `json_valid` -> `tool_use_valid` -> `quality_valid` -> `review_usable`.
+
+| Model ID | Source URL | Boundary | Local/Cloud | License/Access | Installed | Callable | JSON-Valid | Tool-Valid | Quality-Valid | Review-Usable | Latency Band | Failure Mode | Last Receipt |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |
+| `muse-glimmer:latest` | [Ollama Library](https://ollama.com/library/muse-glimmer) | `private_self` | Local | Open | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `local_cpu_slow` | Unproven local pull | None |
+| `deepseek-v4-pro` | [DeepSeek Updates](https://api-docs.deepseek.com/updates/) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `deepseek-v4-flash` | [DeepSeek Updates](https://api-docs.deepseek.com/updates/) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_ultra_fast` | Unproven API route | None |
+| `grok-4.5` | [xAI News](https://x.ai/news/grok-4-5) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `minimax-m3` | [MiniMax M3](https://www.minimax.io/blog/minimax-m3) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_medium` | Unproven API route | None |
+| `glm-5.2` | [Z.ai Blog](https://z.ai/blog/glm-5.2) | `public_free` | Cloud | Free API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_medium` | Unproven probe slug | None |
+| `qwen/qwen3.6-27b` | [Qwen Blog](https://qwen.ai/blog?id=qwen3.6-27b) | `trusted_collaborator` | Cloud | Open-Weight API | ❌ | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ | `groq_fast_to_medium` | Active Groq route | Matrix profile |
+| `qwen3.6-35b-a3b` | [Qwen Blog](https://qwen.ai/blog?id=qwen3.6-27b) | `trusted_collaborator` | Cloud | Open-Weight API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `groq_fast` | Unproven provider slug | None |
+| `command-a-plus-05-2026` | [Cohere Blog](https://cohere.com/blog/command-a-plus) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_medium` | Unproven API route | None |
+| `north-mini-code` | [Cohere Blog](https://cohere.com/blog/north-mini-code) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `mistral-medium-3.5` | [Mistral News](https://mistral.ai/news/) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `leanstral-1.5` | [Mistral News](https://mistral.ai/news/) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `claude-opus-4-8` | [Anthropic News](https://www.anthropic.com/news/claude-opus-4-8) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_slow` | Unproven API route | None |
+| `claude-sonnet-5` | [Anthropic News](https://www.anthropic.com/news/claude-sonnet-5) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+| `claude-fable-5` | [Anthropic News](https://www.anthropic.com/news/claude-fable-5-mythos-5) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_medium` | Unproven API route | None |
+| `gpt-5.5` | [OpenAI Index](https://openai.com/index/introducing-gpt-5-5/) | `trusted_collaborator` | Cloud | Commercial API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_medium` | Unproven API route | None |
+| `gemini-3.1-pro-preview` | [Google AI Docs](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview) | `trusted_collaborator` | Cloud | Preview API | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | `cloud_fast` | Unproven API route | None |
+
 ## Routing Posture
 
 | Task class | Preferred surface | Why |

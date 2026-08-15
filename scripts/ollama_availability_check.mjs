@@ -13,6 +13,7 @@ const LOCAL_REVIEWER_PROBES = Object.freeze([
   { role_key: "local_security_auditor", model: "llama-audit:latest" },
   { role_key: "local_code_probe", model: "codegemma-7b" },
   { role_key: "fast_local_fallback", model: "deepseek-r1:1.5b" },
+  { role_key: "muse_glimmer_local", model: "muse-glimmer:latest" },
 ]);
 
 function argValue(args, name, fallback = "") {

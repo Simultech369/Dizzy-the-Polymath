@@ -22,33 +22,32 @@ async function loadData() {
     const memoryList = document.getElementById("memory-docs-list");
     if (!data.docs?.length) {
       memoryList.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No indexed memory items found.</div>';
-      return;
+    } else {
+      memoryList.innerHTML = data.docs.map((doc) => {
+        const confidencePct = Math.round(doc.confidence * 100);
+        const decayPct = Math.round(doc.decay * 100);
+        return `
+          <div class="doc-item">
+            <div class="doc-header">
+              <span class="doc-path">${escapeHtml(doc.id)}</span>
+              <span class="badge badge-primary">${escapeHtml(doc.kind)}</span>
+            </div>
+            <div class="doc-metrics">
+              <div class="doc-metric">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
+                <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--primary);"></div></div>
+                <span class="metric-value">${confidencePct}%</span>
+              </div>
+              <div class="doc-metric">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Decay Factor:</span>
+                <div class="bar-container"><div class="bar-fill" style="width: ${decayPct}%; background-color: ${doc.decay < 0.5 ? "var(--rose)" : "var(--emerald)"};"></div></div>
+                <span class="metric-value">${decayPct}% (${Math.round(doc.ageInDays)}d old)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
-
-    memoryList.innerHTML = data.docs.map((doc) => {
-      const confidencePct = Math.round(doc.confidence * 100);
-      const decayPct = Math.round(doc.decay * 100);
-      return `
-        <div class="doc-item">
-          <div class="doc-header">
-            <span class="doc-path">${escapeHtml(doc.id)}</span>
-            <span class="badge badge-primary">${escapeHtml(doc.kind)}</span>
-          </div>
-          <div class="doc-metrics">
-            <div class="doc-metric">
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
-              <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--primary);"></div></div>
-              <span class="metric-value">${confidencePct}%</span>
-            </div>
-            <div class="doc-metric">
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Decay Factor:</span>
-              <div class="bar-container"><div class="bar-fill" style="width: ${decayPct}%; background-color: ${doc.decay < 0.5 ? "var(--rose)" : "var(--emerald)"};"></div></div>
-              <span class="metric-value">${decayPct}% (${Math.round(doc.ageInDays)}d old)</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
     await loadReceiptsTelemetry();
   } catch (error) {
     console.error(error);
@@ -851,7 +850,7 @@ function initChatSurface() {
     const isUser = role === "user";
     const bubbleClass = isUser ? "user-bubble" : "assistant-bubble";
     const avatar = isUser ? "US" : "DZ";
-    const speaker = isUser ? "Simul (Operator)" : "Dizzy";
+    const speaker = isUser ? "Operator" : "Dizzy";
     
     let formattedText = escapeHtml(text)
       .replace(/```([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.5); padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-family: monospace; border: 1px solid rgba(255,255,255,0.1);">$1</pre>')
@@ -988,7 +987,7 @@ function initChatSurface() {
     chatClearBtn.addEventListener("click", () => {
       if (confirm("Clear live chat history?")) {
         localStorage.removeItem("dizzy_chat_history");
-        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings Simul. Chat history cleared. How can I assist you today?");
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings. Chat history cleared. How can I assist you today?");
       }
     });
   }
