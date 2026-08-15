@@ -2,12 +2,11 @@
 
 **Branch**: [`feat/dizzy-general-distro`](https://github.com/Simultech369/Dizzy-the-Polymath/tree/feat/dizzy-general-distro)
 **Base**: `main`
-**HEAD**: `3b40b8cf`
 **Verdict**: `OSS Council Audit VERIFIED_PASSED` (54 syntax targets, 27 execution suites passing)
 
 ---
 
-## 🎯 Overview
+## Overview
 
 This PR delivers the consolidated, clean execution stack for:
 1. **Guided Trust Cockpit & Dashboard HUD**:
@@ -27,7 +26,7 @@ This PR delivers the consolidated, clean execution stack for:
 
 ---
 
-## 📦 What's Included
+## What's Included
 
 ### 1. Guided Trust Cockpit & Public Branding
 - Standard `npm start` entry point launching local server and dashboard.
@@ -40,19 +39,19 @@ This PR delivers the consolidated, clean execution stack for:
 - Gated `muse-glimmer:latest` and candidate models with `callable: false` and `json_review_usable: false` until evidence is produced.
 - Clarified probe command boundaries (`openrouter-free` vs `ollama-availability` vs `review-models`).
 
-### 3. Model Router & Isolation Core (`W-0066`)
+### 3. Model Router & Isolation Core (W-0066)
 - Real model dispatch across 8 divisions (40 models).
 - Enforces `isLocalIsolationRequired` to fail closed on remote cloud calls under `private_self` trust boundaries.
 - Disallows automatic 3xx HTTP redirects to cloud backends.
 
-### 4. Ingress Gateway & Replay Safety (`W-0067`)
+### 4. Ingress Gateway & Replay Safety (W-0067)
 - Rate limiting and per-client token budget controls (`lib/ingress_gateway.mjs`).
 - SQLite WAL operational store (`lib/sqlite_operational_store.mjs`) for idempotent replay leases and claim safety.
 - Trajectory snapshot store (`lib/trajectory_snapshot_store.mjs`) with SHA-256 integrity checks.
 
 ---
 
-## 🧪 Verification & Proof
+## Verification & Proof
 
 All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 
@@ -72,7 +71,7 @@ All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 
 ---
 
-## 🔒 Security & Privacy Boundaries
+## Security & Privacy Boundaries
 
 - No secrets or API keys are committed in code or receipts (`runtime/secrets/` is gitignored).
 - Diff packets are redacted before sending to external providers.
