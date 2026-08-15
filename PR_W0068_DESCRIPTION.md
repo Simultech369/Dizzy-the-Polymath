@@ -2,6 +2,7 @@
 
 **Branch**: [`feat/dizzy-general-distro`](https://github.com/Simultech369/Dizzy-the-Polymath/tree/feat/dizzy-general-distro)
 **Base**: `main`
+**HEAD**: `3b40b8cf`
 **Verdict**: `OSS Council Audit VERIFIED_PASSED` (54 syntax targets, 27 execution suites passing)
 
 ---
@@ -17,9 +18,12 @@ This PR delivers the consolidated, clean execution stack for:
    - Structured 14-column candidate evidence matrix in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) tracking 16 candidate models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`).
    - Enforced evidence promotion lifecycle (`unverified_candidate` -> `installed/reachable` -> `callable` -> `json_valid` -> `tool_use_valid` -> `quality_valid` -> `review_usable`).
    - Gated unverified candidate models in [`lib/provider_capability_matrix.mjs`](lib/provider_capability_matrix.mjs) and verified gating with unit tests.
-3. **W-0066 Router Core Clean**: 8-Division 40-Model Guild Router with request-body receipt proof, local fail-closed isolation, and manual 3xx redirect blocks.
-4. **W-0067 Control Plane**: Ingress gateway with IP normalization, trusted proxy handling, token budget controls, provider circuit-breaker primitives, trajectory snapshot store, and SQLite WAL replay leases.
-5. **W-0068 Model Review Loop Engine**: Review cycle orchestrator, local-fast and Groq-fast review profiles, DeepSeek R1 reasoning adapter, and OpenRouter free probe harness.
+3. **Probe Harness Hardening (Windows Environment)**:
+   - Preserved system `LOCALAPPDATA` in Ollama probe runner so Windows native runner binaries/DLLs are located properly.
+   - Added graceful offline recovery in [`scripts/ollama_availability_check.mjs`](scripts/ollama_availability_check.mjs) so probe runs return structured JSON receipts without throwing unhandled exceptions.
+4. **W-0066 Router Core Clean**: 8-Division 40-Model Guild Router with request-body receipt proof, local fail-closed isolation, and manual 3xx redirect blocks.
+5. **W-0067 Control Plane**: Ingress gateway with IP normalization, trusted proxy handling, token budget controls, provider circuit-breaker primitives, trajectory snapshot store, and SQLite WAL replay leases.
+6. **W-0068 Model Review Loop Engine**: Review cycle orchestrator, local-fast and Groq-fast review profiles, DeepSeek R1 reasoning adapter, and OpenRouter free probe harness.
 
 ---
 
@@ -74,3 +78,5 @@ All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 - Diff packets are redacted before sending to external providers.
 - Local isolation policy blocks cloud dispatch when operating in `private_self` mode.
 - Audit receipts use `authority: "evidence_not_authority"`.
+- Local availability and council receipts (`reviews/*_latest.json`) remain local-only untracked evidence files to prevent git history receipt churn.
+
