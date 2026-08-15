@@ -38,62 +38,66 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Surface | Current evidence / check |
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
-| Prompt governance | Prompt sources are loaded through a scoped bundle and budget checks |
-| Bounded memory | Retrieval is scoped by trust zone and allowed surfaces |
-| Paid/public mode | Defaults to ephemeral continuity unless explicitly enabled |
-| Safety checks | `npm test`, `npm run smoke`, `npm run check:state` |
-
-## Runtime Shape
-
-```mermaid
-flowchart LR
-  Operator["Operator"] --> Server["Local Dizzy Runtime"]
-  Server --> Health["/health"]
-  Server --> Prompt["/prompt"]
-  Server --> Governance["/governance"]
-  Server --> Memory["/memory/graph"]
-  Server --> Tools["Explicit Tool Layer"]
-  Prompt --> Packs["Prompt Packs"]
-  Memory --> Zones["Trust Zones"]
-  Zones --> Private["private_self"]
-  Zones --> Trusted["trusted_collaborator"]
-  Zones --> Outside["outside_contact"]
-  Zones --> Paid["paid_public ephemeral"]
-```
+| Guided Trust Cockpit Dashboard | Accessible via `http://localhost:3000/dashboard` (`DIZZY_DASHBOARD_ENABLED=1` or `npm start`) |
+| Model Intake & Evidence Matrix | Verified vs candidate model classification tracked in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
+| Prompt governance | Scoped prompt-pack loading with byte budget verification |
+| Bounded memory | Retrieval scoped by trust zone (`private_self`, `trusted_collaborator`, `paid_public`) |
+| OSS Council Audit Suite | Full 3-layer verification engine (`npm run check:council`) |
 
 ## Quick Start
 
-Install dependencies:
+### 1. Install Dependencies
+
+Node.js 20.18.1+ is required.
 
 ```powershell
 npm install
 ```
 
-The main runtime supports Node.js 20.18.1+. The full safety suite also requires Python 3 for the OpenRouter review-tool checks. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
+### 2. Launch the Runtime & Guided Trust Cockpit
 
-Run the server:
+Start the server using standard npm start:
 
 ```powershell
-node .\agent_server.mjs
+npm start
 ```
 
-To expose the local memory graph for an operator session, set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server. It is disabled by default and remote access still requires runtime authentication.
+This launches the agent server locally on `http://127.0.0.1:3000`. Open the Guided Trust Cockpit dashboard at:
+`http://localhost:3000/dashboard`
 
-In another terminal, inspect the local runtime:
+### 3. Inspect Local Endpoints
+
+In another terminal window:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt
-# Available only when DIZZY_MEMORY_GRAPH_ENABLED=1:
-Invoke-RestMethod http://127.0.0.1:3000/memory/graph
 ```
 
-Run verification:
+### 4. Run the Full Verification Suite
+
+Verify total system integrity across 54 syntax targets and 27 execution gates:
 
 ```powershell
+# Run the complete 3-layer OSS Model Council Audit Engine
+npm run check:council
+
+# Run individual verification suites
 npm test
-npm run smoke
-npm run check:state
+npm run test:provider-matrix
+npm run test:dashboard-safety
+```
+
+## Model Boundaries & Promotion Pipeline
+
+Dizzy separates model availability into explicit trust zones and evidence gates:
+
+- **Local / Private (`private_self`)**: Models running completely on your local machine via Ollama (e.g. `gemma3:4b`, `mistral:latest`).
+- **Cloud / Hosted (`trusted_collaborator` / `public_free`)**: External cloud providers (Gemini, Groq, OpenRouter, DeepSeek, Anthropic, OpenAI).
+- **Candidate Watchlist**: New frontier and open-weight models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`) remain `unverified_candidate` in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) until explicit local/cloud probe evidence is produced.
+
+```
+unverified_candidate -> installed/reachable -> callable -> json_valid -> tool_use_valid -> quality_valid -> review_usable
 ```
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).

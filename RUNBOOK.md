@@ -5,20 +5,20 @@ Goal: simplest setup first, with optional failure-isolated add-ons.
 
 ---
 
-## Quick start: local runtime only
+## Quick start: local runtime & Guided Trust Cockpit
 
 Terminal A:
-- `node .\agent_server.mjs`
+- `npm start` (or `node .\agent_server.mjs`)
 
 Terminal B:
 - `Invoke-RestMethod http://127.0.0.1:3000/health`
 - `Invoke-RestMethod http://127.0.0.1:3000/prompt`
 
-This starts the local API, exposes governance and prompt inspection endpoints, and does not require Telegram, Redis, or a model backend. The `/memory/graph` HTTP inspection endpoint is opt-in; set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server, then run `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`.
+This starts the local API, exposes governance and prompt inspection endpoints, and enables the Guided Trust Cockpit dashboard at `http://localhost:3000/dashboard`. It does not require Telegram, Redis, or an external model backend. The `/memory/graph` HTTP inspection endpoint is opt-in; set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server, then run `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`.
 
-The optional dashboard is disabled by default. Its read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Disabled mode does not load the module; module or asset failure leaves core routes such as `/health` available.
+The Guided Trust Cockpit dashboard read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Asset failure leaves core routes such as `/health` available.
 
-Dashboard browser access uses a loopback-only temporary operator session. Set `DIZZY_DASHBOARD_ENABLED=1` and a strong `DIZZY_AUTH_TOKEN`, start the server, then open `/dashboard/login`. Submit the operator token through the local form; the server exchanges it for a random in-memory `HttpOnly; SameSite=Strict` cookie and redirects to `/dashboard`. The cookie is accepted only on dashboard routes, defaults to a one-hour lifetime (`DIZZY_DASHBOARD_SESSION_TTL_MS`), and is cleared by `POST /dashboard/logout`. It never authorizes general API routes. Do not put credentials in query strings or browser storage.
+Dashboard browser access uses a loopback-only temporary operator session. Set `DIZZY_DASHBOARD_ENABLED=1` (enabled by default when running `npm start`) and a strong `DIZZY_AUTH_TOKEN` if authenticating non-loopback clients. Open `/dashboard/login` or `/dashboard`. The server exchanges tokens for random in-memory `HttpOnly; SameSite=Strict` cookies. The cookie is accepted only on dashboard routes and never authorizes general API routes. Do not put credentials in query strings or browser storage.
 
 Dashboard API responses use the `minimal-v1` projection: repository-relative paths are replaced by opaque stable IDs. Executable dashboard JavaScript is served from guarded local assets, and the HTML CSP allows same-origin scripts without inline script execution.
 

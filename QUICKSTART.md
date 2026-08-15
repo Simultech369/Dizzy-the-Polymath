@@ -21,14 +21,15 @@ Node.js 20.18.1+ is required. On Windows PowerShell, install local dependencies:
 npm.cmd install
 ```
 
-### Step 2: Launch the Local Runtime
+### Step 2: Launch the Local Runtime & Guided Trust Cockpit
 Start the local agent server:
 
 ```powershell
-node .\agent_server.mjs
+npm start
 ```
 
-The server listens locally at `http://127.0.0.1:3000`.
+The server listens locally at `http://127.0.0.1:3000`. Access the Guided Trust Cockpit dashboard at:
+`http://localhost:3000/dashboard`
 
 ### Step 3: Walkthrough Local Endpoints (`/health` & `/prompt`)
 In a separate terminal window, test the local endpoints:
@@ -64,34 +65,33 @@ Invoke-RestMethod http://127.0.0.1:3000/prompt
 
 ---
 
-## 3. Trust-Zone Demo (Plain English)
+## 3. Trust-Zone Demo & Model Posture (Plain English)
 
 Dizzy enforces 4 strict **Trust Zones** to control memory retention and context leakage:
 
-| Trust Zone | Plain English Meaning | Default Retention Posture |
-| :--- | :--- | :--- |
-| **`private_self`** | Private strategy, architecture, personal memory, system design | Retained continuity & durable memory allowed |
-| **`trusted_collaborator`** | Shared team work where selective context is useful | Selective continuity, narrower disclosure |
-| **`outside_contact`** | Fresh-context interactions with external tools/users | Ephemeral, fresh-context reasoning by default |
-| **`paid_public`** | Client / public work (marketplaces, API endpoints) | Ephemeral by default; scoped to `client_id + service_id` |
+| Trust Zone | Plain English Meaning | Default Retention Posture | Provider Boundary |
+| :--- | :--- | :--- | :--- |
+| **`private_self`** | Private strategy, architecture, personal memory | Retained continuity allowed | Local Ollama models only |
+| **`trusted_collaborator`** | Shared team work where selective context is useful | Selective continuity, narrower disclosure | Trusted cloud APIs |
+| **`outside_contact`** | Fresh-context interactions with external tools | Ephemeral, fresh-context reasoning | Standard web / API endpoints |
+| **`paid_public`** | Client / public work (marketplaces, API endpoints) | Ephemeral by default; client-scoped | Gated public surfaces |
 
-*Demo Rule*: A request tagged `paid_public` cannot read private repo memory or write to `private_self` memory.
+*Model Gating Rule*: All newly announced models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`) are classified as `unverified_candidate` in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) and gated from active router or review pools until explicit probe evidence is produced.
 
 ---
 
 ## 4. How to Verify System Health
 
-Run these three standard commands to verify repository state and execution integrity:
+Run these commands to verify repository state and execution integrity:
 
 ```powershell
-# 1. Run quick smoke suite (health, prompt, memory, queue sanity checks)
-npm.cmd run smoke
+# 1. Run full 3-layer OSS Model Council Audit Engine (54 syntax targets + 27 test suites)
+npm run check:council
 
-# 2. Run comprehensive unit and governance test suite
-npm.cmd test
-
-# 3. Run operator maintenance check (scans root file roles & active upgrade metadata)
-npm.cmd run maintain
+# 2. Run unit and safety test suites
+npm test
+npm run test:provider-matrix
+npm run test:dashboard-safety
 ```
 
 ---
