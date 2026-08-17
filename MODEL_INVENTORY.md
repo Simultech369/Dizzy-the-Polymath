@@ -152,6 +152,8 @@ Harnesses are not voting model weights; they operate as specialized subsystem dr
 | Project | Surface / Role | Architecture & Integration |
 | :--- | :--- | :--- |
 | 🪐 **Gitlawb / Zero** (`Gitlawb/zero`) | Sovereign Dispatch Satellite | Model-agnostic terminal coding agent supporting decentralized repo collaboration, cryptographic commit signing, and local session isolation. Bridges to Dizzy via signed `dizzy.router_receipt.v1` evidence envelopes. |
+| 🌐 **Gitlawb / OpenClaude** (`Gitlawb/openclaude`) | Multi-Agent Coordination Seat | Open-source, model-neutral terminal agent CLI supporting MCP tools, per-repo configuration, and scriptable sessions. Wired into Dizzy's consensus signing chain (`lib/consensus.mjs`) and `MULTI_AGENT_PLAYBOOK.md`. |
+| ⚡ **free-code** (`freecodexyz/free-code`) | Zero-Telemetry Coding CLI | Community-driven, telemetry-stripped terminal coding agent with multi-backend compatibility (Codex, Anthropic, DeepSeek) for air-gapped terminal pairing. |
 | 🐜 **InclusionAI / Ling-3.0** (`inclusionAI`) | Sub-Second Janitor & Local Classifier | Ultra-lightweight open-source models (`Ling-3.0-tiny`, `Ling-3.0-flash`) for instant pre-route sanitization, diff chunk classification, and context budgeting. |
 | 🎙️ **InclusionAI / Ming-omni-tts** | Air-Gapped Audio Synthesizer | Local, zero-data-retention speech synthesis engine for Dizzy's voice channel (`TOOLS.md`), eliminating external cloud TTS API dependencies. |
 | 👁️ **InclusionAI / LLaDA2.0-Uni** | Multimodal & Visual QC | Diffusion-based large language model for evaluating dashboard layout symmetry, visual diagram truth, and SVG rendering in `eval:anti-slop-visual`. |
