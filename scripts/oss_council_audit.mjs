@@ -45,6 +45,7 @@ async function runAudit() {
   logStep("Layer 1: Auditing JS/MJS syntax integrity (Synthesizer Layer)...");
   const targetFiles = [
     "agent_server.mjs",
+    "lib/anti_slop_scanner.mjs",
     "lib/backend_connection_rca.mjs",
     "lib/bridging_memory_scanner.mjs",
     "lib/dispatch.mjs",
@@ -68,6 +69,7 @@ async function runAudit() {
     "lib/trajectory_snapshot_store.mjs",
     "scripts/ai_sre_diagnose.mjs",
     "scripts/ai_sre_diagnose_test.mjs",
+    "scripts/anti_slop_prose_fixture_check.mjs",
     "scripts/frontier_simulation_test.mjs",
     "scripts/rehearsal_gate_test.mjs",
     "scripts/self_monitoring_calibration_test.mjs",
@@ -184,6 +186,7 @@ async function runAudit() {
     { name: "Request Trace Chain Suite", script: "scripts/trace_chain_test.mjs" },
     { name: "Local Chaos Harness Suite", script: "scripts/local_chaos_harness_test.mjs" },
     { name: "Frontier Simulation & Friction Suite", script: "scripts/frontier_simulation_test.mjs" },
+    { name: "Anti-Slop Prose Fixture Suite", script: "scripts/anti_slop_prose_fixture_check.mjs" },
     { name: "Self-Monitoring Calibration Suite", script: "scripts/self_monitoring_calibration_test.mjs" },
     { name: "Context Hygiene Audit Suite", script: "scripts/context_hygiene_audit.mjs" },
     { name: "Backend Connection RCA Suite", script: "scripts/backend_connection_rca_test.mjs" },

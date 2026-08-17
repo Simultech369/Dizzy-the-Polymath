@@ -45,6 +45,7 @@
                     "test:eval-gate": "node --disable-warning=ExperimentalWarning ./scripts/eval_gate_policy_check_test.mjs",
                     "test:provider-matrix": "node ./scripts/provider_capability_matrix_test.mjs",
                     "test:frontier-simulation": "node ./scripts/frontier_simulation_test.mjs",
+                    "test:anti-slop": "node ./scripts/anti_slop_prose_fixture_check.mjs",
                     "review:plan": "node ./scripts/review_cycle_plan.mjs",
                     "review:run": "node ./scripts/review_cycle_run.mjs",
                     "review:models": "node ./scripts/review_model_batch.mjs",
