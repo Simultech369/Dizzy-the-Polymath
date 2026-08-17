@@ -1101,6 +1101,10 @@ async function loadReceiptsTelemetry() {
     }
   } catch (err) {
     console.error("Receipts telemetry error:", err);
+    const councilElem = document.getElementById("latest-council-verdict-badge");
+    const cycleElem = document.getElementById("latest-review-cycle-verdict");
+    if (councilElem) councilElem.innerText = "UNREACHABLE";
+    if (cycleElem) cycleElem.innerText = "UNREACHABLE";
   }
 }
 

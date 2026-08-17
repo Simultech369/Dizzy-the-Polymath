@@ -57,7 +57,7 @@ All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 
 ```
 ==================================================
-   Dizzy OSS Model Council Verification Engine    
+   Dizzy OSS Model Council Verification Engine
 ==================================================
 
 [PASS] Layer 1: All 54 target files passed syntax checks.
@@ -65,7 +65,7 @@ All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 [PASS] Layer 3: All 27 deterministic test suites passed!
 
 ==================================================
-   COUNCIL VERDICT: VERIFIED_PASSED (READY FOR STAGING) 
+   COUNCIL VERDICT: VERIFIED_PASSED (READY FOR STAGING)
 ==================================================
 ```
 
@@ -78,4 +78,3 @@ All 54 syntax targets and 27 execution suites passed in `npm run check:council`:
 - Local isolation policy blocks cloud dispatch when operating in `private_self` mode.
 - Audit receipts use `authority: "evidence_not_authority"`.
 - Local availability and council receipts (`reviews/*_latest.json`) remain local-only untracked evidence files to prevent git history receipt churn.
-

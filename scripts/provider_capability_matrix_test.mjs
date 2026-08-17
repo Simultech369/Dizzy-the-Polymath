@@ -60,6 +60,19 @@ assert.equal(museProfile.callable, false);
 assert.equal(museProfile.json_review_usable, false);
 assert.equal(museProfile.availability_status, "unverified_candidate");
 
+const museInstalledProfile = getProviderCapabilityProfile("muse-glimmer:latest", new Set(["muse-glimmer:latest"]));
+assert.equal(museInstalledProfile.installed, true);
+assert.equal(museInstalledProfile.callable, true);
+assert.equal(museInstalledProfile.json_review_usable, false);
+
+const museAvailableProfile = getProviderCapabilityProfile(
+  "muse-glimmer:latest",
+  new Set(),
+  { model: "muse-glimmer:latest", status: "available", runnable: true, json_usable: true },
+);
+assert.equal(museAvailableProfile.callable, true);
+assert.equal(museAvailableProfile.json_review_usable, true);
+
 const unverifiedCandidates = Object.values(PROVIDER_CAPABILITY_PROFILES)
   .filter((p) => p.availability_status === "unverified_candidate");
 assert.ok(unverifiedCandidates.length >= 10, "Expected at least 10 unverified candidate profiles");
