@@ -39,10 +39,12 @@ The repo is transparent without turning every working note into doctrine: the ru
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | Guided Trust Cockpit Dashboard | Accessible via `http://localhost:3000/dashboard` (`DIZZY_DASHBOARD_ENABLED=1` or `npm start`) |
-| Model Intake & Evidence Matrix | Verified vs candidate model classification tracked in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
-| Prompt governance | Scoped prompt-pack loading with byte budget verification |
-| Bounded memory | Retrieval scoped by trust zone (`private_self`, `trusted_collaborator`, `paid_public`) |
-| OSS Council Audit Suite | Full 3-layer verification engine (`npm run check:council`) |
+| 48-Model Catalog & Evidence Ladder | 5 tiers, 4-gate qualification engine, and route compliance in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
+| Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy scanner (`lib/anti_slop_scanner.mjs`) |
+| Bounded memory & Quarantined Bridging | Trust-zone scoped retrieval with opt-in cross-session concept bridging (`runtime/quarantine/`) |
+| Bounded Scenario Forking & Time-Travel | Ephemeral trajectory simulation and Euclidean divergence analysis (`lib/scenario_simulator.mjs`) |
+| Robust Friction Telemetry | Median Absolute Deviation (MAD) $3\sigma$ anomaly detector and active policy containment |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 55 syntax targets and 30 test suites (`npm run check:council`) |
 
 ## Quick Start
 
@@ -76,7 +78,7 @@ Invoke-RestMethod http://127.0.0.1:3000/prompt
 
 ### 4. Run the Full Verification Suite
 
-Verify total system integrity across 54 syntax targets and 27 execution gates:
+Verify total system integrity across 55 syntax targets and 30 deterministic execution gates:
 
 ```powershell
 # Run the complete 3-layer OSS Model Council Audit Engine
@@ -84,21 +86,41 @@ npm run check:council
 
 # Run individual verification suites
 npm test
+npm run test:frontier-simulation
+npm run test:anti-slop
 npm run test:provider-matrix
 npm run test:dashboard-safety
 ```
 
-## Model Boundaries & Promotion Pipeline
+## Dual-Chain Model Council & 4-Gate Pipeline
 
-Dizzy separates model availability into explicit trust zones and evidence gates:
-
-- **Local / Private (`private_self`)**: Models running completely on your local machine via Ollama (e.g. `gemma3:4b`, `mistral:latest`).
-- **Cloud / Hosted (`trusted_collaborator` / `public_free`)**: External cloud providers (Gemini, Groq, OpenRouter, DeepSeek, Anthropic, OpenAI).
-- **Candidate Watchlist**: New frontier and open-weight models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`) remain `unverified_candidate` in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) until explicit local/cloud probe evidence is produced.
+Dizzy separates model availability into explicit trust zones, deterministic qualification gates, and dual-chain verification:
 
 ```
-unverified_candidate -> installed/reachable -> callable -> json_valid -> tool_use_valid -> quality_valid -> review_usable
+                              ┌────────────────────────────────────────┐
+                              │      Local Repo Snapshot & Diff        │
+                              │  (Head commit, staged/unstaged blobs)  │
+                              └───────────────────┬────────────────────┘
+                                                  │
+               ┌──────────────────────────────────┴──────────────────────────────────┐
+               ▼                                                                     ▼
+ ┌───────────────────────────┐                                         ┌───────────────────────────┐
+ │ 🔴 ADVERSARIAL RED-TEAM   │                                         │ 🟢 QUALIFIED VOTER SEATS  │
+ │ • Jiunsong SuperGemma     │                                         │ • Qwen-3.8 / Qwen2.5-Coder│
+ │ • Jiunsong SuperDeepSeek  │                                         │ • GLM-5.3 / GLM-4         │
+ │   (Uncensored GGUFs)      │                                         │ • Mistral Lineage         │
+ └─────────────┬─────────────┘                                         └─────────────┬─────────────┘
+               │                                                                     │
+               ▼                                                                     ▼
+ ┌───────────────────────────┐                                         ┌───────────────────────────┐
+ │ 🛡️ VERIFIER ADVERSARIAL   │ ◄───────────────────────────────────────┤ ⚖️ 3-FAMILY QUORUM BALLOT │
+ │ Asserts 11 invariants     │                                         │ Approvals >= ceil(2N/3)   │
+ └───────────────────────────┘                                         └───────────────────────────┘
 ```
+
+- **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
+- **Sovereign Satellites & Ecosystem Integrations**: Native interoperability with `Gitlawb/zero` (decentralized commit signing), `Gitlawb/openclaude` (consensus coordination seat), `freecodexyz/free-code` (zero-telemetry pairing CLI), and `InclusionAI` (`Ling-3.0`, `Ming-omni-tts`, `LLaDA2.0-Uni`).
+- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 
