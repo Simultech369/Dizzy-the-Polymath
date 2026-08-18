@@ -183,18 +183,6 @@ The repo carries a political-economic direction centered on anti-extraction, cap
 - `historical provenance`: retained context for audit, not an active recommendation
 - `deprecated`: kept only to explain what should not guide future work
 
-## Visual Upgrades To Add When Public
-
-These are free and easy, but should be added only when the public account/repo details are ready:
-
-- GitHub Actions status badge for the verification workflow
-- Profile README surface in [`PROFILE_README.md`](PROFILE_README.md) for `Simultech369/Simultech369`
-- Public demo GIF showing `/health`, `/prompt`, and an explicitly enabled local `/memory/graph`
-- GitHub Readme Stats card for the operator/profile README
-- GitHub Profile Trophy card for the profile README
-- Contribution graph animation for the profile README
-- Pinned project grid linking Dizzy, Pharmacy Fiduciary Commons, and any bounty/client work that is safe to show
-
 ## Production Readiness Checklist
 
 This is the minimum bar before any hosted or client-facing surface should be treated as production-ready.
