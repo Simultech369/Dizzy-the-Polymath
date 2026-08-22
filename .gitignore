@@ -25,3 +25,5 @@ __pycache__/
 /handoff/
 .openclaude/
 scratch/goose-runtime/
+reviews/*_latest.json
+reviews/review_cycle_history.json
