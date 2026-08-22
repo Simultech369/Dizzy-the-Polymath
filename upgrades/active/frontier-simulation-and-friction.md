@@ -1,6 +1,6 @@
 ---
 id: U-frontier-simulation-and-friction
-status: completed
+status: integrated
 tier: 2
 owner_surface: DESIGN.md
 last_reviewed: 2026-08-17

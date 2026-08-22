@@ -1,6 +1,6 @@
 ---
 id: W-0062
-status: completed
+status: integrated
 tier: 2
 owner_surface: governance
 last_reviewed: 2026-08-17

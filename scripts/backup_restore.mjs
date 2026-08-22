@@ -6,7 +6,23 @@ import crypto from "crypto";
 const MANIFEST_FILE = "manifest.json";
 
 function timestamp() {
-  return new Date().toISOString().replace(/[:.]/g, "-");
+  const rand = crypto.randomBytes(4).toString("hex");
+  return `${new Date().toISOString().replace(/[:.]/g, "-")}-${rand}`;
+}
+
+function renameWithRetrySync(src, dest, maxRetries = 10, delayMs = 25) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      fs.renameSync(src, dest);
+      return;
+    } catch (err) {
+      if (i === maxRetries - 1 || !["EPERM", "EBUSY", "EEXIST", "EACCES"].includes(err?.code)) {
+        throw err;
+      }
+      const end = Date.now() + delayMs;
+      while (Date.now() < end) {}
+    }
+  }
 }
 
 function isWithin(candidate, parent) {
@@ -225,13 +241,13 @@ export function restoreRuntime({
   fs.mkdirSync(path.dirname(recoveryPath), { recursive: true });
 
   const hadRuntime = fs.existsSync(target);
-  if (hadRuntime) fs.renameSync(target, recoveryPath);
+  if (hadRuntime) renameWithRetrySync(target, recoveryPath);
   try {
     copyRuntime(source, target, { recursive: true, errorOnExist: true, force: false });
     verifySnapshotManifest(target);
   } catch (error) {
     fs.rmSync(target, { recursive: true, force: true });
-    if (hadRuntime) fs.renameSync(recoveryPath, target);
+    if (hadRuntime) renameWithRetrySync(recoveryPath, target);
     throw error;
   }
   return { runtimeDir: target, recoveryPath: hadRuntime ? recoveryPath : "" };

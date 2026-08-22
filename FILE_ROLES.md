@@ -44,10 +44,12 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 - `REPO_GUIDE.md`
 - `README.md`
 
-## Planning Maps
+## Planning Maps And Handoff Packets
 
 - `context-tree.json`
 - `EXPERIMENT_RECONCILIATION.md`
+- `CODEX_55_HANDOFF.md`
+- `PR_W0068_DESCRIPTION.md`
 
 Planning maps coordinate review and promotion work. They are non-authoritative until their decisions are promoted into `DESIGN.md`, `NEXT.md`, runtime code, or tests.
 
