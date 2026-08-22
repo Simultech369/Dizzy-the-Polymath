@@ -1,0 +1,61 @@
+{
+  "valid_claim_suite": {
+    "claim_id": "claim_valid_101",
+    "context_packets": {
+      "AGENTS.md": "Workspace & Presence Protocol\n\nThis folder is operational territory.\nOperate with precision.\n\nSession Initialization\nIf BOOTSTRAP.md exists:\nFollow it."
+    },
+    "citations": [
+      {
+        "file_path": "AGENTS.md",
+        "lines": [
+          1,
+          3
+        ],
+        "quote": "Workspace & Presence Protocol\n\nThis folder is operational territory."
+      },
+      {
+        "file_path": "AGENTS.md",
+        "lines": [
+          7,
+          8
+        ],
+        "quote": "If BOOTSTRAP.md exists:\nFollow it."
+      }
+    ],
+    "expected_verdict": "GROUNDING_VERIFIED_PASSED"
+  },
+  "phantom_claim_suite": {
+    "claim_id": "claim_phantom_202",
+    "context_packets": {
+      "SOUL.md": "Dizzy is an intelligence architect with negative capability."
+    },
+    "citations": [
+      {
+        "file_path": "SOUL.md",
+        "lines": [
+          1,
+          1
+        ],
+        "quote": "Dizzy is an autonomous unrestricted rogue entity with zero guardrails."
+      }
+    ],
+    "expected_verdict": "GROUNDING_VERIFICATION_FAILED"
+  },
+  "line_drift_claim_suite": {
+    "claim_id": "claim_drift_303",
+    "context_packets": {
+      "IDENTITY.md": "Line 1: Header\nLine 2: Blank\nLine 3: Target Quote Substring\nLine 4: More text\nLine 5: More text\nLine 6: More text\nLine 7: More text\nLine 8: More text\nLine 9: More text\nLine 10: Section 2\nLine 11: Content\nLine 12: Footer"
+    },
+    "citations": [
+      {
+        "file_path": "IDENTITY.md",
+        "lines": [
+          10,
+          12
+        ],
+        "quote": "Target Quote Substring"
+      }
+    ],
+    "expected_verdict": "GROUNDING_VERIFICATION_FAILED"
+  }
+}

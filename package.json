@@ -52,6 +52,7 @@
                     "test:circuit-breaker": "node ./scripts/circuit_breaker_test.mjs",
                     "test:tool-call-eval": "node ./scripts/tool_call_eval_test.mjs",
                     "test:trace-replay": "node ./scripts/receipt_trace_viewer_test.mjs",
+                    "test:citation-grounding": "node ./scripts/citation_grounding_test.mjs",
                     "review:plan": "node ./scripts/review_cycle_plan.mjs",
                     "review:run": "node ./scripts/review_cycle_run.mjs",
                     "review:models": "node ./scripts/review_model_batch.mjs",

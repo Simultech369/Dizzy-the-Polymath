@@ -22,6 +22,7 @@ Rules:
 
 ## Completed
 
+- W-0088: Implemented Deterministic Citation Grounding & Evidence Verifier (`lib/citation_grounding_verifier.mjs`, `scripts/citation_grounding_test.mjs`, `scripts/fixtures/citation_grounding_fixtures.json`), validating verbatim/normalized quote existence, detecting phantom citations, line drifts, and out-of-bounds line references with cryptographic receipts (`dizzy.citation_grounding.v1`). (Verification: `npm run test:citation-grounding`; `npm run check:council`)
 - W-0087: Implemented Receipt Trace Replay & Machine-Room Audit Engine (`lib/receipt_trace_viewer.mjs`, `scripts/receipt_trace_viewer_test.mjs`, `scripts/fixtures/trace_replay_fixtures.json`), reconstructing lifecycle timelines across ingress, routing, tool evaluation, council verification, and state commit with cryptographic tamper detection. (Verification: `npm run test:trace-replay`; `npm run check:council`)
 - W-0086: Implemented Structured Tool-Call Evaluator (`lib/tool_call_evaluator.mjs`, `scripts/tool_call_eval_test.mjs`, `scripts/fixtures/tool_call_eval_fixtures.json`), scoring model tool-calling adherence, parameter hallucination, SSRF loopback escape, sensitive file path targets, and shell injection. (Verification: `npm run test:tool-call-eval`; `npm run check:council`)
 - W-0085: Integrated Latency-Cost-Trust Pareto HUD, Live Route Circuit Breakers Grid, and Verification Defense Ledger into Guided Trust Cockpit (`dashboard/index.html`, `dashboard/dashboard.js`, `agent_server.mjs`). (Verification: `npm run test:dashboard-safety`; `npm run check:council`)

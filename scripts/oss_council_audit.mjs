@@ -51,6 +51,7 @@ async function runAudit() {
     "lib/backend_connection_rca.mjs",
     "lib/bridging_memory_scanner.mjs",
     "lib/circuit_breaker.mjs",
+    "lib/citation_grounding_verifier.mjs",
     "lib/context_packer.mjs",
     "lib/dispatch.mjs",
     "lib/friction_anomaly_detector.mjs",
@@ -79,6 +80,7 @@ async function runAudit() {
     "scripts/adversarial_verification_test.mjs",
     "scripts/anti_slop_prose_fixture_check.mjs",
     "scripts/check_active_policy_state.mjs",
+    "scripts/citation_grounding_test.mjs",
     "scripts/frontier_simulation_test.mjs",
     "scripts/receipt_trace_viewer_test.mjs",
     "scripts/rehearsal_gate_test.mjs",
@@ -218,6 +220,7 @@ async function runAudit() {
     { name: "Circuit Breaker Suite", script: "scripts/circuit_breaker_test.mjs" },
     { name: "Structured Tool-Call Evaluator Suite", script: "scripts/tool_call_eval_test.mjs" },
     { name: "Receipt Trace Replay Suite", script: "scripts/receipt_trace_viewer_test.mjs" },
+    { name: "Citation Grounding Verifier Suite", script: "scripts/citation_grounding_test.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
   ];
 
