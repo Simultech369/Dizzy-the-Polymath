@@ -22,6 +22,7 @@ Rules:
 
 ## Completed
 
+- W-0086: Implemented Structured Tool-Call Evaluator (`lib/tool_call_evaluator.mjs`, `scripts/tool_call_eval_test.mjs`, `scripts/fixtures/tool_call_eval_fixtures.json`), scoring model tool-calling adherence, parameter hallucination, SSRF loopback escape, sensitive file path targets, and shell injection. (Verification: `npm run test:tool-call-eval`; `npm run check:council`)
 - W-0085: Integrated Latency-Cost-Trust Pareto HUD, Live Route Circuit Breakers Grid, and Verification Defense Ledger into Guided Trust Cockpit (`dashboard/index.html`, `dashboard/dashboard.js`, `agent_server.mjs`). (Verification: `npm run test:dashboard-safety`; `npm run check:council`)
 - W-0084: Implemented Route-Level Circuit Breaker & Failover Engine (`lib/circuit_breaker.mjs`, `scripts/circuit_breaker_test.mjs`), enforcing closed/open/half-open state transitions and cryptographic route failure receipts (`dizzy.route_failure.v1`). (Verification: `npm run test:circuit-breaker`; `npm run check:council`)
 - W-0083: Implemented Deterministic 3-Slot Context Packer (`lib/context_packer.mjs`, `scripts/context_packer_test.mjs`), enforcing `MUST_INCLUDE`, `OPTIONAL_EVIDENCE`, and `FORBIDDEN` slots bounded by trust-zone byte budgets. (Verification: `npm run test:context-packer`; `npm run check:council`)

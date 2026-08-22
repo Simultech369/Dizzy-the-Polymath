@@ -63,6 +63,7 @@ async function runAudit() {
     "lib/rehearsal_gate.mjs",
     "lib/scenario_simulator.mjs",
     "lib/self_monitoring_calibration.mjs",
+    "lib/tool_call_evaluator.mjs",
     "lib/trace_chain.mjs",
     "lib/review_cycle_coverage.mjs",
     "lib/review_cycle_orchestrator.mjs",
@@ -80,6 +81,7 @@ async function runAudit() {
     "scripts/frontier_simulation_test.mjs",
     "scripts/rehearsal_gate_test.mjs",
     "scripts/self_monitoring_calibration_test.mjs",
+    "scripts/tool_call_eval_test.mjs",
     "scripts/trace_chain_test.mjs",
     "scripts/local_chaos_harness_test.mjs",
     "scripts/negative_capability_test.mjs",
@@ -212,6 +214,7 @@ async function runAudit() {
     { name: "Negative Capability Suite", script: "scripts/negative_capability_test.mjs" },
     { name: "Context Packer Suite", script: "scripts/context_packer_test.mjs" },
     { name: "Circuit Breaker Suite", script: "scripts/circuit_breaker_test.mjs" },
+    { name: "Structured Tool-Call Evaluator Suite", script: "scripts/tool_call_eval_test.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
   ];
 
