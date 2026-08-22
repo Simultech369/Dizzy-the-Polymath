@@ -4840,7 +4840,18 @@ async function testNewHardeningFeatures() {
     });
     assert.equal(execRes.status, 200);
 
-    const historyContent = fs.readFileSync(historyFile, "utf8").trim().split("\n");
+    let historyContent = [];
+    for (let i = 0; i < 20; i++) {
+      if (fs.existsSync(historyFile)) {
+        const raw = fs.readFileSync(historyFile, "utf8").trim();
+        if (raw.length > 0) {
+          historyContent = raw.split("\n");
+          break;
+        }
+      }
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    assert.ok(historyContent.length > 0, "historyContent should not be empty");
     const lastEntry = JSON.parse(historyContent[historyContent.length - 1]);
     assert.equal(lastEntry.client_id, "trusted-client");
     assert.equal(lastEntry.service_id, "trusted-service");
