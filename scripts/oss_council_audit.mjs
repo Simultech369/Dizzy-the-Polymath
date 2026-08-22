@@ -46,6 +46,7 @@ async function runAudit() {
   const targetFiles = [
     "agent_server.mjs",
     "lib/active_policy_engine.mjs",
+    "lib/adversarial_verification_harness.mjs",
     "lib/anti_slop_scanner.mjs",
     "lib/backend_connection_rca.mjs",
     "lib/bridging_memory_scanner.mjs",
@@ -70,6 +71,7 @@ async function runAudit() {
     "lib/trajectory_snapshot_store.mjs",
     "scripts/ai_sre_diagnose.mjs",
     "scripts/ai_sre_diagnose_test.mjs",
+    "scripts/adversarial_verification_test.mjs",
     "scripts/anti_slop_prose_fixture_check.mjs",
     "scripts/check_active_policy_state.mjs",
     "scripts/frontier_simulation_test.mjs",
@@ -200,6 +202,7 @@ async function runAudit() {
     { name: "Dashboard Safety Harness Suite", script: "scripts/dashboard_safety_harness_test.mjs" },
     { name: "Risk Scaler Suite", script: "scripts/risk_scaler_test.mjs" },
     { name: "Golden Retrieval Eval Suite", script: "scripts/retrieval_eval.mjs" },
+    { name: "Adversarial Verification Suite", script: "scripts/adversarial_verification_test.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
   ];
 
