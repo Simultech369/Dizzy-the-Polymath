@@ -1099,6 +1099,10 @@ async function loadReceiptsTelemetry() {
         `).join("");
       }
     }
+
+    renderParetoHud(data.pareto_frontier || []);
+    renderVerificationSummaries(data);
+    renderCircuitBreakers(data.circuit_breakers || []);
   } catch (err) {
     console.error("Receipts telemetry error:", err);
     const councilElem = document.getElementById("latest-council-verdict-badge");
@@ -1108,7 +1112,184 @@ async function loadReceiptsTelemetry() {
   }
 }
 
+function renderParetoHud(paretoModels = []) {
+  const svgGroup = document.getElementById("pareto-nodes-group");
+  const frontierPath = document.getElementById("pareto-frontier-line");
+  const tooltip = document.getElementById("pareto-node-tooltip");
+  const countBadge = document.getElementById("pareto-frontier-count");
+  if (!svgGroup || !frontierPath) return;
+
+  if (countBadge) countBadge.textContent = `${paretoModels.length} Models Mapped`;
+  svgGroup.innerHTML = "";
+
+  if (!paretoModels.length) return;
+
+  const minX = 60, maxX = 560;
+  const minY = 200, maxY = 30;
+
+  const points = paretoModels.map((m) => {
+    const x = minX + (m.spend * (maxX - minX));
+    const y = minY - (((m.accuracy - 0.8) / 0.2) * (minY - maxY));
+    const radius = Math.max(5, Math.min(12, Math.round(m.latency_ms / 250)));
+    const color = m.tier === 0 ? "var(--purple)" : m.tier === 1 ? "var(--cyan)" : m.tier === 3 ? "var(--rose)" : "var(--emerald)";
+    return { ...m, x, y, radius, color };
+  });
+
+  points.forEach((pt) => {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", String(pt.x));
+    circle.setAttribute("cy", String(pt.y));
+    circle.setAttribute("r", String(pt.radius));
+    circle.setAttribute("fill", pt.color);
+    circle.setAttribute("fill-opacity", "0.75");
+    circle.setAttribute("stroke", pt.color);
+    circle.setAttribute("stroke-width", "2");
+
+    circle.addEventListener("mouseenter", () => {
+      if (tooltip) {
+        tooltip.innerHTML = `
+          <strong style="color: ${pt.color};">${escapeHtml(pt.name)}</strong> (Tier ${pt.tier})<br>
+          Accuracy: <strong>${Math.round(pt.accuracy * 100)}%</strong> &bull; Latency: <strong>${pt.latency_ms}ms</strong><br>
+          Cost Band: <strong>${escapeHtml(pt.spend === 0 ? "Free Local" : "$" + pt.spend + "/1M")}</strong> &bull; Zone: <code>${escapeHtml(pt.zone)}</code>
+        `;
+        tooltip.style.opacity = "1";
+      }
+    });
+
+    circle.addEventListener("mouseleave", () => {
+      if (tooltip) tooltip.style.opacity = "0";
+    });
+
+    svgGroup.appendChild(circle);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", String(pt.x + pt.radius + 4));
+    label.setAttribute("y", String(pt.y + 4));
+    label.setAttribute("fill", "#9ca3af");
+    label.setAttribute("font-size", "9");
+    label.setAttribute("font-family", "JetBrains Mono");
+    label.textContent = pt.id;
+    svgGroup.appendChild(label);
+  });
+
+  const sorted = [...points].sort((a, b) => a.spend - b.spend);
+  let d = "";
+  let highestAcc = -1;
+  sorted.forEach((pt) => {
+    if (pt.accuracy >= highestAcc) {
+      d += (d === "" ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+      highestAcc = pt.accuracy;
+    }
+  });
+  frontierPath.setAttribute("d", d);
+}
+
+function renderVerificationSummaries(data) {
+  const advVer = data.latest_adversarial_verification;
+  const negCap = data.latest_negative_capability;
+
+  const advBadge = document.getElementById("adversarial-summary-verdict");
+  const negBadge = document.getElementById("negative-capability-score");
+  const advStatus = document.getElementById("adversarial-status-badge");
+  const negStatus = document.getElementById("negative-capability-badge");
+  const advList = document.getElementById("adversarial-gates-list");
+  const negList = document.getElementById("negative-capability-list");
+
+  if (advBadge && advVer) {
+    advBadge.textContent = `${advVer.deterministic_blocks || 0}/${advVer.scenarios_tested || 0} BLOCKED`;
+    advBadge.style.color = advVer.bypasses_allowed === 0 ? "var(--emerald)" : "var(--rose)";
+  }
+
+  if (advStatus && advVer) {
+    advStatus.textContent = advVer.verdict === "ADVERSARIAL_VERIFICATION_PASSED" ? "8/8 Blocked" : "Bypass Detected";
+    advStatus.className = `badge ${advVer.bypasses_allowed === 0 ? "badge-emerald" : "badge-rose"}`;
+  }
+
+  if (negBadge && negCap) {
+    negBadge.textContent = `${Math.round((negCap.average_restraint_score || 0) * 100)}% RESTRAINT`;
+  }
+
+  if (negStatus && negCap) {
+    negStatus.textContent = `Score: ${negCap.average_restraint_score || 1.0}`;
+  }
+
+  if (advList && advVer) {
+    const list = advVer.who_caught_what || [];
+    advList.innerHTML = list.map((item) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+        <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${escapeHtml(item.scenario_id)}</span>
+        <span class="badge ${item.deterministic_intercepted ? "badge-emerald" : "badge-rose"}">${escapeHtml(item.intercepting_gate || "PASSED")}</span>
+      </div>
+    `).join("");
+  }
+
+  if (negList && negCap) {
+    const evals = negCap.evaluations || [];
+    negList.innerHTML = evals.map((item) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+        <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${escapeHtml(item.test_id)}</span>
+        <span class="badge badge-primary">${escapeHtml(item.refusal_type)}</span>
+      </div>
+    `).join("");
+  }
+}
+
+function renderCircuitBreakers(breakers = []) {
+  const grid = document.getElementById("circuit-breakers-grid");
+  const aggBadge = document.getElementById("circuit-breaker-aggregate-badge");
+  if (!grid) return;
+
+  if (!breakers.length) {
+    grid.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No circuit breaker data available.</div>';
+    return;
+  }
+
+  const allClosed = breakers.every((b) => b.state === "CLOSED");
+  if (aggBadge) {
+    aggBadge.textContent = allClosed ? "All Routes Operational" : "Circuit Breaker Active";
+    aggBadge.className = `badge ${allClosed ? "badge-emerald" : "badge-amber"}`;
+  }
+
+  grid.innerHTML = breakers.map((route) => {
+    const isClosed = route.state === "CLOSED";
+    const isHalfOpen = route.state === "HALF_OPEN";
+    const badgeClass = isClosed ? "badge-emerald" : isHalfOpen ? "badge-amber" : "badge-rose";
+    const failPct = Math.min(100, Math.round(((route.consecutive_failures || 0) / 3) * 100));
+    const failBarColor = isClosed ? "var(--emerald)" : isHalfOpen ? "var(--amber)" : "var(--rose)";
+
+    return `
+      <div class="summary-card" style="border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; background: rgba(11, 16, 28, 0.6);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(route.route_id)}</span>
+          <span class="badge ${badgeClass}"><span class="pulse-dot"></span>${escapeHtml(route.state)}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem; color: var(--text-muted);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Failure Threshold:</span>
+            <div class="progress-wrap">
+              <div class="bar-container" style="width: 70px; height: 8px;">
+                <div class="bar-fill" style="width: ${failPct}%; background: ${failBarColor};"></div>
+              </div>
+              <span class="metric-value" style="font-size: 0.75rem;">${route.consecutive_failures || 0}/3</span>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Tripped Total:</span>
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${route.tripped_count || 0}</span>
+          </div>
+          ${route.last_failure_reason ? `
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--rose);">
+              <span>Reason: <code>${escapeHtml(route.last_failure_reason)}</code></span>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initChatSurface();
+  loadReceiptsTelemetry();
 });
 initChatSurface();

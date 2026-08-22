@@ -172,6 +172,12 @@
       border: 1px solid rgba(244, 63, 94, 0.35);
     }
 
+    .badge-purple {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+
     .pulse-dot {
       width: 7px;
       height: 7px;
@@ -1178,12 +1184,29 @@
               <pre id="sandbox-terminal-log" style="background: #04060a; border: 1px solid rgba(69, 243, 255, 0.2); border-radius: 8px; padding: 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.825rem; color: var(--cyan); max-height: 240px; overflow-y: auto; white-space: pre-wrap; line-height: 1.45;"></pre>
             </div>
           </div>
+
+          <!-- Live Route Circuit Breakers -->
+          <div class="console-panel" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+            <div class="card-title" style="margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="pulse-dot" style="color: var(--emerald);"></span>
+                <span>Live Route Circuit Breakers</span>
+              </div>
+              <span class="badge badge-primary" id="circuit-breaker-aggregate-badge">All Routes Operational</span>
+            </div>
+            <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Deterministic fail-closed circuit health. Tripped routes fail closed with zero remote fallback on private packets.
+            </div>
+            <div id="circuit-breakers-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+              <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading circuit breaker telemetry...</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- TAB: RECEIPTS & OBSERVABILITY -->
       <div id="tab-receipts" class="tab-content">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Total Router Receipts</div>
             <div id="receipts-summary-total" style="font-size: 1.8rem; font-weight: 700; color: var(--cyan); margin-top: 0.25rem;">0</div>
@@ -1193,12 +1216,77 @@
             <div id="receipts-summary-latency" style="font-size: 1.8rem; font-weight: 700; color: var(--amber); margin-top: 0.25rem;">0 ms</div>
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Adversarial Defense</div>
+            <div id="adversarial-summary-verdict" style="font-size: 1.1rem; font-weight: 600; color: var(--emerald); margin-top: 0.4rem;">8/8 BLOCKED</div>
+          </div>
+          <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Negative Capability</div>
+            <div id="negative-capability-score" style="font-size: 1.1rem; font-weight: 600; color: var(--cyan); margin-top: 0.4rem;">100% RESTRAINT</div>
+          </div>
+          <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Latest Review Cycle</div>
             <div id="latest-review-cycle-verdict" style="font-size: 1.1rem; font-weight: 600; color: var(--emerald); margin-top: 0.4rem;">None</div>
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Council Audit Verdict</div>
             <div id="latest-council-verdict-badge" style="font-size: 1.1rem; font-weight: 600; color: var(--cyan); margin-top: 0.4rem;">None</div>
+          </div>
+        </div>
+
+        <!-- Latency-Cost-Trust Pareto Frontier HUD -->
+        <div class="card" style="padding: 1.25rem; background: var(--card-bg); margin-bottom: 1.5rem;">
+          <div class="card-title">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="pulse-dot" style="color: var(--cyan);"></span>
+              <span>Latency-Cost-Trust Pareto Frontier HUD</span>
+            </div>
+            <span class="badge badge-primary" id="pareto-frontier-count">0 Models Mapped</span>
+          </div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Multi-objective frontier plotting model spend vs empirical verification accuracy vs latency.
+          </div>
+          <div class="pareto-hud-container" id="pareto-hud-container" style="position: relative; width: 100%; height: 260px; background: radial-gradient(circle, rgba(13, 18, 30, 0.95) 0%, rgba(5, 7, 12, 0.98) 100%); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;">
+            <svg id="pareto-hud-svg" class="pareto-svg" viewBox="0 0 600 240" style="width: 100%; height: 100%; display: block;">
+              <!-- Grid Lines & Axis Labels -->
+              <line x1="50" y1="20" x2="50" y2="210" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+              <line x1="50" y1="210" x2="580" y2="210" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+              <text x="50" y="15" fill="#9ca3af" font-size="10" font-family="JetBrains Mono">ACCURACY (100%)</text>
+              <text x="500" y="225" fill="#9ca3af" font-size="10" font-family="JetBrains Mono">SPEND ($/BAND)</text>
+              <!-- Pareto Frontier Curve -->
+              <path id="pareto-frontier-line" fill="none" stroke="var(--cyan)" stroke-width="1.5" stroke-dasharray="4" opacity="0.65" />
+              <!-- Dynamic Plot Elements -->
+              <g id="pareto-nodes-group"></g>
+            </svg>
+            <div id="pareto-node-tooltip" class="node-tooltip">Hover over a model node to inspect Pareto metrics.</div>
+          </div>
+        </div>
+
+        <!-- Verification & Restraint Ledger -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+          <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+            <div class="card-title">
+              <span>🛡️ Adversarial Invariant Interception</span>
+              <span class="badge badge-emerald" id="adversarial-status-badge">8/8 Blocked</span>
+            </div>
+            <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Deterministic verification of 8 hostile threat vectors:
+            </div>
+            <div id="adversarial-gates-list">
+              <div style="color: var(--text-muted); padding: 0.5rem 0;">Loading adversarial receipt...</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
+            <div class="card-title">
+              <span>🧠 Negative Capability &amp; Restraint</span>
+              <span class="badge badge-emerald" id="negative-capability-badge">Score: 1.0</span>
+            </div>
+            <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Evaluation of anti-confabulation refusal and missing-evidence grounding:
+            </div>
+            <div id="negative-capability-list">
+              <div style="color: var(--text-muted); padding: 0.5rem 0;">Loading restraint receipt...</div>
+            </div>
           </div>
         </div>
 
