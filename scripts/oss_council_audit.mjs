@@ -60,6 +60,7 @@ async function runAudit() {
     "lib/negative_capability_harness.mjs",
     "lib/openai_compat_client.mjs",
     "lib/provider_capability_matrix.mjs",
+    "lib/receipt_trace_viewer.mjs",
     "lib/rehearsal_gate.mjs",
     "lib/scenario_simulator.mjs",
     "lib/self_monitoring_calibration.mjs",
@@ -79,6 +80,7 @@ async function runAudit() {
     "scripts/anti_slop_prose_fixture_check.mjs",
     "scripts/check_active_policy_state.mjs",
     "scripts/frontier_simulation_test.mjs",
+    "scripts/receipt_trace_viewer_test.mjs",
     "scripts/rehearsal_gate_test.mjs",
     "scripts/self_monitoring_calibration_test.mjs",
     "scripts/tool_call_eval_test.mjs",
@@ -215,6 +217,7 @@ async function runAudit() {
     { name: "Context Packer Suite", script: "scripts/context_packer_test.mjs" },
     { name: "Circuit Breaker Suite", script: "scripts/circuit_breaker_test.mjs" },
     { name: "Structured Tool-Call Evaluator Suite", script: "scripts/tool_call_eval_test.mjs" },
+    { name: "Receipt Trace Replay Suite", script: "scripts/receipt_trace_viewer_test.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
   ];
 

@@ -1,0 +1,56 @@
+{
+  "trace_clean_01": {
+    "trace_id": "tr_clean_98741",
+    "receipts": [
+      {
+        "schema_version": "dizzy.trace_chain.v1",
+        "created_at": "2026-08-22T03:00:00.000Z",
+        "request": {
+          "method": "POST",
+          "route_template": "/agent/execute"
+        },
+        "latency_ms": 5
+      },
+      {
+        "schema_version": "dizzy.router_receipt.v1",
+        "timestamp": "2026-08-22T03:00:00.005Z",
+        "chosen_model": "qwen2.5-coder:7b",
+        "trust_zone": "private_self",
+        "latency_ms": 280
+      },
+      {
+        "schema_version": "dizzy.tool_call_eval.v1",
+        "timestamp": "2026-08-22T03:00:00.285Z",
+        "tool": "web_search",
+        "overall_status": "TOOL_CALL_SUITE_PASSED",
+        "latency_ms": 45
+      },
+      {
+        "schema_version": "dizzy.council_verdict.v1",
+        "timestamp": "2026-08-22T03:00:00.330Z",
+        "verdict": "VERIFIED_PASSED",
+        "consensus_status": "supermajority",
+        "latency_ms": 120
+      }
+    ],
+    "expected_status": "TRACE_VERIFIED_CLEAN"
+  },
+  "trace_tampered_skip_council": {
+    "trace_id": "tr_tampered_12345",
+    "receipts": [
+      {
+        "schema_version": "dizzy.router_receipt.v1",
+        "timestamp": "2026-08-22T03:05:00.000Z",
+        "chosen_model": "untrusted_cloud",
+        "latency_ms": 150
+      },
+      {
+        "schema_version": "dizzy.state_transition.v1",
+        "timestamp": "2026-08-22T03:05:00.150Z",
+        "state_transition": "APPLY_UNVERIFIED_PATCH",
+        "latency_ms": 10
+      }
+    ],
+    "expected_status": "TRACE_ANOMALIES_DETECTED"
+  }
+}
