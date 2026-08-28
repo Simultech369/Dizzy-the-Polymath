@@ -25,7 +25,7 @@
 | Layer | Path / Files | Authority Status |
 | --- | --- | --- |
 | **Runtime** | `agent_server.mjs`, `worker.mjs`, `lib/` | Active, tested execution layer |
-| **Experimental** | `lib/sqlite_operational_store.mjs` | Retained as experimental sidecar, Node 22+ tested |
+| **Experimental** | `lib/sqlite_operational_store.mjs`, `lib/structural_query_cache.mjs` | Retained as local sidecars, reversible and non-authoritative |
 | **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
 | **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
 
@@ -38,13 +38,19 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Surface | Current evidence / check |
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
+| SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
 | Guided Trust Cockpit Dashboard | Accessible via `http://localhost:3000/dashboard` (`DIZZY_DASHBOARD_ENABLED=1` or `npm start`) |
 | 48-Model Catalog & Evidence Ladder | 5 tiers, 4-gate qualification engine, and route compliance in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
-| Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy scanner (`lib/anti_slop_scanner.mjs`) |
+| Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
 | Bounded memory & Quarantined Bridging | Trust-zone scoped retrieval with opt-in cross-session concept bridging (`runtime/quarantine/`) |
 | Bounded Scenario Forking & Time-Travel | Ephemeral trajectory simulation and Euclidean divergence analysis (`lib/scenario_simulator.mjs`) |
 | Robust Friction Telemetry | Median Absolute Deviation (MAD) $3\sigma$ anomaly detector and active policy containment |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 55 syntax targets and 30 test suites (`npm run check:council`) |
+| Deterministic Lifecycle Hooks | SessionStart/Stop ingress receipts and PreToolUse/PostToolUse tool-runner receipts (`lib/lifecycle_hooks.mjs`) |
+| Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
+| StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
+| A2A-Style Mailbox Bridge | Local sealed handoff/message queue for agent coordination; not public A2A spec compliance yet (`lib/a2a_mailbox_bridge.mjs`) |
+| Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 105 syntax detail entries and 51 test suites (`npm run check:council`) |
 
 ## Quick Start
 
@@ -78,7 +84,7 @@ Invoke-RestMethod http://127.0.0.1:3000/prompt
 
 ### 4. Run the Full Verification Suite
 
-Verify total system integrity across 55 syntax targets and 30 deterministic execution gates:
+Verify total system integrity across 105 syntax detail entries and 51 deterministic execution suites:
 
 ```powershell
 # Run the complete 3-layer OSS Model Council Audit Engine
@@ -90,6 +96,11 @@ npm run test:frontier-simulation
 npm run test:anti-slop
 npm run test:provider-matrix
 npm run test:dashboard-safety
+npm run test:structural-query-cache
+npm run test:statem-runbook
+npm run test:a2a-mailbox
+npm run test:job-board-scanner
+npm run check:pattern-provenance
 ```
 
 ## Dual-Chain Model Council & 4-Gate Pipeline
@@ -186,7 +197,7 @@ Retention is intentional and local-first, not ambient.
 ## Safety Posture
 
 - Loopback bind by default
-- Optional bearer auth for non-loopback exposure
+- Operator-control routes require `DIZZY_AUTH_TOKEN` by default, including direct local dispatch, agent execution, and continuity export/delete/prune
 - Remote mutations disabled by default
 - Self-modification disabled by default
 - Explicit external-tool invocation only

@@ -11,7 +11,16 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
+import {
+  buildStreamReceipt,
+  buildSseFrame,
+  configureSseResponse,
+  nextStreamEventId,
+  writeSseFrame,
+} from "./lib/sse_stream.mjs";
 import { getAllDivisions, getAllRoles, getChosenModelString } from "./lib/model_router.mjs";
+import { buildTensionMap, renderTensionMapSvg } from "./lib/tension_map_engine.mjs";
+import { normalizeJobListing, convertOpportunityToBountyTask } from "./lib/job_board_ingress.mjs";
 import {
   createIngressGatewayMiddleware,
   getIngressGatewayConfig,
@@ -44,6 +53,42 @@ function tokensEqual(candidate, expected) {
   const left = Buffer.from(String(candidate));
   const right = Buffer.from(String(expected));
   return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function headerToken(req) {
+  const auth = String(req.headers?.authorization ?? "");
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
+  return bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim();
+}
+
+function createOperatorControlAuthGuard({
+  authToken,
+  executeToken,
+  allowUnauthenticatedLocalControl = false,
+} = {}) {
+  return function operatorControlAuthGuard(req, res, next) {
+    if (allowUnauthenticatedLocalControl && isLoopbackRemoteAddress(req.socket?.remoteAddress)) {
+      return next();
+    }
+
+    if (!authToken) {
+      return res.status(503).json({
+        ok: false,
+        error: "DIZZY_AUTH_TOKEN is required for local control routes",
+        code: "LOCAL_CONTROL_AUTH_REQUIRED",
+      });
+    }
+
+    const token = headerToken(req);
+    if (tokensEqual(token, authToken)) return next();
+    if ((req.path === "/agent/execute" || req.path === "/agent/execute/stream") && tokensEqual(token, executeToken)) return next();
+
+    return res.status(401).json({
+      ok: false,
+      error: "Unauthorized",
+      code: "LOCAL_CONTROL_UNAUTHORIZED",
+    });
+  };
 }
 
 const DASHBOARD_SESSION_COOKIE = "dizzy_dashboard_session";
@@ -88,7 +133,9 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/prune-continuity"
     || pathname === "/api/operator/prune-receipts"
     || pathname === "/api/operator/receipts-telemetry"
-    || pathname === "/api/operator/run-scenario-simulation";
+    || pathname === "/api/operator/run-scenario-simulation"
+    || pathname === "/api/operator/tension-map"
+    || pathname === "/api/operator/job-opportunities";
 }
 
 function parseBool(value, fallback = false) {
@@ -102,7 +149,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit", "/api/operator/hardware-status", "/api/operator/consensus-map", "/api/operator/sandbox-preflight"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit", "/api/operator/hardware-status", "/api/operator/consensus-map", "/api/operator/sandbox-preflight", "/api/operator/tension-map", "/api/operator/job-opportunities"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -489,6 +536,15 @@ export async function createRuntime(opts = {}) {
   const allowedOrigins = opts.allowedOrigins ?? process.env.DIZZY_ALLOWED_ORIGINS ?? "";
   const deploymentMode = String(opts.deploymentMode ?? process.env.DIZZY_DEPLOYMENT_MODE ?? "direct_local").trim().toLowerCase();
   const publicSurfaceMode = String(opts.publicSurfaceMode ?? process.env.DIZZY_PUBLIC_SURFACES ?? "closed").trim().toLowerCase();
+  const streamRetryMs = parsePositiveInt(opts.streamRetryMs ?? process.env.DIZZY_STREAM_RETRY_MS, 5000);
+  const streamMaxFrameBytes = parsePositiveInt(opts.streamMaxFrameBytes ?? process.env.DIZZY_STREAM_MAX_EVENT_BYTES, 256 * 1024);
+  const streamMaxResultFrameBytes = parsePositiveInt(opts.streamMaxResultFrameBytes ?? process.env.DIZZY_STREAM_MAX_RESULT_EVENT_BYTES, streamMaxFrameBytes);
+  const streamDrainTimeoutMs = parsePositiveInt(opts.streamDrainTimeoutMs ?? process.env.DIZZY_STREAM_DRAIN_TIMEOUT_MS, 30_000);
+  const rawStreamReceiptPath = String(opts.streamReceiptPath ?? process.env.DIZZY_STREAM_RECEIPT_PATH ?? "runtime/stream_receipts.jsonl").trim();
+  const streamReceiptPath = /^(?:off|none|disabled)$/i.test(rawStreamReceiptPath) ? "" : rawStreamReceiptPath;
+  const allowUnauthenticatedLocalControl = opts.allowUnauthenticatedLocalControl !== undefined
+    ? Boolean(opts.allowUnauthenticatedLocalControl)
+    : parseBool(process.env.DIZZY_ALLOW_UNAUTHENTICATED_LOCAL_CONTROL, false);
   const dashboardEnabled = opts.dashboardEnabled !== undefined
     ? Boolean(opts.dashboardEnabled)
     : parseBool(process.env.DIZZY_DASHBOARD_ENABLED, false);
@@ -527,11 +583,13 @@ export async function createRuntime(opts = {}) {
   }
 
   const app = express();
+  const cleanupHooks = [];
   app.use(securityHeaders({ verifiedHttps }));
   app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
+  // Apply rate limit and budget middleware
   app.use(createIngressGatewayMiddleware(ingressGateway, { deploymentMode, trustedProxies }));
 
   if (enforceIdentityHeaders && deploymentMode !== "proxied") {
@@ -543,6 +601,15 @@ export async function createRuntime(opts = {}) {
   if ((executeToken || notifyToken) && !authToken) {
     throw new Error("DIZZY_AUTH_TOKEN is required when scoped API tokens are configured.");
   }
+  if (allowUnauthenticatedLocalControl) {
+    console.warn("[WARNING] Unauthenticated local control routes are enabled by explicit override.");
+  }
+
+  const operatorControlAuthGuard = createOperatorControlAuthGuard({
+    authToken,
+    executeToken,
+    allowUnauthenticatedLocalControl,
+  });
 
   const pruneClientContinuity = opts.pruneClientContinuity || pruneExpiredClientContinuity;
   const clientContinuityPruneIntervalMs = parsePositiveInt(
@@ -625,8 +692,8 @@ export async function createRuntime(opts = {}) {
       // Check master authToken first (gives full access to everything)
       if (tokensEqual(headerToken, authToken)) return next();
 
-      // Check scoped /agent/execute token
-      if (req.path === "/agent/execute" && tokensEqual(headerToken, executeToken)) {
+      // Check scoped execution token
+      if ((req.path === "/agent/execute" || req.path === "/agent/execute/stream") && tokensEqual(headerToken, executeToken)) {
         return next();
       }
 
@@ -756,7 +823,7 @@ export async function createRuntime(opts = {}) {
     const dashboardLoader = opts.dashboardModuleLoader || (() => import("./lib/dashboard.mjs"));
     try {
       const dashboard = await dashboardLoader();
-      dashboard.registerDashboardRoutes(app, {
+      const dashboardRoutes = dashboard.registerDashboardRoutes(app, {
         authToken,
         normalizeIp,
         isLoopbackHost,
@@ -769,6 +836,9 @@ export async function createRuntime(opts = {}) {
         requestBoundaryAuditGuard,
         operatorExecute: runAgentExecute,
       });
+      if (dashboardRoutes && typeof dashboardRoutes.close === "function") {
+        cleanupHooks.push(() => dashboardRoutes.close());
+      }
     } catch (error) {
       console.warn(`[dashboard] initialization_failed=${String(error?.message ?? error)}`);
       registerDashboardFallbackRoutes(app, {
@@ -1061,6 +1131,45 @@ export async function createRuntime(opts = {}) {
     }
   });
 
+  app.get("/api/operator/tension-map", (req, res) => {
+    try {
+      const topicId = String(req.query?.topic_id || "current_consensus");
+      const map = buildTensionMap({ topicId });
+      const svg = renderTensionMapSvg(map);
+      res.json({
+        ok: true,
+        tension_map: map,
+        svg,
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: "tension_map_unavailable" });
+    }
+  });
+
+  app.get("/api/operator/job-opportunities", (req, res) => {
+    try {
+      const sampleFeed = [
+        { id: "opp_midnight_zk", boardSource: "midnight_network", company: "Midnight Network", title: "Senior ZK & Privacy Protocol Engineer", salaryOrPayout: "$190,000", description: "Shielded contracts and halo2 zero-knowledge proofs." },
+        { id: "opp_solana_agent", boardSource: "solana_jobs", company: "Solana Ecosystem", title: "Rust Autonomous Agent Systems Lead", salaryOrPayout: "$160,000", description: "High throughput on-chain agent infrastructure in Rust and Anchor." },
+        { id: "opp_dragonfly_defi", boardSource: "dragonfly_xyz", company: "Dragonfly Portfolio", title: "Smart Contract Formal Verification Engineer", salaryOrPayout: "$175,000", description: "Solidity and EVM invariant testing with Foundry." },
+      ];
+
+      const normalized = sampleFeed.map((item) => {
+        const opp = normalizeJobListing(item);
+        const task = convertOpportunityToBountyTask(opp);
+        return { opportunity: opp, task_conversion: task };
+      });
+
+      res.json({
+        ok: true,
+        count: normalized.length,
+        opportunities: normalized,
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: "job_opportunities_unavailable" });
+    }
+  });
+
   // GET /agent/portfolio
   app.get("/agent/portfolio", (req, res) => {
     res.json({
@@ -1088,7 +1197,7 @@ export async function createRuntime(opts = {}) {
   }
 
   // Single dispatch path (Telegram/model wiring can call this later).
-  app.post("/dispatch/incoming", requestBoundaryAuditGuard, async (req, res, next) => {
+  app.post("/dispatch/incoming", operatorControlAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
     try {
       const rawIdempotencyKey = req.header("idempotency-key");
       let idempotencyKey = undefined;
@@ -1233,7 +1342,7 @@ export async function createRuntime(opts = {}) {
     return receipt;
   }
 
-  async function runAgentExecute(req, body = req.body ?? {}) {
+  async function runAgentExecute(req, body = req.body ?? {}, { signal } = {}) {
     const { brief } = body ?? {};
     let client_id = body?.client_id;
     let service_id = body?.service_id;
@@ -1291,6 +1400,7 @@ export async function createRuntime(opts = {}) {
       message,
       enqueue: ({ tool, payload, effect, notify }) =>
         enqueueTool({ tool, payload, effect, notify, idempotencyKey }),
+      signal,
     });
     const capabilityReceipt = out?.capability_receipt || buildCapabilityReceipt(message);
     const routerReceipt = buildRouterReceipt(req, capabilities, out?.execution_metadata);
@@ -1333,7 +1443,7 @@ export async function createRuntime(opts = {}) {
   }
 
   // POST /agent/execute delegates to dispatch for now.
-  app.post("/agent/execute", requestBoundaryAuditGuard, async (req, res, next) => {
+  app.post("/agent/execute", operatorControlAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
     try {
       const result = await runAgentExecute(req);
       return res.status(result.status).json(result.body);
@@ -1342,7 +1452,215 @@ export async function createRuntime(opts = {}) {
     }
   });
 
-  app.delete("/agent/continuity", async (req, res, next) => {
+  app.post("/agent/execute/stream", operatorControlAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
+    const rawStreamIdempotencyKey = String(req.header("idempotency-key") ?? "").trim();
+    const streamId = rawStreamIdempotencyKey && /^[!-~]{1,128}$/.test(rawStreamIdempotencyKey)
+      ? `agent_execute_${crypto.createHash("sha256").update(`route:/agent/execute/stream|key:${rawStreamIdempotencyKey}`, "utf8").digest("hex").toUpperCase().slice(0, 32)}`
+      : `agent_execute_${crypto.randomUUID()}`;
+    const startedAtMs = Date.now();
+    const controller = new AbortController();
+    let eventSeq = 0;
+    let framesAttempted = 0;
+    let framesWritten = 0;
+    let bytesWritten = 0;
+    let backpressureCount = 0;
+    let terminalState = "open";
+    let disconnectPersisted = false;
+
+    const persistStreamReceipt = (receipt) => {
+      if (!streamReceiptPath) return false;
+      const receiptPath = path.isAbsolute(streamReceiptPath)
+        ? streamReceiptPath
+        : path.resolve(process.cwd(), streamReceiptPath);
+      try {
+        durableAppendJsonl(receiptPath, receipt);
+        return true;
+      } catch (e) {
+        const errMsg = redactTextPayload(String(e?.message ?? e)).slice(0, 240);
+        console.warn(`[stream_receipt] persist_failed=${errMsg}`);
+        return false;
+      }
+    };
+
+    const makeReceipt = ({
+      eventId,
+      eventType,
+      status,
+      reason,
+      errorCode,
+      completedAtMs,
+    } = {}) => buildStreamReceipt({
+      streamId,
+      eventId,
+      eventType,
+      route: "/agent/execute/stream",
+      method: req.method,
+      status,
+      reason,
+      requestBody: req.body,
+      headers: {
+        "idempotency-key": req.header("idempotency-key"),
+        "last-event-id": req.header("last-event-id"),
+      },
+      retryMs: streamRetryMs,
+      framesAttempted,
+      framesWritten,
+      bytesWritten,
+      backpressureCount,
+      startedAtMs,
+      completedAtMs,
+      errorCode,
+    });
+
+    const reserveEventId = () => {
+      eventSeq += 1;
+      return nextStreamEventId(streamId, eventSeq);
+    };
+
+    const writeEvent = async (event, data, { eventId, retry, maxFrameBytes } = {}) => {
+      if (controller.signal.aborted || res.writableEnded || terminalState !== "open") {
+        return { ok: false, status: "aborted", bytes: 0 };
+      }
+      const id = eventId || reserveEventId();
+      const frame = buildSseFrame({ id, event, data, retry });
+      framesAttempted += 1;
+      const result = await writeSseFrame(res, frame, {
+        signal: controller.signal,
+        maxFrameBytes: maxFrameBytes ?? streamMaxFrameBytes,
+        drainTimeoutMs: streamDrainTimeoutMs,
+        onBackpressure: () => {
+          backpressureCount += 1;
+          persistStreamReceipt(makeReceipt({
+            eventId: id,
+            eventType: "backpressure",
+            status: "backpressure",
+            reason: "response_buffer_full",
+          }));
+        },
+      });
+      if (result.ok) {
+        framesWritten += 1;
+        bytesWritten += result.bytes;
+      }
+      return result;
+    };
+
+    const writeReceiptEvent = async ({ eventType, status, reason, errorCode, completedAtMs } = {}) => {
+      const eventId = reserveEventId();
+      const receipt = makeReceipt({ eventId, eventType, status, reason, errorCode, completedAtMs });
+      persistStreamReceipt(receipt);
+      const result = await writeEvent("stream_receipt", { receipt }, {
+        eventId,
+        retry: eventSeq === 1 ? streamRetryMs : undefined,
+      });
+      return { receipt, result };
+    };
+
+    const persistDisconnectReceipt = (reason) => {
+      if (disconnectPersisted || terminalState !== "open") return;
+      disconnectPersisted = true;
+      const eventId = reserveEventId();
+      persistStreamReceipt(makeReceipt({
+        eventId,
+        eventType: "client_disconnect",
+        status: "client_aborted",
+        reason,
+        completedAtMs: Date.now(),
+      }));
+    };
+
+    const abortStream = (reason) => {
+      if (terminalState !== "open" || res.writableEnded) return;
+      persistDisconnectReceipt(reason);
+      controller.abort(reason);
+    };
+
+    try {
+      configureSseResponse(res);
+      req.on("aborted", () => abortStream("request_aborted"));
+      res.on("close", () => {
+        if (!res.writableEnded) abortStream("response_closed_before_stream_complete");
+      });
+
+      const started = await writeReceiptEvent({
+        eventType: "stream_start",
+        status: "started",
+        reason: "request_accepted",
+      });
+      if (!started.result.ok) {
+        terminalState = started.result.status === "frame_too_large" ? "failed" : "aborted";
+        if (!res.writableEnded) res.end();
+        return;
+      }
+
+      const result = await runAgentExecute(req, req.body ?? {}, { signal: controller.signal });
+      if (controller.signal.aborted || res.writableEnded) {
+        terminalState = "aborted";
+        return;
+      }
+
+      const resultEvent = result.status >= 400 ? "agent_error" : "agent_result";
+      const resultWrite = await writeEvent(resultEvent, {
+        status: result.status,
+        body: result.body,
+      }, { maxFrameBytes: streamMaxResultFrameBytes });
+      if (!resultWrite.ok) {
+        terminalState = resultWrite.status === "frame_too_large" ? "failed" : "aborted";
+        const failureMap = {
+          frame_too_large: ["failed", "result_frame_too_large", "FRAME_TOO_LARGE"],
+          drain_timeout: ["failed", "stream_drain_timeout", "STREAM_DRAIN_TIMEOUT"],
+          write_failed: ["failed", "stream_write_failed", "STREAM_WRITE_FAILED"],
+          closed: ["client_aborted", "stream_write_closed", "STREAM_WRITE_CLOSED"],
+          aborted: ["client_aborted", "frame_write_aborted", "STREAM_WRITE_ABORTED"],
+        };
+        const [failureStatus, reason, errorCode] = failureMap[resultWrite.status] || ["failed", "stream_execution_failed", "STREAM_EXECUTION_FAILED"];
+        const failureEventId = reserveEventId();
+        persistStreamReceipt(makeReceipt({
+          eventId: failureEventId,
+          eventType: "stream_partial_failure",
+          status: failureStatus,
+          reason,
+          errorCode,
+          completedAtMs: Date.now(),
+        }));
+        if (!res.writableEnded) res.end();
+        return;
+      }
+
+      const completedAtMs = Date.now();
+      await writeReceiptEvent({
+        eventType: "stream_complete",
+        status: result.status >= 400 ? "failed" : "completed",
+        reason: result.status >= 400 ? "agent_execute_rejected" : "result_emitted",
+        completedAtMs,
+      });
+      terminalState = "completed";
+      if (!res.writableEnded) res.end();
+    } catch (e) {
+      const errorCode = String(e?.code || e?.name || "STREAM_EXECUTION_FAILED").slice(0, 80);
+      try {
+        if (!res.headersSent) {
+          return next(e);
+        }
+        if (!controller.signal.aborted && !res.writableEnded) {
+          await writeReceiptEvent({
+            eventType: "stream_error",
+            status: "failed",
+            reason: "stream_execution_failed",
+            errorCode,
+            completedAtMs: Date.now(),
+          });
+          res.end();
+        }
+      } catch {
+        // Best-effort SSE failure reporting only; the stable JSON route remains authoritative.
+      } finally {
+        terminalState = "failed";
+      }
+    }
+  });
+
+  app.delete("/agent/continuity", operatorControlAuthGuard, async (req, res, next) => {
     try {
       const result = await deleteClientContinuity({
         client_id: req.body?.client_id,
@@ -1357,7 +1675,7 @@ export async function createRuntime(opts = {}) {
     }
   });
 
-  app.get("/agent/continuity/export", async (req, res, next) => {
+  app.get("/agent/continuity/export", operatorControlAuthGuard, async (req, res, next) => {
     try {
       const result = exportClientContinuity({
         client_id: req.query?.client_id,
@@ -1372,7 +1690,7 @@ export async function createRuntime(opts = {}) {
     }
   });
 
-  app.post("/agent/continuity/prune", async (req, res, next) => {
+  app.post("/agent/continuity/prune", operatorControlAuthGuard, async (req, res, next) => {
     try {
       const result = await pruneClientContinuity();
       return res.json(result);
@@ -1395,7 +1713,17 @@ export async function createRuntime(opts = {}) {
     return res.status(500).json({ ok: false, error: "Internal server error" });
   });
 
-  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit, ingressGateway };
+  async function closeRuntime() {
+    for (const close of cleanupHooks.slice().reverse()) {
+      try {
+        await close();
+      } catch {
+        // Shutdown remains best effort for optional sidecars.
+      }
+    }
+  }
+
+  return { app, port, bindHost, redisReady, queuePrefix, redisUrl, authConfigured: Boolean(authToken), rateLimit, ingressGateway, close: closeRuntime };
 }
 
 export async function startServer(opts = {}) {
@@ -1410,7 +1738,10 @@ export async function startServer(opts = {}) {
     ...rt,
     server,
     boundPort,
-    stop: async () => new Promise((resolve) => server.close(() => resolve())),
+    stop: async () => {
+      await new Promise((resolve) => server.close(() => resolve()));
+      await rt.close?.();
+    },
   };
 }
 

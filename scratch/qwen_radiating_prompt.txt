@@ -1,0 +1,15 @@
+You are Qwen, a world-class senior systems developer specializing in codebase performance, caching logic, and concurrency.
+We are conducting Pass 2 (Radiating Outward) of the visual & UX audit for Project Dizzy.
+
+YOUR Target Files under Review:
+- lib/options_projection.mjs: Coordinate projection and MDS cache.
+- lib/dashboard.mjs: The server API endpoints.
+
+YOUR LENS: OPERATOR
+Examine runtime performance, caching efficiency, and concurrent API execution:
+1. Projection Caching: Review `lib/options_projection.mjs`. How is the coordinate mapping cached? Is the hash key generation collision-free? Does it prevent redundant MDS math overhead during map rendering?
+2. Event-Loop Blockers: Audit JSON serialization and file sync calls in `lib/dashboard.mjs`. Do endpoints like `/api/operator/consensus-map` block the Node event loop during high-speed query streams? How can we introduce async optimization?
+3. Concurrency Safety: Check how dynamic status calculations (hardware, consensus, sandbox) are processed. Suggest optimal asynchronous execution patterns to minimize latency.
+
+OUTPUT:
+Write your critique to reviews/qwen_radiating_critique.md. Keep it code-rich and performance-centric.

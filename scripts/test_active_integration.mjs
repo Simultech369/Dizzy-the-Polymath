@@ -19,6 +19,8 @@ import { isPrivateLanBackendHost } from "../lib/dispatch.mjs";
 
 console.log("Starting active integration tests...");
 
+const TEST_AUTH_TOKEN = "test-active-integration-token-32";
+
 // Ensure runtime directory exists
 fs.mkdirSync(path.join(process.cwd(), "runtime"), { recursive: true });
 // Define root disposable temp dir inside runtime directory
@@ -280,17 +282,19 @@ const { startServer } = await import("../agent_server.mjs");
 const started = await startServer({
   port: 0,
   rateLimitEnabled: false,
-  authTokenConfigured: false
+  authToken: TEST_AUTH_TOKEN,
 });
+const authJsonHeaders = {
+  "Content-Type": "application/json",
+  authorization: `Bearer ${TEST_AUTH_TOKEN}`,
+};
 
 try {
   // Test case 1: Ephemeral route receipt (should return receipt, but persisted is false)
   const ephemeralDiskBefore = snapshotDiskTree(DISPOSABLE_ROOT);
   const ephemeralRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: authJsonHeaders,
     body: JSON.stringify({
       brief: "Test ephemeral routing receipt validation request.",
       continuity_mode: "ephemeral"
@@ -315,9 +319,7 @@ try {
   // Test case 2: Client continuity route receipt (should return receipt, and persisted is true inside the conversation file)
   const clientRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: authJsonHeaders,
     body: JSON.stringify({
       brief: "Test client-persisted routing receipt validation request.",
       continuity_mode: "client",
@@ -346,9 +348,7 @@ try {
   // Test case 2b: Global audit receipt persistence (verifies writing to the global audit file when retention is local_conversation)
   const auditRes = await fetch(`http://127.0.0.1:${started.boundPort}/dispatch/incoming`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: authJsonHeaders,
     body: JSON.stringify({
       text: "hello local routing receipt check",
       channel: "local"
@@ -394,9 +394,7 @@ try {
     capturedMockRequest = null;
     const localRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: authJsonHeaders,
       body: JSON.stringify({
         brief: "Test local backend mapping validation request.",
         continuity_mode: "ephemeral"
@@ -423,9 +421,7 @@ try {
     process.env.OLLAMA_MODEL = "qwen2.5-coder:7b";
     const qwenRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: authJsonHeaders,
       body: JSON.stringify({
         brief: "Test local Qwen model routing risk validation request.",
         continuity_mode: "ephemeral"
@@ -442,9 +438,7 @@ try {
     process.env.OLLAMA_BASE_URL = "https://external-cloud-api-provider.com/v1";
     const secureExcRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: authJsonHeaders,
       body: JSON.stringify({
         brief: "Test secure host loopback constraint.",
         continuity_mode: "ephemeral"
@@ -459,9 +453,7 @@ try {
     process.env.DIZZY_ALLOW_LAN_LOCAL_BACKEND = "1";
     const wanOverrideRes = await fetch(`http://127.0.0.1:${started.boundPort}/agent/execute`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: authJsonHeaders,
       body: JSON.stringify({
         brief: "Test LAN override WAN blockade.",
         continuity_mode: "ephemeral"

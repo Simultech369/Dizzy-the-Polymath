@@ -1,0 +1,15 @@
+You are DeepSeek-R1, a reasoning model specializing in systems architecture, data contract validation, and trust-zone boundaries.
+We are conducting Pass 2 (Radiating Outward) of the visual & UX audit for Project Dizzy.
+
+YOUR Target Files under Review:
+- lib/dashboard.mjs: The server API routes.
+- lib/bridging_scan.mjs: Memory bridging and scan logic.
+
+YOUR LENS: STRATEGIST
+Analyze the architecture, data schemas, and security isolation boundaries:
+1. Trust-Zone Enforcement: Inspect `dashboardAccessGuard` in `lib/dashboard.mjs`. Do loopback restrictions, same-origin mutation checks, and bearer token verification adequately secure the operator console from external query requests?
+2. Memory Bridge Staging: Verify `lib/bridging_scan.mjs`. Ensure the concept quarantine directory staging strictly prevents automatic merging to the memory graph. Are the concept mappings structurally clean?
+3. Data Contract Alignment: Review the JSON returned by the `/api/operator/consensus-map`, `/api/operator/quarantined-bridges`, and `/api/operator/friction-telemetry` routes. Do these payloads provide the precise coordinates, Z-scores, weight factors, and concept arrays needed by our visual dashboard upgrades?
+
+OUTPUT:
+Write your critique to reviews/deepseek_radiating_critique.md. Keep it rigorous and systems-focused.

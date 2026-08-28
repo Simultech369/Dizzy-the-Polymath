@@ -1,0 +1,124 @@
+[
+  {
+    "opportunity": {
+      "schema_version": "dizzy.job_board_ingress.v1",
+      "opportunity_id": "mock_123",
+      "board_source": "ethereum_jobs",
+      "company": "Mock ZK Protocol",
+      "title": "Senior ZK-SNARK Solidity Dev ($100,000 bounty)",
+      "role_type": "contract_bounty",
+      "claimability_state": "open_unassigned",
+      "location": "Remote",
+      "salary_or_payout": "$100,000",
+      "payout_usd_est": 100000,
+      "technical_domains": [
+        "ZK_PRIVACY",
+        "SMART_CONTRACTS_EVM"
+      ],
+      "skill_tags": [
+        "zero-knowledge",
+        "zk-snark",
+        "circom",
+        "solidity"
+      ],
+      "proof_requirements": [],
+      "alignment_score": 0.7,
+      "sanitized_description": "We are looking for a dev to write zero-knowledge proofs using circom and solidity for our new protocol.",
+      "source_url": "https://example.com/bounty",
+      "payload_sha256": "74304E8DB1DF50E50A6A5E99EE21ECB8A50DA5DF3B190AE7C820C1ACA65D54B0",
+      "ingested_at": "2026-08-28T03:09:21.738Z"
+    },
+    "envelope": {
+      "schema_version": "dizzy.bounty_a2a_ingest.v1",
+      "envelope": {
+        "schema_version": "dizzy.a2a_message.v1",
+        "message_id": "a2a_bounty_ingest_task_mock_123",
+        "sender_id": "job_board_scanner",
+        "recipient_id": "oss_council",
+        "message_type": "bounty_alert",
+        "trust_zone": "trusted_collaborator",
+        "priority": "high",
+        "parent_task_id": "task_mock_123",
+        "payload": {
+          "schema_version": "dizzy.bounty_a2a_ingest.v1",
+          "bounty_task": {
+            "schema_version": "dizzy.bounty_task.v1",
+            "bounty_id": "task_mock_123",
+            "title": "Mock ZK Protocol: Senior ZK-SNARK Solidity Dev ($100,000 bounty)",
+            "sanitized_description": "We are looking for a dev to write zero-knowledge proofs using circom and solidity for our new protocol.",
+            "platform": "ethereum_jobs",
+            "repository": "target/mock-zk-protocol",
+            "source_url": "https://example.com/bounty",
+            "role_type": "contract_bounty",
+            "claimability_state": "open_unassigned",
+            "proof_requirements": [],
+            "required_stack": [
+              "zero-knowledge",
+              "zk-snark",
+              "circom",
+              "solidity"
+            ],
+            "test_command": "npm test",
+            "payout_usd": 100000,
+            "difficulty": "hard",
+            "target_files": [
+              "README.md"
+            ],
+            "payload_sha256": "F4F36D4F0A8895A5C669D770AB2897F09341230BFB13BC6C1597E21B155704EA",
+            "parsed_at": "2026-08-28T03:09:21.739Z"
+          },
+          "triage_receipt": {
+            "schema_version": "dizzy.bounty_triage_receipt.v1",
+            "payout_usd": 100000,
+            "difficulty": "hard",
+            "has_reproduction_tests": true,
+            "solve_probability": 0.48,
+            "estimated_cost_usd": 0.15,
+            "expected_value_usd": 47999.85,
+            "recommendation": "DISPATCH",
+            "triaged_at": "2026-08-28T03:09:21.739Z"
+          },
+          "state_machine": {
+            "recommended_runbook_name": "bounty-solve-task_mock_123",
+            "lifecycle": [
+              "plan",
+              "execute",
+              "verify",
+              "handoff"
+            ],
+            "execute_verify_repair_loop": true,
+            "verify_before_handoff": true,
+            "max_auto_repair_cycles": 3
+          },
+          "council_directives": {
+            "economic_triage": "required_before_expensive_model_dispatch",
+            "asymmetric_deliberation": {
+              "builder_lane": "minimal_clean_room_patch",
+              "breaker_lane": "hostile_edge_case_and_regression_tests"
+            },
+            "ingress_scrubbing": "sanitize_untrusted_text_before_context_entry",
+            "clean_room_sealing": "required_before_submission_packet"
+          },
+          "proof_boundaries": [
+            "board_scan_is_not_live_coverage_without_current_scan_receipt",
+            "handoff_is_blocked_until_verification_passes",
+            "public_submission_requires_operator_approval",
+            "private_memory_must_not_enter_public_packets"
+          ],
+          "operator_approval_required_for": [
+            "public_submission",
+            "claiming_bounty",
+            "maintainer_outreach",
+            "external_broadcast"
+          ],
+          "notes": ""
+        },
+        "payload_sha256": "0661C2E56FB01A5FFC5BE39CE84C1BCB3EA3BE2C6FBE01B3138795D01EB08A59",
+        "created_at": "2026-08-28T03:09:21.740Z"
+      },
+      "payload_sha256": "0661C2E56FB01A5FFC5BE39CE84C1BCB3EA3BE2C6FBE01B3138795D01EB08A59",
+      "ingest_contract_sha256": "8CFF1A5B30E91F5545324978AC3159B32A1D6F299B558105A86A8CE3D8C9AF3A",
+      "created_at": "2026-08-28T03:09:21.740Z"
+    }
+  }
+]

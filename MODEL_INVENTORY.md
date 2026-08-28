@@ -157,3 +157,46 @@ Harnesses are not voting model weights; they operate as specialized subsystem dr
 | 🐜 **InclusionAI / Ling-3.0** (`inclusionAI`) | Sub-Second Janitor & Local Classifier | Ultra-lightweight open-source models (`Ling-3.0-tiny`, `Ling-3.0-flash`) for instant pre-route sanitization, diff chunk classification, and context budgeting. |
 | 🎙️ **InclusionAI / Ming-omni-tts** | Air-Gapped Audio Synthesizer | Local, zero-data-retention speech synthesis engine for Dizzy's voice channel (`TOOLS.md`), eliminating external cloud TTS API dependencies. |
 | 👁️ **InclusionAI / LLaDA2.0-Uni** | Multimodal & Visual QC | Diffusion-based large language model for evaluating dashboard layout symmetry, visual diagram truth, and SVG rendering in `eval:anti-slop-visual`. |
+
+
+## 5. Active Model Capability Matrix (Auto-Generated)
+
+*Generated at: 2026-08-27T16:05:51.025Z*
+
+| Model | Provider | Boundary | Installed | Callable | JSON Usable | Status |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| `cerebras/qwen-2.5-coder-32b` | cerebras | trusted_collaborator | ❌ | ❌ | ❌ | unproven_requires_adapter_and_key |
+| `claude-fable-5` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `claude-opus-4-8` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `claude-sonnet-5` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `command-a-plus-05-2026` | cohere | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `deepseek-r1:1.5b` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `deepseek-r1:7b` | ollama | private_self | ✅ | ✅ | ✅ | profile_configured |
+| `deepseek-v4-flash` | deepseek | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `deepseek-v4-pro` | deepseek | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `gemini-3.1-pro-preview` | google | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `gemma3:12b` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `gemma3:4b` | ollama | private_self | ✅ | ✅ | ✅ | profile_configured |
+| `glm-5.2` | openrouter | public_free | ❌ | ❌ | ❌ | unverified_candidate |
+| `glm4:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `gpt-5.5` | openai | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `grok-4.5` | xai | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `leanstral-1.5` | mistral | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `liquid/lqc-3b-v0.1:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `llama-3.1-8b-instant` | groq | trusted_collaborator | ❌ | ✅ | ✅ | tested_available |
+| `llama-3.3-70b-versatile` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `llama-audit:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `minimax-m3` | minimax | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `mistral-medium-3.5` | mistral | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `mistral:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `moonshotai/kimi-k2.7-code:batch` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `muse-glimmer:latest` | ollama | private_self | ❌ | ❌ | ❌ | unverified_candidate |
+| `north-mini-code` | cohere | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `nvidia/llama-3.1-nemotron-70b-instruct:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `openai/gpt-oss-120b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `openai/gpt-oss-20b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `qwen/qwen-2.5-coder-32b-instruct:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `qwen/qwen3.6-27b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `qwen2.5-coder:7b` | ollama | private_self | ❌ | ✅ | ✅ | tested_available |
+| `qwen3.6-35b-a3b` | groq | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `thudm/glm-4-9b-chat:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |

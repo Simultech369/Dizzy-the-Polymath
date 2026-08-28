@@ -744,6 +744,7 @@ Rationale:
 
 Consequences:
 - `lib/sqlite_operational_store.mjs` is exercised by safety tests but is not opened by the live server or worker.
+- `lib/structural_query_cache.mjs` is a narrow dashboard-query sidecar only: it stores minimized structural projections keyed by trust zone, retention scope, prompt/config hash, markdown source signature, and hashed partition, and it degrades to recomputation when unavailable.
 - Promotion requires an explicit follow-up decision after the next independent review.
 - The database file must remain on the same host and must not be placed on a network filesystem.
 
@@ -854,6 +855,27 @@ Consequences:
 - Review loops must expose their allowed state transitions and authority boundary.
 - Pushes, merges, publication, and equivalent boundary actions remain Simul-gated.
 - Autonomy language in prompts, fine-tuning data, docs, and dashboards should be read through this bounded runtime meaning.
+
+---
+
+### D-0042: Streaming receipts are evidence, not the data plane
+
+Decision:
+- Add `/agent/execute/stream` as an authenticated SSE execution surface beside the stable JSON `/agent/execute` route.
+- Keep streamed result data and stream receipts separate. Result events may carry the connected client's execution response; receipts must store only hashes, structural keys, frame counts, byte counts, event IDs, reason codes, and timing.
+- Compose client disconnect aborts into OpenAI-compatible and Gemini provider calls while preserving provider timeout diagnostics as a separate condition.
+- Use bounded backpressure waits and terminal partial-failure/disconnect receipts rather than letting long-lived responses hang without evidence.
+- Do not claim WebSocket support until a WebSocket route, dependency, replay contract, and tests are explicitly added.
+
+Rationale:
+- Streaming is a transport reliability feature, not a new authority source or memory channel.
+- Long-lived HTTP responses need deterministic evidence for partial failure, slow clients, and disconnects without copying prompt or model output into logs.
+- SSE covers the current browser/operator need with the existing Express stack; adding WebSockets should be a separate API decision.
+
+Consequences:
+- `DIZZY_STREAM_RECEIPT_PATH`, `DIZZY_STREAM_RETRY_MS`, `DIZZY_STREAM_MAX_EVENT_BYTES`, `DIZZY_STREAM_MAX_RESULT_EVENT_BYTES`, and `DIZZY_STREAM_DRAIN_TIMEOUT_MS` control the SSE surface.
+- `scripts/streaming_response_test.mjs` is the focused deterministic gate for route shape, receipt privacy, backpressure/abort behavior, partial-failure receipts, and slow-provider cancellation.
+- `Last-Event-ID` is hashed into receipts for traceability, but full data-plane replay remains future work.
 
 ---
 

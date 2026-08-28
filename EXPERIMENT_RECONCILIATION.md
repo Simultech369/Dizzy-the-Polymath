@@ -13,7 +13,31 @@ This file records reconciliation intent. It does not change runtime behavior, co
 - Experimental baseline reviewed before promotion batch: `6e77928e7a4a8b0d8facfba4835f11590c23ffb4`
 - The experimental branch must not be merged wholesale.
 - Experimental work remains non-authoritative until promoted through a focused commit with tests.
-- Keep exactly two active branches: `main` and `experiments`. Preserve obsolete unique history as archive tags rather than active branches.
+- The old working model was two long-lived branches: `main` and `experiments`. That model is useful only if `experiments` stays a real proving lane with documented extraction gates, not a stale attic.
+- Preserve obsolete unique history as archive tags rather than active branches.
+
+## Branch Policy Rationale
+
+The two-branch idea exists to separate proof-bearing runtime from risky exploration:
+
+- `main` should contain accepted mechanisms with focused tests and current documentation.
+- `experiments` can hold broader trials, branchy design work, and uncertain mechanisms while they are still being compared.
+- Feature or staging branches such as W-0066/W-0068 can still exist temporarily for PR-sized promotion work, but they should not quietly become extra long-lived defaults.
+
+How `experiments` has helped so far:
+
+- It let BM25 retrieval be extracted as a focused mechanism instead of merging a broader experiment wholesale.
+- It held dashboard and memory experiments long enough to identify safer route/data-access contracts before promotion.
+- It preserved root-document migration work such as `HEARTBEAT.md` retirement and the interaction-norm rename while compatibility checks matured.
+- It absorbed paid/public prompt-boundary and retrieval-boundary hardening before those claims were treated as runtime doctrine.
+- It provided a place to remove or test dependency changes, including ChromaDB/Puppeteer removal and lockfile vulnerability upgrades, without conflating cleanup with mainline behavior.
+
+Current decision point:
+
+- **Explicit Branch Policy Decision (2026-08-27)**: The `experiments` branch is officially retired in favor of short-lived feature branches (`feat/*`, `fix/*`) and explicit review packets (like the W-0068 triage mechanism). It contained no unique commits relative to `main` and has been deleted.
+- `feat/w0066-router-core` was superseded by W-0068; its unique history was preserved as `archive/feat-w0066-router-core` before deletion.
+- `codex/*` scratch branches have been deleted to clean up the repository.
+- `main` remains the stable authority. `feat/dizzy-general-distro` is the active staging/PR branch.
 
 ## Promotion Rule
 
@@ -260,7 +284,7 @@ Implemented on `main`: `npm run check:next` and `npm run maintain` warn when an 
 
 ## Additional Radar
 
-- Local and remote branch inventories contain only `main` and `experiments`.
+- Latest live remote branch inventory observed by Codex on 2026-08-25 contained `main`, `experiments`, `feat/dizzy-general-distro`, and `feat/w0066-router-core`; classify those as stable, experiment, staging/PR, or obsolete before any cleanup.
 - Unique pre-sync history is preserved in `archive/*` tags, not active branches.
 - Boundary audit hardening from `main` is present in `experiments`.
 - CI runs the full maintenance suite for pull requests and pushes to both active branches.
