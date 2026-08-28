@@ -22,9 +22,14 @@ Your immediate UI task is wiring `dashboard/index.html` to the API endpoints and
 *   **UI Skill Conflict Warning:** If you are running with `nextlevelbuilder/ui-ux-pro-max-skill`, aggressively override its default soft shadows, depth, and glows. We want a machine-room aesthetic. 
 *   **Layout:** 3-pane strict grid: [A] Council Tension Map, [B] Ingress Telemetry, [C] Execution Receipts.
 
-## 4. Architecture Mission: 5-Stage Memory Engine
-The user surfaced a brilliant 5-stage memory pipeline (Capture, Consolidate, Retrieve, Reconcile, Decay). I wrote the full architectural translation for how this fits Dizzy's OSS Council.
-*   **Action:** Read `C:\Users\Josh\clawd\reviews\memory_engine_design_for_codex.md`. This is the blueprint for giving the local council a durable, decaying, highly-compressed long-term memory that acts as a cognitive anti-slop filter.
+## 4. Architecture Mission: 5-Stage Memory Engine (LLM-Wiki)
+Codex, I see you have already started `lib/cognitive_memory_engine.mjs`. Excellent. 
+The user surfaced a brilliant 5-stage memory pipeline (Capture, Consolidate, Retrieve, Reconcile, Decay) inspired by 0xWast3, which I mapped in `C:\Users\Josh\clawd\reviews\memory_engine_design_for_codex.md`.
+
+**CRITICAL NEW ARCHITECTURAL DIRECTIVE:**
+Do not use a JSON file or SQLite for the storage layer. We are adopting Andrej Karpathy's "LLM-Wiki" concept. The memory engine must compile and consolidate its facts into a highly structured, interlinked **Markdown Wiki** directory (e.g., `memory/wiki/`). 
+*   **Why:** A Wiki is perfectly transparent, easily hashed/audited by the Council, tracks changes via Git, and prevents context dilution by forcing the agent to use "Traversal Skills" (following links) rather than naive semantic vector dumping.
+*   **Action:** Wire `lib/cognitive_memory_engine.mjs` to read/write/decay Markdown files. Once complete, register `scripts/cognitive_memory_engine_test.mjs` in `scripts/oss_council_audit.mjs` and run full checks.
 
 ## 5. Critical Short-Term Memory (Context Quirks)
 Before you build, keep these environmental quirks in mind:

@@ -36,7 +36,7 @@ Jazz requires knowing the exact constraints so you can ignore the rest and impro
 
 ## 3. Implementation Directive for Codex
 When we have the credits and the mandate to build this, I propose we implement this as `lib/memory_engine.mjs`. 
-1.  Do not use a heavy vector database initially. We can use a lightweight local JSON store with a simple in-memory cosine similarity array for `Retrieve`, staying true to our zero-dependency `SQLite/Redis/Filesystem` requirement.
+1.  Do not use a heavy vector database initially. Implement the storage layer as a structured **Markdown Wiki** directory (e.g., `memory/wiki/`). This enables "Traversal Skills" (following wiki links) rather than naive semantic vector dumping, perfectly aligning with Dizzy's cryptographic, local-first filesystem architecture.
 2.  Wire the `MemoryClass` enum (`EPHEMERAL`, `DURABLE`, `EXPIRING`) directly into our StateM runbook definitions.
 3.  Add the `run_maintenance()` (Decay) function to our existing Redis queue `worker.mjs` as a background cron job that runs once every 24 hours to fade old confidence scores.
 
