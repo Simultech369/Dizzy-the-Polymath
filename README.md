@@ -119,9 +119,9 @@ This Council separates model availability into explicit trust zones, determinist
                ▼                                                                     ▼
  ┌───────────────────────────┐                                         ┌───────────────────────────┐
  │ 🔴 ADVERSARIAL RED-TEAM   │                                         │ 🟢 QUALIFIED VOTER SEATS  │
- │ • Jiunsong SuperGemma     │                                         │ • Qwen-3.8 / Qwen2.5-Coder│
- │ • Jiunsong SuperDeepSeek  │                                         │ • GLM-5.3 / GLM-4         │
- │   (Uncensored GGUFs)      │                                         │ • Mistral Lineage         │
+ │ • Exploratory Breaker     │                                         │ • Formal Logic Arbiter    │
+ │ • Edge-Case Generator     │                                         │ • Syntax & AST Reviewer   │
+ │   (Unconstrained Logic)   │                                         │ • Security Policy Guardian│
  └─────────────┬─────────────┘                                         └─────────────┬─────────────┘
                │                                                                     │
                ▼                                                                     ▼
