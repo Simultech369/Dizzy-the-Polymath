@@ -103,9 +103,11 @@ npm run test:job-board-scanner
 npm run check:pattern-provenance
 ```
 
-## Dual-Chain Model Council & 4-Gate Pipeline
+## The Paranoia Engine: OSS Model Council
 
-Dizzy separates model availability into explicit trust zones, deterministic qualification gates, and dual-chain verification:
+Dizzy is not a standard chat bot; it is a strictly-gated state machine. To ensure it never acts unpredictably, all critical decisions and logic changes must pass through a local **OSS Model Council**. 
+
+This Council separates model availability into explicit trust zones, deterministic qualification gates, and dual-chain verification:
 
 ```
                               ┌────────────────────────────────────────┐
@@ -129,8 +131,13 @@ Dizzy separates model availability into explicit trust zones, deterministic qual
  └───────────────────────────┘                                         └───────────────────────────┘
 ```
 
+### Qualification & Integration
+
+Before any model is allowed to operate within Dizzy, it must prove its reliability:
 - **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
-- **Sovereign Satellites & Ecosystem Integrations**: Native interoperability with `Gitlawb/zero` (decentralized commit signing), `Gitlawb/openclaude` (consensus coordination seat), `freecodexyz/free-code` (zero-telemetry pairing CLI), and `InclusionAI` (`Ling-3.0`, `Ming-omni-tts`, `LLaDA2.0-Uni`).
+
+As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
+- **Ecosystem Integrations (Sovereign Satellites)**: Dizzy provides native interoperability with local-first tools like `Gitlawb/zero` (decentralized commit signing), `Gitlawb/openclaude` (consensus coordination), `freecodexyz/free-code` (zero-telemetry pairing CLI), and `InclusionAI` models (`Ling-3.0`, `Ming-omni-tts`, `LLaDA2.0-Uni`).
 - **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
