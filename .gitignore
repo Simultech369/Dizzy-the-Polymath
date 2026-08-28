@@ -30,3 +30,4 @@ codex-bench-tools-py/
 codex-bench-tools-w64/
 codex-bench-run/
 .extraction/
+*.index
