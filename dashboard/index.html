@@ -3,29 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dizzy — Drift & Memory Dashboard</title>
+  <title>Dizzy - Drift & Memory Dashboard</title>
   <style>
     :root {
       --bg-color: #06080d;
       --card-bg: rgba(11, 16, 28, 0.82);
       --card-bg-hover: rgba(16, 23, 40, 0.92);
       --border-color: rgba(69, 243, 255, 0.16);
-      --border-color-glow: rgba(69, 243, 255, 0.45);
+      --border-color-strong: rgba(69, 243, 255, 0.45);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       
-      /* Dizzy Identity Palette: Obsidian + Jazz Cyan + Warm Amber */
+      /* Operational signal palette: obsidian, cyan, amber, green, red, violet. */
       --cyan: #45f3ff;
-      --cyan-glow: rgba(69, 243, 255, 0.28);
       --amber: #ffb703;
-      --amber-glow: rgba(255, 183, 3, 0.28);
       --emerald: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.28);
       --rose: #f43f5e;
-      --rose-glow: rgba(244, 63, 94, 0.28);
       --purple: #a855f7;
-      --purple-glow: rgba(168, 85, 247, 0.28);
     }
 
     * {
@@ -55,25 +50,13 @@
       color: var(--text-main);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       min-height: 100vh;
-      background-image: 
-        radial-gradient(circle at 12% 12%, rgba(69, 243, 255, 0.10) 0%, transparent 40%),
-        radial-gradient(circle at 88% 88%, rgba(255, 183, 3, 0.08) 0%, transparent 40%),
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
       padding: 1.75rem 2.25rem;
       line-height: 1.5;
-      animation: fadeInPage 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes fadeInPage {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     h1, h2, h3, .control-heading {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      letter-spacing: -0.025em;
+      letter-spacing: 0;
     }
 
     /* Top Control Header */
@@ -97,10 +80,9 @@
     .logo-mark {
       width: 44px;
       height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(69, 243, 255, 0.2), rgba(255, 183, 3, 0.2));
+      border-radius: 8px;
+      background: rgba(69, 243, 255, 0.10);
       border: 1px solid var(--cyan);
-      box-shadow: 0 0 15px var(--cyan-glow);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -144,14 +126,13 @@
       font-weight: 600;
       font-family: 'JetBrains Mono', monospace;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0;
     }
 
     .badge-primary {
       background: rgba(69, 243, 255, 0.12);
       color: var(--cyan);
       border: 1px solid rgba(69, 243, 255, 0.3);
-      box-shadow: 0 0 10px var(--cyan-glow);
     }
 
     .badge-emerald {
@@ -178,18 +159,11 @@
       border: 1px solid rgba(168, 85, 247, 0.35);
     }
 
-    .pulse-dot {
+    .status-dot {
       width: 7px;
       height: 7px;
-      border-radius: 50%;
+      border-radius: 2px;
       background-color: currentColor;
-      box-shadow: 0 0 8px currentColor;
-      animation: pulse-glow 2s infinite ease-in-out;
-    }
-
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     /* Grid Layout */
@@ -205,20 +179,18 @@
       }
     }
 
-    /* Glassmorphic Cards */
+    /* Panels */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 14px;
+      border-radius: 8px;
       padding: 1.5rem;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.6);
-      transition: border-color 0.25s, box-shadow 0.25s;
+      transition: border-color 0.2s, background-color 0.2s;
     }
 
     .card:hover {
-      border-color: var(--border-color-glow);
-      box-shadow: 0 14px 40px -10px rgba(69, 243, 255, 0.08);
+      background: var(--card-bg-hover);
+      border-color: var(--border-color-strong);
     }
 
     .card-title {
@@ -235,7 +207,7 @@
 
     /* Buttons & Interactive Elements */
     .btn {
-      background: linear-gradient(135deg, rgba(69, 243, 255, 0.18), rgba(69, 243, 255, 0.08));
+      background: rgba(69, 243, 255, 0.10);
       color: var(--cyan);
       border: 1px solid rgba(69, 243, 255, 0.4);
       border-radius: 8px;
@@ -244,7 +216,7 @@
       font-size: 0.875rem;
       font-family: 'Inter', sans-serif;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -252,10 +224,8 @@
     }
 
     .btn:hover {
-      background: linear-gradient(135deg, rgba(69, 243, 255, 0.3), rgba(69, 243, 255, 0.15));
+      background: rgba(69, 243, 255, 0.18);
       border-color: var(--cyan);
-      box-shadow: 0 0 16px var(--cyan-glow);
-      transform: translateY(-1px);
     }
 
     .btn-secondary {
@@ -267,7 +237,6 @@
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.25);
-      box-shadow: none;
     }
 
     .btn-danger {
@@ -279,7 +248,6 @@
     .btn-danger:hover {
       background: rgba(244, 63, 94, 0.25);
       border-color: var(--rose);
-      box-shadow: 0 0 16px var(--rose-glow);
     }
 
     .btn-success {
@@ -291,7 +259,6 @@
     .btn-success:hover {
       background: rgba(16, 185, 129, 0.25);
       border-color: var(--emerald);
-      box-shadow: 0 0 16px var(--emerald-glow);
     }
 
     .btn-small {
@@ -318,7 +285,7 @@
       font-size: 0.9rem;
       border-radius: 8px;
       border: 1px solid transparent;
-      transition: all 0.2s;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
       white-space: nowrap;
     }
 
@@ -331,7 +298,6 @@
       color: var(--cyan);
       background: rgba(69, 243, 255, 0.08);
       border-color: rgba(69, 243, 255, 0.25);
-      box-shadow: 0 0 12px rgba(69, 243, 255, 0.1);
     }
 
     .tab-content {
@@ -369,13 +335,13 @@
     .doc-item {
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 1rem;
-      transition: transform 0.2s, border-color 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     .doc-item:hover {
-      transform: translateY(-1px);
+      background: rgba(16, 23, 40, 0.60);
       border-color: rgba(69, 243, 255, 0.3);
     }
 
@@ -445,12 +411,12 @@
       font-size: 0.95rem;
       font-family: 'Inter', sans-serif;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     .search-input:focus {
       border-color: var(--cyan);
-      box-shadow: 0 0 12px var(--cyan-glow);
+      background: rgba(0, 0, 0, 0.45);
     }
 
     /* Tables */
@@ -472,7 +438,7 @@
       font-size: 0.8rem;
       font-family: 'JetBrains Mono', monospace;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
     }
 
     .results-table td {
@@ -495,7 +461,7 @@
     .console-panel {
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 1.1rem;
       min-width: 0;
     }
@@ -521,7 +487,7 @@
       font-size: 0.75rem;
       font-family: 'JetBrains Mono', monospace;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
     }
 
     .console-input,
@@ -636,33 +602,27 @@
       width: 100%;
       height: 90px;
       background: rgba(0, 0, 0, 0.4);
-      border-radius: 10px;
+      border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0.5rem;
     }
 
     .chain-node-circle {
-      transition: fill 0.3s, stroke 0.3s, filter 0.3s;
+      transition: fill 0.2s, stroke 0.2s;
     }
 
     .chain-connection-line {
       stroke-dasharray: 8;
-      animation: dash-pulse 20s linear infinite;
-    }
-
-    @keyframes dash-pulse {
-      to { stroke-dashoffset: -1000; }
     }
 
     .consensus-coordinate-container {
       position: relative;
       width: 100%;
       height: 180px;
-      background: radial-gradient(circle, rgba(13, 18, 30, 0.95) 0%, rgba(5, 7, 12, 0.98) 100%);
-      border: 1px solid rgba(69, 243, 255, 0.2);
-      border-radius: 10px;
+      background: #05070c;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
       overflow: hidden;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
       margin-bottom: 1rem;
     }
 
@@ -672,10 +632,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: 
-        linear-gradient(rgba(69, 243, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(69, 243, 255, 0.04) 1px, transparent 1px);
-      background-size: 20px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     /* Interactive Chat Styles */
@@ -685,7 +642,7 @@
       height: 580px;
       background: rgba(5, 7, 12, 0.6);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 8px;
       overflow: hidden;
     }
 
@@ -726,16 +683,10 @@
 
     .chat-bubble {
       max-width: 85%;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 0.9rem 1.1rem;
       line-height: 1.55;
       font-size: 0.92rem;
-      animation: fadeIn 0.25s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     .assistant-bubble {
@@ -743,15 +694,13 @@
       background: rgba(18, 25, 42, 0.85);
       border: 1px solid rgba(69, 243, 255, 0.25);
       color: var(--text-main);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
 
     .user-bubble {
       align-self: flex-end;
-      background: linear-gradient(135deg, rgba(69, 243, 255, 0.2), rgba(69, 243, 255, 0.08));
+      background: rgba(69, 243, 255, 0.12);
       border: 1px solid rgba(69, 243, 255, 0.4);
       color: #ffffff;
-      box-shadow: 0 4px 16px rgba(69, 243, 255, 0.08);
     }
 
     .chat-bubble-header {
@@ -803,13 +752,13 @@
     .suggestion-chip {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
+      border-radius: 8px;
       padding: 0.3rem 0.8rem;
       font-size: 0.78rem;
       color: var(--text-muted);
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
     }
 
     .suggestion-chip:hover {
@@ -840,12 +789,12 @@
       resize: none;
       max-height: 120px;
       line-height: 1.4;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     .chat-textarea:focus {
       border-color: var(--cyan);
-      box-shadow: 0 0 12px var(--cyan-glow);
+      background: rgba(0, 0, 0, 0.48);
     }
 
     .node-tooltip {
@@ -862,7 +811,6 @@
       opacity: 0;
       transition: opacity 0.25s ease;
       color: var(--text-main);
-      backdrop-filter: blur(8px);
       z-index: 10;
     }
 
@@ -878,20 +826,20 @@
       <div>
         <div class="logo-title">
           Dizzy Operational Surface
-          <span class="badge badge-primary"><span class="pulse-dot"></span>W-0066 ISOLATED</span>
+          <span class="badge badge-primary"><span class="status-dot"></span>W-0066 ISOLATED</span>
         </div>
         <div class="title-sub">Local Trust Zone &bull; Epistemic Memory &bull; Subprocess Verification</div>
       </div>
     </div>
     <div class="header-actions">
       <button class="btn btn-secondary btn-small" id="btn-download-audit-report">
-        📥 Audit Report
+        Download Audit Report
       </button>
       <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; cursor: pointer; user-select: none; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
         <input type="checkbox" id="dev-mode-checkbox" style="accent-color: var(--cyan);">
         Dev Mode
       </label>
-      <span class="badge badge-emerald"><span class="pulse-dot"></span>Runtime Online</span>
+      <span class="badge badge-amber" id="runtime-status-badge"><span class="status-dot"></span>Checking Local Runtime</span>
     </div>
   </header>
 
@@ -900,7 +848,7 @@
     <div class="card">
       <div class="card-title">
         <span>Prompt Pack Config</span>
-        <span class="badge badge-primary" id="active-pack">Loading...</span>
+        <span class="badge badge-primary" id="active-pack">Awaiting data</span>
       </div>
       <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
         Active constitutional boundaries and runtime prompt packs loaded from workspace:
@@ -913,12 +861,12 @@
     <!-- Main Content Area -->
     <div class="card">
       <div class="tab-container">
-        <div class="tab active" data-tab-target="tab-chat">💬 Interactive Chat</div>
-        <div class="tab" data-tab-target="tab-memory">🧠 Memory Database</div>
-        <div class="tab" data-tab-target="tab-search">🔍 Sieve Retrieval Tester</div>
-        <div class="tab" data-tab-target="tab-console">⚡ Operator Console</div>
-        <div class="tab" data-tab-target="tab-governance">🛡️ Governance &amp; Routing</div>
-        <div class="tab" data-tab-target="tab-receipts">📊 Receipts &amp; Observability</div>
+        <div class="tab active" data-tab-target="tab-chat">Interactive Chat</div>
+        <div class="tab" data-tab-target="tab-memory">Memory Database</div>
+        <div class="tab" data-tab-target="tab-search">Sieve Retrieval Tester</div>
+        <div class="tab" data-tab-target="tab-console">Operator Console</div>
+        <div class="tab" data-tab-target="tab-governance">Governance &amp; Routing</div>
+        <div class="tab" data-tab-target="tab-receipts">Receipts &amp; Observability</div>
       </div>
 
       <!-- Tab 0: Interactive Chat Surface -->
@@ -926,9 +874,9 @@
         <div class="chat-container">
           <div class="chat-header">
             <div class="chat-title">
-              <span class="pulse-dot" style="color: var(--cyan);"></span>
+              <span class="status-dot" style="color: var(--cyan);"></span>
               <span>Dizzy Live Operator Chat</span>
-              <span class="badge badge-primary" id="chat-backend-badge">LOCAL / GEMMA 3</span>
+              <span class="badge badge-amber" id="chat-backend-badge">Route unverified</span>
             </div>
             <div class="chat-controls">
               <button class="btn btn-secondary" id="chat-clear-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Thread</button>
@@ -940,19 +888,19 @@
               <div class="chat-bubble-header">
                 <span class="avatar-badge">DZ</span>
                 <span class="speaker-name">Dizzy</span>
-                <span class="bubble-timestamp">Online</span>
+                <span class="bubble-timestamp">Local surface</span>
               </div>
               <div class="chat-bubble-body">
-                Greetings. I am online and operating under Bounded Sovereignty (<code>private_self</code> trust zone). How can I assist you with local model routing, system governance, or task execution today?
+                Local operator surface loaded. Route health and model dispatch remain unverified until the local API responds.
               </div>
             </div>
           </div>
 
           <div class="chat-suggestions">
-            <button class="suggestion-chip" data-prompt="Summarize recent work and active queue in NEXT.md">📋 Summarize NEXT.md</button>
-            <button class="suggestion-chip" data-prompt="Audit trust zone boundaries and memory decay rules">🛡️ Audit Memory Rules</button>
-            <button class="suggestion-chip" data-prompt="Explain W-0066 fail-closed dynamic router isolation">⚡ Explain W-0066 Router</button>
-            <button class="suggestion-chip" data-prompt="Check system health and hardware status">💻 Check Status</button>
+            <button class="suggestion-chip" data-prompt="Summarize recent work and active queue in NEXT.md">Summarize NEXT.md</button>
+            <button class="suggestion-chip" data-prompt="Audit trust zone boundaries and memory decay rules">Audit Memory Rules</button>
+            <button class="suggestion-chip" data-prompt="Explain W-0066 fail-closed dynamic router isolation">Explain W-0066 Router</button>
+            <button class="suggestion-chip" data-prompt="Check system health and hardware status">Check Status</button>
           </div>
 
           <div class="chat-input-row">
@@ -1066,7 +1014,7 @@
               </thead>
               <tbody id="console-records-body">
                 <tr>
-                  <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading records...</td>
+                  <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Awaiting records...</td>
                 </tr>
               </tbody>
             </table>
@@ -1088,18 +1036,18 @@
                   <div class="bar-container" style="width: 140px; height: 12px;">
                     <div id="memory-bar-fill" class="bar-fill" style="width: 0%; background: var(--emerald);"></div>
                   </div>
-                  <span id="memory-val" class="metric-value">Loading...</span>
+                  <span id="memory-val" class="metric-value">Awaiting telemetry</span>
                 </div>
               </div>
               
               <div class="metric-row">
                 <span class="metric-label">Active Model Route:</span>
-                <span id="active-model-route" class="badge badge-primary">Loading...</span>
+                <span id="active-model-route" class="badge badge-primary">Awaiting data</span>
               </div>
 
               <div class="metric-row dev-only">
                 <span class="metric-label">Routing Basis:</span>
-                <span id="active-routing-basis" style="color: var(--text-muted); font-size: 0.825rem; font-family: 'JetBrains Mono', monospace;">Loading...</span>
+                <span id="active-routing-basis" style="color: var(--text-muted); font-size: 0.825rem; font-family: 'JetBrains Mono', monospace;">Awaiting telemetry</span>
               </div>
 
               <div class="metric-row dev-only">
@@ -1108,7 +1056,7 @@
                   <div class="bar-container" style="width: 140px; height: 12px;">
                     <div id="compression-bar-fill" class="bar-fill" style="width: 0%; background: var(--cyan);"></div>
                   </div>
-                  <span id="compression-val" class="metric-value">Loading...</span>
+                  <span id="compression-val" class="metric-value">Awaiting telemetry</span>
                 </div>
               </div>
             </div>
@@ -1124,15 +1072,6 @@
               <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
                 <span class="metric-label">Multi-Agent Validator Signing Chain:</span>
                 <svg class="validator-chain-svg" viewBox="0 0 400 80">
-                  <defs>
-                    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
                   <line x1="80" y1="40" x2="200" y2="40" stroke="rgba(69, 243, 255, 0.2)" stroke-width="3" id="line-codex-openclaude" class="chain-connection-line" />
                   <line x1="200" y1="40" x2="320" y2="40" stroke="rgba(69, 243, 255, 0.2)" stroke-width="3" id="line-openclaude-antigravity" class="chain-connection-line" />
                   <circle cx="80" cy="40" r="16" fill="#07090e" stroke="#ffb703" stroke-width="3" id="node-circle-codex" class="chain-node-circle" />
@@ -1167,8 +1106,8 @@
               </div>
 
               <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-                <button class="btn btn-success" id="btn-operator-signoff" style="flex: 1;">Explicit Sign-Off</button>
-                <button class="btn btn-danger" id="btn-veto-override" style="flex: 1;">Veto Override</button>
+                <button class="btn btn-success" id="btn-operator-signoff" style="flex: 1;">Record Simulated Sign-Off</button>
+                <button class="btn btn-danger" id="btn-veto-override" style="flex: 1;">Record Simulated Veto</button>
               </div>
             </div>
           </div>
@@ -1189,16 +1128,16 @@
           <div class="console-panel" style="grid-column: 1 / -1; margin-top: 0.5rem;">
             <div class="card-title" style="margin-bottom: 0.75rem;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span class="pulse-dot" style="color: var(--emerald);"></span>
+                <span class="status-dot" style="color: var(--emerald);"></span>
                 <span>Live Route Circuit Breakers</span>
               </div>
-              <span class="badge badge-primary" id="circuit-breaker-aggregate-badge">All Routes Operational</span>
+              <span class="badge badge-amber" id="circuit-breaker-aggregate-badge">Awaiting telemetry</span>
             </div>
             <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">
               Deterministic fail-closed circuit health. Tripped routes fail closed with zero remote fallback on private packets.
             </div>
             <div id="circuit-breakers-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
-              <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Loading circuit breaker telemetry...</div>
+              <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Awaiting circuit breaker telemetry...</div>
             </div>
           </div>
         </div>
@@ -1217,11 +1156,11 @@
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Adversarial Defense</div>
-            <div id="adversarial-summary-verdict" style="font-size: 1.1rem; font-weight: 600; color: var(--emerald); margin-top: 0.4rem;">8/8 BLOCKED</div>
+            <div id="adversarial-summary-verdict" style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted); margin-top: 0.4rem;">Awaiting receipt</div>
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Negative Capability</div>
-            <div id="negative-capability-score" style="font-size: 1.1rem; font-weight: 600; color: var(--cyan); margin-top: 0.4rem;">100% RESTRAINT</div>
+            <div id="negative-capability-score" style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted); margin-top: 0.4rem;">Awaiting receipt</div>
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Latest Review Cycle</div>
@@ -1237,7 +1176,7 @@
         <div class="card" style="padding: 1.25rem; background: var(--card-bg); margin-bottom: 1.5rem;">
           <div class="card-title">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span class="pulse-dot" style="color: var(--cyan);"></span>
+              <span class="status-dot" style="color: var(--cyan);"></span>
               <span>Latency-Cost-Trust Pareto Frontier HUD</span>
             </div>
             <span class="badge badge-primary" id="pareto-frontier-count">0 Models Mapped</span>
@@ -1245,7 +1184,7 @@
           <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
             Multi-objective frontier plotting model spend vs empirical verification accuracy vs latency.
           </div>
-          <div class="pareto-hud-container" id="pareto-hud-container" style="position: relative; width: 100%; height: 260px; background: radial-gradient(circle, rgba(13, 18, 30, 0.95) 0%, rgba(5, 7, 12, 0.98) 100%); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;">
+          <div class="pareto-hud-container" id="pareto-hud-container" style="position: relative; width: 100%; height: 260px; background: #05070c; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
             <svg id="pareto-hud-svg" class="pareto-svg" viewBox="0 0 600 240" style="width: 100%; height: 100%; display: block;">
               <!-- Grid Lines & Axis Labels -->
               <line x1="50" y1="20" x2="50" y2="210" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
@@ -1265,27 +1204,27 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div class="card-title">
-              <span>🛡️ Adversarial Invariant Interception</span>
-              <span class="badge badge-emerald" id="adversarial-status-badge">8/8 Blocked</span>
+              <span>Adversarial Invariant Interception</span>
+              <span class="badge badge-amber" id="adversarial-status-badge">Awaiting receipt</span>
             </div>
             <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
               Deterministic verification of 8 hostile threat vectors:
             </div>
             <div id="adversarial-gates-list">
-              <div style="color: var(--text-muted); padding: 0.5rem 0;">Loading adversarial receipt...</div>
+              <div style="color: var(--text-muted); padding: 0.5rem 0;">Awaiting adversarial receipt...</div>
             </div>
           </div>
 
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div class="card-title">
-              <span>🧠 Negative Capability &amp; Restraint</span>
-              <span class="badge badge-emerald" id="negative-capability-badge">Score: 1.0</span>
+              <span>Negative Capability &amp; Restraint</span>
+              <span class="badge badge-amber" id="negative-capability-badge">Awaiting receipt</span>
             </div>
             <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
               Evaluation of anti-confabulation refusal and missing-evidence grounding:
             </div>
             <div id="negative-capability-list">
-              <div style="color: var(--text-muted); padding: 0.5rem 0;">Loading restraint receipt...</div>
+              <div style="color: var(--text-muted); padding: 0.5rem 0;">Awaiting restraint receipt...</div>
             </div>
           </div>
         </div>

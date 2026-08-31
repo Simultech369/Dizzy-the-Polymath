@@ -8,21 +8,21 @@ Authority: local evidence decides; model and handoff output are claim sources on
 
 Root: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-HEAD: `c4300eaee587a6f055dc25dedeaaa5957b7af7ea`
-Remote posture: ahead of `origin/feat/dizzy-general-distro` by 17 commits
-Tracked state: dirty
+HEAD: `2b21e22d17741270e86cfdc23a31c0562bcfb680`
+Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 31 commits
+Tracked state: dirty with W-0105 public-surface docs, dashboard, and guard updates
 Draft PR: `https://github.com/Simultech369/Dizzy-the-Polymath/pull/1`
 
 Current local council receipt after the latest supervisor/council run:
 
 ```text
 Receipt: reviews\oss_council_verdict_latest.json
-Timestamp: 2026-08-28T03:10:46.075Z
+Timestamp: 2026-08-31T10:33:34.822Z
 Verdict: VERIFIED_PASSED
-Syntax targets: 105
-Execution suites: 51
+Syntax targets: 111
+Execution suites: 55
 Governance checks: 2
-SHA-256: 7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61
+SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
 ```
 
 Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refresh every public-facing timestamp/hash claim before reuse.
@@ -32,6 +32,8 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | File | Disposition | Reason | Required check |
 | --- | --- | --- | --- |
 | `agent_server.mjs` | include | Adds operator auth guard to direct local control routes and continuity export/delete/prune, closes optional dashboard sidecars during runtime shutdown, and exposes `/agent/execute/stream` as an authenticated SSE execution surface with stream receipts, event IDs, best-effort disconnect receipts, and partial-failure receipts. | `npm run test:streaming-response`; `npm run check:safety`; `npm run check:council` |
+| `dashboard/index.html` | include | W-0105 public-surface polish: neutral startup states, simulated operator-control labels, ASCII-only copy, no decorative glow/gradient/shadow/motion CSS terms, and sober local cockpit presentation. | `npm run test:dashboard-public-surface`; `npm run test:dashboard-safety`; `npm run check:council` |
+| `dashboard/dashboard.js` | include | W-0105 runtime truthfulness: idempotent chat initialization, explicit dashboard-query fetch failure handling, unavailable-state telemetry rendering, no decorative SVG/glow filter activation, and no all-routes-healthy aggregate copy before route data exists. | `npm run test:dashboard-public-surface`; `npm run test:public-view-readiness`; `npm run test:dashboard-safety`; `npm run check:council` |
 | `lib/dispatch.mjs` | include | Threads caller abort signals into chat dispatch so streaming disconnects can cancel downstream provider work instead of only stopping response writes. | `npm run test:streaming-response`; `npm run test:router`; `npm run check:council` |
 | `lib/gemini_client.mjs` | include | Composes caller abort signals with provider timeouts while preserving distinct timeout versus request-aborted diagnostics. | `npm run test:streaming-response`; `npm run test:router`; `npm run check:council` |
 | `lib/openai_compat_client.mjs` | include | Fails closed before the first remote fetch when local isolation is required and composes caller abort signals with provider timeouts for streamed execution disconnects. | `npm run test:review-models`; `npm run test:streaming-response`; `npm run check:council` |
@@ -48,7 +50,7 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `lib/visual_slop_scanner.mjs` | include | Restores the W-0062b visual-surface scanner claimed by `NEXT.md`; flags private visual leaks, unsupported status claims, motion/accessibility gaps, and decorative excess deterministically. | `npm run eval:anti-slop-visual`; `npm run check:council` |
 | `scripts/anti_slop_visual_fixture_check.mjs` | include | Restores the W-0062b fixture gate and prevents the package script from pointing at a missing file. | `npm run eval:anti-slop-visual`; `npm run check:council` |
 | `scripts/usage_report_test.mjs` | include | Restores the W-0065a usage-report leak/schema regression test claimed by `NEXT.md`. | `node scripts/usage_report_test.mjs`; `npm run check:council` |
-| `scripts/oss_council_audit.mjs` | include | Registers restored harnesses, lifecycle hooks, structural query cache, streaming response hardening, and external pattern provenance guard in the 3-layer council so receipt counts reflect the live verified surface. | `npm run check:council` |
+| `scripts/oss_council_audit.mjs` | include | Registers restored harnesses, lifecycle hooks, structural query cache, streaming response hardening, external pattern provenance, memory wiki, and W-0105 dashboard/public-view guards in the 3-layer council so receipt counts reflect the live verified surface. | `npm run check:council` |
 | `lib/lifecycle_hooks.mjs` | include | Implements Node `SessionStart`, `PreToolUse`, `PostToolUse`, and `Stop` hook receipts with hash-only payload/output evidence and fail-closed risky tool preflight. | `npm run test:lifecycle-hooks`; `npm run check:council` |
 | `lib/ingress_gateway.mjs` | include | Emits SessionStart/Stop lifecycle receipts around ingress requests after health exemption and before rate/budget gates. | `npm run test:ingress-gateway`; `npm run check:council` |
 | `lib/tools.mjs` | include | Makes lifecycle hooks non-bypassable for all callers of the shared Node tool runner. | `npm run test:lifecycle-hooks`; `npm run check:council` |
@@ -59,7 +61,10 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `lib/structural_query_cache.mjs` | include | Implements the SQLite-backed reversible sidecar with hash-only query identity, prompt/config and source-signature keys, TTL expiry, and hashed partition enforcement. | `npm run test:structural-query-cache`; `npm run check:council` |
 | `scripts/structural_query_cache_test.mjs` | include | Proves deterministic keys, miss/store/hit, prompt/source invalidation, TTL expiry, no raw query persistence, and paid-public partition isolation. | `npm run test:structural-query-cache`; `npm run check:council` |
 | `scripts/streaming_response_test.mjs` | include | Proves SSE event shape, scoped execute-token auth, receipt privacy, hostile receipt-field rejection, partial-failure receipts, bounded backpressure/abort behavior, and slow-provider cancellation on client disconnect. | `npm run test:streaming-response`; `npm run check:council` |
+| `scripts/dashboard_public_surface_test.mjs` | include | Adds deterministic W-0105 guard coverage for dashboard source truthfulness, stripped decorative UI terms, auth/session route behavior, idempotent chat wiring, and JSON operator telemetry routes. | `npm run test:dashboard-public-surface`; `npm run check:council` |
+| `scripts/public_view_readiness_test.mjs` | include | Adds deterministic W-0105 guard coverage for public README, Quickstart, Runbook, PR, and dashboard overclaim regressions before collaborator viewing. | `npm run test:public-view-readiness`; `npm run check:council` |
 | `.env.example` | include | Documents local dashboard structural cache controls and SSE streaming receipt/backpressure knobs without introducing new dependencies or secrets. | `npm run check:docs` |
+| `.gitignore` | include | Prevents parked proof artifacts, prompt outputs, package-manager stores, scratch directories, and external bounty checkouts from being swept into future staging operations. | `git status --short`; `npm run check:staging-boundary` |
 | `DESIGN.md` | include | Clarifies that structural query caching is a narrow dashboard-query sidecar and that SSE stream receipts are evidence, not the data plane or WebSocket support. | `npm run check:docs`; `npm run check:next` |
 | `EXPERIMENT_RECONCILIATION.md` | include | Corrects stale two-branch inventory wording and points at the W-0101 branch-policy receipt. | `npm run check:staging-boundary`; `npm run check:docs` |
 | `NEXT.md` | include | Records W-0101/W-0102 progress without marking branch cleanup or retrospective license audit complete. | `npm run check:next`; `npm run check:staging-boundary` |
@@ -71,22 +76,27 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `reviews/external_pattern_license_audit.md` | include | Owns the W-0102 source inventory, borrowing class, disposition, license observation, quarantine path, and release-gate ledger that the deterministic guard reads. | `npm run check:pattern-provenance`; `npm run check:council` |
 | `scripts/external_pattern_license_audit_check.mjs` | include | Adds the deterministic W-0102 provenance guard without fetching licenses or claiming legal compliance. | `npm run check:pattern-provenance`; `npm run check:council` |
 | `scripts/staging_boundary_check.mjs` | include | Adds the W-0101 local staging-boundary guard that compares dirty tracked files to this triage table without mutating branches. | `npm run check:staging-boundary` |
-| `package.json` | include | Adds `test:lifecycle-hooks`, `test:structural-query-cache`, `test:streaming-response`, `check:pattern-provenance` / `check:external-pattern-licenses`, and `check:staging-boundary` for focused operator verification. | `npm run test:lifecycle-hooks`; `npm run test:structural-query-cache`; `npm run test:streaming-response`; `npm run check:pattern-provenance`; `npm run check:staging-boundary` |
-| `README.md` | include | Reconciles public count and local-control auth language to the current staging baseline. | `npm run check:docs`; `npm run check:council` |
-| `PR_W0068_DESCRIPTION.md` | include | Reconciles stale count/hash claims and names receipt refresh duty. | Manual receipt-hash refresh after final council run |
+| `package.json` | include | Adds focused operator verification commands including lifecycle hooks, structural query cache, streaming response, dashboard public-surface guard, public-view readiness guard, pattern provenance, and staging-boundary checks. | `npm run test:lifecycle-hooks`; `npm run test:structural-query-cache`; `npm run test:streaming-response`; `npm run test:dashboard-public-surface`; `npm run test:public-view-readiness`; `npm run check:pattern-provenance`; `npm run check:staging-boundary` |
+| `README.md` | include | Reconciles public count, local-control auth language, dashboard opt-in requirements, public A2A proof boundary, and no-hosted-production boundary to the current staging baseline. | `npm run check:docs`; `npm run test:public-view-readiness`; `npm run check:council` |
+| `QUICKSTART.md` | include | Rewrites first-run instructions around actual local API/dashboard flags, receipt inspection, focused checks, and explicit non-claims. | `npm run check:docs`; `npm run test:public-view-readiness` |
+| `RUNBOOK.md` | include | Corrects dashboard startup language: dashboard is opt-in with `DIZZY_DASHBOARD_ENABLED=1`, not enabled by plain `npm start`. | `npm run check:docs`; `npm run test:public-view-readiness` |
+| `PR_W0068_DESCRIPTION.md` | include | Reconciles stale count/hash claims, dashboard opt-in language, source/API proof boundary, and no-hosted-production boundary. | Manual receipt-hash refresh after final council run |
+| `UNIFIED_HANDOFF_PACKET.md` | include | Refreshes the root baton-pass packet to the latest W-0105 receipt, public-view proof boundary, and current branch/dirty-tree posture. | `npm run check:docs`; `npm run check:staging-boundary` |
+| `reviews/antigravity_post_docking_handoff_latest.md` | include | Reconciles Antigravity handoff language to the latest local W-0105 receipt, memory/wiki separation, A2A proof boundary, and pending visual-browser-proof caveat. | `npm run check:docs`; `npm run check:council` |
+| `reviews/w0068_staging_triage.md` | include | Reconciles this staging-boundary ledger to the current W-0105 dirty set, latest receipt, dashboard public-surface guard, and remaining visual proof caveat. | `npm run check:staging-boundary`; `npm run check:docs` |
 | `memory/2026-08-21.md` | include if daily logs are part of this PR; otherwise park | Converts stale 69-target wording into a historical snapshot. This is low-risk, but it is operational memory rather than runtime behavior. | `git diff --check`; reviewer decision on PR scope |
 
 ## Untracked And Parked Material
 
 | Material | Disposition | Notes |
 | --- | --- | --- |
-| `UNIFIED_HANDOFF_PACKET.md` | park unless explicitly promoted | Useful local baton pass, but not automatically PR-ready. |
+| `UNIFIED_HANDOFF_PACKET.md` | include in this W-0105 diff, otherwise park unless explicitly promoted | Useful root baton pass; this slice refreshes it because stale receipt and branch posture would mislead the next agent. |
 | `reviews/branch_policy_reconciliation_2026-08-26.md` | park unless explicitly promoted | Useful W-0101 branch-policy receipt; not a runtime change and does not authorize branch cleanup. |
 | `reviews/*_latest.json` generated receipts | keep local-only unless explicitly promoted | Receipts prove local evidence but should not churn git history by default. |
 | W-0100/W-0103/W-0104 local control-plane candidates (`lib/statem_runbook_bridge.mjs`, `scripts/statem_runbook_bridge_test.mjs`, `lib/a2a_mailbox_bridge.mjs`, `scripts/a2a_mailbox_bridge_test.mjs`, `lib/bounty_hunter_engine.mjs`, `scripts/bounty_hunter_engine_test.mjs`, `lib/job_board_ingress.mjs`, `lib/tension_map_engine.mjs`, `scripts/job_board_and_tension_map_test.mjs`, `scripts/operator_telemetry_routes_test.mjs`, `lib/council_subcommittee_router.mjs`, `scripts/council_subcommittee_router_test.mjs`, `scripts/job_board_scanner.mjs`, `scripts/job_board_scanner_test.mjs`, `scripts/generate_third_party_notices.mjs`, `scripts/third_party_notices_test.mjs`) | include candidate / currently untracked | These are now council-covered local evidence surfaces, but they are not yet staged. A2A is a local mailbox bridge, not public Agent2Agent protocol compliance. W-0104 scanner dispatch now uses the canonical worker queue contract and has true no-network offline proof coverage. |
 | `artifacts\bounty_scan_results.json` | park as local proof artifact unless explicitly promoted | Generated W-0104 mock/offline proof artifact. Useful for Antigravity/Codex reconciliation, but it should not be treated as live board coverage or automatically committed. |
 | Broad `reviews/*.md` model critiques and prompt files | park as claim sources | Reconcile only specific accepted claims into code, tests, or scoped docs. |
-| `.extraction/`, `.review-harness/`, `artifacts/`, `codex-bench-*`, `data/`, `scratch/` | park | Generated, experimental, or local working surfaces. |
+| `.extraction/`, `.review-harness/`, `.pnpm-store/`, `.npm-cache/`, `artifacts/`, `codex-bench-*`, `data/`, `nirium-sdk-43/`, `outputs/`, `ProofOfHeart-frontend/`, `reviews/prompts/`, `scratch/` | park | Generated, experimental, local proof, external checkout, or prompt-output surfaces. |
 | Python `C:\Users\Josh\.gemini\antigravity\scratch\council_engine` | keep quarantined | Includes `dizzy_runtime_engine.py`, `long_horizon_terminal_runner.py`, and `docker_sandbox_daemon.py` as proving-lab references. Green tests do not satisfy external key-custody, Ed25519 P2P, non-mock sandbox, egress, provenance, sensitivity, path-jail, or mock-rejection gates. |
 | Agent-Reach/Panniantong patterns | scrape-only reference | Do not install cookie/session scraping tooling or bypass egress chokepoints. |
 | ART/RULER, LoRA/QLoRA/adapters/RLHF/DPO/GRPO/RLVR/federated tuning | model-layer reference | Training lanes require bounded data, reward signal, retention boundary, rollback, cost, and reward-audit receipts before runtime relevance. |
@@ -132,6 +142,7 @@ node scripts/test_active_integration.mjs
 node scripts/lifecycle_hooks_test.mjs
 node scripts/usage_report_test.mjs
 npm run eval:anti-slop-visual
+npm run test:dashboard-public-surface
 npm run check:pattern-provenance
 npm run check:staging-boundary
 npm run check:docs

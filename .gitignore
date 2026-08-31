@@ -1,5 +1,16 @@
 ﻿node_modules/
 runtime/
+artifacts/
+outputs/
+scratch/
+.pnpm-store/
+.npm-cache/
+nirium-sdk-43/
+reviews/prompts/
+reviews/*_prompt_*.md
+nirium_43_mpp_session_budget_*.patch
+NIRIUM_43_CODEX_HANDOFF_*.md
+ProofOfHeart-frontend/
 _ext/
 _external/
 .env

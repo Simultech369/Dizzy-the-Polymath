@@ -2,6 +2,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 
 import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
@@ -33,8 +34,9 @@ export { pruneExpiredRateLimitBuckets };
 
 function isMainModule() {
   try {
-    const mainPath = process.argv?.[1] || "";
-    return new URL(import.meta.url).pathname.endsWith(mainPath.replace(/\\/g, "/"));
+    const mainPath = process.argv?.[1];
+    if (!mainPath) return false;
+    return path.resolve(mainPath).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase();
   } catch {
     return false;
   }

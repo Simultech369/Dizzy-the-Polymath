@@ -2,17 +2,19 @@
 
 **Branch**: [`feat/dizzy-general-distro`](https://github.com/Simultech369/Dizzy-the-Polymath/tree/feat/dizzy-general-distro)
 **Base**: `main`
-**Verdict**: `OSS Council Audit VERIFIED_PASSED` (105 syntax detail entries, 51 execution suites, 2 governance checks; anchored to latest checked local receipt `reviews/oss_council_verdict_latest.json` as of `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`)
+**Verdict**: `OSS Council Audit VERIFIED_PASSED` (111 syntax targets, 55 execution suites, 2 governance checks; anchored to latest checked local receipt `reviews/oss_council_verdict_latest.json` as of `2026-08-31T10:33:34.822Z`, SHA-256 `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`)
 
 ---
 
 ## Overview
 
+This is a local-first staging branch for serious collaborator review, not a hosted production release.
+
 This PR delivers the consolidated, clean execution stack for:
 1. **Guided Trust Cockpit & Dashboard HUD**:
    - Fixed structural nesting for `#tab-receipts` and top-level tab reachability.
    - Decoupled first-run telemetry from `data.docs.length` for clean clones.
-   - Genericized operator branding and exposed standard entry point (`npm start` -> `http://localhost:3000/dashboard`).
+   - Genericized operator branding and exposed the standard local server entry point; dashboard browser access requires `DIZZY_DASHBOARD_ENABLED=1` before `npm start`.
 2. **Model Intake & Candidate Watchlist**:
    - Structured 14-column candidate evidence matrix in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) tracking 16 candidate models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`).
    - Enforced evidence promotion lifecycle (`unverified_candidate` -> `installed/reachable` -> `callable` -> `json_valid` -> `tool_use_valid` -> `quality_valid` -> `review_usable`).
@@ -30,13 +32,15 @@ This PR delivers the consolidated, clean execution stack for:
 11. **W-0100 Control-Plane Bridges**: StateM-style runbook FSM, bounty EV triage, A2A-style local mailbox handoff packets, job-board normalization, tension-map telemetry, and third-party notice generation under local receipt gates.
 12. **W-0103 Council Subcommittee Router**: Role rotation scheduler across 6 committee archetypes, dialectical tension synthesis, quorum calculation, and A2A verdict packetizing.
 13. **W-0104 Bounty Board Scanner**: External listing ingress scanner with canonical worker-queue dispatch, deterministic offline proof artifacts, and council-registered scanner coverage.
+14. **Memory Wiki Guard Registration**: CognitiveMemoryEngine and MemoryWikiAdapter remain separate by design; both now have focused tests and explicit OSS Council audit coverage.
+15. **W-0105 Dashboard Public Surface Guard**: Dashboard defaults to neutral local states, labels simulated operator controls, strips decorative glow/gradient/shadow/motion treatment, prevents duplicate chat initialization, verifies dashboard auth/session routes, checks operator telemetry endpoints, and guards README/Quickstart/Runbook/PR truthfulness.
 
 ---
 
 ## What's Included
 
 ### 1. Guided Trust Cockpit & Public Branding
-- Standard `npm start` entry point launching local server and dashboard.
+- Standard `npm start` entry point launching the local server; dashboard browser access is opt-in with `DIZZY_DASHBOARD_ENABLED=1`.
 - Un-nested `#tab-receipts` panel ensuring accessibility from the tab bar.
 - First-run telemetry rendering on zero-document initial states.
 - Clean generic operator branding for public distribution.
@@ -47,7 +51,7 @@ This PR delivers the consolidated, clean execution stack for:
 - Clarified probe command boundaries (`openrouter-free` vs `ollama-availability` vs `review-models`).
 
 ### 3. Model Router & Isolation Core (W-0066)
-- Real model dispatch across 8 divisions (40 models).
+- Configured and gated model dispatch across 8 divisions (40 models); provider calls still depend on local environment and credentials.
 - Enforces `isLocalIsolationRequired` to fail closed before the first network fetch on remote cloud calls under `private_self` trust boundaries.
 - Disallows automatic 3xx HTTP redirects to cloud backends.
 
@@ -60,16 +64,16 @@ This PR delivers the consolidated, clean execution stack for:
 
 ## Verification & Proof
 
-All 105 syntax detail entries, 51 execution suites, and 2 governance checks passed in the latest local `npm run check:council` receipt:
+All 111 syntax targets, 55 execution suites, and 2 governance checks passed in the latest local `npm run check:council` receipt:
 
 ```
 ==================================================
    Dizzy OSS Model Council Verification Engine
 ==================================================
 
-[PASS] Layer 1: All target files passed syntax checks. (105 checked)
+[PASS] Layer 1: All target files passed syntax checks. (111 checked)
 [PASS] Layer 2: Governance and isolation policies verified.
-[PASS] Layer 3: All deterministic test suites passed. (51 checked)
+[PASS] Layer 3: All deterministic test suites passed. (55 checked)
 
 ==================================================
    COUNCIL VERDICT: VERIFIED_PASSED (READY FOR STAGING)
@@ -77,16 +81,19 @@ All 105 syntax detail entries, 51 execution suites, and 2 governance checks pass
 ```
 
 Receipt: `reviews/oss_council_verdict_latest.json`
-Timestamp: `2026-08-28T03:10:46.075Z`
-SHA-256: `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`
+Timestamp: `2026-08-31T10:33:34.822Z`
+SHA-256: `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`
 
 Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refresh the timestamp/hash against the local receipt before public reuse.
 
 Focused W-0099 guard: `npm run test:streaming-response`
 Focused W-0100 guards: `npm run test:statem-runbook`; `npm run test:a2a-mailbox`; `npm run test:bounty-hunter`; `npm run test:job-board-tension`; `npm run test:operator-telemetry`
+Focused memory guards: `npm run test:cognitive-memory`; `npm run test:memory-wiki`
 Focused W-0102 guard: `npm run check:pattern-provenance`
 Focused W-0103 guard: `npm run test:subcommittee-router`
 Focused W-0104 guard: `npm run test:job-board-scanner`
+Focused W-0105 guards: `npm run test:dashboard-public-surface`; `npm run test:public-view-readiness`; `npm run test:dashboard-safety`
+Dashboard proof is source/API and route-level in this local pass; live browser screenshot proof remains pending because local Edge/Chrome headless capture crashed in the W-0105 environment.
 
 ---
 

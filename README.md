@@ -6,19 +6,13 @@
 
 **Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
 
-<p>
-  <img alt="Node.js 20.18.1+" src="https://img.shields.io/badge/Node.js-20.18.1%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
-  <img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/Simultech369/Dizzy-the-Polymath/checks.yml?branch=main&style=for-the-badge&label=checks">
-  <img alt="License" src="https://img.shields.io/github/license/Simultech369/Dizzy-the-Polymath?style=for-the-badge">
-  <img alt="Local-first runtime" src="https://img.shields.io/badge/runtime-local--first-111827?style=for-the-badge">
-  <img alt="Trust zones locally tested" src="https://img.shields.io/badge/trust%20zones-locally%20tested-2563eb?style=for-the-badge">
-  <img alt="Bounded memory" src="https://img.shields.io/badge/memory-bounded-7c3aed?style=for-the-badge">
-  <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
-</p>
-
-> **Quickstart Guide**: See [QUICKSTART.md](QUICKSTART.md) for the **"Try Dizzy in 5 Minutes"** guided walk-through (`/health` + `/prompt`), trust-zone demo, and visual identity map.
-
 </div>
+
+**Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
+
+External A2A interoperability is not claimed yet; current A2A-shaped work is local and receipt-bound until a signed HTTP/WebSocket boundary test exists.
+
+Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the dashboard, inspect the receipt, and understand what is not claimed.
 
 ### Repository Structure and Authority
 
@@ -29,7 +23,7 @@
 | **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
 | **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
 
-Dizzy is a local-first continuity-and-judgment runtime. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
+Dizzy is a local-first continuity-and-judgment runtime for agentic work that needs bounded memory, explicit trust zones, and verifiable handoffs. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
 
 The repo is transparent without turning every working note into doctrine: the runtime is small and bounded; the surrounding documents show how its judgment loop, memory rules, and public/private trust boundaries are being refined.
 
@@ -39,18 +33,20 @@ The repo is transparent without turning every working note into doctrine: the ru
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
-| Guided Trust Cockpit Dashboard | Accessible via `http://localhost:3000/dashboard` (`DIZZY_DASHBOARD_ENABLED=1` or `npm start`) |
+| Guided Trust Cockpit Dashboard | Served locally at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`; W-0105 source/API guard verifies neutral startup states, route wiring, and auth/session behavior. Visual browser proof remains pending before broad launch claims. |
 | 48-Model Catalog & Evidence Ladder | 5 tiers, 4-gate qualification engine, and route compliance in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
 | Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
+| Cognitive Memory Engine | 5-stage memory lifecycle (`Capture`, `Consolidate`, `Retrieve`, `Reconcile`, `Decay`) that compiles durable preferences and project lessons into transparent wiki state (`lib/cognitive_memory_engine.mjs`, `npm run test:cognitive-memory`) |
+| LLM-Wiki Storage Adapter | Path-confined Markdown wiki I/O adapter with frontmatter injection protection; kept separate from cognitive policy/math by design (`lib/memory_wiki_adapter.mjs`, `npm run test:memory-wiki`) |
 | Bounded memory & Quarantined Bridging | Trust-zone scoped retrieval with opt-in cross-session concept bridging (`runtime/quarantine/`) |
 | Bounded Scenario Forking & Time-Travel | Ephemeral trajectory simulation and Euclidean divergence analysis (`lib/scenario_simulator.mjs`) |
 | Robust Friction Telemetry | Median Absolute Deviation (MAD) $3\sigma$ anomaly detector and active policy containment |
 | Deterministic Lifecycle Hooks | SessionStart/Stop ingress receipts and PreToolUse/PostToolUse tool-runner receipts (`lib/lifecycle_hooks.mjs`) |
 | Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
 | StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
-| A2A-Style Mailbox Bridge | Local sealed handoff/message queue for agent coordination; not public A2A spec compliance yet (`lib/a2a_mailbox_bridge.mjs`) |
+| A2A-Style Cryptographic Mailbox | Local sealed handoff/message queue for agent coordination; external HTTP/WebSocket A2A interoperability is not claimed yet (`lib/a2a_mailbox_bridge.mjs`) |
 | Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 105 syntax detail entries and 51 test suites (`npm run check:council`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 111 syntax targets and 55 test suites after the dashboard public-surface and public-view readiness guards are registered (`npm run check:council`) |
 
 ## Quick Start
 
@@ -62,16 +58,24 @@ Node.js 20.18.1+ is required.
 npm install
 ```
 
-### 2. Launch the Runtime & Guided Trust Cockpit
+### 2. Launch the Runtime
 
-Start the server using standard npm start:
+Start the local API:
 
 ```powershell
 npm start
 ```
 
-This launches the agent server locally on `http://127.0.0.1:3000`. Open the Guided Trust Cockpit dashboard at:
-`http://localhost:3000/dashboard`
+This launches the agent server locally on `http://127.0.0.1:3000`.
+
+To serve the Guided Trust Cockpit dashboard, start the server with the dashboard flag:
+
+```powershell
+$env:DIZZY_DASHBOARD_ENABLED="1"
+npm start
+```
+
+Then open `http://localhost:3000/dashboard`.
 
 ### 3. Inspect Local Endpoints
 
@@ -84,7 +88,7 @@ Invoke-RestMethod http://127.0.0.1:3000/prompt
 
 ### 4. Run the Full Verification Suite
 
-Verify total system integrity across 105 syntax detail entries and 51 deterministic execution suites:
+Verify total system integrity across the full local audit surface:
 
 ```powershell
 # Run the complete 3-layer OSS Model Council Audit Engine
@@ -96,48 +100,50 @@ npm run test:frontier-simulation
 npm run test:anti-slop
 npm run test:provider-matrix
 npm run test:dashboard-safety
+npm run test:dashboard-public-surface
 npm run test:structural-query-cache
 npm run test:statem-runbook
 npm run test:a2a-mailbox
+npm run test:cognitive-memory
+npm run test:memory-wiki
 npm run test:job-board-scanner
 npm run check:pattern-provenance
 ```
 
-## The Paranoia Engine: OSS Model Council
+## OSS Model Council
 
-Dizzy is not a standard chat bot; it is a strictly-gated state machine. To ensure it never acts unpredictably, all critical decisions and logic changes must pass through a local **OSS Model Council**. 
+Dizzy is not a generic chatbot wrapper. It is a local-first control plane with deterministic checks, bounded model routing, and review receipts. The OSS Model Council is the staging gate used to test routing, memory, receipts, anti-slop checks, and adversarial failure cases before promotion.
 
-This Council separates model availability into explicit trust zones, deterministic qualification gates, and dual-chain verification:
+The council separates model availability into explicit trust zones, deterministic qualification gates, and review roles:
 
 ```
-                              ┌────────────────────────────────────────┐
-                              │      Local Repo Snapshot & Diff        │
-                              │  (Head commit, staged/unstaged blobs)  │
-                              └───────────────────┬────────────────────┘
-                                                  │
-               ┌──────────────────────────────────┴──────────────────────────────────┐
-               ▼                                                                     ▼
- ┌───────────────────────────┐                                         ┌───────────────────────────┐
- │ 🔴 ADVERSARIAL RED-TEAM   │                                         │ 🟢 QUALIFIED VOTER SEATS  │
- │ • Exploratory Breaker     │                                         │ • Formal Logic Arbiter    │
- │ • Edge-Case Generator     │                                         │ • Syntax & AST Reviewer   │
- │   (Unconstrained Logic)   │                                         │ • Security Policy Guardian│
- └─────────────┬─────────────┘                                         └─────────────┬─────────────┘
-               │                                                                     │
-               ▼                                                                     ▼
- ┌───────────────────────────┐                                         ┌───────────────────────────┐
- │ 🛡️ VERIFIER ADVERSARIAL   │ ◄───────────────────────────────────────┤ ⚖️ 3-FAMILY QUORUM BALLOT │
- │ Asserts 11 invariants     │                                         │ Approvals >= ceil(2N/3)   │
- └───────────────────────────┘                                         └───────────────────────────┘
+                Local repo snapshot and changed files
+                                |
+          +---------------------+---------------------+
+          |                                           |
+          v                                           v
+  Adversarial reviewers                       Qualified reviewer seats
+  - edge-case tests                           - syntax and AST checks
+  - safety failures                           - grounded bug review
+  - injection attempts                        - policy coherence
+          |                                           |
+          +---------------------+---------------------+
+                                |
+                                v
+                  Deterministic local verification
+                  - tests
+                  - receipts
+                  - governance checks
+                  - promotion gate
 ```
 
 ### Qualification & Integration
 
-Before any model is allowed to operate within Dizzy, it must prove its reliability:
+Before a model is treated as review-usable, it must prove its reliability:
 - **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
 
 As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
-- **Ecosystem Integrations (Sovereign Satellites)**: Dizzy provides native interoperability with local-first tools like `Gitlawb/zero` (decentralized commit signing), `Gitlawb/openclaude` (consensus coordination), `freecodexyz/free-code` (zero-telemetry pairing CLI), and `InclusionAI` models (`Ling-3.0`, `Ming-omni-tts`, `LLaDA2.0-Uni`).
+- **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars, but external A2A service boundaries must be proven through signed HTTP/WebSocket receipts before public interoperability is claimed.
 - **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).

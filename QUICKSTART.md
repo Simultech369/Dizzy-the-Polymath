@@ -1,157 +1,120 @@
-# QUICKSTART.md - First Run & Orientation Guide
+# QUICKSTART.md - Try Dizzy Locally
 
-Welcome to **Dizzy** (clawd). This guide provides a 5-minute path to launch the local runtime, verify health, understand trust boundaries, and navigate the repository structure.
+Dizzy is a local-first operator console and control-plane prototype for bounded memory, trust zones, receipts, and agentic work. This guide proves what runs locally today.
 
----
+It does not claim a hosted production product, public A2A interoperability, or finished commercial application.
 
-## 1. What Clawd / Dizzy Is (in Plain English)
+## Before You Start
 
-Dizzy is a **local-first continuity-and-judgment runtime** designed to preserve operator orientation, enforce explicit trust boundaries, and maintain accountable memory.
+- Node.js 20.18.1 or newer is recommended.
+- PowerShell examples assume Windows.
+- Redis and external model keys are optional for this walkthrough.
+- The dashboard is opt-in. `npm start` starts the API; set `DIZZY_DASHBOARD_ENABLED=1` before start to serve `/dashboard`.
 
-It ensures that an assistant carries forward only the context that improves present agency, preventing private state leakage while maintaining auditability under repeat operational use.
-
----
-
-## 2. ⚡ "Try Dizzy in 5 Minutes" Guided Walk-Through
-
-### Step 1: Install Dependencies
-Node.js 20.18.1+ is required. On Windows PowerShell, install local dependencies:
+## 1. Install
 
 ```powershell
-npm.cmd install
+cd C:\Users\Josh\clawd
+npm install
 ```
 
-### Step 2: Launch the Local Runtime & Guided Trust Cockpit
-Start the local agent server:
+## 2. Start The Local API
 
 ```powershell
 npm start
 ```
 
-The server listens locally at `http://127.0.0.1:3000`. Access the Guided Trust Cockpit dashboard at:
-`http://localhost:3000/dashboard`
+Expected shape:
 
-### Step 3: Walkthrough Local Endpoints (`/health` & `/prompt`)
-In a separate terminal window, test the local endpoints:
+```text
+Dizzy agent server listening on http://127.0.0.1:3000
+[health] http://127.0.0.1:3000/health
+```
+
+Exact ports and timestamps may vary with your environment.
+
+## 3. Check The API
+
+In another PowerShell window:
 
 ```powershell
-# 1. Query health status
 Invoke-RestMethod http://127.0.0.1:3000/health
-```
-
-**Expected Response**:
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "timestamp": "2026-07-25T14:30:00.000Z"
-}
-```
-
-```powershell
-# 2. Inspect active live prompt-pack bundle metadata
 Invoke-RestMethod http://127.0.0.1:3000/prompt
 ```
 
-**Expected Response**:
-```json
-{
-  "status": "ok",
-  "pack": "default",
-  "budget_bytes": 60000,
-  "sources": ["CONSTITUTIONAL_KERNEL.md", "IDENTITY.md", "SOUL.md", "TOOLS.md", "USER.md", "PROMPT_CORE.md"]
-}
-```
+The health endpoint should return `ok`. The prompt endpoint returns the local prompt bundle served by the runtime.
 
----
+## 4. Start The Dashboard
 
-## 3. Trust-Zone Demo & Model Posture (Plain English)
-
-Dizzy enforces 4 strict **Trust Zones** to control memory retention and context leakage:
-
-| Trust Zone | Plain English Meaning | Default Retention Posture | Provider Boundary |
-| :--- | :--- | :--- | :--- |
-| **`private_self`** | Private strategy, architecture, personal memory | Retained continuity allowed | Local Ollama models only |
-| **`trusted_collaborator`** | Shared team work where selective context is useful | Selective continuity, narrower disclosure | Trusted cloud APIs |
-| **`outside_contact`** | Fresh-context interactions with external tools | Ephemeral, fresh-context reasoning | Standard web / API endpoints |
-| **`paid_public`** | Client / public work (marketplaces, API endpoints) | Ephemeral by default; client-scoped | Gated public surfaces |
-
-*Model Gating Rule*: All newly announced models (`muse-glimmer`, `deepseek-v4`, `grok-4.5`, `minimax-m3`) are classified as `unverified_candidate` in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) and gated from active router or review pools until explicit probe evidence is produced.
-
----
-
-## 4. How to Verify System Health
-
-Run these commands to verify repository state and execution integrity:
+Stop the previous server if needed, then start with the dashboard flag:
 
 ```powershell
-# 1. Run full 3-layer OSS Model Council Audit Engine (54 syntax targets + 27 test suites)
-npm run check:council
-
-# 2. Run unit and safety test suites
-npm test
-npm run test:provider-matrix
-npm run test:dashboard-safety
+$env:DIZZY_DASHBOARD_ENABLED="1"
+npm start
 ```
 
----
-
-## 5. 🧭 Progressive Disclosure Reading Path
-
-Navigate the repository according to your current depth of investigation:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                     PROGRESSIVE DISCLOSURE PATH                        │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-    ┌───────────────────────────────┼───────────────────────────────┐
-    ▼                               ▼                               ▼
-┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-│ 1. NEW USER           │ │ 2. INTERMEDIATE       │ │ 3. ADVANCED ARCHITECT │
-│ First-Run & Overview  │ │ Operational Mechanics │ │ Doctrine & Governance │
-│ ───────────────       │ │ ───────────────       │ │ ───────────────       │
-│ • QUICKSTART.md       │ │ • REPO_GUIDE.md       │ │ • CONSTITUTION.md     │
-│ • README.md           │ │ • OPERATING_LOOP.md   │ │ • MECHANISMS.md       │
-│                       │ │ • FILE_ROLES.md       │ │ • CHOKEPOINTS.md      │
-└───────────────────────┘ └───────────────────────┘ └───────────────────────┘
-```
-
----
-
-## 6. Clawd Navigator Taxonomy Map
+Open:
 
 ```text
-+--------------------------------------------------------------------------+
-|                            CLAWD NAVIGATOR                               |
-+------------------+------------------+------------------+-----------------+
-|  1. RUNTIME      |  2. DOCTRINE     |  3. REVIEWS      |  4. SURFACES    |
-|  agent_server    |  CONSTITUTION    |  reviews/        |  dashboard/     |
-|  worker.mjs      |  PROMPT_CORE     |  Review trails,  |  canvas/        |
-|  lib/ modules    |  identity/       |  audits & notes  |  UI Interfaces  |
-+------------------+------------------+------------------+-----------------+
-                                   |
-                                   v
-         See full taxonomy in [REPO_GUIDE.md](REPO_GUIDE.md) & [FILE_ROLES.md](FILE_ROLES.md)
+http://localhost:3000/dashboard
 ```
 
-| Layer | Primary Files | Role & Authority |
-| --- | --- | --- |
-| **Runtime Core** | [`agent_server.mjs`](agent_server.mjs), [`lib/`](lib/) | Active HTTP execution, routing, prompt bundling, security headers |
-| **Governance & Doctrine** | [`CONSTITUTION.md`](CONSTITUTION.md), [`PROMPT_CORE.md`](PROMPT_CORE.md) | High authority - defines prompt packs, memory rules, and trust zones |
-| **System Mechanics** | [`DESIGN.md`](DESIGN.md), [`FILE_ROLES.md`](FILE_ROLES.md) | Canonical decision record & root-file authority map |
-| **Review Artifacts** | [`reviews/`](reviews/) | Historical audit trails, model reviews, and exploratory proposals (non-runtime) |
-| **User Interfaces** | [`dashboard/`](dashboard/), [`canvas/`](canvas/) | Operator telemetry HUD & static canvas surfaces |
+If `DIZZY_AUTH_TOKEN` is set, use:
 
----
+```text
+http://localhost:3000/dashboard/login
+```
 
-## 7. 🎨 Visual Identity & Color Semantics
+Enter the token there. Do not put tokens in URLs or browser storage.
 
-Our interface visual system relies on three semantic color accents:
+## 5. Inspect The Latest Receipt
 
-> **Operationally legible under repeat use. Calm at rest. Precise when live.**
+```powershell
+Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
+Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
+```
 
-### Tri-Accent Visual System
-- ⬛ **Obsidian Base (`#0B0F0C` / `#111613`)**: Control, focus, atmosphere, and baseline state.
-- ⚡ **Jazz Cyan Signal (`#00E5FF`)**: Luminous live execution, HTTP routing, active model dispatch, and capability receipt states.
-- 🔶 **Warm Amber Accent (`#FFB300`)**: Operator judgment, continuity alerts, human intervention prompts, and attention gates.
+Current local receipt after the W-0105 public-view readiness guard:
+
+```text
+VERIFIED_PASSED
+2026-08-31T10:33:34.822Z
+111 syntax targets / 55 deterministic execution suites / 2 governance checks
+SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
+```
+
+Receipts are local evidence, not a promise about every future machine. Rerunning the council audit writes a fresh timestamp and hash.
+
+## 6. Verify The Local Surface
+
+```powershell
+npm run check:council
+npm run test:dashboard-public-surface
+npm run test:dashboard-safety
+npm test
+```
+
+Useful focused checks:
+
+```powershell
+npm run check:docs
+npm run check:next
+npm run check:staging-boundary
+npm run check:production
+```
+
+## 7. What Is Not Claimed
+
+- Dizzy is not a hosted production service.
+- Public A2A interoperability is not live until an external signed HTTP or WebSocket boundary test exists.
+- The Python Council Engine remains a quarantined proving sidecar, not production authority for this repo.
+- Redis, external providers, and model backends can be offline; the dashboard should show unavailable or unverified states instead of pretending they are healthy.
+- A live browser screenshot proof was not captured in the latest local W-0105 run because the local Edge/Chrome headless capture crashed. Source, API, and route guards passed.
+
+## Reading Path
+
+1. `README.md` explains what Dizzy is and what runs today.
+2. `RUNBOOK.md` shows operational commands and local recovery steps.
+3. `NEXT.md` separates completed work from remaining work.
+4. `PR_W0068_DESCRIPTION.md` summarizes the staging branch for review.
+5. `reviews/oss_council_verdict_latest.json` is the latest local machine receipt.

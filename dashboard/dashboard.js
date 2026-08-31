@@ -11,6 +11,17 @@ function escapeHtml(text) {
 async function loadData() {
   try {
     const data = await fetch("/api/dashboard-data").then((response) => response.json());
+    const runtimeBadge = document.getElementById("runtime-status-badge");
+    if (runtimeBadge) {
+      runtimeBadge.className = "badge badge-emerald";
+      runtimeBadge.innerHTML = '<span class="status-dot"></span>Runtime Online';
+    }
+    const chatBackendBadge = document.getElementById("chat-backend-badge");
+    if (chatBackendBadge) {
+      const backend = data.runtime?.chat_backend || data.runtime?.chat_backend_status || "Local route available";
+      chatBackendBadge.className = "badge badge-primary";
+      chatBackendBadge.textContent = backend;
+    }
     document.getElementById("active-pack").innerText = data.prompt_sources.length ? "Custom/Core" : "None";
     document.getElementById("prompt-sources-list").innerHTML = data.prompt_sources.map((source) => `
       <li class="prompt-item">
@@ -35,7 +46,7 @@ async function loadData() {
             <div class="doc-metrics">
               <div class="doc-metric">
                 <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
-                <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--primary);"></div></div>
+                <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--cyan);"></div></div>
                 <span class="metric-value">${confidencePct}%</span>
               </div>
               <div class="doc-metric">
@@ -51,6 +62,28 @@ async function loadData() {
     await loadReceiptsTelemetry();
   } catch (error) {
     console.error(error);
+    const runtimeBadge = document.getElementById("runtime-status-badge");
+    if (runtimeBadge) {
+      runtimeBadge.className = "badge badge-rose";
+      runtimeBadge.innerHTML = '<span class="status-dot"></span>Local API unavailable';
+    }
+    const chatBackendBadge = document.getElementById("chat-backend-badge");
+    if (chatBackendBadge) {
+      chatBackendBadge.className = "badge badge-rose";
+      chatBackendBadge.textContent = "Route unavailable";
+    }
+    document.getElementById("active-pack").innerText = "Unavailable";
+    document.getElementById("prompt-sources-list").innerHTML = `
+      <li class="prompt-item">
+        <span class="prompt-path">Local API unavailable</span>
+        <span class="badge badge-rose">offline</span>
+      </li>
+    `;
+    document.getElementById("memory-docs-list").innerHTML = `
+      <div style="color: var(--text-muted); text-align: center; padding: 2rem;">
+        Local dashboard data is unavailable.
+      </div>
+    `;
   }
 }
 
@@ -80,7 +113,7 @@ async function runSearch() {
   const body = document.getElementById("search-results-body");
   body.innerHTML = '<tr><td colspan="5" style="text-align: center;">Retrieving...</td></tr>';
   try {
-    const data = await fetch(`/api/dashboard-query?q=${encodeURIComponent(query)}`).then((response) => response.json());
+    const data = await fetchJson(`/api/dashboard-query?q=${encodeURIComponent(query)}`);
     if (!data.snippets?.length) {
       body.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No matching snippets returned from the sieve.</td></tr>';
       return;
@@ -438,7 +471,7 @@ function renderRecords(report) {
 
 async function loadContinuityRecords() {
   const body = document.getElementById("console-records-body");
-  body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Retrieving records...</td></tr>';
   try {
     const report = await fetchJson("/api/operator-continuity");
     renderRecords(report);
@@ -566,8 +599,8 @@ async function loadGovernanceData() {
     if (hw.context_compression_ratio < 0.50) {
       warningBanner.innerHTML = `
         <div class="warning-banner">
-          <span style="font-weight: 700;">⚠ WARNING:</span>
-          Context compression active — potential minor coherence loss on deep history.
+          <span style="font-weight: 700;">WARNING:</span>
+          Context compression active - potential minor coherence loss on deep history.
         </div>
       `;
     } else {
@@ -635,6 +668,17 @@ async function loadGovernanceData() {
 
   } catch (error) {
     console.error("Failed to load governance details:", error);
+    document.getElementById("memory-val").textContent = "Unavailable";
+    document.getElementById("active-model-route").textContent = "Offline";
+    document.getElementById("active-model-route").className = "badge badge-rose";
+    document.getElementById("active-routing-basis").textContent = "Local telemetry unavailable";
+    document.getElementById("compression-val").textContent = "Unavailable";
+    document.getElementById("routing-warning-banner").innerHTML = `
+      <div class="warning-banner">
+        <span style="font-weight: 700;">LOCAL DATA UNAVAILABLE:</span>
+        Operator telemetry could not be loaded.
+      </div>
+    `;
   }
 }
 
@@ -648,12 +692,12 @@ function updateSvgNode(circleId, textId, status) {
   if (status === "SIGNED") {
     circle.setAttribute("fill", "#064e3b");
     circle.setAttribute("stroke", "#10b981");
-    circle.setAttribute("filter", "url(#neon-glow)");
+    circle.removeAttribute("filter");
     text.setAttribute("fill", "#34d399");
   } else if (status === "VETOED") {
     circle.setAttribute("fill", "#4c0519");
     circle.setAttribute("stroke", "#f43f5e");
-    circle.setAttribute("filter", "url(#neon-glow)");
+    circle.removeAttribute("filter");
     text.setAttribute("fill", "#fda4af");
   } else {
     circle.setAttribute("fill", "#161e31");
@@ -823,7 +867,12 @@ if (btnResolveContainment) {
 }
 
 // Interactive Chat Surface Controller
+let chatSurfaceInitialized = false;
+
 function initChatSurface() {
+  if (chatSurfaceInitialized) return;
+  chatSurfaceInitialized = true;
+
   const chatMessagesList = document.getElementById("chat-messages-list");
   const chatInputText = document.getElementById("chat-input-text");
   const chatSendBtn = document.getElementById("chat-send-btn");
@@ -862,7 +911,7 @@ function initChatSurface() {
     if (receipt) {
       receiptHtml = `
         <details style="margin-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; font-size: 0.78rem;">
-          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">🛡️ Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
+          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
           <div style="margin-top: 0.4rem; color: var(--text-dim); line-height: 1.4;">
             <div>Mode: <code>${escapeHtml(receipt.retention_scope || "ephemeral")}</code></div>
             <div>Model Route: <code>${escapeHtml(receipt.chosen_model || "local")}</code></div>
@@ -921,7 +970,7 @@ function initChatSurface() {
           <span class="bubble-timestamp">Thinking...</span>
         </div>
         <div class="chat-bubble-body">
-          <span class="pulse-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
+          <span class="status-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
         </div>
       </div>
     `);
@@ -987,7 +1036,7 @@ function initChatSurface() {
     chatClearBtn.addEventListener("click", () => {
       if (confirm("Clear live chat history?")) {
         localStorage.removeItem("dizzy_chat_history");
-        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings. Chat history cleared. How can I assist you today?");
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Local chat history cleared. Route health remains dependent on the local API response.");
       }
     });
   }
@@ -1109,6 +1158,9 @@ async function loadReceiptsTelemetry() {
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
     if (councilElem) councilElem.innerText = "UNREACHABLE";
     if (cycleElem) cycleElem.innerText = "UNREACHABLE";
+    renderParetoHud([]);
+    renderVerificationSummaries({});
+    renderCircuitBreakers([]);
   }
 }
 
@@ -1119,7 +1171,10 @@ function renderParetoHud(paretoModels = []) {
   const countBadge = document.getElementById("pareto-frontier-count");
   if (!svgGroup || !frontierPath) return;
 
-  if (countBadge) countBadge.textContent = `${paretoModels.length} Models Mapped`;
+  if (countBadge) {
+    countBadge.textContent = paretoModels.length ? `${paretoModels.length} Models Mapped` : "No telemetry";
+    countBadge.className = `badge ${paretoModels.length ? "badge-primary" : "badge-amber"}`;
+  }
   svgGroup.innerHTML = "";
 
   if (!paretoModels.length) return;
@@ -1195,6 +1250,34 @@ function renderVerificationSummaries(data) {
   const advList = document.getElementById("adversarial-gates-list");
   const negList = document.getElementById("negative-capability-list");
 
+  if (!advVer) {
+    if (advBadge) {
+      advBadge.textContent = "No current receipt";
+      advBadge.style.color = "var(--text-muted)";
+    }
+    if (advStatus) {
+      advStatus.textContent = "No current receipt";
+      advStatus.className = "badge badge-amber";
+    }
+    if (advList) {
+      advList.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem 0;">No adversarial receipt available.</div>';
+    }
+  }
+
+  if (!negCap) {
+    if (negBadge) {
+      negBadge.textContent = "No current receipt";
+      negBadge.style.color = "var(--text-muted)";
+    }
+    if (negStatus) {
+      negStatus.textContent = "No current receipt";
+      negStatus.className = "badge badge-amber";
+    }
+    if (negList) {
+      negList.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem 0;">No restraint receipt available.</div>';
+    }
+  }
+
   if (advBadge && advVer) {
     advBadge.textContent = `${advVer.deterministic_blocks || 0}/${advVer.scenarios_tested || 0} BLOCKED`;
     advBadge.style.color = advVer.bypasses_allowed === 0 ? "var(--emerald)" : "var(--rose)";
@@ -1240,13 +1323,17 @@ function renderCircuitBreakers(breakers = []) {
   if (!grid) return;
 
   if (!breakers.length) {
+    if (aggBadge) {
+      aggBadge.textContent = "No telemetry";
+      aggBadge.className = "badge badge-amber";
+    }
     grid.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No circuit breaker data available.</div>';
     return;
   }
 
   const allClosed = breakers.every((b) => b.state === "CLOSED");
   if (aggBadge) {
-    aggBadge.textContent = allClosed ? "All Routes Operational" : "Circuit Breaker Active";
+    aggBadge.textContent = allClosed ? "All Reported Routes Closed" : "Circuit Breaker Active";
     aggBadge.className = `badge ${allClosed ? "badge-emerald" : "badge-amber"}`;
   }
 
@@ -1261,7 +1348,7 @@ function renderCircuitBreakers(breakers = []) {
       <div class="summary-card" style="border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; background: rgba(11, 16, 28, 0.6);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(route.route_id)}</span>
-          <span class="badge ${badgeClass}"><span class="pulse-dot"></span>${escapeHtml(route.state)}</span>
+          <span class="badge ${badgeClass}"><span class="status-dot"></span>${escapeHtml(route.state)}</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem; color: var(--text-muted);">
           <div style="display: flex; justify-content: space-between; align-items: center;">

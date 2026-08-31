@@ -1,6 +1,6 @@
 # Unified Codex + Antigravity Handoff Packet
 
-Snapshot date: 2026-08-26
+Snapshot date: 2026-08-31
 
 Purpose: merge the Codex path-first handoff and Antigravity complete architecture packet into one deduped reference. Each file path appears once, under its primary handoff role. Generated receipts and scratch-engine artifacts are separated from tracked clawd source so the next operator does not confuse local evidence with commit-ready code.
 
@@ -9,9 +9,9 @@ Purpose: merge the Codex path-first handoff and Antigravity complete architectur
 ```text
 Root: C:\Users\Josh\clawd
 Branch: feat/dizzy-general-distro
-HEAD: c4300eae
-Tracked tree: dirty; intentional local Node P0 remediation and doc reconciliation edits are present.
-Remote state: ahead of origin/feat/dizzy-general-distro by 17 commits
+HEAD: 2b21e22d17741270e86cfdc23a31c0562bcfb680
+Tracked tree: dirty; intentional W-0105 public-view readiness edits are present.
+Remote state: synced with origin/feat/dizzy-general-distro; ahead of origin/main by 31 commits
 Draft PR: https://github.com/Simultech369/Dizzy-the-Polymath/pull/1
 ```
 
@@ -19,12 +19,12 @@ Latest Node council receipt:
 
 ```text
 Receipt: listed once under Local Receipts And Review Evidence.
-Timestamp: 2026-08-28T03:10:46.075Z
+Timestamp: 2026-08-31T10:33:34.822Z
 Verdict: VERIFIED_PASSED
-Syntax targets: 105
-Execution suites: 51
+Syntax targets: 111
+Execution suites: 55
 Governance checks: 2
-SHA-256: 7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61
+SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
 ```
 
 ## Antigravity Fast Handoff Paths
@@ -87,7 +87,7 @@ Quarantine note: test green does not promote the Python lab into production; kee
 
 ```text
 Do not repeat older count claims without checking the latest receipt.
-PR_W0068_DESCRIPTION.md, README.md, NEXT.md, and reviews\w0068_staging_triage.md should be read against the current 105 syntax detail entries / 51 execution / 2 governance Node receipt baseline; PR_W0068_DESCRIPTION.md names the latest checked local receipt path, timestamp, and hash.
+PR_W0068_DESCRIPTION.md, README.md, QUICKSTART.md, RUNBOOK.md, NEXT.md, and reviews\w0068_staging_triage.md should be read against the current 111 syntax detail entries / 55 execution / 2 governance Node receipt baseline; PR_W0068_DESCRIPTION.md names the latest checked local receipt path, timestamp, and hash.
 Receipt hashes are per-run evidence. If npm run check:council is rerun, refresh the timestamp/hash against reviews\oss_council_verdict_latest.json before public reuse.
 Earlier 57 syntax / 31 suite wording is also stale.
 Python-count timeline: older 144/181/237/298-test wording is stale for current handoff purposes. The latest supplied Council Patch 9D sidecar baseline is 322 tests / 62 modules / CONTRACT_VERSION 4.7.0 / 30 contract sections / 37 payload receipt schemas. Codex did not rerun that Python suite in this clawd pass, so keep it as sidecar evidence until independently verified. Do not flatten static definition counts into passing-test counts.
@@ -189,7 +189,7 @@ Immediate roadmap disposition:
 - Priority 5: StateM-style `plan -> execute <-> verify -> handoff` mechanics now exist in the Node worker loop; next hardening target is command/authority review around queued `runbook`/`fsm` jobs.
 - Priority 6: A2A should be the next coordination focus, but begin with a local/public-protocol gap map. Current `lib/a2a_mailbox_bridge.mjs` is a sealed local mailbox and handoff-envelope foundation, not a claim of full Agent2Agent protocol compliance.
 - Council/UI/bounty success lens: council-building should reduce selection mistakes, setup drag, hallucinated claimability, half-finished patches, and noisy bounty-board scanning while making model disagreement visible through the Machine Room Cockpit/HMI HUD. `lib\bounty_hunter_engine.mjs` now includes the local `dizzy.bounty_a2a_ingest.v1` contract and `reviews\prompts\bounty_*` holds the Builder/Breaker prompt pack. See `C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md` for the current acceptance/change/A2A/council/UI/bounty-board radar orientation before handing back to Antigravity.
-- Proof boundary for latest W-0104 bounty-board scanner slice: Codex repaired the Antigravity scanner handoff by switching Redis dispatch to the canonical `enqueueJob` queue contract, adding a true no-network `--offline-proof` artifact mode, and registering `scripts\job_board_scanner_test.mjs` in the council. Focused scanner/job-board/bounty checks passed, and a newer completed full-council receipt is now on disk at `reviews\oss_council_verdict_latest.json`: `105 syntax detail entries / 51 execution suites / 2 governance checks`, timestamp `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`. Older `96/50/9A24`, `103/50/7A971`, `103/50/84F0`, `103/50/26E9`, and `105/51/030688` wording is superseded.
+- Proof boundary for latest W-0105 public-view readiness slice: Codex registered `scripts\public_view_readiness_test.mjs` in the council, rewrote `QUICKSTART.md` around actual local flags, removed misleading README badges, corrected `RUNBOOK.md` dashboard startup language, and softened PR/dashboard overclaims. A newer completed full-council receipt is now on disk at `reviews\oss_council_verdict_latest.json`: `111 syntax detail entries / 55 execution suites / 2 governance checks`, timestamp `2026-08-31T10:33:34.822Z`, SHA-256 `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`. Older `96/50/9A24`, `103/50/7A971`, `103/50/84F0`, `103/50/26E9`, `105/51/030688`, and `110/54/78085` wording is superseded.
 
 Pickup/process friction notes from Codex resume:
 - Friction observed twice in this slice: after context compaction, the work summary preserved final facts and commands, but not the exact doc paragraph mid-edit; Codex had to rescan `UNIFIED_HANDOFF_PACKET.md` and `reviews/codex_to_antigravity_delta_2026-08-24.md`.

@@ -14,11 +14,11 @@ Terminal B:
 - `Invoke-RestMethod http://127.0.0.1:3000/health`
 - `Invoke-RestMethod http://127.0.0.1:3000/prompt`
 
-This starts the local API, exposes governance and prompt inspection endpoints, and enables the Guided Trust Cockpit dashboard at `http://localhost:3000/dashboard`. It does not require Telegram, Redis, or an external model backend. The `/memory/graph` HTTP inspection endpoint is opt-in; set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server, then run `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`.
+This starts the local API and exposes governance and prompt inspection endpoints. It does not require Telegram, Redis, or an external model backend. The Guided Trust Cockpit dashboard is opt-in; set `DIZZY_DASHBOARD_ENABLED=1` before starting the server to serve `http://localhost:3000/dashboard`. The `/memory/graph` HTTP inspection endpoint is also opt-in; set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server, then run `Invoke-RestMethod http://127.0.0.1:3000/memory/graph`.
 
 The Guided Trust Cockpit dashboard read-only routes are isolated in `lib/dashboard.mjs` and its local-only renderer lives at `dashboard/index.html`. Asset failure leaves core routes such as `/health` available.
 
-Dashboard browser access uses a loopback-only temporary operator session. Set `DIZZY_DASHBOARD_ENABLED=1` (enabled by default when running `npm start`) and a strong `DIZZY_AUTH_TOKEN` if authenticating non-loopback clients. Open `/dashboard/login` or `/dashboard`. The server exchanges tokens for random in-memory `HttpOnly; SameSite=Strict` cookies. The cookie is accepted only on dashboard routes and never authorizes general API routes. Do not put credentials in query strings or browser storage.
+Dashboard browser access uses a loopback-only temporary operator session. Set `DIZZY_DASHBOARD_ENABLED=1` before running `npm start`, and set a strong `DIZZY_AUTH_TOKEN` if authenticating non-loopback clients. Open `/dashboard/login` or `/dashboard`. The server exchanges tokens for random in-memory `HttpOnly; SameSite=Strict` cookies. The cookie is accepted only on dashboard routes and never authorizes general API routes. Do not put credentials in query strings or browser storage.
 
 Dashboard API responses use the `minimal-v1` projection: repository-relative paths are replaced by opaque stable IDs. Executable dashboard JavaScript is served from guarded local assets, and the HTML CSP allows same-origin scripts without inline script execution.
 
@@ -52,12 +52,12 @@ Doctor (sanity check: server health + Telegram token/chat id):
 
 Add-ons (optional):
 - ` $env:DIZZY_ENABLE_WORKER="1"` to also open the Redis-backed worker window
-- ` $env:DIZZY_ENABLE_NOTIFY_DRAIN="1"` to also open Telegram “job dead” alerts
+- ` $env:DIZZY_ENABLE_NOTIFY_DRAIN="1"` to also open Telegram "job dead" alerts
 - ` $env:TELEGRAM_POLL_JOB_RESULTS="1"` to have the relay poll `/jobs/:id` and post completions
 - ` $env:TELEGRAM_SEND_STARTUP_MESSAGE="1"` to send a startup Telegram message after launch
 
 Notes:
-- The launcher waits for `GET /health` before starting the relay (prevents “Dispatch error: fetch failed” when the server isn’t up yet).
+- The launcher waits for `GET /health` before starting the relay (prevents "Dispatch error: fetch failed" when the server is not up yet).
 - By default, the launcher computes `DIZZY_BASE_URL` from `PORT` and ignores any pre-set `DIZZY_BASE_URL`. To override intentionally, set `DIZZY_BASE_URL_OVERRIDE=1`.
 - By default, the relay does not send an unsolicited Telegram startup message. Set `TELEGRAM_SEND_STARTUP_MESSAGE=1` if you want that behavior.
 - `TELEGRAM_ALLOW_AUTO_BIND=1` prints a one-time nonce; the first private chat must send `/bind <nonce>` before it is accepted.
@@ -105,7 +105,7 @@ Then (with Redis running):
 Note:
 - The server process must also have `REDIS_URL` set (the `launch_telegram.ps1` script does this automatically when `DIZZY_ENABLE_WORKER=1`).
 
-If you don’t want Redis right now:
+If you do not want Redis right now:
 - Tool calls can also run **inline** (no worker) by setting `DIZZY_TOOL_MODE=auto` (default) or `DIZZY_TOOL_MODE=inline`.
 - Localhost/private-network fetches are denied by default. Only opt in with `DIZZY_TOOL_ALLOW_LOCALHOST=1` and/or `DIZZY_TOOL_ALLOW_PRIVATE_NET=1` when you explicitly need them.
 - Redirects are manually validated and capped (`DIZZY_TOOL_MAX_REDIRECTS`, default `3`) so an external URL cannot silently bounce into your local network.
@@ -149,7 +149,7 @@ Telegram commands:
 
 Duplicate replies:
 - If you see two similar replies to one message, you almost certainly have multiple `telegram_relay` processes running.
-- The relay now enforces a single-instance lock by default (`runtime/telegram_relay.lock`). Close extra “Dizzy Telegram Relay” windows and restart.
+- The relay now enforces a single-instance lock by default (`runtime/telegram_relay.lock`). Close extra "Dizzy Telegram Relay" windows and restart.
 - To intentionally run multiple relays (not recommended), set `TELEGRAM_ALLOW_MULTI=1`.
 
 ---
