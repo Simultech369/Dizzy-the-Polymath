@@ -8,7 +8,7 @@
 Codex, you are taking over after a large, highly verified 3-day sprint. The user (Simul) authorized the docking sequence, and the project is in a strong local staging state. Keep proof language bounded to the receipts and checks actually run in this repo.
 
 ## 1. The Git State & The "Heavy Commit" Fix
-*   **Branch:** `feat/dizzy-general-distro` is pushed and live on the remote through HEAD `f90883a2568efdad3b1f26e181ec4fea417afe84` (`Harden public-view readiness surface`). The staging branch is synced with `origin/feat/dizzy-general-distro` and remains 32 commits ahead of `origin/main`.
+*   **Branch:** `feat/dizzy-general-distro` is pushed and live on the remote through HEAD `25f11e8ba21e4875df2e6c7978184294cc30ec29` (`docs(handoff): integrate W-0105 public view readiness baton and roadmap seed`). The staging branch is synced with `origin/feat/dizzy-general-distro` and remains 33 commits ahead of `origin/main`.
 *   **The Fix:** During docking, GitHub rejected our push because the simulated toolchains (`codex-bench-tools/llvm-mingw` etc.) exceeded 100MB. I intercepted this, performed a `--soft` reset, repaired the `.gitignore` encoding corruption, removed the tracked `artifacts/` and `scratch/` provenance mess via a corrective commit, and re-pushed. The tracked branch is lean; local ignored or untracked scratch artifacts may still exist and are not committed proof.
 *   **Decisions:** D-0039 is formally closed. `NEXT.md` now treats public surface readiness as W-0105, not as a new architecture lane.
 

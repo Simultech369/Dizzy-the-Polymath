@@ -8,9 +8,9 @@ Authority: local evidence decides; model and handoff output are claim sources on
 
 Root: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-HEAD: `f90883a2568efdad3b1f26e181ec4fea417afe84`
-Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 32 commits
-Tracked state: W-0105 public-view readiness is pushed; later handoff-only documentation edits are local until explicitly staged, committed, and pushed
+HEAD: `25f11e8ba21e4875df2e6c7978184294cc30ec29`
+Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 33 commits
+Tracked state: W-0105 public-view readiness and the follow-on handoff/roadmap baton are pushed through `25f11e8b`
 Draft PR: `https://github.com/Simultech369/Dizzy-the-Polymath/pull/1`
 
 Current local council receipt after the latest supervisor/council run:

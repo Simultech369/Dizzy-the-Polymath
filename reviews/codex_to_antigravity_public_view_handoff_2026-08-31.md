@@ -3,9 +3,9 @@
 Date: 2026-08-31
 Repo: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-Latest pushed HEAD: `f90883a2568efdad3b1f26e181ec4fea417afe84`
+Latest pushed HEAD: `25f11e8ba21e4875df2e6c7978184294cc30ec29`
 Remote status after push: synced with `origin/feat/dizzy-general-distro`
-Default-branch gap: branch remains 32 commits ahead of `origin/main`
+Default-branch gap: branch remains 33 commits ahead of `origin/main`
 
 ## Summary
 
@@ -14,6 +14,7 @@ Codex completed and pushed the W-0105 public-view readiness pass. The goal was n
 Commit:
 
 ```text
+25f11e8b docs(handoff): integrate W-0105 public view readiness baton and roadmap seed
 f90883a2 Harden public-view readiness surface
 ```
 
@@ -59,6 +60,19 @@ git diff --check
 ```
 
 `git diff --check` only emitted normal CRLF/LF warnings for `.gitignore` and `README.md`; no whitespace errors were reported.
+
+Follow-up observed on 2026-09-01:
+
+```text
+Branch state: clean and synced with origin/feat/dizzy-general-distro before Codex's four local ledger text corrections
+HEAD: 25f11e8ba21e4875df2e6c7978184294cc30ec29
+Default-branch gap: 0 behind / 33 ahead of origin/main
+Checks rerun: test:public-view-readiness, test:dashboard-public-surface, check:docs, check:next, check:staging-boundary, git diff --check
+Result: all passed; staging-boundary reported dirty_tracked=4 after the local ledger text corrections
+Temporary dashboard HTTP smoke: health 200, login 200, session 303 with session cookie, dashboard 200, dashboard-data 200, tension-map 200
+Observed dashboard-data first-response latency: 9885 ms
+Visual proof status: screenshot/GIF still pending; HTTP smoke is not a substitute for visual browser proof
+```
 
 ## What Is Still Not Claimed
 
