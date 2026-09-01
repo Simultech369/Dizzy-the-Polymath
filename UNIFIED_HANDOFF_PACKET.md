@@ -9,9 +9,9 @@ Purpose: merge the Codex path-first handoff and Antigravity complete architectur
 ```text
 Root: C:\Users\Josh\clawd
 Branch: feat/dizzy-general-distro
-HEAD: 2b21e22d17741270e86cfdc23a31c0562bcfb680
-Tracked tree: dirty; intentional W-0105 public-view readiness edits are present.
-Remote state: synced with origin/feat/dizzy-general-distro; ahead of origin/main by 31 commits
+HEAD: f90883a2568efdad3b1f26e181ec4fea417afe84
+Tracked tree: clean at pushed W-0105 commit `f90883a2`; any later handoff-only doc edits are local until explicitly committed.
+Remote state: synced with origin/feat/dizzy-general-distro; ahead of origin/main by 32 commits
 Draft PR: https://github.com/Simultech369/Dizzy-the-Polymath/pull/1
 ```
 
@@ -190,6 +190,7 @@ Immediate roadmap disposition:
 - Priority 6: A2A should be the next coordination focus, but begin with a local/public-protocol gap map. Current `lib/a2a_mailbox_bridge.mjs` is a sealed local mailbox and handoff-envelope foundation, not a claim of full Agent2Agent protocol compliance.
 - Council/UI/bounty success lens: council-building should reduce selection mistakes, setup drag, hallucinated claimability, half-finished patches, and noisy bounty-board scanning while making model disagreement visible through the Machine Room Cockpit/HMI HUD. `lib\bounty_hunter_engine.mjs` now includes the local `dizzy.bounty_a2a_ingest.v1` contract and `reviews\prompts\bounty_*` holds the Builder/Breaker prompt pack. See `C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md` for the current acceptance/change/A2A/council/UI/bounty-board radar orientation before handing back to Antigravity.
 - Proof boundary for latest W-0105 public-view readiness slice: Codex registered `scripts\public_view_readiness_test.mjs` in the council, rewrote `QUICKSTART.md` around actual local flags, removed misleading README badges, corrected `RUNBOOK.md` dashboard startup language, and softened PR/dashboard overclaims. A newer completed full-council receipt is now on disk at `reviews\oss_council_verdict_latest.json`: `111 syntax detail entries / 55 execution suites / 2 governance checks`, timestamp `2026-08-31T10:33:34.822Z`, SHA-256 `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`. Older `96/50/9A24`, `103/50/7A971`, `103/50/84F0`, `103/50/26E9`, `105/51/030688`, and `110/54/78085` wording is superseded.
+- Push boundary: W-0105 public-view readiness is pushed as `f90883a2568efdad3b1f26e181ec4fea417afe84` on `origin/feat/dizzy-general-distro`. The staging branch remains 32 commits ahead of `origin/main`; default-branch public viewing will not reflect this work until PR #1 is merged or branch policy changes.
 
 Pickup/process friction notes from Codex resume:
 - Friction observed twice in this slice: after context compaction, the work summary preserved final facts and commands, but not the exact doc paragraph mid-edit; Codex had to rescan `UNIFIED_HANDOFF_PACKET.md` and `reviews/codex_to_antigravity_delta_2026-08-24.md`.

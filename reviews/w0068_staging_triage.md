@@ -8,9 +8,9 @@ Authority: local evidence decides; model and handoff output are claim sources on
 
 Root: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-HEAD: `2b21e22d17741270e86cfdc23a31c0562bcfb680`
-Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 31 commits
-Tracked state: dirty with W-0105 public-surface docs, dashboard, and guard updates
+HEAD: `f90883a2568efdad3b1f26e181ec4fea417afe84`
+Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 32 commits
+Tracked state: W-0105 public-view readiness is pushed; later handoff-only documentation edits are local until explicitly staged, committed, and pushed
 Draft PR: `https://github.com/Simultech369/Dizzy-the-Polymath/pull/1`
 
 Current local council receipt after the latest supervisor/council run:
@@ -82,6 +82,7 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `RUNBOOK.md` | include | Corrects dashboard startup language: dashboard is opt-in with `DIZZY_DASHBOARD_ENABLED=1`, not enabled by plain `npm start`. | `npm run check:docs`; `npm run test:public-view-readiness` |
 | `PR_W0068_DESCRIPTION.md` | include | Reconciles stale count/hash claims, dashboard opt-in language, source/API proof boundary, and no-hosted-production boundary. | Manual receipt-hash refresh after final council run |
 | `UNIFIED_HANDOFF_PACKET.md` | include | Refreshes the root baton-pass packet to the latest W-0105 receipt, public-view proof boundary, and current branch/dirty-tree posture. | `npm run check:docs`; `npm run check:staging-boundary` |
+| `reviews/codex_to_antigravity_public_view_handoff_2026-08-31.md` | include | Adds a dated Antigravity baton for the pushed W-0105 public-view readiness commit, remaining caveats, and community-facing roadmap seed. | `npm run check:docs`; `npm run check:staging-boundary` |
 | `reviews/antigravity_post_docking_handoff_latest.md` | include | Reconciles Antigravity handoff language to the latest local W-0105 receipt, memory/wiki separation, A2A proof boundary, and pending visual-browser-proof caveat. | `npm run check:docs`; `npm run check:council` |
 | `reviews/w0068_staging_triage.md` | include | Reconciles this staging-boundary ledger to the current W-0105 dirty set, latest receipt, dashboard public-surface guard, and remaining visual proof caveat. | `npm run check:staging-boundary`; `npm run check:docs` |
 | `memory/2026-08-21.md` | include if daily logs are part of this PR; otherwise park | Converts stale 69-target wording into a historical snapshot. This is low-risk, but it is operational memory rather than runtime behavior. | `git diff --check`; reviewer decision on PR scope |

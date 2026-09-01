@@ -42,3 +42,7 @@ codex-bench-tools-w64/
 codex-bench-run/
 .extraction/
 *.index
+DRIPS_WAVE_*
+Heliobond-*
+ProofOfHeart-*
+*.patch

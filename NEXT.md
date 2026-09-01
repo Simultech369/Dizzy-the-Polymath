@@ -21,6 +21,30 @@ Resolved note: D-0039 was closed by the W-0068/W-0104 staging packet, `reviews/w
 - W-0091: Keep the Python `council_engine` proof lab quarantined until promotion gates are independently satisfied.
   Acceptance: Python pass counts are recorded as scratch/sidecar evidence only. Latest Council context supplied on 2026-08-27 after Codex Patch 9D reports 322 tests passing across 62 discoverable test modules, 70 raw non-test Python files, 19 non-output Markdown docs/specs, 13 domain blueprints, `CONTRACT_VERSION 4.7.0`, 30 contract sections, and 37 payload receipt schemas. Codex did not rerun that Python suite in this clawd pass; older 181/237/298 scratch baselines are superseded by the Patch 9D sidecar report. Promotion remains blocked on independent verification of key custody, Ed25519-authenticated P2P/public A2A boundaries, non-mock sandboxing, network egress chokepoints, provenance, sensitivity, path-jail, and mock-rejection evidence.
 
+---
+
+## Community-Facing Roadmap
+
+These are future focuses for public collaborators, not current completion claims.
+
+- W-0106: Capture a real dashboard walkthrough proof.
+  Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. This closes the current source/API-only visual proof caveat.
+
+- W-0107: Add contributor onboarding.
+  Acceptance: Add a compact `CONTRIBUTING.md`, identify scoped good-first issues, explain how to run the main local checks, and preserve the rule that public claims must point to receipts or explicit non-claims.
+
+- W-0108: Prove external A2A at the service boundary.
+  Acceptance: Implement a signed HTTP or WebSocket receive/reply boundary with schema validation, expected sender identity, stale timestamp rejection, replayed nonce rejection, prompt-injection sanitization, and fail-closed malformed/unsigned input behavior before any public A2A interoperability claim.
+
+- W-0109: Harden the bounty/opportunity lane.
+  Acceptance: Keep board ingestion behind domain allowlists, no ambient browser-cookie access, safe offline artifacts, EV triage calibration, and receipt-backed handoff into the local worker queue.
+
+- W-0110: Explain the Memory Wiki.
+  Acceptance: Add examples that show capture, consolidate, retrieve, reconcile, and decay flowing into transparent Markdown wiki pages while preserving the separate `cognitive_memory_engine.mjs` and `memory_wiki_adapter.mjs` boundary.
+
+- W-0111: Keep license and provenance audit current.
+  Acceptance: Before broad public/client-facing release, review external reference rows, borrowing classes, notices, and clean-room boundaries in `reviews/external_pattern_license_audit.md` and `THIRD_PARTY_NOTICES.md`.
+
 
 
 

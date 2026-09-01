@@ -8,7 +8,7 @@
 Codex, you are taking over after a large, highly verified 3-day sprint. The user (Simul) authorized the docking sequence, and the project is in a strong local staging state. Keep proof language bounded to the receipts and checks actually run in this repo.
 
 ## 1. The Git State & The "Heavy Commit" Fix
-*   **Branch:** `feat/dizzy-general-distro` is pushed and live on the remote through HEAD `2b21e22d17741270e86cfdc23a31c0562bcfb680`; the W-0105 public-view readiness edits in this handoff are local working-tree changes until explicitly staged, committed, and pushed.
+*   **Branch:** `feat/dizzy-general-distro` is pushed and live on the remote through HEAD `f90883a2568efdad3b1f26e181ec4fea417afe84` (`Harden public-view readiness surface`). The staging branch is synced with `origin/feat/dizzy-general-distro` and remains 32 commits ahead of `origin/main`.
 *   **The Fix:** During docking, GitHub rejected our push because the simulated toolchains (`codex-bench-tools/llvm-mingw` etc.) exceeded 100MB. I intercepted this, performed a `--soft` reset, repaired the `.gitignore` encoding corruption, removed the tracked `artifacts/` and `scratch/` provenance mess via a corrective commit, and re-pushed. The tracked branch is lean; local ignored or untracked scratch artifacts may still exist and are not committed proof.
 *   **Decisions:** D-0039 is formally closed. `NEXT.md` now treats public surface readiness as W-0105, not as a new architecture lane.
 
@@ -18,6 +18,7 @@ Codex, you are taking over after a large, highly verified 3-day sprint. The user
 *   **Offline Ingress Proven:** `job_board_scanner.mjs` successfully normalizes job descriptions into Dizzy-local A2A-shaped `dizzy.bounty_a2a_ingest.v1` envelopes with cryptographic receipts. External A2A interoperability is not claimed until signed HTTP/WebSocket receipts exist.
 *   **Memory Wiki Guard Registered:** `lib/cognitive_memory_engine.mjs` and `lib/memory_wiki_adapter.mjs` remain separate by design and are both covered by focused tests plus the full council audit.
 *   **W-0105 Public-View Guards Added:** `scripts/dashboard_public_surface_test.mjs` verifies neutral dashboard startup copy, stripped decorative surface terms, idempotent chat initialization, dashboard auth/session behavior, and operator JSON routes. `scripts/public_view_readiness_test.mjs` guards README/Quickstart/Runbook/PR truthfulness. Visual browser screenshot proof remains pending; local Edge/Chrome headless capture failed in this sandbox and should not be described as completed.
+*   **Latest Codex Baton:** `reviews/codex_to_antigravity_public_view_handoff_2026-08-31.md` summarizes the pushed W-0105 commit, remaining caveats, recommended tomorrow checks, and the community-facing roadmap seed.
 
 ## 3. UI Mission: Impeccable Anti-Slop Polish
 Your immediate UI task is wiring `dashboard/index.html` to the API endpoints and styling the "Cockpit".
