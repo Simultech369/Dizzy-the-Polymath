@@ -12,6 +12,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
+import { a2aBoundaryGuard } from "./lib/a2a_boundary_guard.mjs";
 import {
   buildStreamReceipt,
   buildSseFrame,
@@ -1197,6 +1198,30 @@ export async function createRuntime(opts = {}) {
     }
     return { jobId: result, deduplicated: false };
   }
+
+  // External A2A boundary proof (W-0108)
+  const a2aSecret = process.env.DIZZY_A2A_SECRET || "default_unsafe_secret";
+  app.post("/api/a2a/incoming", a2aBoundaryGuard(a2aSecret), requestBoundaryAuditGuard, async (req, res, next) => {
+    try {
+      if (req.body?.schema !== "dizzy.a2a_message.v1") {
+        return res.status(400).json({ ok: false, error: "Invalid A2A schema" });
+      }
+      if (!req.body?.senderId || typeof req.body.senderId !== "string") {
+        return res.status(400).json({ ok: false, error: "Missing sender identity" });
+      }
+
+      const message = buildIncomingMessage(req.body, req, { channel: "a2a" });
+      const out = await handleIncomingMessage({
+        message,
+        enqueue: ({ tool, payload, effect, notify }) =>
+          enqueueTool({ tool, payload, effect, notify, idempotencyKey: req.headers["x-a2a-nonce"] }),
+      });
+
+      res.json({ ok: true, ...out });
+    } catch (e) {
+      next(e);
+    }
+  });
 
   // Single dispatch path (Telegram/model wiring can call this later).
   app.post("/dispatch/incoming", operatorControlAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {

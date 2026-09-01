@@ -220,6 +220,7 @@ async function runAudit() {
   // --- Layer 3: Hard Deterministic Subprocess Execution ---
   logStep("\nLayer 3: Running hard subprocess verification suites (Execution Gate)...");
   const testSuites = [
+    { name: "A2A Boundary Guard Suite", script: "scripts/a2a_boundary_test.mjs" },
     { name: "Router Integration Suite", script: "scripts/dynamic_router_test.mjs" },
     { name: "Model Router Suite", script: "scripts/model_router_test.mjs" },
     { name: "Ingress Gateway Suite", script: "scripts/ingress_gateway_test.mjs" },
