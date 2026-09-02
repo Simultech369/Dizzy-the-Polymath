@@ -1077,21 +1077,11 @@ export async function createRuntime(opts = {}) {
       const circuitBreakerPath = path.resolve(process.cwd(), "reviews/circuit_breaker_latest.json");
       const latestCircuitBreaker = readJsonFileIfPresent(circuitBreakerPath);
 
-      const paretoFrontier = [
-        { id: "gemma3:4b", name: "Gemma 3 4B", tier: 2, spend: 0.0, accuracy: 0.94, latency_ms: 180, zone: "private_self" },
-        { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B", tier: 2, spend: 0.0, accuracy: 0.96, latency_ms: 290, zone: "private_self" },
-        { id: "deepseek-r1:7b", name: "DeepSeek R1 7B", tier: 2, spend: 0.0, accuracy: 0.95, latency_ms: 720, zone: "private_self" },
-        { id: "supergemma-12b", name: "SuperGemma 12B (Red-Team)", tier: 3, spend: 0.0, accuracy: 0.92, latency_ms: 450, zone: "private_self" },
-        { id: "glm-5.3-siliconflow", name: "GLM 5.3 Cyber", tier: 1, spend: 0.25, accuracy: 0.98, latency_ms: 850, zone: "hosted_no_train" },
-        { id: "claude-3-7-sonnet", name: "Claude 3.7 Sonnet", tier: 0, spend: 0.85, accuracy: 0.99, latency_ms: 1650, zone: "apex_paid" }
-      ];
+      const paretoFrontier = [];
 
-      const circuitBreakers = [
-        { route_id: "route_jiunsong_supergemma_12b_local", state: "CLOSED", consecutive_failures: 0, tripped_count: 0 },
-        { route_id: "route_glm_5_3_siliconflow", state: "CLOSED", consecutive_failures: 0, tripped_count: 0 },
-        { route_id: "route_qwen_3_8_frontier", state: "CLOSED", consecutive_failures: 0, tripped_count: 0 },
-        { route_id: "siliconflow_tier1_cloud", state: latestCircuitBreaker?.circuit_state || "CLOSED", consecutive_failures: latestCircuitBreaker?.consecutive_failures || 0, tripped_count: 1, last_failure_reason: latestCircuitBreaker?.failure_reason }
-      ];
+      const circuitBreakers = latestCircuitBreaker ? [
+        { route_id: "siliconflow_tier1_cloud", state: latestCircuitBreaker.circuit_state || "CLOSED", consecutive_failures: latestCircuitBreaker.consecutive_failures || 0, tripped_count: 1, last_failure_reason: latestCircuitBreaker.failure_reason }
+      ] : [];
 
       const modelsSummary = {};
       const trustZonesSummary = {};
@@ -1221,6 +1211,10 @@ export async function createRuntime(opts = {}) {
       }
 
       const message = buildIncomingMessage(req.body, req, { channel: "a2a" });
+      // Force channel and origin to prevent escalation to private_self
+      message.channel = "a2a";
+      message.from = req.body.senderId;
+      message.trustZone = "outside_contact";
       const out = await handleIncomingMessage({
         message,
         enqueue: ({ tool, payload, effect, notify }) =>

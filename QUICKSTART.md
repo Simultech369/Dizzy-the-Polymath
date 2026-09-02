@@ -106,10 +106,10 @@ npm run check:production
 ## 7. What Is Not Claimed
 
 - Dizzy is not a hosted production service.
-- Public A2A interoperability is not live. A local signed HTTP ingress boundary exists, but a real cross-runtime peer handshake and signed response receipt still need proof before broader A2A claims.
+- `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability.
 - The Python Council Engine remains a quarantined proving sidecar, not production authority for this repo.
 - Redis, external providers, and model backends can be offline; the dashboard should show unavailable or unverified states instead of pretending they are healthy.
-- A live browser screenshot proof was not captured in the latest local W-0105 run because the local Edge/Chrome headless capture crashed. Source, API, and route guards passed.
+- Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. Source, API, and route guards passed.
 
 ## Reading Path
 

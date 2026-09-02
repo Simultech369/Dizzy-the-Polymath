@@ -94,7 +94,7 @@ Focused W-0102 guard: `npm run check:pattern-provenance`
 Focused W-0103 guard: `npm run test:subcommittee-router`
 Focused W-0104 guard: `npm run test:job-board-scanner`
 Focused W-0105 guards: `npm run test:dashboard-public-surface`; `npm run test:public-view-readiness`; `npm run test:dashboard-safety`
-Dashboard proof is source/API and route-level in this local pass; live browser screenshot proof remains pending because local Edge/Chrome headless capture crashed in the W-0105 environment.
+Dashboard proof is source/API and route-level in this local pass. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
 ---
 

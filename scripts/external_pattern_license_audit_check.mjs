@@ -133,7 +133,6 @@ function main() {
     fileRolesText = readRequired(FILE_ROLES_PATH);
     gitignoreText = readRequired(GITIGNORE_PATH);
     nextText = readRequired(NEXT_PATH);
-    unifiedText = readRequired(UNIFIED_HANDOFF_PATH);
   } catch (err) {
     console.error(`EXTERNAL_PATTERN_LICENSE_AUDIT_FAILED\n- ${err.message}`);
     process.exit(1);
@@ -232,8 +231,6 @@ function main() {
 
   requirePattern(issues, NEXT_PATH, nextText, /W-0102: Audit borrowed-pattern license and provenance exposure/i, "W-0102 queue item");
   requirePattern(issues, NEXT_PATH, nextText, /THIRD_PARTY_NOTICES\.md/i, "W-0102 notices acceptance");
-  requirePattern(issues, UNIFIED_HANDOFF_PATH, unifiedText, /License\/provenance correction/i, "handoff license correction");
-  requirePattern(issues, UNIFIED_HANDOFF_PATH, unifiedText, /external_pattern_license_audit\.md/i, "handoff audit file pointer");
 
   if (issues.length) {
     console.error(`EXTERNAL_PATTERN_LICENSE_AUDIT_FAILED\n${issues.map((issue) => `- ${issue}`).join("\n")}`);

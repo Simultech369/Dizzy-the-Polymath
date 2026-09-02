@@ -65,15 +65,15 @@ assertAbsent("public docs", Object.values(docs).join("\n"), [
 assertPresent("README.md", docs["README.md"], [
   /not a hosted production launch/i,
   /DIZZY_DASHBOARD_ENABLED=1/i,
-  /Visual browser proof remains pending/i,
-  /external A2A interoperability is not claimed yet/i,
+  /Operator captured the W-0106 walkthrough screenshots offline/i,
+  /single-runtime, shared-secret signed JSON ingress proof/i,
 ]);
 
 assertPresent("QUICKSTART.md", docs["QUICKSTART.md"], [
   /Dizzy is not a hosted production service/i,
-  /Public A2A interoperability is not live/i,
+  /single-runtime, shared-secret signed JSON ingress proof/i,
   /DIZZY_DASHBOARD_ENABLED=1/i,
-  /live browser screenshot proof was not captured/i,
+  /Operator captured the W-0106 walkthrough screenshots offline/i,
 ]);
 
 assertPresent("RUNBOOK.md", docs["RUNBOOK.md"], [

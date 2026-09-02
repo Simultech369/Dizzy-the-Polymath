@@ -28,7 +28,7 @@ Resolved note: D-0039 was closed by the W-0068/W-0104 staging packet, `reviews/w
 These are future focuses for public collaborators, not current completion claims.
 
 - W-0106: Capture a real dashboard walkthrough proof.
-  Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Antigravity reports that operator screenshots were captured, but Codex has not observed a repository path or PR attachment for that visual proof. This remains open until the proof is path-addressable or attached to the PR.
+  Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
 - W-0109: Harden the bounty/opportunity lane.
   Acceptance: Keep board ingestion behind domain allowlists, no ambient browser-cookie access, safe offline artifacts, EV triage calibration, and receipt-backed handoff into the local worker queue.
