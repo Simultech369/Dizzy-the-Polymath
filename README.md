@@ -6,6 +6,8 @@
 
 **Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
 
+*Dizzy does not train or fine-tune models; it is the control plane around them: context, tools, memory, routing, receipts, and verification.*
+
 </div>
 
 **Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
