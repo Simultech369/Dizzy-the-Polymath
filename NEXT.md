@@ -174,3 +174,11 @@ These are future focuses for public collaborators, not current completion claims
 - W-0034-note: Aligned prompt retrieval block headers with receipt source labels for trusted markdown, memory graph, and trajectory ledger.
 - W-0035-note: Moved optional flavor/economic overlay files into `flavor/` and updated prompt-pack references.
 - W-0035: Prototyped three-pool retrieval as report-only (`core`, `stale_important`, `edge_hypothesis`) in retrieval plans and capability receipts, with safety checks preventing auto-promotion or memory writes.
+
+## Hosted Production And Public A2A Horizon
+
+- Public agent identity: Ed25519 keys, sender registry, key rotation.
+- External A2A handshake: signed request, signed response, replay rejection, schema validation.
+- Hosted sandboxing: microVM/Wasm isolation, no ambient filesystem, hardened egress proxy.
+- Multi-tenant memory: strict tenant partitioning, no cross-user retrieval bleed.
+- Hosted operations: OAuth/OIDC, distributed rate limits, billing guards, fleet telemetry.

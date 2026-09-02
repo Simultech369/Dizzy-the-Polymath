@@ -12,7 +12,7 @@
 
 **Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
 
-`/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability.
+`/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work (see **Hosted Production And Public A2A Horizon** in [`NEXT.md`](NEXT.md)).
 
 Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the dashboard, inspect the receipt, and understand what is not claimed.
 

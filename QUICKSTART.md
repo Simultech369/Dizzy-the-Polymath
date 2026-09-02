@@ -111,7 +111,7 @@ has an explicit disposition.
 ## 7. What Is Not Claimed
 
 - Dizzy is not a hosted production service.
-- `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability.
+- `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work.
 - The Python Council Engine remains a quarantined proving sidecar, not production authority for this repo.
 - Redis, external providers, and model backends can be offline; the dashboard should show unavailable or unverified states instead of pretending they are healthy.
 - Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. Source, API, and route guards passed.
