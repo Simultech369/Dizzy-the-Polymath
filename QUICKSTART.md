@@ -78,9 +78,9 @@ Current local receipt after the W-0105 public-view readiness guard:
 
 ```text
 VERIFIED_PASSED
-2026-08-31T10:33:34.822Z
-111 syntax targets / 55 deterministic execution suites / 2 governance checks
-SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
+2026-09-02T01:55:02.622Z
+113 syntax targets / 56 deterministic execution suites / 2 governance checks
+SHA-256: F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56
 ```
 
 Receipts are local evidence, not a promise about every future machine. Rerunning the council audit writes a fresh timestamp and hash.
@@ -106,7 +106,7 @@ npm run check:production
 ## 7. What Is Not Claimed
 
 - Dizzy is not a hosted production service.
-- Public A2A interoperability is not live until an external signed HTTP or WebSocket boundary test exists.
+- Public A2A interoperability is not live. A local signed HTTP ingress boundary exists, but a real cross-runtime peer handshake and signed response receipt still need proof before broader A2A claims.
 - The Python Council Engine remains a quarantined proving sidecar, not production authority for this repo.
 - Redis, external providers, and model backends can be offline; the dashboard should show unavailable or unverified states instead of pretending they are healthy.
 - A live browser screenshot proof was not captured in the latest local W-0105 run because the local Edge/Chrome headless capture crashed. Source, API, and route guards passed.

@@ -10,7 +10,7 @@
 
 **Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
 
-External A2A interoperability is not claimed yet; current A2A-shaped work is local and receipt-bound until a signed HTTP/WebSocket boundary test exists.
+External A2A interoperability is not claimed yet; current A2A-shaped work includes a local sealed mailbox and a signed HTTP ingress boundary, but no public cross-runtime A2A claim exists until a real peer handshake is verified.
 
 Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the dashboard, inspect the receipt, and understand what is not claimed.
 
@@ -45,8 +45,9 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
 | StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
 | A2A-Style Cryptographic Mailbox | Local sealed handoff/message queue for agent coordination; external HTTP/WebSocket A2A interoperability is not claimed yet (`lib/a2a_mailbox_bridge.mjs`) |
+| Signed A2A HTTP Ingress Boundary | Local `/api/a2a/incoming` route guarded by `DIZZY_A2A_SECRET`, HMAC SHA-256 signatures, timestamp freshness, nonce replay rejection, schema validation, and prompt-marker sanitization. This is boundary proof, not ecosystem interoperability proof (`lib/a2a_boundary_guard.mjs`). |
 | Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 111 syntax targets and 55 test suites after the dashboard public-surface and public-view readiness guards are registered (`npm run check:council`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 113 syntax targets and 56 test suites after the A2A boundary, dashboard public-surface, and public-view readiness guards are registered (`npm run check:council`) |
 
 ## Quick Start
 
@@ -143,7 +144,7 @@ Before a model is treated as review-usable, it must prove its reliability:
 - **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
 
 As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
-- **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars, but external A2A service boundaries must be proven through signed HTTP/WebSocket receipts before public interoperability is claimed.
+- **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
 - **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).

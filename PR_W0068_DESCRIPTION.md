@@ -2,7 +2,7 @@
 
 **Branch**: [`feat/dizzy-general-distro`](https://github.com/Simultech369/Dizzy-the-Polymath/tree/feat/dizzy-general-distro)
 **Base**: `main`
-**Verdict**: `OSS Council Audit VERIFIED_PASSED` (111 syntax targets, 55 execution suites, 2 governance checks; anchored to latest checked local receipt `reviews/oss_council_verdict_latest.json` as of `2026-08-31T10:33:34.822Z`, SHA-256 `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`)
+**Verdict**: `OSS Council Audit VERIFIED_PASSED` (113 syntax targets, 56 execution suites, 2 governance checks; anchored to latest checked local receipt `reviews/oss_council_verdict_latest.json` as of `2026-09-02T01:55:02.622Z`, SHA-256 `F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56`)
 
 ---
 
@@ -31,9 +31,10 @@ This PR delivers the consolidated, clean execution stack for:
 10. **W-0102 External Pattern Provenance Guard**: Deterministic audit-ledger check for borrowed-pattern source inventory, borrowing class, disposition, quarantine clone paths, Apache/NOTICE reminders, and public-release remediation gates.
 11. **W-0100 Control-Plane Bridges**: StateM-style runbook FSM, bounty EV triage, A2A-style local mailbox handoff packets, job-board normalization, tension-map telemetry, and third-party notice generation under local receipt gates.
 12. **W-0103 Council Subcommittee Router**: Role rotation scheduler across 6 committee archetypes, dialectical tension synthesis, quorum calculation, and A2A verdict packetizing.
-13. **W-0104 Bounty Board Scanner**: External listing ingress scanner with canonical worker-queue dispatch, deterministic offline proof artifacts, and council-registered scanner coverage.
-14. **Memory Wiki Guard Registration**: CognitiveMemoryEngine and MemoryWikiAdapter remain separate by design; both now have focused tests and explicit OSS Council audit coverage.
-15. **W-0105 Dashboard Public Surface Guard**: Dashboard defaults to neutral local states, labels simulated operator controls, strips decorative glow/gradient/shadow/motion treatment, prevents duplicate chat initialization, verifies dashboard auth/session routes, checks operator telemetry endpoints, and guards README/Quickstart/Runbook/PR truthfulness.
+13. **W-0108 Signed A2A Ingress Boundary**: `/api/a2a/incoming` now requires a dedicated `DIZZY_A2A_SECRET`, exact raw-body HMAC SHA-256 signing, timestamp freshness, nonce replay rejection, prompt-marker sanitization, and schema checks. This is local boundary proof, not a public interoperability claim.
+14. **W-0104 Bounty Board Scanner**: External listing ingress scanner with canonical worker-queue dispatch, deterministic offline proof artifacts, and council-registered scanner coverage.
+15. **Memory Wiki Guard Registration**: CognitiveMemoryEngine and MemoryWikiAdapter remain separate by design; both now have focused tests and explicit OSS Council audit coverage.
+16. **W-0105 Dashboard Public Surface Guard**: Dashboard defaults to neutral local states, labels simulated operator controls, strips decorative glow/gradient/shadow/motion treatment, prevents duplicate chat initialization, verifies dashboard auth/session routes, checks operator telemetry endpoints, and guards README/Quickstart/Runbook/PR truthfulness.
 
 ---
 
@@ -64,16 +65,16 @@ This PR delivers the consolidated, clean execution stack for:
 
 ## Verification & Proof
 
-All 111 syntax targets, 55 execution suites, and 2 governance checks passed in the latest local `npm run check:council` receipt:
+All 113 syntax targets, 56 execution suites, and 2 governance checks passed in the latest local `npm run check:council` receipt:
 
 ```
 ==================================================
    Dizzy OSS Model Council Verification Engine
 ==================================================
 
-[PASS] Layer 1: All target files passed syntax checks. (111 checked)
+[PASS] Layer 1: All target files passed syntax checks. (113 checked)
 [PASS] Layer 2: Governance and isolation policies verified.
-[PASS] Layer 3: All deterministic test suites passed. (55 checked)
+[PASS] Layer 3: All deterministic test suites passed. (56 checked)
 
 ==================================================
    COUNCIL VERDICT: VERIFIED_PASSED (READY FOR STAGING)
@@ -81,8 +82,8 @@ All 111 syntax targets, 55 execution suites, and 2 governance checks passed in t
 ```
 
 Receipt: `reviews/oss_council_verdict_latest.json`
-Timestamp: `2026-08-31T10:33:34.822Z`
-SHA-256: `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`
+Timestamp: `2026-09-02T01:55:02.622Z`
+SHA-256: `F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56`
 
 Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refresh the timestamp/hash against the local receipt before public reuse.
 

@@ -3,9 +3,16 @@
 Date: 2026-08-31
 Repo: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-Latest pushed HEAD: `25f11e8ba21e4875df2e6c7978184294cc30ec29`
+Latest pushed HEAD: `0238a73980a0c1482293bbdb69cceefbfdd18ec3`
 Remote status after push: synced with `origin/feat/dizzy-general-distro`
-Default-branch gap: branch remains 33 commits ahead of `origin/main`
+Default-branch gap: branch remains 37 commits ahead of `origin/main`
+
+Supersession note, 2026-09-02: this file began as the W-0105 public-view
+handoff. The staging branch now includes Antigravity's pushed W-0106/W-0107/
+W-0108 baton through `0238a73980a0c1482293bbdb69cceefbfdd18ec3`, plus Codex's
+local W-0108 hardening and receipt/document reconciliation after that pushed
+commit. Those local W-0108 follow-up edits are not staged, committed, or pushed
+until Simul explicitly approves.
 
 ## Summary
 
@@ -14,6 +21,9 @@ Codex completed and pushed the W-0105 public-view readiness pass. The goal was n
 Commit:
 
 ```text
+0238a739 docs(handoff): add latest antigravity to codex handoff
+2a719140 docs: add compact CONTRIBUTING.md for onboarding (W-0107)
+472a4360 feat(a2a): implement W-0108 signed external A2A boundary proof
 25f11e8b docs(handoff): integrate W-0105 public view readiness baton and roadmap seed
 f90883a2 Harden public-view readiness surface
 ```
@@ -36,12 +46,12 @@ Latest local full-council receipt:
 
 ```text
 Receipt: reviews\oss_council_verdict_latest.json
-Timestamp: 2026-08-31T10:33:34.822Z
+Timestamp: 2026-09-02T01:55:02.622Z
 Verdict: VERIFIED_PASSED
-Syntax targets: 111
-Execution suites: 55
+Syntax targets: 113
+Execution suites: 56
 Governance checks: 2
-SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
+SHA-256: F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56
 ```
 
 Focused checks observed green:
@@ -64,11 +74,11 @@ git diff --check
 Follow-up observed on 2026-09-01:
 
 ```text
-Branch state: clean and synced with origin/feat/dizzy-general-distro before Codex's four local ledger text corrections
-HEAD: 25f11e8ba21e4875df2e6c7978184294cc30ec29
-Default-branch gap: 0 behind / 33 ahead of origin/main
-Checks rerun: test:public-view-readiness, test:dashboard-public-surface, check:docs, check:next, check:staging-boundary, git diff --check
-Result: all passed; staging-boundary reported dirty_tracked=4 after the local ledger text corrections
+Branch state: clean and synced with origin/feat/dizzy-general-distro before Codex's W-0108 hardening and receipt/document reconciliation
+HEAD: 0238a73980a0c1482293bbdb69cceefbfdd18ec3
+Default-branch gap: 0 behind / 37 ahead of origin/main
+Checks rerun: test:public-view-readiness, test:dashboard-public-surface, check:docs, check:next, check:staging-boundary, test:a2a-boundary, check:council
+Result: all passed; staging-boundary should be rerun after any further local ledger edits
 Temporary dashboard HTTP smoke: health 200, login 200, session 303 with session cookie, dashboard 200, dashboard-data 200, tension-map 200
 Observed dashboard-data first-response latency: 9885 ms
 Visual proof status: screenshot/GIF still pending; HTTP smoke is not a substitute for visual browser proof
@@ -78,7 +88,7 @@ Visual proof status: screenshot/GIF still pending; HTTP smoke is not a substitut
 
 - The default GitHub `main` branch does not yet show the W-0105 staging reality.
 - This is not a hosted production launch.
-- Public A2A interoperability is not live. Current A2A work is local and receipt-bound until a signed HTTP/WebSocket boundary test proves external interoperability.
+- Public A2A interoperability is not live. Current A2A work includes the local mailbox and a signed HTTP ingress boundary; a real cross-runtime peer handshake with signed request/response receipts is still unproven.
 - Live browser screenshot proof remains pending. Local Edge/Chrome headless capture failed in the Codex sandbox; source/API/dashboard route guards passed.
 - The Python Council Engine remains a quarantined sidecar/proving lab, not production authority for Dizzy.
 - Remote branch deletion remains unapproved. Do not delete `origin/experiments` or `origin/feat/w0066-router-core` without explicit Simul approval.
@@ -141,6 +151,12 @@ C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md
 C:\Users\Josh\clawd\reviews\w0068_staging_triage.md
 C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json
 C:\Users\Josh\clawd\reviews\codex_to_antigravity_public_view_handoff_2026-08-31.md
+C:\Users\Josh\clawd\reviews\antigravity_to_codex_handoff_latest.md
+C:\Users\Josh\clawd\reviews\antigravity_post_docking_handoff_latest.md
+C:\Users\Josh\clawd\CONTRIBUTING.md
+C:\Users\Josh\clawd\.env.example
+C:\Users\Josh\clawd\lib\a2a_boundary_guard.mjs
+C:\Users\Josh\clawd\scripts\a2a_boundary_test.mjs
 C:\Users\Josh\clawd\scripts\dashboard_public_surface_test.mjs
 C:\Users\Josh\clawd\scripts\public_view_readiness_test.mjs
 C:\Users\Josh\clawd\dashboard\index.html

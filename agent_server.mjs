@@ -12,7 +12,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
-import { a2aBoundaryGuard } from "./lib/a2a_boundary_guard.mjs";
+import { a2aBoundaryGuard, validateA2ASecret } from "./lib/a2a_boundary_guard.mjs";
 import {
   buildStreamReceipt,
   buildSseFrame,
@@ -588,7 +588,12 @@ export async function createRuntime(opts = {}) {
   const app = express();
   const cleanupHooks = [];
   app.use(securityHeaders({ verifiedHttps }));
-  app.use(express.json({ limit: "5mb" }));
+  app.use(express.json({
+    limit: "5mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = Buffer.isBuffer(buf) ? buf.toString("utf8") : "";
+    },
+  }));
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(createProxyExposureGuard({ authToken, deploymentMode, trustedProxies }));
   app.use(createBrowserOriginGuard({ bindHost, allowedOrigins }));
@@ -677,6 +682,7 @@ export async function createRuntime(opts = {}) {
       // Health can remain open only on loopback bindings.
       if (req.path === "/health" && isLoopbackHost(bindHost)) return next();
       if (publicSurfaceMode === "discovery" && anonymousDiscoveryRoutes.has(req.path)) return next();
+      if (req.path === "/api/a2a/incoming") return next();
       if (dashboardEnabled && ["/dashboard/login", "/dashboard/session", "/assets/dashboard-login.js"].includes(req.path)) return next();
       if (dashboardEnabled && isDashboardRoute(req.path) && hasDashboardSession(req)) return next();
 
@@ -1199,9 +1205,13 @@ export async function createRuntime(opts = {}) {
     return { jobId: result, deduplicated: false };
   }
 
-  // External A2A boundary proof (W-0108)
-  const a2aSecret = process.env.DIZZY_A2A_SECRET || "default_unsafe_secret";
-  app.post("/api/a2a/incoming", a2aBoundaryGuard(a2aSecret), requestBoundaryAuditGuard, async (req, res, next) => {
+  // External A2A boundary proof (W-0108). The route stays fail-closed until a dedicated secret is configured.
+  const a2aSecret = String(opts.a2aSecret ?? process.env.DIZZY_A2A_SECRET ?? "").trim();
+  const a2aSecretValidation = validateA2ASecret(a2aSecret);
+  const a2aIngressHandlers = a2aSecretValidation.ok
+    ? [a2aBoundaryGuard(a2aSecret), requestBoundaryAuditGuard]
+    : [(_req, res) => res.status(503).json({ ok: false, error: a2aSecretValidation.reason || "DIZZY_A2A_SECRET is required" })];
+  app.post("/api/a2a/incoming", ...a2aIngressHandlers, async (req, res, next) => {
     try {
       if (req.body?.schema !== "dizzy.a2a_message.v1") {
         return res.status(400).json({ ok: false, error: "Invalid A2A schema" });

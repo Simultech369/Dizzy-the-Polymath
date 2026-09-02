@@ -9,9 +9,9 @@ Purpose: merge the Codex path-first handoff and Antigravity complete architectur
 ```text
 Root: C:\Users\Josh\clawd
 Branch: feat/dizzy-general-distro
-HEAD: 25f11e8ba21e4875df2e6c7978184294cc30ec29
-Tracked tree: clean at pushed W-0105 handoff/roadmap baton commit `25f11e8b`
-Remote state: synced with origin/feat/dizzy-general-distro; ahead of origin/main by 33 commits
+HEAD: 0238a73980a0c1482293bbdb69cceefbfdd18ec3
+Tracked tree: local W-0108 hardening and receipt/doc reconciliation are uncommitted after pushed handoff commit `0238a739`
+Remote state before local W-0108 hardening: synced with origin/feat/dizzy-general-distro; ahead of origin/main by 37 commits
 Draft PR: https://github.com/Simultech369/Dizzy-the-Polymath/pull/1
 ```
 
@@ -19,12 +19,12 @@ Latest Node council receipt:
 
 ```text
 Receipt: listed once under Local Receipts And Review Evidence.
-Timestamp: 2026-08-31T10:33:34.822Z
+Timestamp: 2026-09-02T01:55:02.622Z
 Verdict: VERIFIED_PASSED
-Syntax targets: 111
-Execution suites: 55
+Syntax targets: 113
+Execution suites: 56
 Governance checks: 2
-SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
+SHA-256: F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56
 ```
 
 ## Antigravity Fast Handoff Paths
@@ -87,7 +87,7 @@ Quarantine note: test green does not promote the Python lab into production; kee
 
 ```text
 Do not repeat older count claims without checking the latest receipt.
-PR_W0068_DESCRIPTION.md, README.md, QUICKSTART.md, RUNBOOK.md, NEXT.md, and reviews\w0068_staging_triage.md should be read against the current 111 syntax detail entries / 55 execution / 2 governance Node receipt baseline; PR_W0068_DESCRIPTION.md names the latest checked local receipt path, timestamp, and hash.
+PR_W0068_DESCRIPTION.md, README.md, QUICKSTART.md, RUNBOOK.md, NEXT.md, and reviews\w0068_staging_triage.md should be read against the current 113 syntax detail entries / 56 execution / 2 governance Node receipt baseline; PR_W0068_DESCRIPTION.md names the latest checked local receipt path, timestamp, and hash.
 Receipt hashes are per-run evidence. If npm run check:council is rerun, refresh the timestamp/hash against reviews\oss_council_verdict_latest.json before public reuse.
 Earlier 57 syntax / 31 suite wording is also stale.
 Python-count timeline: older 144/181/237/298-test wording is stale for current handoff purposes. The latest supplied Council Patch 9D sidecar baseline is 322 tests / 62 modules / CONTRACT_VERSION 4.7.0 / 30 contract sections / 37 payload receipt schemas. Codex did not rerun that Python suite in this clawd pass, so keep it as sidecar evidence until independently verified. Do not flatten static definition counts into passing-test counts.
@@ -189,8 +189,8 @@ Immediate roadmap disposition:
 - Priority 5: StateM-style `plan -> execute <-> verify -> handoff` mechanics now exist in the Node worker loop; next hardening target is command/authority review around queued `runbook`/`fsm` jobs.
 - Priority 6: A2A should be the next coordination focus, but begin with a local/public-protocol gap map. Current `lib/a2a_mailbox_bridge.mjs` is a sealed local mailbox and handoff-envelope foundation, not a claim of full Agent2Agent protocol compliance.
 - Council/UI/bounty success lens: council-building should reduce selection mistakes, setup drag, hallucinated claimability, half-finished patches, and noisy bounty-board scanning while making model disagreement visible through the Machine Room Cockpit/HMI HUD. `lib\bounty_hunter_engine.mjs` now includes the local `dizzy.bounty_a2a_ingest.v1` contract and `reviews\prompts\bounty_*` holds the Builder/Breaker prompt pack. See `C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md` for the current acceptance/change/A2A/council/UI/bounty-board radar orientation before handing back to Antigravity.
-- Proof boundary for latest W-0105 public-view readiness slice: Codex registered `scripts\public_view_readiness_test.mjs` in the council, rewrote `QUICKSTART.md` around actual local flags, removed misleading README badges, corrected `RUNBOOK.md` dashboard startup language, and softened PR/dashboard overclaims. A newer completed full-council receipt is now on disk at `reviews\oss_council_verdict_latest.json`: `111 syntax detail entries / 55 execution suites / 2 governance checks`, timestamp `2026-08-31T10:33:34.822Z`, SHA-256 `6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099`. Older `96/50/9A24`, `103/50/7A971`, `103/50/84F0`, `103/50/26E9`, `105/51/030688`, and `110/54/78085` wording is superseded.
-- Push boundary: W-0105 public-view readiness and the follow-on handoff/roadmap baton are pushed through `25f11e8ba21e4875df2e6c7978184294cc30ec29` on `origin/feat/dizzy-general-distro`. The staging branch remains 33 commits ahead of `origin/main`; default-branch public viewing will not reflect this work until PR #1 is merged or branch policy changes.
+- Proof boundary for latest W-0108 local A2A hardening slice: Codex rejected the unsafe default-secret fallback, required `DIZZY_A2A_SECRET`, captured exact raw JSON bodies before signature verification, added deterministic nonce-cache eviction, validated timestamp/nonce/signature formats, recursively strips known prompt markers after signature verification, added `npm run test:a2a-boundary`, and registered `lib\a2a_boundary_guard.mjs` plus `scripts\a2a_boundary_test.mjs` in Layer 1. Fresh local council receipt: `113 syntax detail entries / 56 execution suites / 2 governance checks`, timestamp `2026-09-02T01:55:02.622Z`, SHA-256 `F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56`.
+- Push boundary: W-0105 public-view readiness and the follow-on Antigravity W-0106/W-0107/W-0108 baton are pushed through `0238a73980a0c1482293bbdb69cceefbfdd18ec3` on `origin/feat/dizzy-general-distro`. Codex's W-0108 hardening and receipt/doc reconciliation are local until explicitly staged, committed, and pushed. The staging branch remains 37 commits ahead of `origin/main` before those local changes; default-branch public viewing will not reflect this work until PR #1 is merged or branch policy changes.
 
 Pickup/process friction notes from Codex resume:
 - Friction observed twice in this slice: after context compaction, the work summary preserved final facts and commands, but not the exact doc paragraph mid-edit; Codex had to rescan `UNIFIED_HANDOFF_PACKET.md` and `reviews/codex_to_antigravity_delta_2026-08-24.md`.

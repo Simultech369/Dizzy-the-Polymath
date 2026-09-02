@@ -64,6 +64,7 @@
                     "test:statem-runbook": "node ./scripts/statem_runbook_bridge_test.mjs",
                     "test:bounty-hunter": "node ./scripts/bounty_hunter_engine_test.mjs",
                     "test:a2a-mailbox": "node ./scripts/a2a_mailbox_bridge_test.mjs",
+                    "test:a2a-boundary": "node ./scripts/a2a_boundary_test.mjs",
                     "test:cognitive-memory": "node ./scripts/cognitive_memory_engine_test.mjs",
                     "test:memory-wiki": "node ./scripts/memory_wiki_adapter_test.mjs",
                     "test:job-board-tension": "node ./scripts/job_board_and_tension_map_test.mjs",

@@ -8,21 +8,21 @@ Authority: local evidence decides; model and handoff output are claim sources on
 
 Root: `C:\Users\Josh\clawd`
 Branch: `feat/dizzy-general-distro`
-HEAD: `25f11e8ba21e4875df2e6c7978184294cc30ec29`
-Remote posture: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 33 commits
-Tracked state: W-0105 public-view readiness and the follow-on handoff/roadmap baton are pushed through `25f11e8b`
+HEAD: `0238a73980a0c1482293bbdb69cceefbfdd18ec3`
+Remote posture before local W-0108 hardening: synced with `origin/feat/dizzy-general-distro`; ahead of `origin/main` by 37 commits
+Tracked state: Antigravity W-0106/W-0107/W-0108 handoff is pushed through `0238a739`; Codex W-0108 hardening and receipt/doc reconciliation are local until explicitly staged, committed, and pushed
 Draft PR: `https://github.com/Simultech369/Dizzy-the-Polymath/pull/1`
 
 Current local council receipt after the latest supervisor/council run:
 
 ```text
 Receipt: reviews\oss_council_verdict_latest.json
-Timestamp: 2026-08-31T10:33:34.822Z
+Timestamp: 2026-09-02T01:55:02.622Z
 Verdict: VERIFIED_PASSED
-Syntax targets: 111
-Execution suites: 55
+Syntax targets: 113
+Execution suites: 56
 Governance checks: 2
-SHA-256: 6B7BD6B1F9FF8568B8DEFA8D7A0C5F74E9023531414506B0843D70C5746BA099
+SHA-256: F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56
 ```
 
 Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refresh every public-facing timestamp/hash claim before reuse.
@@ -63,6 +63,8 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `scripts/streaming_response_test.mjs` | include | Proves SSE event shape, scoped execute-token auth, receipt privacy, hostile receipt-field rejection, partial-failure receipts, bounded backpressure/abort behavior, and slow-provider cancellation on client disconnect. | `npm run test:streaming-response`; `npm run check:council` |
 | `scripts/dashboard_public_surface_test.mjs` | include | Adds deterministic W-0105 guard coverage for dashboard source truthfulness, stripped decorative UI terms, auth/session route behavior, idempotent chat wiring, and JSON operator telemetry routes. | `npm run test:dashboard-public-surface`; `npm run check:council` |
 | `scripts/public_view_readiness_test.mjs` | include | Adds deterministic W-0105 guard coverage for public README, Quickstart, Runbook, PR, and dashboard overclaim regressions before collaborator viewing. | `npm run test:public-view-readiness`; `npm run check:council` |
+| `lib/a2a_boundary_guard.mjs` | include | Hardens the W-0108 signed HTTP ingress boundary with no unsafe default secret, exact raw-body HMAC verification, timestamp/nonce validation, deterministic replay-cache bounds, and recursive prompt-marker sanitization. | `npm run test:a2a-boundary`; `npm run check:council` |
+| `scripts/a2a_boundary_test.mjs` | include | Extends W-0108 regression coverage for malformed signatures, timestamp parsing, replay behavior, nested sanitization, fail-closed missing-secret startup, and exact raw JSON signing. | `npm run test:a2a-boundary`; `npm run check:council` |
 | `.env.example` | include | Documents local dashboard structural cache controls and SSE streaming receipt/backpressure knobs without introducing new dependencies or secrets. | `npm run check:docs` |
 | `.gitignore` | include | Prevents parked proof artifacts, prompt outputs, package-manager stores, scratch directories, and external bounty checkouts from being swept into future staging operations. | `git status --short`; `npm run check:staging-boundary` |
 | `DESIGN.md` | include | Clarifies that structural query caching is a narrow dashboard-query sidecar and that SSE stream receipts are evidence, not the data plane or WebSocket support. | `npm run check:docs`; `npm run check:next` |
@@ -82,6 +84,7 @@ Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refres
 | `RUNBOOK.md` | include | Corrects dashboard startup language: dashboard is opt-in with `DIZZY_DASHBOARD_ENABLED=1`, not enabled by plain `npm start`. | `npm run check:docs`; `npm run test:public-view-readiness` |
 | `PR_W0068_DESCRIPTION.md` | include | Reconciles stale count/hash claims, dashboard opt-in language, source/API proof boundary, and no-hosted-production boundary. | Manual receipt-hash refresh after final council run |
 | `UNIFIED_HANDOFF_PACKET.md` | include | Refreshes the root baton-pass packet to the latest W-0105 receipt, public-view proof boundary, and current branch/dirty-tree posture. | `npm run check:docs`; `npm run check:staging-boundary` |
+| `reviews/antigravity_to_codex_handoff_latest.md` | include | Reconciles Antigravity's latest W-0106/W-0107/W-0108 baton to the true pushed HEAD, current receipt count/hash, and Codex's local W-0108 hardening boundary. | `npm run check:docs`; `npm run check:staging-boundary` |
 | `reviews/codex_to_antigravity_public_view_handoff_2026-08-31.md` | include | Adds a dated Antigravity baton for the pushed W-0105 public-view readiness commit, remaining caveats, and community-facing roadmap seed. | `npm run check:docs`; `npm run check:staging-boundary` |
 | `reviews/antigravity_post_docking_handoff_latest.md` | include | Reconciles Antigravity handoff language to the latest local W-0105 receipt, memory/wiki separation, A2A proof boundary, and pending visual-browser-proof caveat. | `npm run check:docs`; `npm run check:council` |
 | `reviews/w0068_staging_triage.md` | include | Reconciles this staging-boundary ledger to the current W-0105 dirty set, latest receipt, dashboard public-surface guard, and remaining visual proof caveat. | `npm run check:staging-boundary`; `npm run check:docs` |
