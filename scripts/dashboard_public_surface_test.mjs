@@ -82,6 +82,7 @@ async function run() {
   assertInitialDashboardTruthfulness(htmlSource);
   assert(jsSource.includes("chatSurfaceInitialized"), "chat surface initializer should be idempotent");
   assert(jsSource.includes("fetchJson(`/api/dashboard-query"), "dashboard search should use explicit non-OK fetch handling");
+  assert(!jsSource.includes("\"8/8 Blocked\""), "dashboard adversarial status should be receipt-derived, not hardcoded");
 
   const started = await startServer({
     port: 0,

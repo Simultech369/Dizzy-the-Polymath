@@ -15,7 +15,7 @@
   - `package.json`
   - `reviews/codex_antigravity_handoff_addendum.md`
 - **Assumptions:**
-  - Repo root is `C:\Users\Josh\clawd`; runtime artifacts live under `runtime/`.
+  - Repo root is `<local-clawd-checkout>`; runtime artifacts live under `runtime/`.
   - Antigravity is final implementer; Codex maintains acceptance criteria; Hy3 reconciles.
   - Provided code excerpts are current live code; no unshown mutations assumed.
   - Public checkpoint `62acf21` (per handoff) added containment freshness check only.

@@ -3,7 +3,7 @@
 status: intake confirmed, not yet accepted
 created: 2026-07-22
 target_run: 2026-07-21-local-backend-router-receipts
-repo: C:\Users\Josh\clawd
+repo: <local-clawd-checkout>
 
 ## Purpose
 
@@ -92,22 +92,22 @@ Required evidence:
 
 Observed in the Git index at intake time:
 
-- `C:\Users\Josh\clawd\agent_server.mjs`
-- `C:\Users\Josh\clawd\lib\dispatch.mjs`
-- `C:\Users\Josh\clawd\lib\model_router.mjs`
-- `C:\Users\Josh\clawd\lib\runtime_config.mjs`
-- `C:\Users\Josh\clawd\scripts\maintain.mjs`
-- `C:\Users\Josh\clawd\scripts\safety_checks.mjs`
-- `C:\Users\Josh\clawd\scripts\test_active_integration.mjs`
+- `<local-clawd-checkout>\agent_server.mjs`
+- `<local-clawd-checkout>\lib\dispatch.mjs`
+- `<local-clawd-checkout>\lib\model_router.mjs`
+- `<local-clawd-checkout>\lib\runtime_config.mjs`
+- `<local-clawd-checkout>\scripts\maintain.mjs`
+- `<local-clawd-checkout>\scripts\safety_checks.mjs`
+- `<local-clawd-checkout>\scripts\test_active_integration.mjs`
 
 ## Documentation and Tracking Files
 
 Observed or included in the intake:
 
-- `C:\Users\Josh\clawd\MODEL_INVENTORY.md`
-- `C:\Users\Josh\clawd\NEXT.md`
-- `C:\Users\Josh\clawd\reviews\reflection_round_router_receipt_mvp.md`
-- `C:\Users\Josh\.gemini\antigravity\brain\0c7ec9b0-f9f8-4de9-bb17-f038f6d52f77\walkthrough.md`
+- `<local-clawd-checkout>\MODEL_INVENTORY.md`
+- `<local-clawd-checkout>\NEXT.md`
+- `<local-clawd-checkout>\reviews\reflection_round_router_receipt_mvp.md`
+- `<antigravity-private-brain-artifact>`
 
 Note: the Antigravity brain walkthrough path is outside the Git workspace. It existed at intake time, but it is not repository-controlled evidence unless copied or summarized into a tracked repo artifact.
 
@@ -115,13 +115,13 @@ Note: the Antigravity brain walkthrough path is outside the Git workspace. It ex
 
 Observed under `.review-harness/` at intake time:
 
-- `C:\Users\Josh\clawd\.review-harness\roles\privacy-boundary.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\staged-only.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\runtime-contract.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\retention-lifecycle.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\docs-skeptic.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\minimal-slice.md`
-- `C:\Users\Josh\clawd\.review-harness\roles\devils-advocate.md`
+- `<local-clawd-checkout>\.review-harness\roles\privacy-boundary.md`
+- `<local-clawd-checkout>\.review-harness\roles\staged-only.md`
+- `<local-clawd-checkout>\.review-harness\roles\runtime-contract.md`
+- `<local-clawd-checkout>\.review-harness\roles\retention-lifecycle.md`
+- `<local-clawd-checkout>\.review-harness\roles\docs-skeptic.md`
+- `<local-clawd-checkout>\.review-harness\roles\minimal-slice.md`
+- `<local-clawd-checkout>\.review-harness\roles\devils-advocate.md`
 
 ## Review Harness Run Artifacts
 

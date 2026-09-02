@@ -200,7 +200,7 @@ Use Zero only as a no-edit reviewer. Keep tools out of the prompt unless there i
 ```powershell
 @'
 You are Zero, acting only as an independent reviewer.
-Work in C:\Users\Josh\clawd.
+Work in <local-clawd-checkout>.
 Do not edit files. Do not run destructive commands. Do not commit or push.
 
 Review the active-policy handoff and live files for proof-vs-theater, hidden activation risks, inert-test failures, and operator-boundary ambiguity.

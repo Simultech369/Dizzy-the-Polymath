@@ -7,7 +7,7 @@ Role boundary: Codex may use this to sharpen prompts, review packets, and accept
 
 PBM source repo inspected read-only:
 
-- Repo: `C:\Users\Josh\Desktop\PBMRebateTreasuryFinal`
+- Repo: `<private-pbm-workspace>`
 - Branch observed: `main`
 - HEAD observed: `266016c83d544f86dbb67a49240356852e0498b4`
 - Working tree: dirty; no PBM files were edited

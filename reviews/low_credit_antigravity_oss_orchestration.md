@@ -9,7 +9,7 @@ Mode: low-credit momentum, docs/planning only until Simul selects an implementat
 
 Current local snapshot verified by Codex during the 2026-07-26 refresh:
 
-- Repository: `C:\Users\Josh\clawd`
+- Repository: `<local-clawd-checkout>`
 - Branch: `main`
 - HEAD: `aa12518e5125bcd22cd0d7d73200735511e2bea9`
 - Local `origin/main` ref: `7bce8605b31328af065b5880adcf07e11d74c994`
@@ -215,7 +215,7 @@ Only accepted acceptance criteria move into the W-0062 spec. Everything else sta
 ## Antigravity Kickoff Prompt
 
 ```text
-Work in C:\Users\Josh\clawd.
+Work in <local-clawd-checkout>.
 
 Mode: final implementer only after snapshot verification. Do not stage, commit, push, reset, clean, stash, delete, move, rename, or broaden scope.
 

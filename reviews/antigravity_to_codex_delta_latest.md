@@ -12,17 +12,17 @@
 
 ### W-0104 Copy/Paste Paths
 ```text
-C:\Users\Josh\clawd\scripts\job_board_scanner.mjs
-C:\Users\Josh\clawd\scripts\job_board_scanner_test.mjs
-C:\Users\Josh\clawd\artifacts\bounty_scan_results.json
-C:\Users\Josh\clawd\lib\job_board_ingress.mjs
-C:\Users\Josh\clawd\lib\bounty_hunter_engine.mjs
-C:\Users\Josh\clawd\worker.mjs
+<local-clawd-checkout>\scripts\job_board_scanner.mjs
+<local-clawd-checkout>\scripts\job_board_scanner_test.mjs
+<local-clawd-checkout>\artifacts\bounty_scan_results.json
+<local-clawd-checkout>\lib\job_board_ingress.mjs
+<local-clawd-checkout>\lib\bounty_hunter_engine.mjs
+<local-clawd-checkout>\worker.mjs
 ```
 
 ### Focused Rechecks
 ```powershell
-cd C:\Users\Josh\clawd
+cd <local-clawd-checkout>
 npm run test:job-board-scanner
 npm run test:job-board-tension
 npm run test:bounty-hunter

@@ -14,7 +14,8 @@ It does not claim a hosted production product, public A2A interoperability, or f
 ## 1. Install
 
 ```powershell
-cd C:\Users\Josh\clawd
+git clone https://github.com/Simultech369/Dizzy-the-Polymath.git
+Set-Location -LiteralPath ".\Dizzy-the-Polymath"
 npm install
 ```
 
@@ -99,9 +100,13 @@ Useful focused checks:
 ```powershell
 npm run check:docs
 npm run check:next
-npm run check:staging-boundary
 npm run check:production
 ```
+
+`npm run check:staging-boundary` is an internal staging-deck guard. In public
+checkouts it passes only when the private triage ledger is absent and the tree is
+clean, or when an internal triage ledger is present and every dirty tracked file
+has an explicit disposition.
 
 ## 7. What Is Not Claimed
 

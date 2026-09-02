@@ -5,7 +5,7 @@ Date: 2026-07-19
 
 ## Snapshot
 
-- Repository: `C:\Users\Josh\clawd`
+- Repository: `<local-clawd-checkout>`
 - Branch: `main`
 - `HEAD`: `62acf21b5a0f5e4d811cc9cebb6536931457933b`
 - `origin/main`: `62acf21b5a0f5e4d811cc9cebb6536931457933b`

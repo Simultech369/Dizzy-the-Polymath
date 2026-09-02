@@ -362,8 +362,8 @@ To activate the policy check runtime interception, apply changes to `lib/durable
 Interpose a pre-flight containment check at the entry of write authorization:
 
 ```diff
---- c:\Users\Josh\clawd\lib\durable_write_policy.mjs
-+++ c:\Users\Josh\clawd\lib\durable_write_policy.mjs
+--- <local-clawd-checkout>\lib\durable_write_policy.mjs
++++ <local-clawd-checkout>\lib\durable_write_policy.mjs
 @@ -3,6 +3,7 @@
  import { assessCaptureEligibility } from "./capture_eligibility.mjs";
 +import { ActivePolicyEngine } from "./active_policy_engine.mjs";
@@ -390,8 +390,8 @@ Interpose a pre-flight containment check at the entry of write authorization:
 Enforce automatic veto assignment for staged quarantine suggestions when the anomaly flag is raised:
 
 ```diff
---- c:\Users\Josh\clawd\lib\bridging_scan.mjs
-+++ c:\Users\Josh\clawd\lib\bridging_scan.mjs
+--- <local-clawd-checkout>\lib\bridging_scan.mjs
++++ <local-clawd-checkout>\lib\bridging_scan.mjs
 @@ -10,6 +10,7 @@
  import path from "path";
  import crypto from "crypto";
@@ -423,8 +423,8 @@ Enforce automatic veto assignment for staged quarantine suggestions when the ano
 When new friction is logged, automatically trigger the evaluation of the Active Policy Engine:
 
 ```diff
---- c:\Users\Josh\clawd\lib\friction_ledger.mjs
-+++ c:\Users\Josh\clawd\lib\friction_ledger.mjs
+--- <local-clawd-checkout>\lib\friction_ledger.mjs
++++ <local-clawd-checkout>\lib\friction_ledger.mjs
 @@ -4,4 +4,5 @@
  import { assertDurableWriteAllowed } from "./durable_write_policy.mjs";
 +import { ActivePolicyEngine } from "./active_policy_engine.mjs";

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 
 const ROOT = path.resolve(process.cwd());
 
@@ -22,6 +23,17 @@ function assertAbsent(relPath, text, patterns) {
 function assertPresent(relPath, text, patterns) {
   for (const pattern of patterns) {
     assert.equal(pattern.test(text), true, `${relPath} is missing required public-view wording: ${pattern}`);
+  }
+}
+
+function trackedMarkdownFiles() {
+  try {
+    return execFileSync("git", ["ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .filter((relPath) => fs.existsSync(path.join(ROOT, relPath)));
+  } catch {
+    return Object.keys(docs);
   }
 }
 
@@ -49,6 +61,8 @@ assertAbsent("README.md", docs["README.md"], [
 ]);
 
 assertAbsent("public docs", Object.values(docs).join("\n"), [
+  /C:\\Users\\Josh/i,
+  /\.gemini/i,
   /enabled by default when running `npm start`/i,
   /`DIZZY_DASHBOARD_ENABLED=1` or `npm start`/i,
   /npm start\s*->\s*`?http:\/\/localhost:3000\/dashboard`?/i,
@@ -61,6 +75,14 @@ assertAbsent("public docs", Object.values(docs).join("\n"), [
   /public A2A interoperability is live/i,
   /hosted production (product|service|launch) is ready/i,
 ]);
+
+for (const relPath of trackedMarkdownFiles()) {
+  assertAbsent(relPath, read(relPath), [
+    /C:\\Users\\Josh/i,
+    /\.gemini/i,
+    /brain\\[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}/i,
+  ]);
+}
 
 assertPresent("README.md", docs["README.md"], [
   /not a hosted production launch/i,
@@ -90,5 +112,15 @@ assertAbsent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
   /All Routes Operational/i,
   /Greetings\. Chat history cleared/i,
 ]);
+
+for (const relPath of [
+  "UNIFIED_HANDOFF_PACKET.md",
+  "reviews/w0068_staging_triage.md",
+  "reviews/antigravity_to_codex_handoff_latest.md",
+  "reviews/antigravity_post_docking_handoff_latest.md",
+  "reviews/codex_to_antigravity_public_view_handoff_2026-08-31.md",
+]) {
+  assert.equal(fs.existsSync(path.join(ROOT, relPath)), false, `${relPath} is an internal handoff artifact and should not be present in the public branch`);
+}
 
 console.log("PUBLIC_VIEW_READINESS_TESTS_OK");

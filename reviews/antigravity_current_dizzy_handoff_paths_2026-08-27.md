@@ -2,7 +2,7 @@
 
 Status: current path-first handoff for Dizzy/clawd
 Date: 2026-08-27
-Repository: `C:\Users\Josh\clawd`
+Repository: `<local-clawd-checkout>`
 Branch: `feat/dizzy-general-distro`
 HEAD: `c4300eaee587a6f055dc25dedeaaa5957b7af7ea`
 Remote posture: ahead of `origin/feat/dizzy-general-distro` by 17 commits
@@ -10,7 +10,7 @@ Remote posture: ahead of `origin/feat/dizzy-general-distro` by 17 commits
 Latest Node council receipt observed locally:
 
 ```text
-C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json
+<local-clawd-checkout>\reviews\oss_council_verdict_latest.json
 Verdict: VERIFIED_PASSED
 Timestamp: 2026-08-28T03:10:46.075Z
 Syntax detail entries: 105
@@ -63,22 +63,22 @@ Latest Antigravity claim packet landed directionally correctly, with these local
 
 ```text
 W-0092 Production Readiness Ledger:
-  C:\Users\Josh\clawd\PRODUCTION_READINESS.md
+  <local-clawd-checkout>\PRODUCTION_READINESS.md
   npm run check:production -> green wiring across 11 readiness areas.
   Prior yellow rate-limit wording is superseded: runtime rate limiting is wired through ingress middleware and documented in the launch ledger.
 
 W-0093 Dynamic Model Capability Matrix:
-  C:\Users\Josh\clawd\MODEL_INVENTORY.md
-  C:\Users\Josh\clawd\scripts\generate_model_inventory.mjs
+  <local-clawd-checkout>\MODEL_INVENTORY.md
+  <local-clawd-checkout>\scripts\generate_model_inventory.mjs
   node --check scripts\generate_model_inventory.mjs -> PASS
   Treat installed/callable/json_review_usable states as separate evidence tiers.
 
 W-0102 External Pattern License & Provenance:
-  C:\Users\Josh\clawd\scripts\check_licenses.mjs
-  C:\Users\Josh\clawd\reviews\external_pattern_license_audit.md
-  C:\Users\Josh\clawd\scripts\generate_third_party_notices.mjs
-  C:\Users\Josh\clawd\scripts\third_party_notices_test.mjs
-  C:\Users\Josh\clawd\THIRD_PARTY_NOTICES.md
+  <local-clawd-checkout>\scripts\check_licenses.mjs
+  <local-clawd-checkout>\reviews\external_pattern_license_audit.md
+  <local-clawd-checkout>\scripts\generate_third_party_notices.mjs
+  <local-clawd-checkout>\scripts\third_party_notices_test.mjs
+  <local-clawd-checkout>\THIRD_PARTY_NOTICES.md
   node scripts\generate_third_party_notices.mjs --write -> THIRD_PARTY_NOTICES_OK sources=12 sha256=F802901EB6487B6230D3A02CEE79C93BC1FC05E4748306CF7FF87572E8F4F4C0
   npm run test:third-party-notices -> ALL TESTS PASSED CLEANLY
 ```
@@ -89,7 +89,7 @@ Proof-boundary corrections for this packet:
 - Live GitHub license lookup via `scripts\check_licenses.mjs` remains Antigravity-reported in this Codex pass; Codex syntax-checked the script but did not request network access to rerun it.
 - Job-board/tension focused suite is now 7/7, not the earlier 5/5.
 - Current full-council receipt is `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`, not the intermediate `7DAE`, `C1F675`, `9A24`, `7A971`, `84F0`, `26E9`, or `030688` receipts.
-- Proof dossier exists at `C:\Users\Josh\clawd\reviews\proof_dossier_2026-08-27.md`, not root `proof_dossier.md`.
+- Proof dossier exists at `<local-clawd-checkout>\reviews\proof_dossier_2026-08-27.md`, not root `proof_dossier.md`.
 - Local branch cleanup is confirmed locally: `git branch --list` shows only `feat/dizzy-general-distro` and `main`.
 - Local archive tag exists: `archive/feat-w0066-router-core`.
 - Remote tracking refs still show `origin/experiments` and `origin/feat/w0066-router-core`; Antigravity reports the GitHub remote branches still exist. Full closure requires explicit Simul approval for `git push origin --delete experiments feat/w0066-router-core` and then `git fetch --prune`.
@@ -101,7 +101,7 @@ Council Engine context supplied from the Council conversation for Dizzy/clawd re
 
 ```text
 Council root:
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine
+<quarantined-council-engine-sidecar>
 
 Reported Council baseline after Codex Patch 9D:
 322 tests passing across 62 discoverable test modules
@@ -113,17 +113,17 @@ CONTRACT_VERSION 4.7.0
 37 payload receipt schemas
 
 Latest Council handoff:
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\outputs\codex_to_antigravity_reconciliation_patch_9d_2026-08-27.md
+<quarantined-council-engine-sidecar>\outputs\codex_to_antigravity_reconciliation_patch_9d_2026-08-27.md
 
 Codex archive copy:
-C:\Users\Josh\Documents\Codex\2026-08-22\c-users-josh-documents-codex-2026\outputs\council_engine_codex_to_antigravity_handoff_latest.md
+<codex-local-archive>
 
 Patch 9C repaired:
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\live_drill.py
+<quarantined-council-engine-sidecar>\live_drill.py
 
 Patch 9D added:
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\opportunity_a2a_workflow_engine.py
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\test_opportunity_a2a_workflow_engine.py
+<quarantined-council-engine-sidecar>\opportunity_a2a_workflow_engine.py
+<quarantined-council-engine-sidecar>\test_opportunity_a2a_workflow_engine.py
 ```
 
 Dizzy meaning:
@@ -136,50 +136,50 @@ Dizzy meaning:
 ## Read First
 
 ```text
-C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md
-C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md
-C:\Users\Josh\clawd\reviews\antigravity_to_codex_delta_2026-08-26.md
-C:\Users\Josh\clawd\reviews\codex_to_antigravity_delta_2026-08-24.md
-C:\Users\Josh\clawd\reviews\w0068_staging_triage.md
-C:\Users\Josh\clawd\reviews\branch_policy_reconciliation_2026-08-26.md
-C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json
-C:\Users\Josh\clawd\NEXT.md
-C:\Users\Josh\clawd\PR_W0068_DESCRIPTION.md
-C:\Users\Josh\clawd\README.md
+<local-clawd-checkout>\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md
+<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md
+<local-clawd-checkout>\reviews\antigravity_to_codex_delta_2026-08-26.md
+<local-clawd-checkout>\reviews\codex_to_antigravity_delta_2026-08-24.md
+<local-clawd-checkout>\reviews\w0068_staging_triage.md
+<local-clawd-checkout>\reviews\branch_policy_reconciliation_2026-08-26.md
+<local-clawd-checkout>\reviews\oss_council_verdict_latest.json
+<local-clawd-checkout>\NEXT.md
+<local-clawd-checkout>\PR_W0068_DESCRIPTION.md
+<local-clawd-checkout>\README.md
 ```
 
 ## Current Dizzy Runtime Sources
 
 ```text
-C:\Users\Josh\clawd\agent_server.mjs
-C:\Users\Josh\clawd\worker.mjs
-C:\Users\Josh\clawd\package.json
-C:\Users\Josh\clawd\.env.example
-C:\Users\Josh\clawd\lib\dispatch.mjs
-C:\Users\Josh\clawd\lib\openai_compat_client.mjs
-C:\Users\Josh\clawd\lib\gemini_client.mjs
-C:\Users\Josh\clawd\lib\model_router.mjs
-C:\Users\Josh\clawd\lib\provider_capability_matrix.mjs
-C:\Users\Josh\clawd\lib\review_model_runner.mjs
-C:\Users\Josh\clawd\lib\review_cycle_runner.mjs
-C:\Users\Josh\clawd\lib\review_loop_supervisor.mjs
-C:\Users\Josh\clawd\lib\sqlite_operational_store.mjs
-C:\Users\Josh\clawd\lib\trace_chain.mjs
+<local-clawd-checkout>\agent_server.mjs
+<local-clawd-checkout>\worker.mjs
+<local-clawd-checkout>\package.json
+<local-clawd-checkout>\.env.example
+<local-clawd-checkout>\lib\dispatch.mjs
+<local-clawd-checkout>\lib\openai_compat_client.mjs
+<local-clawd-checkout>\lib\gemini_client.mjs
+<local-clawd-checkout>\lib\model_router.mjs
+<local-clawd-checkout>\lib\provider_capability_matrix.mjs
+<local-clawd-checkout>\lib\review_model_runner.mjs
+<local-clawd-checkout>\lib\review_cycle_runner.mjs
+<local-clawd-checkout>\lib\review_loop_supervisor.mjs
+<local-clawd-checkout>\lib\sqlite_operational_store.mjs
+<local-clawd-checkout>\lib\trace_chain.mjs
 ```
 
 ## W-0097 Through W-0103 Active Surfaces
 
 ```text
-C:\Users\Josh\clawd\lib\lifecycle_hooks.mjs
-C:\Users\Josh\clawd\lib\structural_query_cache.mjs
-C:\Users\Josh\clawd\lib\sse_stream.mjs
-C:\Users\Josh\clawd\lib\statem_runbook_bridge.mjs
-C:\Users\Josh\clawd\lib\a2a_mailbox_bridge.mjs
-C:\Users\Josh\clawd\lib\bounty_hunter_engine.mjs
-C:\Users\Josh\clawd\lib\job_board_ingress.mjs
-C:\Users\Josh\clawd\lib\tension_map_engine.mjs
-C:\Users\Josh\clawd\lib\council_subcommittee_router.mjs
-C:\Users\Josh\clawd\lib\sandbox_executor.mjs
+<local-clawd-checkout>\lib\lifecycle_hooks.mjs
+<local-clawd-checkout>\lib\structural_query_cache.mjs
+<local-clawd-checkout>\lib\sse_stream.mjs
+<local-clawd-checkout>\lib\statem_runbook_bridge.mjs
+<local-clawd-checkout>\lib\a2a_mailbox_bridge.mjs
+<local-clawd-checkout>\lib\bounty_hunter_engine.mjs
+<local-clawd-checkout>\lib\job_board_ingress.mjs
+<local-clawd-checkout>\lib\tension_map_engine.mjs
+<local-clawd-checkout>\lib\council_subcommittee_router.mjs
+<local-clawd-checkout>\lib\sandbox_executor.mjs
 ```
 
 A2A boundary: `lib\a2a_mailbox_bridge.mjs` is a local sealed mailbox and handoff-envelope foundation. Do not claim public Agent2Agent protocol compliance yet. W-0103 should map gaps against Agent Cards, JSON-RPC/HTTP(S), SSE task streaming, auth/security descriptors, task lifecycle, and official compatibility tooling before any external A2A claim.
@@ -248,57 +248,57 @@ The cockpit aesthetic should show transparent deliberation, cryptographic receip
 ## Verification Harnesses
 
 ```text
-C:\Users\Josh\clawd\scripts\oss_council_audit.mjs
-C:\Users\Josh\clawd\scripts\safety_checks.mjs
-C:\Users\Josh\clawd\scripts\lifecycle_hooks_test.mjs
-C:\Users\Josh\clawd\scripts\structural_query_cache_test.mjs
-C:\Users\Josh\clawd\scripts\streaming_response_test.mjs
-C:\Users\Josh\clawd\scripts\statem_runbook_bridge_test.mjs
-C:\Users\Josh\clawd\scripts\a2a_mailbox_bridge_test.mjs
-C:\Users\Josh\clawd\scripts\bounty_hunter_engine_test.mjs
-C:\Users\Josh\clawd\scripts\job_board_and_tension_map_test.mjs
-C:\Users\Josh\clawd\scripts\operator_telemetry_routes_test.mjs
-C:\Users\Josh\clawd\scripts\third_party_notices_test.mjs
-C:\Users\Josh\clawd\scripts\council_subcommittee_router_test.mjs
-C:\Users\Josh\clawd\scripts\staging_boundary_check.mjs
-C:\Users\Josh\clawd\scripts\external_pattern_license_audit_check.mjs
-C:\Users\Josh\clawd\scripts\review_model_runner_test.mjs
-C:\Users\Josh\clawd\scripts\review_loop_supervisor_test.mjs
-C:\Users\Josh\clawd\scripts\drift_scan.mjs
-C:\Users\Josh\clawd\scripts\openrouter_review.py
-C:\Users\Josh\clawd\scripts\test_active_integration.mjs
+<local-clawd-checkout>\scripts\oss_council_audit.mjs
+<local-clawd-checkout>\scripts\safety_checks.mjs
+<local-clawd-checkout>\scripts\lifecycle_hooks_test.mjs
+<local-clawd-checkout>\scripts\structural_query_cache_test.mjs
+<local-clawd-checkout>\scripts\streaming_response_test.mjs
+<local-clawd-checkout>\scripts\statem_runbook_bridge_test.mjs
+<local-clawd-checkout>\scripts\a2a_mailbox_bridge_test.mjs
+<local-clawd-checkout>\scripts\bounty_hunter_engine_test.mjs
+<local-clawd-checkout>\scripts\job_board_and_tension_map_test.mjs
+<local-clawd-checkout>\scripts\operator_telemetry_routes_test.mjs
+<local-clawd-checkout>\scripts\third_party_notices_test.mjs
+<local-clawd-checkout>\scripts\council_subcommittee_router_test.mjs
+<local-clawd-checkout>\scripts\staging_boundary_check.mjs
+<local-clawd-checkout>\scripts\external_pattern_license_audit_check.mjs
+<local-clawd-checkout>\scripts\review_model_runner_test.mjs
+<local-clawd-checkout>\scripts\review_loop_supervisor_test.mjs
+<local-clawd-checkout>\scripts\drift_scan.mjs
+<local-clawd-checkout>\scripts\openrouter_review.py
+<local-clawd-checkout>\scripts\test_active_integration.mjs
 ```
 
 ## Governance And Planning Surfaces
 
 ```text
-C:\Users\Josh\clawd\AGENTS.md
-C:\Users\Josh\clawd\BOOTSTRAP.md
-C:\Users\Josh\clawd\IDENTITY.md
-C:\Users\Josh\clawd\identity\personas\SOUL.md
-C:\Users\Josh\clawd\identity\personas\USER.md
-C:\Users\Josh\clawd\PROMPT_CORE.md
-C:\Users\Josh\clawd\TOOLS.md
-C:\Users\Josh\clawd\DESIGN.md
-C:\Users\Josh\clawd\OPERATING_LOOP.md
-C:\Users\Josh\clawd\EXPERIMENT_RECONCILIATION.md
-C:\Users\Josh\clawd\REFERENCE_PATTERNS.md
-C:\Users\Josh\clawd\MEMORY_OWNERSHIP.md
-C:\Users\Josh\clawd\MEMORY.md
-C:\Users\Josh\clawd\memory\2026-08-21.md
-C:\Users\Josh\clawd\memory\2026-08-26.md
+<local-clawd-checkout>\AGENTS.md
+<local-clawd-checkout>\BOOTSTRAP.md
+<local-clawd-checkout>\IDENTITY.md
+<local-clawd-checkout>\identity\personas\SOUL.md
+<local-clawd-checkout>\identity\personas\USER.md
+<local-clawd-checkout>\PROMPT_CORE.md
+<local-clawd-checkout>\TOOLS.md
+<local-clawd-checkout>\DESIGN.md
+<local-clawd-checkout>\OPERATING_LOOP.md
+<local-clawd-checkout>\EXPERIMENT_RECONCILIATION.md
+<local-clawd-checkout>\REFERENCE_PATTERNS.md
+<local-clawd-checkout>\MEMORY_OWNERSHIP.md
+<local-clawd-checkout>\MEMORY.md
+<local-clawd-checkout>\memory\2026-08-21.md
+<local-clawd-checkout>\memory\2026-08-26.md
 ```
 
 ## Provenance, Branch, And PR Evidence
 
 ```text
-C:\Users\Josh\clawd\reviews\external_pattern_license_audit.md
-C:\Users\Josh\clawd\reviews\branch_policy_reconciliation_2026-08-26.md
-C:\Users\Josh\clawd\reviews\w0068_staging_triage.md
-C:\Users\Josh\clawd\reviews\antigravity_read_this_first.md
-C:\Users\Josh\clawd\reviews\antigravity_return_packet.md
-C:\Users\Josh\clawd\reviews\codex_antigravity_handoff_addendum.md
-C:\Users\Josh\clawd\reviews\primary_review_document_hashes.md
+<local-clawd-checkout>\reviews\external_pattern_license_audit.md
+<local-clawd-checkout>\reviews\branch_policy_reconciliation_2026-08-26.md
+<local-clawd-checkout>\reviews\w0068_staging_triage.md
+<local-clawd-checkout>\reviews\antigravity_read_this_first.md
+<local-clawd-checkout>\reviews\antigravity_return_packet.md
+<local-clawd-checkout>\reviews\codex_antigravity_handoff_addendum.md
+<local-clawd-checkout>\reviews\primary_review_document_hashes.md
 ```
 
 ## Bounty Lane Orientation
@@ -306,16 +306,16 @@ C:\Users\Josh\clawd\reviews\primary_review_document_hashes.md
 Council-building should maximize bounty success by reducing selection mistakes, setup drag, hallucinated claimability, and half-finished patches:
 
 ```text
-C:\Users\Josh\clawd\lib\bounty_hunter_engine.mjs
-C:\Users\Josh\clawd\lib\job_board_ingress.mjs
-C:\Users\Josh\clawd\lib\statem_runbook_bridge.mjs
-C:\Users\Josh\clawd\lib\a2a_mailbox_bridge.mjs
-C:\Users\Josh\clawd\lib\council_subcommittee_router.mjs
-C:\Users\Josh\clawd\scripts\bounty_hunter_engine_test.mjs
-C:\Users\Josh\clawd\scripts\job_board_and_tension_map_test.mjs
-C:\Users\Josh\clawd\scripts\statem_runbook_bridge_test.mjs
-C:\Users\Josh\clawd\scripts\a2a_mailbox_bridge_test.mjs
-C:\Users\Josh\clawd\scripts\council_subcommittee_router_test.mjs
+<local-clawd-checkout>\lib\bounty_hunter_engine.mjs
+<local-clawd-checkout>\lib\job_board_ingress.mjs
+<local-clawd-checkout>\lib\statem_runbook_bridge.mjs
+<local-clawd-checkout>\lib\a2a_mailbox_bridge.mjs
+<local-clawd-checkout>\lib\council_subcommittee_router.mjs
+<local-clawd-checkout>\scripts\bounty_hunter_engine_test.mjs
+<local-clawd-checkout>\scripts\job_board_and_tension_map_test.mjs
+<local-clawd-checkout>\scripts\statem_runbook_bridge_test.mjs
+<local-clawd-checkout>\scripts\a2a_mailbox_bridge_test.mjs
+<local-clawd-checkout>\scripts\council_subcommittee_router_test.mjs
 ```
 
 Recommended council roles for bounty loops: scout/filter, claimability verifier, environment/setup runner, patch implementer, adversarial reviewer, final receipt publisher. The loop should stop hopeless lanes early and repair local verification drift before it compounds.
@@ -346,15 +346,15 @@ Pipeline shape:
 
 Candidate target landscape named by Antigravity: `midnight.network/careers`, `jobs.solana.com`, `jobs.avax.network`, `ethereumjobboard.com`, `block.xyz/careers`, `jobs.dragonfly.xyz`, `web3.career`, `cryptocurrencyjobs.co`, `cryptojobslist.com`, `jobstash.xyz`, `remote3.co`, `beincrypto.com`, and `crypto-careers.com`.
 
-Use `C:\Users\Josh\clawd\lib\job_board_ingress.mjs`, `C:\Users\Josh\clawd\lib\bounty_hunter_engine.mjs`, `C:\Users\Josh\clawd\lib\structural_query_cache.mjs`, `C:\Users\Josh\clawd\lib\statem_runbook_bridge.mjs`, `C:\Users\Josh\clawd\lib\a2a_mailbox_bridge.mjs`, and `C:\Users\Josh\clawd\lib\council_subcommittee_router.mjs` as the Node-side integration surfaces.
+Use `<local-clawd-checkout>\lib\job_board_ingress.mjs`, `<local-clawd-checkout>\lib\bounty_hunter_engine.mjs`, `<local-clawd-checkout>\lib\structural_query_cache.mjs`, `<local-clawd-checkout>\lib\statem_runbook_bridge.mjs`, `<local-clawd-checkout>\lib\a2a_mailbox_bridge.mjs`, and `<local-clawd-checkout>\lib\council_subcommittee_router.mjs` as the Node-side integration surfaces.
 
 Fresh Codex slice in this pass:
 
 ```text
-C:\Users\Josh\clawd\lib\bounty_hunter_engine.mjs
-C:\Users\Josh\clawd\scripts\bounty_hunter_engine_test.mjs
-C:\Users\Josh\clawd\reviews\prompts\bounty_clean_room_builder_prompt.md
-C:\Users\Josh\clawd\reviews\prompts\bounty_adversarial_breaker_prompt.md
+<local-clawd-checkout>\lib\bounty_hunter_engine.mjs
+<local-clawd-checkout>\scripts\bounty_hunter_engine_test.mjs
+<local-clawd-checkout>\reviews\prompts\bounty_clean_room_builder_prompt.md
+<local-clawd-checkout>\reviews\prompts\bounty_adversarial_breaker_prompt.md
 ```
 
 `lib\bounty_hunter_engine.mjs` now exposes `createBountyA2AIngestEnvelope()`, sealing a `dizzy.bounty_a2a_ingest.v1` bounty alert for board-scanner to council/StateM handoff. This is still local Dizzy A2A-style infrastructure; do not claim public Agent2Agent compliance from it.
@@ -373,7 +373,7 @@ node --check lib\bounty_hunter_engine.mjs -> PASS
 node --check scripts\bounty_hunter_engine_test.mjs -> PASS
 ```
 
-Earlier Codex post-bounty-ingest `npm run check:council` timed out at the outer 5-minute limit after syntax, governance, and initial Layer 3 suites passed. That timeout note is now superseded by the completed full-council receipt currently on disk: `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`, timestamp `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`, with `105 syntax detail entries / 51 execution suites / 2 governance checks`. Re-run lightweight doc/staging gates after any further handoff edit.
+Earlier Codex post-bounty-ingest `npm run check:council` timed out at the outer 5-minute limit after syntax, governance, and initial Layer 3 suites passed. That timeout note is now superseded by the completed full-council receipt currently on disk: `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`, timestamp `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`, with `105 syntax detail entries / 51 execution suites / 2 governance checks`. Re-run lightweight doc/staging gates after any further handoff edit.
 
 Codex feedback to preserve in the next Antigravity loop:
 - Tension maps should be treated as disagreement-preserving risk surfaces, not consensus averages or model-quality proof.
@@ -428,12 +428,12 @@ Council-building for the bounty lane should be judged by practical success:
 Python Council Engine material may inform design, but remains external/quarantined relative to this Node runtime:
 
 ```text
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\FULL_SYSTEM_HANDOFF.md
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\MASTER_STATE_CHECKPOINT.md
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\outputs\antigravity_return_prompt_council_engine_latest.md
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\a2a_protocol_engine.py
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\cross_project_federation_bridge.py
-C:\Users\Josh\.gemini\antigravity\scratch\council_engine\test_cross_project_federation_bridge.py
+<quarantined-council-engine-sidecar>\FULL_SYSTEM_HANDOFF.md
+<quarantined-council-engine-sidecar>\MASTER_STATE_CHECKPOINT.md
+<quarantined-council-engine-sidecar>\outputs\antigravity_return_prompt_council_engine_latest.md
+<quarantined-council-engine-sidecar>\a2a_protocol_engine.py
+<quarantined-council-engine-sidecar>\cross_project_federation_bridge.py
+<quarantined-council-engine-sidecar>\test_cross_project_federation_bridge.py
 ```
 
 Treat the latest supplied Council Patch 9D baseline (`322 tests / 62 modules / CONTRACT_VERSION 4.7.0 / 30 contract sections / 37 payload receipt schemas`) as sidecar evidence until independently rerun. Older `237 / 237` and `298 tests / 58 suites` scratch counts are superseded for current handoff purposes. Do not collapse Python scratch readiness into clawd production readiness.
@@ -441,7 +441,7 @@ Treat the latest supplied Council Patch 9D baseline (`322 tests / 62 modules / C
 ## Verification Commands
 
 ```powershell
-cd C:\Users\Josh\clawd
+cd <local-clawd-checkout>
 git branch --show-current
 git rev-parse HEAD
 git status --short --branch
@@ -461,7 +461,7 @@ npm run check:council
 ```text
 Do not stage, commit, push, delete branches, clean, reset, or stash without Simul approval.
 Do not trust copied handoff counts over live receipt files.
-Do not use C:\Users\Josh\clawd\PACKAGE.json; the real file is C:\Users\Josh\clawd\package.json.
+Do not use <local-clawd-checkout>\PACKAGE.json; the real file is <local-clawd-checkout>\package.json.
 Do not treat Python scratch modules as production authority.
 Do not claim public A2A compliance from the local mailbox bridge.
 Do not install or vendor external reference projects without the license/provenance gate.

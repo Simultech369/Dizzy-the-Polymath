@@ -126,8 +126,8 @@ All recommendations prioritize technologies ship-ready in **2026** with standard
 
 ### Diff 5.1: `lib/memory_graph.mjs` Stopwords, Acronyms, and Trust-Zone Fix
 ```diff
---- c:\Users\Josh\clawd\lib\memory_graph.mjs
-+++ c:\Users\Josh\clawd\lib\memory_graph.mjs
+--- <local-clawd-checkout>\lib\memory_graph.mjs
++++ <local-clawd-checkout>\lib\memory_graph.mjs
 @@ -7,9 +7,29 @@
    return (v === undefined || v === null || String(v).trim() === "") ? fallback : String(v);
  }
@@ -169,8 +169,8 @@ All recommendations prioritize technologies ship-ready in **2026** with standard
 
 ### Diff 5.2: `lib/memory_graph.mjs` Diversification Fix
 ```diff
---- c:\Users\Josh\clawd\lib\memory_graph.mjs
-+++ c:\Users\Josh\clawd\lib\memory_graph.mjs
+--- <local-clawd-checkout>\lib\memory_graph.mjs
++++ <local-clawd-checkout>\lib\memory_graph.mjs
 @@ -400,3 +400,10 @@
    
 -  const finalDocs = selected.length ? selected : scored.slice(0, k);
@@ -189,8 +189,8 @@ All recommendations prioritize technologies ship-ready in **2026** with standard
 
 ### Diff 5.3: `lib/bridging_scan.mjs` Asymmetry Jaccard & Staging Overwrite Fix
 ```diff
---- c:\Users\Josh\clawd\lib\bridging_scan.mjs
-+++ c:\Users\Josh\clawd\lib\bridging_scan.mjs
+--- <local-clawd-checkout>\lib\bridging_scan.mjs
++++ <local-clawd-checkout>\lib\bridging_scan.mjs
 @@ -28,10 +28,11 @@
 -export function computeJaccardSimilarity(setA, setB) {
 -  const union = new Set([...setA, ...setB]);

@@ -1,7 +1,7 @@
 # Dizzy Operator HUD & Core Libraries: Audience Advocate Critique (Pass 3)
 
-**Role**: Audience Advocate  
-**Target File**: `c:\Users\Josh\clawd\reviews\kimi_pass3_critique.md`  
+**Role**: Audience Advocate
+**Target File**: `<local-clawd-checkout>\reviews\kimi_pass3_critique.md`
 **Date**: July 16, 2026
 
 ---

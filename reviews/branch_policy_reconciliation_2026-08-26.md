@@ -2,7 +2,7 @@
 
 Status: historical live inventory plus 2026-08-27 local cleanup addendum
 Timestamp: 2026-08-26T02:24:03.0138616Z
-Repository: `C:\Users\Josh\clawd`
+Repository: `<local-clawd-checkout>`
 Local branch: `feat/dizzy-general-distro`
 Local HEAD: `c4300eaee587a6f055dc25dedeaaa5957b7af7ea`
 Local relation: `0 behind / 17 ahead` of `origin/feat/dizzy-general-distro`

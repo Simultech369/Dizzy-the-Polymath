@@ -9,20 +9,20 @@ These roles describe this local handoff workflow only; this packet does not crea
 
 This July packet is not the current W-0068 staging branch handoff. For the current `feat/dizzy-general-distro` state, read the current path-first set:
 
-1. `C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md`
-2. `C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md`
-3. `C:\Users\Josh\clawd\reviews\antigravity_to_codex_delta_latest.md`
-4. `C:\Users\Josh\clawd\reviews\antigravity_to_codex_delta_2026-08-26.md`
-5. `C:\Users\Josh\clawd\reviews\codex_to_antigravity_delta_2026-08-24.md`
-6. `C:\Users\Josh\clawd\reviews\w0068_staging_triage.md`
-7. `C:\Users\Josh\clawd\reviews\branch_policy_reconciliation_2026-08-26.md`
-8. `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
-9. `C:\Users\Josh\clawd\artifacts\bounty_scan_results.json`
-10. `C:\Users\Josh\clawd\scripts\job_board_scanner.mjs`
-11. `C:\Users\Josh\clawd\scripts\job_board_scanner_test.mjs`
-12. `C:\Users\Josh\clawd\NEXT.md`
-13. `C:\Users\Josh\clawd\PR_W0068_DESCRIPTION.md`
-14. `C:\Users\Josh\clawd\README.md`
+1. `<local-clawd-checkout>\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md`
+2. `<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md`
+3. `<local-clawd-checkout>\reviews\antigravity_to_codex_delta_latest.md`
+4. `<local-clawd-checkout>\reviews\antigravity_to_codex_delta_2026-08-26.md`
+5. `<local-clawd-checkout>\reviews\codex_to_antigravity_delta_2026-08-24.md`
+6. `<local-clawd-checkout>\reviews\w0068_staging_triage.md`
+7. `<local-clawd-checkout>\reviews\branch_policy_reconciliation_2026-08-26.md`
+8. `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
+9. `<local-clawd-checkout>\artifacts\bounty_scan_results.json`
+10. `<local-clawd-checkout>\scripts\job_board_scanner.mjs`
+11. `<local-clawd-checkout>\scripts\job_board_scanner_test.mjs`
+12. `<local-clawd-checkout>\NEXT.md`
+13. `<local-clawd-checkout>\PR_W0068_DESCRIPTION.md`
+14. `<local-clawd-checkout>\README.md`
 
 Latest local receipt in the current packet: `105 syntax detail entries / 51 execution suites / 2 governance checks`, timestamp `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`.
 
@@ -32,7 +32,7 @@ Use the older July active-policy packet only if Simul explicitly chooses that `m
 
 Expected starting state:
 
-- Repository: `C:\Users\Josh\clawd` (local operator checkout for this handoff; public wording should use repository identity and commit, not this private path)
+- Repository: `<local-clawd-checkout>` (local operator checkout for this handoff; public wording should use repository identity and commit, not this private path)
 - Branch: `main`
 - `HEAD`: `62acf21b5a0f5e4d811cc9cebb6536931457933b`
 - `origin/main`: `62acf21b5a0f5e4d811cc9cebb6536931457933b`

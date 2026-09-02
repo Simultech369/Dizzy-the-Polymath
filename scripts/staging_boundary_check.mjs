@@ -64,9 +64,19 @@ function main() {
   let triageText;
   let dirtyFiles;
 
+  dirtyFiles = trackedDirtyFiles();
+  const triageAbsPath = path.resolve(ROOT, TRIAGE_PATH);
+  if (!fs.existsSync(triageAbsPath)) {
+    if (dirtyFiles.length) {
+      console.error(`STAGING_BOUNDARY_CHECK_FAILED\n- ${TRIAGE_PATH}: file missing while tracked dirty files exist: ${dirtyFiles.join(", ")}`);
+      process.exit(1);
+    }
+    console.log("STAGING_BOUNDARY_CHECK_SKIPPED public_tree_no_internal_triage dirty_tracked=0");
+    return;
+  }
+
   try {
     triageText = readRequired(TRIAGE_PATH);
-    dirtyFiles = trackedDirtyFiles();
   } catch (err) {
     console.error(`STAGING_BOUNDARY_CHECK_FAILED\n- ${err.message}`);
     process.exit(1);

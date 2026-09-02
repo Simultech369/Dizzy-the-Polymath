@@ -1284,7 +1284,10 @@ function renderVerificationSummaries(data) {
   }
 
   if (advStatus && advVer) {
-    advStatus.textContent = advVer.verdict === "ADVERSARIAL_VERIFICATION_PASSED" ? "8/8 Blocked" : "Bypass Detected";
+    const blocked = Number.isFinite(Number(advVer.deterministic_blocks)) ? Number(advVer.deterministic_blocks) : null;
+    const tested = Number.isFinite(Number(advVer.scenarios_tested)) ? Number(advVer.scenarios_tested) : null;
+    const blockedLabel = blocked !== null && tested !== null && tested > 0 ? `${blocked}/${tested} Blocked` : "Blocked";
+    advStatus.textContent = advVer.verdict === "ADVERSARIAL_VERIFICATION_PASSED" ? blockedLabel : "Bypass Detected";
     advStatus.className = `badge ${advVer.bypasses_allowed === 0 ? "badge-emerald" : "badge-rose"}`;
   }
 

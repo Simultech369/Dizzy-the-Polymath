@@ -2,7 +2,7 @@
 
 Status: active low-credit handoff ledger
 Date: 2026-08-24
-Repository: `C:\Users\Josh\clawd`
+Repository: `<local-clawd-checkout>`
 Current branch observed by Codex: `feat/dizzy-general-distro`
 Current `HEAD` observed by Codex: `c4300eaee587a6f055dc25dedeaaa5957b7af7ea`
 Branch relation observed by Codex: ahead of `origin/feat/dizzy-general-distro` by 17 commits
@@ -13,11 +13,11 @@ This file records what changed after the latest Antigravity handoff/calibration 
 
 This file remains useful for W-0098/W-0099/W-0101/W-0102 provenance, but it is no longer the freshest handoff surface. Before acting on counts or next-slice advice, read:
 
-- `C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md`
-- `C:\Users\Josh\clawd\reviews\antigravity_to_codex_delta_latest.md`
-- `C:\Users\Josh\clawd\reviews\antigravity_to_codex_delta_2026-08-26.md`
-- `C:\Users\Josh\clawd\reviews\w0068_staging_triage.md`
-- `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
+- `<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md`
+- `<local-clawd-checkout>\reviews\antigravity_to_codex_delta_latest.md`
+- `<local-clawd-checkout>\reviews\antigravity_to_codex_delta_2026-08-26.md`
+- `<local-clawd-checkout>\reviews\w0068_staging_triage.md`
+- `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
 
 Latest local receipt now observed by Codex: `105 syntax detail entries / 51 execution suites / 2 governance checks`, timestamp `2026-08-28T03:10:46.075Z`, SHA-256 `7A85640464336AAA9A1E6EBCF3B7FD93DE36CA8AC921FE3CB46A3C5298AB6F61`.
 
@@ -37,7 +37,7 @@ Carry these boundaries forward:
 
 Superseded W-0099 receipt retained for provenance:
 
-- Path: `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
+- Path: `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
 - Timestamp: `2026-08-26T09:34:52.844Z`
 - Verdict: `VERIFIED_PASSED`
 - Syntax: 89 targets
@@ -57,13 +57,13 @@ Implemented a narrow SQLite-backed structural cache for the local dashboard quer
 
 Primary files:
 
-- `C:\Users\Josh\clawd\lib\structural_query_cache.mjs`
-- `C:\Users\Josh\clawd\lib\dashboard.mjs`
-- `C:\Users\Josh\clawd\lib\md_retriever.mjs`
-- `C:\Users\Josh\clawd\scripts\structural_query_cache_test.mjs`
-- `C:\Users\Josh\clawd\scripts\safety_checks.mjs`
-- `C:\Users\Josh\clawd\scripts\oss_council_audit.mjs`
-- `C:\Users\Josh\clawd\package.json`
+- `<local-clawd-checkout>\lib\structural_query_cache.mjs`
+- `<local-clawd-checkout>\lib\dashboard.mjs`
+- `<local-clawd-checkout>\lib\md_retriever.mjs`
+- `<local-clawd-checkout>\scripts\structural_query_cache_test.mjs`
+- `<local-clawd-checkout>\scripts\safety_checks.mjs`
+- `<local-clawd-checkout>\scripts\oss_council_audit.mjs`
+- `<local-clawd-checkout>\package.json`
 
 Behavior:
 
@@ -104,14 +104,14 @@ Implemented an authenticated SSE execution surface beside the stable JSON `/agen
 
 Primary files:
 
-- `C:\Users\Josh\clawd\agent_server.mjs`
-- `C:\Users\Josh\clawd\lib\sse_stream.mjs`
-- `C:\Users\Josh\clawd\lib\dispatch.mjs`
-- `C:\Users\Josh\clawd\lib\openai_compat_client.mjs`
-- `C:\Users\Josh\clawd\lib\gemini_client.mjs`
-- `C:\Users\Josh\clawd\scripts\streaming_response_test.mjs`
-- `C:\Users\Josh\clawd\scripts\oss_council_audit.mjs`
-- `C:\Users\Josh\clawd\package.json`
+- `<local-clawd-checkout>\agent_server.mjs`
+- `<local-clawd-checkout>\lib\sse_stream.mjs`
+- `<local-clawd-checkout>\lib\dispatch.mjs`
+- `<local-clawd-checkout>\lib\openai_compat_client.mjs`
+- `<local-clawd-checkout>\lib\gemini_client.mjs`
+- `<local-clawd-checkout>\scripts\streaming_response_test.mjs`
+- `<local-clawd-checkout>\scripts\oss_council_audit.mjs`
+- `<local-clawd-checkout>\package.json`
 
 Behavior:
 
@@ -151,12 +151,12 @@ Known verification caveats:
 
 Updated current roadmap/proof wording around W-0098/W-0099:
 
-- `C:\Users\Josh\clawd\NEXT.md`
-- `C:\Users\Josh\clawd\README.md`
-- `C:\Users\Josh\clawd\DESIGN.md`
-- `C:\Users\Josh\clawd\PR_W0068_DESCRIPTION.md`
-- `C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md`
-- `C:\Users\Josh\clawd\reviews\w0068_staging_triage.md`
+- `<local-clawd-checkout>\NEXT.md`
+- `<local-clawd-checkout>\README.md`
+- `<local-clawd-checkout>\DESIGN.md`
+- `<local-clawd-checkout>\PR_W0068_DESCRIPTION.md`
+- `<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md`
+- `<local-clawd-checkout>\reviews\w0068_staging_triage.md`
 
 Current work queue after W-0098:
 
@@ -178,14 +178,14 @@ Implemented a deterministic docs-only guard so borrowed-pattern provenance canno
 
 Primary files:
 
-- `C:\Users\Josh\clawd\scripts\external_pattern_license_audit_check.mjs`
-- `C:\Users\Josh\clawd\scripts\staging_boundary_check.mjs`
-- `C:\Users\Josh\clawd\reviews\external_pattern_license_audit.md`
-- `C:\Users\Josh\clawd\REFERENCE_PATTERNS.md`
-- `C:\Users\Josh\clawd\FILE_ROLES.md`
-- `C:\Users\Josh\clawd\.gitignore`
-- `C:\Users\Josh\clawd\package.json`
-- `C:\Users\Josh\clawd\scripts\oss_council_audit.mjs`
+- `<local-clawd-checkout>\scripts\external_pattern_license_audit_check.mjs`
+- `<local-clawd-checkout>\scripts\staging_boundary_check.mjs`
+- `<local-clawd-checkout>\reviews\external_pattern_license_audit.md`
+- `<local-clawd-checkout>\REFERENCE_PATTERNS.md`
+- `<local-clawd-checkout>\FILE_ROLES.md`
+- `<local-clawd-checkout>\.gitignore`
+- `<local-clawd-checkout>\package.json`
+- `<local-clawd-checkout>\scripts\oss_council_audit.mjs`
 
 Behavior:
 
@@ -225,7 +225,7 @@ Use 5.6 Sol selectively where broader judgment or variance reduction is worth th
 
 Created a non-destructive live branch inventory receipt:
 
-- `C:\Users\Josh\clawd\reviews\branch_policy_reconciliation_2026-08-26.md`
+- `<local-clawd-checkout>\reviews\branch_policy_reconciliation_2026-08-26.md`
 
 Evidence:
 
@@ -313,9 +313,9 @@ Other dirty files and untracked review artifacts existed before or adjacent to t
 
 The Python proving lab remains reference/proving material only:
 
-- `C:\Users\Josh\.gemini\antigravity\scratch\council_engine`
+- `<quarantined-council-engine-sidecar>`
 
-After Codex search on 2026-08-25, Antigravity scratch appeared to have advanced. This section is historical and is superseded by the current Council Patch 9D sidecar report in `C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md` and `C:\Users\Josh\clawd\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md`:
+After Codex search on 2026-08-25, Antigravity scratch appeared to have advanced. This section is historical and is superseded by the current Council Patch 9D sidecar report in `<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md` and `<local-clawd-checkout>\reviews\antigravity_current_dizzy_handoff_paths_2026-08-27.md`:
 
 - `CODEX_HANDOFF.md` v25.0 claimed completed patches for model egress choke point, external human/execution proof boundary, deterministic lifecycle hooks, signed webhook fan-out, Ed25519 human approval custody, Ed25519 P2P gossip hardening, and OSS harness/model inventory refresh.
 - `MASTER_STATE_CHECKPOINT.md` claimed `237 / 237` unittest tests passing across 50 suites.
@@ -342,12 +342,12 @@ New user-supplied cloneable reference candidates:
 - Source: `https://github.com/aeonfun/aeon`
 - Status: cloneable later, not locally cloned by Codex in this pass.
 - Web license observation on 2026-08-25: GitHub repository page identifies MIT license.
-- Proposed quarantine path: `C:\Users\Josh\clawd\_external\aeonfun-aeon`
+- Proposed quarantine path: `<local-clawd-checkout>\_external\aeonfun-aeon`
 
 - Source: `https://github.com/MiroShark/MiroShark`
 - Status: cloneable later, not locally cloned by Codex in this pass.
 - Web license observation on 2026-08-25: GitHub repository page identifies AGPL-3.0 license.
-- Proposed quarantine path: `C:\Users\Josh\clawd\_external\miroshark-miroshark`
+- Proposed quarantine path: `<local-clawd-checkout>\_external\miroshark-miroshark`
 
 - Existing hygiene support: `_external/` is gitignored and classified in `FILE_ROLES.md` as local research input, not a first-party Dizzy surface or automatic retrieval root.
 
@@ -360,7 +360,7 @@ Antigravity/Codex intake gates before extracting anything:
 
 License/provenance correction:
 
-- New audit surface: `C:\Users\Josh\clawd\reviews\external_pattern_license_audit.md`
+- New audit surface: `<local-clawd-checkout>\reviews\external_pattern_license_audit.md`
 - Concern: previous external-pattern borrowing may not have carefully separated idea-level learning from copied code/prose/structure or Apache-2.0/NOTICE-style attribution duties.
 - Action: before public/client-facing distribution or any new external-source promotion, classify each material source as idea-only, mechanism translation, distinctive structure, prose, tests/fixtures, code, or dependency/vendor.
 - Remediation options: add attribution, create `THIRD_PARTY_NOTICES.md`, mark modified files, rewrite from first principles, remove borrowed material, or request legal review.
@@ -371,7 +371,7 @@ License/provenance correction:
 Before doing implementation:
 
 ```powershell
-cd C:\Users\Josh\clawd
+cd <local-clawd-checkout>
 git branch --show-current
 git rev-parse HEAD
 git status --short --branch
@@ -381,11 +381,11 @@ npm run check:docs
 
 If Antigravity is resuming W-0068 staging rather than the older July active-policy packet, use this file plus:
 
-- `C:\Users\Josh\clawd\UNIFIED_HANDOFF_PACKET.md`
-- `C:\Users\Josh\clawd\PR_W0068_DESCRIPTION.md`
-- `C:\Users\Josh\clawd\NEXT.md`
-- `C:\Users\Josh\clawd\reviews\w0068_staging_triage.md`
-- `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
+- `<local-clawd-checkout>\UNIFIED_HANDOFF_PACKET.md`
+- `<local-clawd-checkout>\PR_W0068_DESCRIPTION.md`
+- `<local-clawd-checkout>\NEXT.md`
+- `<local-clawd-checkout>\reviews\w0068_staging_triage.md`
+- `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
 
 Then either:
 

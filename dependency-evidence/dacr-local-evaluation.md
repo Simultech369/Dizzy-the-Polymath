@@ -4,7 +4,7 @@
 - Affected surface: optional operator-run evaluation only
 - Contract: local Ollama native `POST /api/chat`; loopback endpoints only
 - Dependency change: none; the external DACR checkout owns its own tooling
-- External checkout observed: `C:\Users\Josh\Documents\misc\dacr-bench` at
+- External checkout observed: `<operator-local-dacr-checkout>` at
   `d3814d3` (`make DACR runner portable for local Ollama`)
 - Local vendor patch archived:
   `dependency-evidence/patches/dacr-bench-ollama-portability-d3814d3.patch`

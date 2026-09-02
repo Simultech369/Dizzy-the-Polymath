@@ -3,8 +3,8 @@
 **Date**: 2026-08-11
 **Prepared By**: Gemini 3.6 Flash (verified alongside Claude Opus 4.6)
 **Target Agent**: Codex 5.5
-**Primary Repo**: `C:\Users\Josh\clawd`
-**W-0068 Worktree**: `C:\Users\Josh\clawd\.extraction\clawd-w0068-review-loop`
+**Primary Repo**: `<local-clawd-checkout>`
+**W-0068 Worktree**: `<local-clawd-checkout>\.extraction\clawd-w0068-review-loop`
 
 ---
 
@@ -28,7 +28,7 @@
 
 ## 2. Active Worktree State (W-0068 Review Loop)
 
-- **Directory**: `C:\Users\Josh\clawd\.extraction\clawd-w0068-review-loop`
+- **Directory**: `<local-clawd-checkout>\.extraction\clawd-w0068-review-loop`
 - **Branch**: `codex/w0068-review-loop`
 - **Committed HEAD**: `dc40cd5` ("feat(review): add local-fast partial model review receipts")
 - **Uncommitted Groq-Lane Edits**:
@@ -84,14 +84,14 @@
 
 To inspect w0068 in the extraction directory:
 ```powershell
-cd C:\Users\Josh\clawd\.extraction\clawd-w0068-review-loop
+cd <local-clawd-checkout>\.extraction\clawd-w0068-review-loop
 git status --short --branch
 npm run test:review-models
 ```
 
 To run main repo safety checks:
 ```powershell
-cd C:\Users\Josh\clawd
+cd <local-clawd-checkout>
 npm test
 npm run check:council
 ```

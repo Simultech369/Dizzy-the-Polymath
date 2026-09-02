@@ -1,11 +1,11 @@
 # Dizzy Proof Dossier
 
-**Target**: `C:\Users\Josh\clawd`
+**Target**: `<local-clawd-checkout>`
 **Generated**: 2026-08-27
 
 ## Verified Verdict
 
-Source: `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
+Source: `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
 - **Verdict**: VERIFIED_PASSED
 - **Counts**: 103 syntax detail entries / 50 execution suites / 2 governance checks
 - **SHA-256**: `26E9CA009A6DCFDE6F34BE2E4684CACB43671896F1931789A54A75C5FAC1C2C0`

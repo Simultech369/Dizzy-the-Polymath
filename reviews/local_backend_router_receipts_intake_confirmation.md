@@ -2,7 +2,7 @@
 
 status: intake_confirmed
 created: 2026-07-21
-repo: C:\Users\Josh\clawd
+repo: <local-clawd-checkout>
 observed_head: a43c931db877304a74049ef98fd4771316623376
 scope: reconcile active Antigravity implementation review with Codex harness-theory assessment before first commit
 
@@ -38,28 +38,28 @@ It is not a final approval, commit authorization, or substitute for clean-checko
 
 These files are part of the staged implementation/test slice:
 
-- `C:\Users\Josh\clawd\agent_server.mjs`
-- `C:\Users\Josh\clawd\lib\dispatch.mjs`
-- `C:\Users\Josh\clawd\lib\model_router.mjs`
-- `C:\Users\Josh\clawd\lib\runtime_config.mjs`
-- `C:\Users\Josh\clawd\scripts\maintain.mjs`
-- `C:\Users\Josh\clawd\scripts\safety_checks.mjs`
-- `C:\Users\Josh\clawd\scripts\test_active_integration.mjs`
+- `<local-clawd-checkout>\agent_server.mjs`
+- `<local-clawd-checkout>\lib\dispatch.mjs`
+- `<local-clawd-checkout>\lib\model_router.mjs`
+- `<local-clawd-checkout>\lib\runtime_config.mjs`
+- `<local-clawd-checkout>\scripts\maintain.mjs`
+- `<local-clawd-checkout>\scripts\safety_checks.mjs`
+- `<local-clawd-checkout>\scripts\test_active_integration.mjs`
 
 ## Documentation And Tracking Files
 
 These files are in scope for documentation, tracking, or external handoff reconciliation:
 
-- `C:\Users\Josh\clawd\MODEL_INVENTORY.md`
-- `C:\Users\Josh\clawd\NEXT.md`
-- `C:\Users\Josh\clawd\reviews\reflection_round_router_receipt_mvp.md`
-- `C:\Users\Josh\.gemini\antigravity\brain\0c7ec9b0-f9f8-4de9-bb17-f038f6d52f77\walkthrough.md`
+- `<local-clawd-checkout>\MODEL_INVENTORY.md`
+- `<local-clawd-checkout>\NEXT.md`
+- `<local-clawd-checkout>\reviews\reflection_round_router_receipt_mvp.md`
+- `<antigravity-private-brain-artifact>`
 
 Observed note: `reviews\reflection_round_router_receipt_mvp.md` is staged, so the staged slice is currently 10 files, not the earlier 9-file core list.
 
 ## Review Harness Infrastructure
 
-The following role files exist under `C:\Users\Josh\clawd\.review-harness\roles\`:
+The following role files exist under `<local-clawd-checkout>\.review-harness\roles\`:
 
 - `privacy-boundary.md`
 - `staged-only.md`
@@ -69,7 +69,7 @@ The following role files exist under `C:\Users\Josh\clawd\.review-harness\roles\
 - `minimal-slice.md`
 - `devils-advocate.md`
 
-The following run artifacts exist under `C:\Users\Josh\clawd\.review-harness\runs\2026-07-21-local-backend-router-receipts\`:
+The following run artifacts exist under `<local-clawd-checkout>\.review-harness\runs\2026-07-21-local-backend-router-receipts\`:
 
 - `task.md`
 - `staged-files.txt`

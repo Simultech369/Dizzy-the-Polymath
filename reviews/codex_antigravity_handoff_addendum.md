@@ -109,7 +109,7 @@ Codex should not select implementation details on Antigravity's behalf where a s
 ```text
 Work in:
 
-C:\Users\Josh\clawd
+<local-clawd-checkout>
 
 You are Antigravity, the final implementer.
 

@@ -1,9 +1,9 @@
-﻿# Antigravity Bounty Run Readiness Dossier
+# Antigravity Bounty Run Readiness Dossier
 
 Status: Autonomous execution loop successfully closed.
 Date: 2026-08-27
 Timestamp: 2026-08-27T17:08:28.174Z
-Repository: C:\Users\Josh\clawd
+Repository: <local-clawd-checkout>
 Active Branch: eat/dizzy-general-distro
 Latest Full Council Receipt: eviews/oss_council_verdict_latest.json (VERIFIED_PASSED: 109 syntax files / 50 execution suites / 2 governance checks)
 

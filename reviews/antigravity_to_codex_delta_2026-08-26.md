@@ -1,9 +1,9 @@
 # Antigravity -> Codex Delta Ledger
-**Date:** 2026-08-26  
-**Status:** Active Low-Credit Autonomous Handoff Ledger  
-**Target Agent:** Codex 5.5 / Codex 5.6 Sol  
-**Repository:** `C:\Users\Josh\clawd`  
-**Current Branch:** `feat/dizzy-general-distro`  
+**Date:** 2026-08-26
+**Status:** Active Low-Credit Autonomous Handoff Ledger
+**Target Agent:** Codex 5.5 / Codex 5.6 Sol
+**Repository:** `<local-clawd-checkout>`
+**Current Branch:** `feat/dizzy-general-distro`
 **Current HEAD:** `c4300eaee587a6f055dc25dedeaaa5957b7af7ea` (ahead of origin by 17 commits)
 
 ---
@@ -26,7 +26,7 @@ A2A boundary: `lib\a2a_mailbox_bridge.mjs` is a local sealed mailbox / handoff-e
 
 The full 3-layer Council Audit engine has been executed and verified clean:
 
-* **Receipt Path:** `C:\Users\Josh\clawd\reviews\oss_council_verdict_latest.json`
+* **Receipt Path:** `<local-clawd-checkout>\reviews\oss_council_verdict_latest.json`
 * **Verdict:** `VERIFIED_PASSED (READY FOR STAGING)`
 * **Layer 1 (Syntax):** 105 syntax detail entries verified
 * **Layer 2 (Governance):** 2 checks verified (chosen_model none guard, manual redirect enforcement)
@@ -102,7 +102,7 @@ The full 3-layer Council Audit engine has been executed and verified clean:
 ## 4. Instructions For Resuming Codex Session
 
 When credits refresh:
-1. Verify working directory is `C:\Users\Josh\clawd` on branch `feat/dizzy-general-distro`.
+1. Verify working directory is `<local-clawd-checkout>` on branch `feat/dizzy-general-distro`.
 2. Run sanity check:
    ```powershell
    npm run check:next

@@ -29,7 +29,7 @@ The branch itself is clean and synced at `7e967373623b547e25292870c878c9960418c7
 
 4. **The public diff includes an internal, stale handoff packet.**
 
-   `UNIFIED_HANDOFF_PACKET.md` is newly added relative to main and contains 266 absolute `C:\Users\Josh` paths, including 124 `.gemini` paths and three Antigravity brain UUID paths, for example [UNIFIED_HANDOFF_PACKET.md:54](/C:/Users/Josh/clawd/UNIFIED_HANDOFF_PACKET.md:54) and [UNIFIED_HANDOFF_PACKET.md:258](/C:/Users/Josh/clawd/UNIFIED_HANDOFF_PACKET.md:258).
+   `UNIFIED_HANDOFF_PACKET.md` is newly added relative to main and contains many absolute operator-local paths, including Antigravity scratch paths and private brain-artifact paths.
 
    It also claims the hardening is uncommitted, HEAD is `0238a739`, and the branch is 37 commits ahead at [UNIFIED_HANDOFF_PACKET.md:12](/C:/Users/Josh/clawd/UNIFIED_HANDOFF_PACKET.md:12) and [UNIFIED_HANDOFF_PACKET.md:193](/C:/Users/Josh/clawd/UNIFIED_HANDOFF_PACKET.md:193). Remove this internal packet from the public PR or replace it with a sanitized, repo-relative summary.
 
@@ -64,4 +64,3 @@ Existing README/Quickstart wording correctly rejects public interoperability cla
 `test:public-view-readiness` and `test:dashboard-safety` passed. The server-backed dashboard rerun could not complete in this read-only sandbox because lifecycle middleware attempted to open `runtime/lifecycle_hooks.jsonl`; that was an environment-induced `EPERM`, not counted as a product failure. The worktree remained clean.
 
 Another Antigravity pass is needed, but only a narrow reconciliation pass after the code fixes: update HEAD/push state, unify W-0106 wording, and remove or sanitize internal handoff material. No broad architectural pass is warranted.
-
