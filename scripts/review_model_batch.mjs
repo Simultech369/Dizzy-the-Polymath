@@ -11,7 +11,7 @@ import {
 
 const DEFAULT_REVIEW_CANDIDATE_EXCLUDE_PATTERNS = [
   /^reviews\/[^/]+_latest\.json$/i,
-  /^(?:runtime|memory|artifacts|\.review-harness)\//i,
+  /^(?:runtime|memory|artifacts|\.review-harness|\.extraction|codex-bench-|data\/|scratch\/)/i,
 ];
 const DEFAULT_GROQ_FAST_MODEL = "llama-3.1-8b-instant";
 
@@ -43,7 +43,7 @@ function hasArg(args, name) {
 }
 
 function git(args) {
-  const result = spawnSync("git", args, { encoding: "utf8", cwd: process.cwd() });
+  const result = spawnSync("git", args, { encoding: "utf8", cwd: process.cwd(), maxBuffer: 32 * 1024 * 1024 });
   if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${String(result.stderr || result.stdout).trim()}`);
   return result.stdout;
 }
@@ -99,12 +99,15 @@ function changedFilesFromGit(base, head) {
 
 function changedFilesFromWorktree() {
   const files = [];
-  for (const line of git(["status", "--short", "--untracked-files=all"]).split(/\r?\n/)) {
+  for (const line of git(["status", "--short"]).split(/\r?\n/)) {
     if (!line.trim()) continue;
     const payload = line.slice(3).trim();
     if (!payload) continue;
     const renameParts = payload.split(" -> ");
-    files.push(renameParts[renameParts.length - 1]);
+    const file = renameParts[renameParts.length - 1];
+    if (file && !isDefaultReviewCandidateExcluded(file)) {
+      files.push(file);
+    }
   }
   return [...new Set(files)].sort();
 }

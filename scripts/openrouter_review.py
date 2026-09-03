@@ -171,14 +171,15 @@ def main():
         print(f"\nTarget URL: {args.url}\n", file=sys.stderr)
 
         if not args.force:
-            if sys.stdin.isatty():
+            if sys.stdin and sys.stdin.isatty():
                 try:
                     choice = input("Are you sure you want to proceed? (y/N): ").strip().lower()
                     if choice != 'y':
                         print("Execution aborted by operator.", file=sys.stderr)
                         sys.exit(1)
-                except KeyboardInterrupt:
-                    print("\nExecution aborted.", file=sys.stderr)
+                except (KeyboardInterrupt, EOFError):
+                    print("Error: Non-interactive execution blocked for non-OpenRouter destination URL.", file=sys.stderr)
+                    print("Use the --force option to bypass this check.", file=sys.stderr)
                     sys.exit(1)
             else:
                 print("Error: Non-interactive execution blocked for non-OpenRouter destination URL.", file=sys.stderr)

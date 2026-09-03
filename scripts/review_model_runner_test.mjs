@@ -96,6 +96,27 @@ try {
 } finally {
   globalThis.fetch = originalFetchForR1Adapter;
 }
+const originalFetchForIsolationGuard = globalThis.fetch;
+let isolationFetchCalled = false;
+try {
+  globalThis.fetch = async () => {
+    isolationFetchCalled = true;
+    throw new Error("remote fetch must not be attempted under local isolation");
+  };
+  await assert.rejects(
+    () => openaiCompatGenerateText({
+      baseUrl: "https://example.com/v1",
+      model: "remote-model",
+      messages: [{ role: "user", content: "private prompt" }],
+      isLocalIsolationRequired: true,
+    }),
+    (err) => err?.code === "LOCAL_ISOLATION_REMOTE_ENDPOINT_DISALLOWED"
+      && err?.blocked_reason === "local_offline_cloud_blocked",
+  );
+  assert.equal(isolationFetchCalled, false);
+} finally {
+  globalThis.fetch = originalFetchForIsolationGuard;
+}
 assert.equal(isReviewUsableLocalOllamaModelName("gemma3:4b"), true);
 assert.equal(getModelExecutionProfile("llama-3.1-8b-instant").json_reliability, "high");
 assert.equal(isDefaultReviewCandidateExcluded("reviews/retrieval_eval_latest.json"), true);
@@ -225,6 +246,28 @@ assert.equal(groqTarget.model, "llama-3.1-8b-instant");
 assert.equal(groqTarget.selected_reason, "groq_cloud_provider");
 assert.equal(groqTarget.model_profile.expected_latency_band, "groq_fast");
 
+const privateSelfCloudTarget = resolveReviewerExecutionTarget(
+  { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "private cloud must fail" },
+  { allowCloud: true, trustZone: "private_self", cloudProvider: "groq", cloudApiKey: "test-key" },
+);
+assert.equal(privateSelfCloudTarget.executable, false);
+assert.equal(privateSelfCloudTarget.skipped_reason, "private_zone_cloud_disallowed");
+
+const privateSelfCloudSkipped = await executeReviewerModelReview({
+  plan,
+  reviewer: { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "private cloud must fail" },
+  diffText: "diff",
+  allowCloud: true,
+  trustZone: "private_self",
+  cloudProvider: "groq",
+  cloudApiKey: "test-key",
+  generateText: async () => {
+    throw new Error("private_self remote reviewer dispatch must not execute");
+  },
+});
+assert.equal(privateSelfCloudSkipped.status, "skipped");
+assert.equal(privateSelfCloudSkipped.skipped_reason, "private_zone_cloud_disallowed");
+
 const groqMissingKeyTarget = resolveReviewerExecutionTarget(
   { role_key: "gemma3_local", primary_model: "llama-3.1-8b-instant", lens: "fast cloud sanity" },
   { allowCloud: true, trustZone: "trusted_collaborator", cloudProvider: "groq", allowProviderEnv: false },
@@ -290,6 +333,7 @@ const skipped = await executeReviewerModelReview({
   reviewer: { role_key: "systems_architect", primary_model: "claude-3-7-sonnet", lens: "architecture" },
   diffText: "diff",
   allowCloud: false,
+  trustZone: "trusted_collaborator",
 });
 if (originalOpenAICompatBaseUrl === undefined) {
   delete process.env.OPENAI_COMPAT_BASE_URL;

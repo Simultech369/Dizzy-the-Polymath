@@ -65,3 +65,13 @@ Before any hosted/client-facing release, collect:
 - Do not handle user funds, wallets, or regulated execution without legal review, explicit consent, and a tested kill switch.
 - Do not add onchain signing or delegated action flows unless capabilities are time-bounded, parameter-bounded, revocable, and auditable.
 - Do not overclaim production maturity; missing proof means the item remains `operator overlay` or `planning candidate`.
+
+## Current Proof Matrix (2026-08-27)
+
+- **Route & Auth Inventory**: Operator Dashboard (`/`) is protected by loopback-only cookie-based auth (`W-0058`). Agent Execute API (`/agent/execute`) is guarded by explicit route failure receipts and latency bands. Telemetry (`/api/operator/receipts-telemetry`) has isolated read-only loopback access. SSE Stream (`/agent/execute/stream`) is handled by execute-token scopes with backpressure handling (`W-0099`).
+- **HTTPS & Environment Boundaries**: `DIZZY_VERIFIED_HTTPS` gating is implemented in config and Express (`W-0057`). HSTS and secure cookies are enforced. 401/404 headers verified and regression-tested.
+- **Rate Limits & Circuit Breakers**: Route-Level Circuit Breaker (`W-0084`) enforces closed/open/half-open state transitions and fails closed on consecutive failures, preventing token exhaustion. Built-in Express rate limiting is available.
+- **Cache Policy & Rollback**: Reversible SQLite structural query cache (`W-0098`) is implemented. No semantic embedding persistence or opaque external storage. Rollback bounds are managed by explicit `dizzy.router_receipt.v1` retention scopes.
+- **Error Tracking & Accessibility**: Failures emit `dizzy.route_failure.v1` cryptographic receipts instead of raw stack traces. Offline dashboard is font compliant and screen-reader navigable (`UI-0001`).
+- **Provider Data-Flow**: Trust-zone bounded execution (`private_self` vs `public_free` vs `trusted_collaborator`). ZDR (Zero Data Retention) boundaries strictly attested in `MODEL_INVENTORY.md` capability matrix (`W-0093`).
+- **Database & RLS Proof**: Not Applicable. System utilizes filesystem storage, Redis queue, and in-memory SQLite caches only. No persistent multi-tenant SQL database.

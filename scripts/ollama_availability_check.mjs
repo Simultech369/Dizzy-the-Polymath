@@ -13,6 +13,7 @@ const LOCAL_REVIEWER_PROBES = Object.freeze([
   { role_key: "local_security_auditor", model: "llama-audit:latest" },
   { role_key: "local_code_probe", model: "codegemma-7b" },
   { role_key: "fast_local_fallback", model: "deepseek-r1:1.5b" },
+  { role_key: "muse_glimmer_local", model: "muse-glimmer:latest" },
 ]);
 
 function argValue(args, name, fallback = "") {
@@ -66,21 +67,24 @@ function parseModelTargets(args) {
 }
 
 function startOllamaServer({ baseUrl, localAppData, modelsDir }) {
-  fs.mkdirSync(localAppData, { recursive: true });
   const { ollamaHost } = parseBaseUrl(baseUrl);
+  const env = {
+    ...process.env,
+    OLLAMA_HOST: ollamaHost,
+    OLLAMA_MODELS: modelsDir,
+    OLLAMA_NO_CLOUD: "true",
+    OLLAMA_NOPRUNE: "true",
+    OLLAMA_NUM_PARALLEL: "1",
+    OLLAMA_MAX_LOADED_MODELS: "1",
+  };
+  if (localAppData) {
+    fs.mkdirSync(localAppData, { recursive: true });
+    env.LOCALAPPDATA = localAppData;
+  }
   return spawn("ollama", ["serve"], {
     cwd: process.cwd(),
     windowsHide: true,
-    env: {
-      ...process.env,
-      LOCALAPPDATA: localAppData,
-      OLLAMA_HOST: ollamaHost,
-      OLLAMA_MODELS: modelsDir,
-      OLLAMA_NO_CLOUD: "true",
-      OLLAMA_NOPRUNE: "true",
-      OLLAMA_NUM_PARALLEL: "1",
-      OLLAMA_MAX_LOADED_MODELS: "1",
-    },
+    env,
     stdio: ["ignore", "ignore", "ignore"],
   });
 }
@@ -259,57 +263,91 @@ function writeJson(outPath, data) {
   return abs;
 }
 
-const args = process.argv.slice(2);
-const baseUrl = argValue(args, "--base-url", "http://127.0.0.1:11434/v1");
-const startServer = boolArg(args, "--start-server");
-const writeReceipt = boolArg(args, "--write");
-const outPath = argValue(args, "--out", "reviews/ollama_availability_latest.json");
-const timeoutMs = numArg(args, "--timeout-ms", 120000);
-const readyTimeoutMs = numArg(args, "--ready-timeout-ms", 30000);
-const numPredict = numArg(args, "--num-predict", 8);
-const localAppData = path.resolve(process.cwd(), argValue(args, "--localappdata", "runtime/ollama-localappdata"));
-const modelsDir = path.resolve(argValue(args, "--models-dir", process.env.OLLAMA_MODELS || defaultModelsDir()));
-const targets = parseModelTargets(args);
-const { apiOrigin, compatBaseUrl } = parseBaseUrl(baseUrl);
+async function main() {
+  const args = process.argv.slice(2);
+  const baseUrl = argValue(args, "--base-url", "http://127.0.0.1:11434/v1");
+  const startServer = boolArg(args, "--start-server");
+  const writeReceipt = boolArg(args, "--write");
+  const outPath = argValue(args, "--out", "reviews/ollama_availability_latest.json");
+  const timeoutMs = numArg(args, "--timeout-ms", 120000);
+  const readyTimeoutMs = numArg(args, "--ready-timeout-ms", 30000);
+  const numPredict = numArg(args, "--num-predict", 8);
+  const localAppData = argValue(args, "--localappdata", "");
+  const modelsDir = path.resolve(argValue(args, "--models-dir", process.env.OLLAMA_MODELS || defaultModelsDir()));
+  const targets = parseModelTargets(args);
+  const { apiOrigin, compatBaseUrl } = parseBaseUrl(baseUrl);
 
-let serverProcess = null;
-let receiptPath = "";
-try {
-  if (startServer) {
-    serverProcess = startOllamaServer({ baseUrl, localAppData, modelsDir });
+  let serverProcess = null;
+  let receiptPath = "";
+  try {
+    if (startServer) {
+      serverProcess = startOllamaServer({ baseUrl, localAppData, modelsDir });
+    }
+
+    let tags = null;
+    try {
+      tags = await waitForTags(apiOrigin, { timeoutMs: readyTimeoutMs, serverProcess });
+    } catch (err) {
+      const offlineReceipt = {
+        schema_version: SCHEMA_VERSION,
+        created_at: nowIso(),
+        base_url_host: new URL(baseUrl).host,
+        server_started_by_probe: startServer,
+        server_online: false,
+        error: err?.message || String(err),
+        installed_count: 0,
+        installed_models: [],
+        probe_count: targets.length,
+        summary: { server_offline: targets.length },
+        results: targets.map((t) => ({
+          role_key: t.role_key,
+          model: t.model,
+          status: "server_offline",
+          runnable: false,
+          seconds: 0,
+          note: `local Ollama server not reachable at ${baseUrl}`,
+        })),
+        authority: "availability_probe_is_evidence_not_authority",
+      };
+      if (writeReceipt) receiptPath = writeJson(outPath, offlineReceipt);
+      console.log(JSON.stringify({ ...offlineReceipt, receipt_path: receiptPath }, null, 2));
+      return;
+    }
+
+    const installedModels = summarizeInstalled(tags);
+    const installedNames = new Set(installedModels.map((item) => item.name));
+    const results = [];
+
+    for (const target of targets) {
+      results.push(await probeModel({
+        compatBaseUrl,
+        target,
+        installedNames,
+        timeoutMs,
+        numPredict,
+      }));
+    }
+
+    const receipt = {
+      schema_version: SCHEMA_VERSION,
+      created_at: nowIso(),
+      base_url_host: new URL(baseUrl).host,
+      server_started_by_probe: startServer,
+      server_online: true,
+      localappdata: localAppData ? path.relative(process.cwd(), localAppData).replace(/\\/g, "/") : "",
+      models_dir: modelsDir,
+      installed_count: installedModels.length,
+      installed_models: installedModels,
+      probe_count: results.length,
+      summary: summarizeResults(results),
+      results,
+      authority: "availability_probe_is_evidence_not_authority",
+    };
+    if (writeReceipt) receiptPath = writeJson(outPath, receipt);
+    console.log(JSON.stringify({ ...receipt, receipt_path: receiptPath }, null, 2));
+  } finally {
+    await stopOllamaServer(serverProcess);
   }
-
-  const tags = await waitForTags(apiOrigin, { timeoutMs: readyTimeoutMs, serverProcess });
-  const installedModels = summarizeInstalled(tags);
-  const installedNames = new Set(installedModels.map((item) => item.name));
-  const results = [];
-
-  for (const target of targets) {
-    results.push(await probeModel({
-      compatBaseUrl,
-      target,
-      installedNames,
-      timeoutMs,
-      numPredict,
-    }));
-  }
-
-  const receipt = {
-    schema_version: SCHEMA_VERSION,
-    created_at: nowIso(),
-    base_url_host: new URL(baseUrl).host,
-    server_started_by_probe: startServer,
-    localappdata: startServer ? path.relative(process.cwd(), localAppData).replace(/\\/g, "/") : "",
-    models_dir: modelsDir,
-    installed_count: installedModels.length,
-    installed_models: installedModels,
-    probe_count: results.length,
-    summary: summarizeResults(results),
-    results,
-    authority: "availability_probe_is_evidence_not_authority",
-  };
-  if (writeReceipt) receiptPath = writeJson(outPath, receipt);
-  console.log(JSON.stringify({ ...receipt, receipt_path: receiptPath }, null, 2));
-} finally {
-  await stopOllamaServer(serverProcess);
 }
+
+await main();

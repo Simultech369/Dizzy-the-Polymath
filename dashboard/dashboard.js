@@ -11,6 +11,17 @@ function escapeHtml(text) {
 async function loadData() {
   try {
     const data = await fetch("/api/dashboard-data").then((response) => response.json());
+    const runtimeBadge = document.getElementById("runtime-status-badge");
+    if (runtimeBadge) {
+      runtimeBadge.className = "badge badge-emerald";
+      runtimeBadge.innerHTML = '<span class="status-dot"></span>Runtime Online';
+    }
+    const chatBackendBadge = document.getElementById("chat-backend-badge");
+    if (chatBackendBadge) {
+      const backend = data.runtime?.chat_backend || data.runtime?.chat_backend_status || "Local route available";
+      chatBackendBadge.className = "badge badge-primary";
+      chatBackendBadge.textContent = backend;
+    }
     document.getElementById("active-pack").innerText = data.prompt_sources.length ? "Custom/Core" : "None";
     document.getElementById("prompt-sources-list").innerHTML = data.prompt_sources.map((source) => `
       <li class="prompt-item">
@@ -22,36 +33,57 @@ async function loadData() {
     const memoryList = document.getElementById("memory-docs-list");
     if (!data.docs?.length) {
       memoryList.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No indexed memory items found.</div>';
-      return;
+    } else {
+      memoryList.innerHTML = data.docs.map((doc) => {
+        const confidencePct = Math.round(doc.confidence * 100);
+        const decayPct = Math.round(doc.decay * 100);
+        return `
+          <div class="doc-item">
+            <div class="doc-header">
+              <span class="doc-path">${escapeHtml(doc.id)}</span>
+              <span class="badge badge-primary">${escapeHtml(doc.kind)}</span>
+            </div>
+            <div class="doc-metrics">
+              <div class="doc-metric">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
+                <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--cyan);"></div></div>
+                <span class="metric-value">${confidencePct}%</span>
+              </div>
+              <div class="doc-metric">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Decay Factor:</span>
+                <div class="bar-container"><div class="bar-fill" style="width: ${decayPct}%; background-color: ${doc.decay < 0.5 ? "var(--rose)" : "var(--emerald)"};"></div></div>
+                <span class="metric-value">${decayPct}% (${Math.round(doc.ageInDays)}d old)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
-
-    memoryList.innerHTML = data.docs.map((doc) => {
-      const confidencePct = Math.round(doc.confidence * 100);
-      const decayPct = Math.round(doc.decay * 100);
-      return `
-        <div class="doc-item">
-          <div class="doc-header">
-            <span class="doc-path">${escapeHtml(doc.id)}</span>
-            <span class="badge badge-primary">${escapeHtml(doc.kind)}</span>
-          </div>
-          <div class="doc-metrics">
-            <div class="doc-metric">
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Confidence:</span>
-              <div class="bar-container"><div class="bar-fill" style="width: ${confidencePct}%; background-color: var(--primary);"></div></div>
-              <span class="metric-value">${confidencePct}%</span>
-            </div>
-            <div class="doc-metric">
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: 0.5rem;">Decay Factor:</span>
-              <div class="bar-container"><div class="bar-fill" style="width: ${decayPct}%; background-color: ${doc.decay < 0.5 ? "var(--rose)" : "var(--emerald)"};"></div></div>
-              <span class="metric-value">${decayPct}% (${Math.round(doc.ageInDays)}d old)</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
     await loadReceiptsTelemetry();
   } catch (error) {
     console.error(error);
+    const runtimeBadge = document.getElementById("runtime-status-badge");
+    if (runtimeBadge) {
+      runtimeBadge.className = "badge badge-rose";
+      runtimeBadge.innerHTML = '<span class="status-dot"></span>Local API unavailable';
+    }
+    const chatBackendBadge = document.getElementById("chat-backend-badge");
+    if (chatBackendBadge) {
+      chatBackendBadge.className = "badge badge-rose";
+      chatBackendBadge.textContent = "Route unavailable";
+    }
+    document.getElementById("active-pack").innerText = "Unavailable";
+    document.getElementById("prompt-sources-list").innerHTML = `
+      <li class="prompt-item">
+        <span class="prompt-path">Local API unavailable</span>
+        <span class="badge badge-rose">offline</span>
+      </li>
+    `;
+    document.getElementById("memory-docs-list").innerHTML = `
+      <div style="color: var(--text-muted); text-align: center; padding: 2rem;">
+        Local dashboard data is unavailable.
+      </div>
+    `;
   }
 }
 
@@ -81,7 +113,7 @@ async function runSearch() {
   const body = document.getElementById("search-results-body");
   body.innerHTML = '<tr><td colspan="5" style="text-align: center;">Retrieving...</td></tr>';
   try {
-    const data = await fetch(`/api/dashboard-query?q=${encodeURIComponent(query)}`).then((response) => response.json());
+    const data = await fetchJson(`/api/dashboard-query?q=${encodeURIComponent(query)}`);
     if (!data.snippets?.length) {
       body.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No matching snippets returned from the sieve.</td></tr>';
       return;
@@ -439,7 +471,7 @@ function renderRecords(report) {
 
 async function loadContinuityRecords() {
   const body = document.getElementById("console-records-body");
-  body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>';
+  body.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Retrieving records...</td></tr>';
   try {
     const report = await fetchJson("/api/operator-continuity");
     renderRecords(report);
@@ -567,8 +599,8 @@ async function loadGovernanceData() {
     if (hw.context_compression_ratio < 0.50) {
       warningBanner.innerHTML = `
         <div class="warning-banner">
-          <span style="font-weight: 700;">⚠ WARNING:</span>
-          Context compression active — potential minor coherence loss on deep history.
+          <span style="font-weight: 700;">WARNING:</span>
+          Context compression active - potential minor coherence loss on deep history.
         </div>
       `;
     } else {
@@ -636,6 +668,17 @@ async function loadGovernanceData() {
 
   } catch (error) {
     console.error("Failed to load governance details:", error);
+    document.getElementById("memory-val").textContent = "Unavailable";
+    document.getElementById("active-model-route").textContent = "Offline";
+    document.getElementById("active-model-route").className = "badge badge-rose";
+    document.getElementById("active-routing-basis").textContent = "Local telemetry unavailable";
+    document.getElementById("compression-val").textContent = "Unavailable";
+    document.getElementById("routing-warning-banner").innerHTML = `
+      <div class="warning-banner">
+        <span style="font-weight: 700;">LOCAL DATA UNAVAILABLE:</span>
+        Operator telemetry could not be loaded.
+      </div>
+    `;
   }
 }
 
@@ -649,12 +692,12 @@ function updateSvgNode(circleId, textId, status) {
   if (status === "SIGNED") {
     circle.setAttribute("fill", "#064e3b");
     circle.setAttribute("stroke", "#10b981");
-    circle.setAttribute("filter", "url(#neon-glow)");
+    circle.removeAttribute("filter");
     text.setAttribute("fill", "#34d399");
   } else if (status === "VETOED") {
     circle.setAttribute("fill", "#4c0519");
     circle.setAttribute("stroke", "#f43f5e");
-    circle.setAttribute("filter", "url(#neon-glow)");
+    circle.removeAttribute("filter");
     text.setAttribute("fill", "#fda4af");
   } else {
     circle.setAttribute("fill", "#161e31");
@@ -824,7 +867,12 @@ if (btnResolveContainment) {
 }
 
 // Interactive Chat Surface Controller
+let chatSurfaceInitialized = false;
+
 function initChatSurface() {
+  if (chatSurfaceInitialized) return;
+  chatSurfaceInitialized = true;
+
   const chatMessagesList = document.getElementById("chat-messages-list");
   const chatInputText = document.getElementById("chat-input-text");
   const chatSendBtn = document.getElementById("chat-send-btn");
@@ -851,7 +899,7 @@ function initChatSurface() {
     const isUser = role === "user";
     const bubbleClass = isUser ? "user-bubble" : "assistant-bubble";
     const avatar = isUser ? "US" : "DZ";
-    const speaker = isUser ? "Simul (Operator)" : "Dizzy";
+    const speaker = isUser ? "Operator" : "Dizzy";
     
     let formattedText = escapeHtml(text)
       .replace(/```([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.5); padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-family: monospace; border: 1px solid rgba(255,255,255,0.1);">$1</pre>')
@@ -863,7 +911,7 @@ function initChatSurface() {
     if (receipt) {
       receiptHtml = `
         <details style="margin-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; font-size: 0.78rem;">
-          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">🛡️ Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
+          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
           <div style="margin-top: 0.4rem; color: var(--text-dim); line-height: 1.4;">
             <div>Mode: <code>${escapeHtml(receipt.retention_scope || "ephemeral")}</code></div>
             <div>Model Route: <code>${escapeHtml(receipt.chosen_model || "local")}</code></div>
@@ -922,7 +970,7 @@ function initChatSurface() {
           <span class="bubble-timestamp">Thinking...</span>
         </div>
         <div class="chat-bubble-body">
-          <span class="pulse-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
+          <span class="status-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
         </div>
       </div>
     `);
@@ -988,7 +1036,7 @@ function initChatSurface() {
     chatClearBtn.addEventListener("click", () => {
       if (confirm("Clear live chat history?")) {
         localStorage.removeItem("dizzy_chat_history");
-        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Greetings Simul. Chat history cleared. How can I assist you today?");
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Local chat history cleared. Route health remains dependent on the local API response.");
       }
     });
   }
@@ -1100,12 +1148,238 @@ async function loadReceiptsTelemetry() {
         `).join("");
       }
     }
+
+    renderParetoHud(data.pareto_frontier || []);
+    renderVerificationSummaries(data);
+    renderCircuitBreakers(data.circuit_breakers || []);
   } catch (err) {
     console.error("Receipts telemetry error:", err);
+    const councilElem = document.getElementById("latest-council-verdict-badge");
+    const cycleElem = document.getElementById("latest-review-cycle-verdict");
+    if (councilElem) councilElem.innerText = "UNREACHABLE";
+    if (cycleElem) cycleElem.innerText = "UNREACHABLE";
+    renderParetoHud([]);
+    renderVerificationSummaries({});
+    renderCircuitBreakers([]);
   }
+}
+
+function renderParetoHud(paretoModels = []) {
+  const svgGroup = document.getElementById("pareto-nodes-group");
+  const frontierPath = document.getElementById("pareto-frontier-line");
+  const tooltip = document.getElementById("pareto-node-tooltip");
+  const countBadge = document.getElementById("pareto-frontier-count");
+  if (!svgGroup || !frontierPath) return;
+
+  if (countBadge) {
+    countBadge.textContent = paretoModels.length ? `${paretoModels.length} Models Mapped` : "No telemetry";
+    countBadge.className = `badge ${paretoModels.length ? "badge-primary" : "badge-amber"}`;
+  }
+  svgGroup.innerHTML = "";
+
+  if (!paretoModels.length) return;
+
+  const minX = 60, maxX = 560;
+  const minY = 200, maxY = 30;
+
+  const points = paretoModels.map((m) => {
+    const x = minX + (m.spend * (maxX - minX));
+    const y = minY - (((m.accuracy - 0.8) / 0.2) * (minY - maxY));
+    const radius = Math.max(5, Math.min(12, Math.round(m.latency_ms / 250)));
+    const color = m.tier === 0 ? "var(--purple)" : m.tier === 1 ? "var(--cyan)" : m.tier === 3 ? "var(--rose)" : "var(--emerald)";
+    return { ...m, x, y, radius, color };
+  });
+
+  points.forEach((pt) => {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", String(pt.x));
+    circle.setAttribute("cy", String(pt.y));
+    circle.setAttribute("r", String(pt.radius));
+    circle.setAttribute("fill", pt.color);
+    circle.setAttribute("fill-opacity", "0.75");
+    circle.setAttribute("stroke", pt.color);
+    circle.setAttribute("stroke-width", "2");
+
+    circle.addEventListener("mouseenter", () => {
+      if (tooltip) {
+        tooltip.innerHTML = `
+          <strong style="color: ${pt.color};">${escapeHtml(pt.name)}</strong> (Tier ${pt.tier})<br>
+          Accuracy: <strong>${Math.round(pt.accuracy * 100)}%</strong> &bull; Latency: <strong>${pt.latency_ms}ms</strong><br>
+          Cost Band: <strong>${escapeHtml(pt.spend === 0 ? "Free Local" : "$" + pt.spend + "/1M")}</strong> &bull; Zone: <code>${escapeHtml(pt.zone)}</code>
+        `;
+        tooltip.style.opacity = "1";
+      }
+    });
+
+    circle.addEventListener("mouseleave", () => {
+      if (tooltip) tooltip.style.opacity = "0";
+    });
+
+    svgGroup.appendChild(circle);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", String(pt.x + pt.radius + 4));
+    label.setAttribute("y", String(pt.y + 4));
+    label.setAttribute("fill", "#9ca3af");
+    label.setAttribute("font-size", "9");
+    label.setAttribute("font-family", "JetBrains Mono");
+    label.textContent = pt.id;
+    svgGroup.appendChild(label);
+  });
+
+  const sorted = [...points].sort((a, b) => a.spend - b.spend);
+  let d = "";
+  let highestAcc = -1;
+  sorted.forEach((pt) => {
+    if (pt.accuracy >= highestAcc) {
+      d += (d === "" ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+      highestAcc = pt.accuracy;
+    }
+  });
+  frontierPath.setAttribute("d", d);
+}
+
+function renderVerificationSummaries(data) {
+  const advVer = data.latest_adversarial_verification;
+  const negCap = data.latest_negative_capability;
+
+  const advBadge = document.getElementById("adversarial-summary-verdict");
+  const negBadge = document.getElementById("negative-capability-score");
+  const advStatus = document.getElementById("adversarial-status-badge");
+  const negStatus = document.getElementById("negative-capability-badge");
+  const advList = document.getElementById("adversarial-gates-list");
+  const negList = document.getElementById("negative-capability-list");
+
+  if (!advVer) {
+    if (advBadge) {
+      advBadge.textContent = "No current receipt";
+      advBadge.style.color = "var(--text-muted)";
+    }
+    if (advStatus) {
+      advStatus.textContent = "No current receipt";
+      advStatus.className = "badge badge-amber";
+    }
+    if (advList) {
+      advList.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem 0;">No adversarial receipt available.</div>';
+    }
+  }
+
+  if (!negCap) {
+    if (negBadge) {
+      negBadge.textContent = "No current receipt";
+      negBadge.style.color = "var(--text-muted)";
+    }
+    if (negStatus) {
+      negStatus.textContent = "No current receipt";
+      negStatus.className = "badge badge-amber";
+    }
+    if (negList) {
+      negList.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem 0;">No restraint receipt available.</div>';
+    }
+  }
+
+  if (advBadge && advVer) {
+    advBadge.textContent = `${advVer.deterministic_blocks || 0}/${advVer.scenarios_tested || 0} BLOCKED`;
+    advBadge.style.color = advVer.bypasses_allowed === 0 ? "var(--emerald)" : "var(--rose)";
+  }
+
+  if (advStatus && advVer) {
+    const blocked = Number.isFinite(Number(advVer.deterministic_blocks)) ? Number(advVer.deterministic_blocks) : null;
+    const tested = Number.isFinite(Number(advVer.scenarios_tested)) ? Number(advVer.scenarios_tested) : null;
+    const blockedLabel = blocked !== null && tested !== null && tested > 0 ? `${blocked}/${tested} Blocked` : "Blocked";
+    advStatus.textContent = advVer.verdict === "ADVERSARIAL_VERIFICATION_PASSED" ? blockedLabel : "Bypass Detected";
+    advStatus.className = `badge ${advVer.bypasses_allowed === 0 ? "badge-emerald" : "badge-rose"}`;
+  }
+
+  if (negBadge && negCap) {
+    negBadge.textContent = `${Math.round((negCap.average_restraint_score || 0) * 100)}% RESTRAINT`;
+  }
+
+  if (negStatus && negCap) {
+    negStatus.textContent = `Score: ${negCap.average_restraint_score || 1.0}`;
+  }
+
+  if (advList && advVer) {
+    const list = advVer.who_caught_what || [];
+    advList.innerHTML = list.map((item) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+        <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${escapeHtml(item.scenario_id)}</span>
+        <span class="badge ${item.deterministic_intercepted ? "badge-emerald" : "badge-rose"}">${escapeHtml(item.intercepting_gate || "PASSED")}</span>
+      </div>
+    `).join("");
+  }
+
+  if (negList && negCap) {
+    const evals = negCap.evaluations || [];
+    negList.innerHTML = evals.map((item) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+        <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${escapeHtml(item.test_id)}</span>
+        <span class="badge badge-primary">${escapeHtml(item.refusal_type)}</span>
+      </div>
+    `).join("");
+  }
+}
+
+function renderCircuitBreakers(breakers = []) {
+  const grid = document.getElementById("circuit-breakers-grid");
+  const aggBadge = document.getElementById("circuit-breaker-aggregate-badge");
+  if (!grid) return;
+
+  if (!breakers.length) {
+    if (aggBadge) {
+      aggBadge.textContent = "No telemetry";
+      aggBadge.className = "badge badge-amber";
+    }
+    grid.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No circuit breaker data available.</div>';
+    return;
+  }
+
+  const allClosed = breakers.every((b) => b.state === "CLOSED");
+  if (aggBadge) {
+    aggBadge.textContent = allClosed ? "All Reported Routes Closed" : "Circuit Breaker Active";
+    aggBadge.className = `badge ${allClosed ? "badge-emerald" : "badge-amber"}`;
+  }
+
+  grid.innerHTML = breakers.map((route) => {
+    const isClosed = route.state === "CLOSED";
+    const isHalfOpen = route.state === "HALF_OPEN";
+    const badgeClass = isClosed ? "badge-emerald" : isHalfOpen ? "badge-amber" : "badge-rose";
+    const failPct = Math.min(100, Math.round(((route.consecutive_failures || 0) / 3) * 100));
+    const failBarColor = isClosed ? "var(--emerald)" : isHalfOpen ? "var(--amber)" : "var(--rose)";
+
+    return `
+      <div class="summary-card" style="border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; background: rgba(11, 16, 28, 0.6);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">${escapeHtml(route.route_id)}</span>
+          <span class="badge ${badgeClass}"><span class="status-dot"></span>${escapeHtml(route.state)}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem; color: var(--text-muted);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Failure Threshold:</span>
+            <div class="progress-wrap">
+              <div class="bar-container" style="width: 70px; height: 8px;">
+                <div class="bar-fill" style="width: ${failPct}%; background: ${failBarColor};"></div>
+              </div>
+              <span class="metric-value" style="font-size: 0.75rem;">${route.consecutive_failures || 0}/3</span>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Tripped Total:</span>
+            <span style="font-family: 'JetBrains Mono', monospace; color: var(--text-main);">${route.tripped_count || 0}</span>
+          </div>
+          ${route.last_failure_reason ? `
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--rose);">
+              <span>Reason: <code>${escapeHtml(route.last_failure_reason)}</code></span>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   initChatSurface();
+  loadReceiptsTelemetry();
 });
 initChatSurface();

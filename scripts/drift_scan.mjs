@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import { stripFrontmatter } from "../lib/markdown_frontmatter.mjs";
 
 const SCANNER_VERSION = process.env.DIZZY_SCANNER_VERSION || "1.0.0";
@@ -10,7 +10,8 @@ function getGitRevision() {
     return process.env.DIZZY_GIT_REVISION;
   }
   try {
-    return execSync("git rev-parse HEAD", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    const res = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true });
+    return res.status === 0 ? res.stdout.trim() : null;
   } catch {
     return null;
   }

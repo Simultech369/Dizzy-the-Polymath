@@ -1,10 +1,10 @@
 ---
 id: W-0062
-status: active
+status: integrated
 tier: 2
 owner_surface: governance
-last_reviewed: 2026-07-25
-next_action: review_spec
+last_reviewed: 2026-08-17
+next_action: Integrated in lib/anti_slop_scanner.mjs and verified by scripts/anti_slop_prose_fixture_check.mjs.
 owner: dizzy
 ---
 

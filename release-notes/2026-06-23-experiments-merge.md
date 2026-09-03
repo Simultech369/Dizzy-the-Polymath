@@ -45,7 +45,7 @@
 - Source-only hygiene was cleaned before merge. The provenance artifacts were
   not normalized because preserving raw review and patch evidence is more useful
   than beautifying those files.
-- `C:\Users\Josh\Documents\misc\dacr-bench` remains a clean local checkout with
+- `<operator-local-dacr-checkout>` remains a clean local checkout with
   one unpublished portability commit, `d3814d3`. The reproducible copy of that
   work is archived in:
   `dependency-evidence/patches/dacr-bench-ollama-portability-d3814d3.patch`.

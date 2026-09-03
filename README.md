@@ -6,30 +6,26 @@
 
 **Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
 
-<p>
-  <img alt="Node.js 20.18.1+" src="https://img.shields.io/badge/Node.js-20.18.1%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
-  <img alt="Checks" src="https://img.shields.io/github/actions/workflow/status/Simultech369/Dizzy-the-Polymath/checks.yml?branch=main&style=for-the-badge&label=checks">
-  <img alt="License" src="https://img.shields.io/github/license/Simultech369/Dizzy-the-Polymath?style=for-the-badge">
-  <img alt="Local-first runtime" src="https://img.shields.io/badge/runtime-local--first-111827?style=for-the-badge">
-  <img alt="Trust zones locally tested" src="https://img.shields.io/badge/trust%20zones-locally%20tested-2563eb?style=for-the-badge">
-  <img alt="Bounded memory" src="https://img.shields.io/badge/memory-bounded-7c3aed?style=for-the-badge">
-  <img alt="Working runtime" src="https://img.shields.io/badge/status-working%20runtime-16a34a?style=for-the-badge">
-</p>
-
-> **Quickstart Guide**: See [QUICKSTART.md](QUICKSTART.md) for the **"Try Dizzy in 5 Minutes"** guided walk-through (`/health` + `/prompt`), trust-zone demo, and visual identity map.
+*Dizzy does not train or fine-tune models; it is the control plane around them: context, tools, memory, routing, receipts, and verification.*
 
 </div>
+
+**Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
+
+`/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work (see **Hosted Production And Public A2A Horizon** in [`NEXT.md`](NEXT.md)).
+
+Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the dashboard, inspect the receipt, and understand what is not claimed.
 
 ### Repository Structure and Authority
 
 | Layer | Path / Files | Authority Status |
 | --- | --- | --- |
 | **Runtime** | `agent_server.mjs`, `worker.mjs`, `lib/` | Active, tested execution layer |
-| **Experimental** | `lib/sqlite_operational_store.mjs` | Retained as experimental sidecar, Node 22+ tested |
+| **Experimental** | `lib/sqlite_operational_store.mjs`, `lib/structural_query_cache.mjs` | Retained as local sidecars, reversible and non-authoritative |
 | **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
 | **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
 
-Dizzy is a local-first continuity-and-judgment runtime. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
+Dizzy is a local-first continuity-and-judgment runtime for agentic work that needs bounded memory, explicit trust zones, and verifiable handoffs. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
 
 The repo is transparent without turning every working note into doctrine: the runtime is small and bounded; the surrounding documents show how its judgment loop, memory rules, and public/private trust boundaries are being refined.
 
@@ -38,63 +34,120 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Surface | Current evidence / check |
 | --- | --- |
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
-| Prompt governance | Prompt sources are loaded through a scoped bundle and budget checks |
-| Bounded memory | Retrieval is scoped by trust zone and allowed surfaces |
-| Paid/public mode | Defaults to ephemeral continuity unless explicitly enabled |
-| Safety checks | `npm test`, `npm run smoke`, `npm run check:state` |
-
-## Runtime Shape
-
-```mermaid
-flowchart LR
-  Operator["Operator"] --> Server["Local Dizzy Runtime"]
-  Server --> Health["/health"]
-  Server --> Prompt["/prompt"]
-  Server --> Governance["/governance"]
-  Server --> Memory["/memory/graph"]
-  Server --> Tools["Explicit Tool Layer"]
-  Prompt --> Packs["Prompt Packs"]
-  Memory --> Zones["Trust Zones"]
-  Zones --> Private["private_self"]
-  Zones --> Trusted["trusted_collaborator"]
-  Zones --> Outside["outside_contact"]
-  Zones --> Paid["paid_public ephemeral"]
-```
+| SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
+| Guided Trust Cockpit Dashboard | Served locally at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`; W-0105 source/API guard verifies neutral startup states, route wiring, and auth/session behavior. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. |
+| 48-Model Catalog & Evidence Ladder | 5 tiers, 4-gate qualification engine, and route compliance in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
+| Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
+| Cognitive Memory Engine | 5-stage memory lifecycle (`Capture`, `Consolidate`, `Retrieve`, `Reconcile`, `Decay`) that compiles durable preferences and project lessons into transparent wiki state (`lib/cognitive_memory_engine.mjs`, `npm run test:cognitive-memory`) |
+| LLM-Wiki Storage Adapter | Path-confined Markdown wiki I/O adapter with frontmatter injection protection; kept separate from cognitive policy/math by design (`lib/memory_wiki_adapter.mjs`, `npm run test:memory-wiki`) |
+| Bounded memory & Quarantined Bridging | Trust-zone scoped retrieval with opt-in cross-session concept bridging (`runtime/quarantine/`) |
+| Bounded Scenario Forking & Time-Travel | Ephemeral trajectory simulation and Euclidean divergence analysis (`lib/scenario_simulator.mjs`) |
+| Robust Friction Telemetry | Median Absolute Deviation (MAD) $3\sigma$ anomaly detector and active policy containment |
+| Deterministic Lifecycle Hooks | SessionStart/Stop ingress receipts and PreToolUse/PostToolUse tool-runner receipts (`lib/lifecycle_hooks.mjs`) |
+| Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
+| StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
+| A2A-Style Cryptographic Mailbox | Local sealed handoff/message queue for agent coordination; external HTTP/WebSocket A2A interoperability is not claimed yet (`lib/a2a_mailbox_bridge.mjs`) |
+| Signed A2A HTTP Ingress Boundary | Local `/api/a2a/incoming` route guarded by `DIZZY_A2A_SECRET`, HMAC SHA-256 signatures, timestamp freshness, nonce replay rejection, schema validation, and prompt-marker sanitization. This is boundary proof, not ecosystem interoperability proof (`lib/a2a_boundary_guard.mjs`). |
+| Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 113 syntax targets and 56 test suites after the A2A boundary, dashboard public-surface, and public-view readiness guards are registered (`npm run check:council`) |
 
 ## Quick Start
 
-Install dependencies:
+### 1. Install Dependencies
+
+Node.js 20.18.1+ is required.
 
 ```powershell
 npm install
 ```
 
-The main runtime supports Node.js 20.18.1+. The full safety suite also requires Python 3 for the OpenRouter review-tool checks. The experimental SQLite operational-store acceptance checks run only on Node.js 22.5+ because they use the optional built-in `node:sqlite` module.
+### 2. Launch the Runtime
 
-Run the server:
+Start the local API:
 
 ```powershell
-node .\agent_server.mjs
+npm start
 ```
 
-To expose the local memory graph for an operator session, set `DIZZY_MEMORY_GRAPH_ENABLED=1` before starting the server. It is disabled by default and remote access still requires runtime authentication.
+This launches the agent server locally on `http://127.0.0.1:3000`.
 
-In another terminal, inspect the local runtime:
+To serve the Guided Trust Cockpit dashboard, start the server with the dashboard flag:
+
+```powershell
+$env:DIZZY_DASHBOARD_ENABLED="1"
+npm start
+```
+
+Then open `http://localhost:3000/dashboard`.
+
+### 3. Inspect Local Endpoints
+
+In another terminal window:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt
-# Available only when DIZZY_MEMORY_GRAPH_ENABLED=1:
-Invoke-RestMethod http://127.0.0.1:3000/memory/graph
 ```
 
-Run verification:
+### 4. Run the Full Verification Suite
+
+Verify total system integrity across the full local audit surface:
 
 ```powershell
+# Run the complete 3-layer OSS Model Council Audit Engine
+npm run check:council
+
+# Run individual verification suites
 npm test
-npm run smoke
-npm run check:state
+npm run test:frontier-simulation
+npm run test:anti-slop
+npm run test:provider-matrix
+npm run test:dashboard-safety
+npm run test:dashboard-public-surface
+npm run test:structural-query-cache
+npm run test:statem-runbook
+npm run test:a2a-mailbox
+npm run test:cognitive-memory
+npm run test:memory-wiki
+npm run test:job-board-scanner
+npm run check:pattern-provenance
 ```
+
+## OSS Model Council
+
+Dizzy is not a generic chatbot wrapper. It is a local-first control plane with deterministic checks, bounded model routing, and review receipts. The OSS Model Council is the staging gate used to test routing, memory, receipts, anti-slop checks, and adversarial failure cases before promotion.
+
+The council separates model availability into explicit trust zones, deterministic qualification gates, and review roles:
+
+```
+                Local repo snapshot and changed files
+                                |
+          +---------------------+---------------------+
+          |                                           |
+          v                                           v
+  Adversarial reviewers                       Qualified reviewer seats
+  - edge-case tests                           - syntax and AST checks
+  - safety failures                           - grounded bug review
+  - injection attempts                        - policy coherence
+          |                                           |
+          +---------------------+---------------------+
+                                |
+                                v
+                  Deterministic local verification
+                  - tests
+                  - receipts
+                  - governance checks
+                  - promotion gate
+```
+
+### Qualification & Integration
+
+Before a model is treated as review-usable, it must prove its reliability:
+- **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
+
+As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
+- **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
+- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 
@@ -160,7 +213,7 @@ Retention is intentional and local-first, not ambient.
 ## Safety Posture
 
 - Loopback bind by default
-- Optional bearer auth for non-loopback exposure
+- Operator-control routes require `DIZZY_AUTH_TOKEN` by default, including direct local dispatch, agent execution, and continuity export/delete/prune
 - Remote mutations disabled by default
 - Self-modification disabled by default
 - Explicit external-tool invocation only
@@ -178,18 +231,6 @@ The repo carries a political-economic direction centered on anti-extraction, cap
 - `planning candidate`: proposal under review in `upgrades/`
 - `historical provenance`: retained context for audit, not an active recommendation
 - `deprecated`: kept only to explain what should not guide future work
-
-## Visual Upgrades To Add When Public
-
-These are free and easy, but should be added only when the public account/repo details are ready:
-
-- GitHub Actions status badge for the verification workflow
-- Profile README surface in [`PROFILE_README.md`](PROFILE_README.md) for `Simultech369/Simultech369`
-- Public demo GIF showing `/health`, `/prompt`, and an explicitly enabled local `/memory/graph`
-- GitHub Readme Stats card for the operator/profile README
-- GitHub Profile Trophy card for the profile README
-- Contribution graph animation for the profile README
-- Pinned project grid linking Dizzy, Pharmacy Fiduciary Commons, and any bounty/client work that is safe to show
 
 ## Production Readiness Checklist
 

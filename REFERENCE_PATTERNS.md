@@ -55,6 +55,18 @@ Do not promote:
 
 Public/product surfaces may generalize lessons learned from research, but must not launder provenance. If a source materially shapes a first-party mechanism, keep a private or repo-local provenance trail in this file, `DESIGN.md`, a decision record, or a review note. If distribution, license, or attribution duties apply, honor them instead of hiding the source.
 
+License hygiene:
+
+- Treat idea-level learning, copied prose, copied code, distinctive structure, generated derivative tests, and vendored dependencies as different risk classes.
+- Before public distribution of any borrowed source, verify the upstream license text, copyright notices, NOTICE file, patent/grant conditions, dependency licenses, and whether modified files must be marked.
+- For Apache-2.0 sources, explicitly check retained copyright/license notices, changed-file marking, and NOTICE carry-forward duties against the official license text: https://www.apache.org/licenses/LICENSE-2.0.
+- If the license path is unclear, park the pattern, rewrite from first principles, or remove the borrowed material until attribution and redistribution duties are resolved.
+- Track retrospective concerns in `reviews/external_pattern_license_audit.md`; do not rely on memory or chat summaries for licensing provenance.
+
+Current license/provenance TODO:
+
+- Complete W-0102 before promoting new external-reference material from Aeon, MiroShark, Agent-Reach, StateM, ART/RULER, or any prior pattern source into public/client-facing releases.
+
 ## Memory OS
 
 Useful patterns:

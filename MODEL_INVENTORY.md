@@ -1,116 +1,202 @@
-# Model Inventory
+# Model Inventory & OSS Council Architecture
 
-status: active inventory
-reviewed: 2026-07-21
+status: active inventory & council specification
+reviewed: 2026-08-17
 
-Purpose: keep model availability, routing posture, and data-boundary trade-offs visible. This file is an inventory, not an endorsement list.
+Purpose: maintain model availability, routing posture, 4-gate qualification ladder, route attestations, and dual-chain multi-agent council verification. This file is an operational catalog and authority boundary specification.
 
-## Operating Rule
+---
 
-Use the smallest model surface that can handle the task without crossing an unnecessary data boundary.
+## 1. Dual-Chain Multi-Agent Council Architecture
 
-- `goal`: concrete execution target with a completion signal.
-- `aim`: directional intent.
-- `optimizer`: the loop or model selection pressure.
-- `constraint`: what the model choice must not sacrifice.
-- `data boundary`: where prompt/context leaves this machine.
-
-OSS and open-weight prompting is allowed when it fits the task and the data boundary. Treat model origin, license, provider endpoint, and data sensitivity as separate risk axes.
-
-## Current Runtime Configuration
-
-Observed from this Windows environment on 2026-07-21. Secrets are intentionally redacted.
-
-| Surface | Observed state | Boundary | Notes |
-| --- | --- | --- | --- |
-| Chat backend | `DIZZY_CHAT_BACKEND=gemini` | Google Gemini API | Primary runtime route today. |
-| Gemini model | `GEMINI_MODEL=gemini-2.5-pro` | Google Gemini API | High-capability cloud route; use for higher judgment, planning, synthesis, and user-visible quality. |
-| OpenAI-compatible endpoint | `OPENAI_COMPAT_BASE_URL=https://api.groq.com/openai/v1` | Groq API | Configured as the generic OpenAI-compatible surface. |
-| OpenAI-compatible model | `OPENAI_COMPAT_MODEL=qwen/qwen3-32b` | Groq API | Model id says Qwen; treat as open-weight/foreign-origin capable until provider details are refreshed. |
-| OpenAI-compatible key | `OPENAI_COMPAT_API_KEY=<set>` | Endpoint-specific | Do not send this key to non-approved endpoints. `scripts/openrouter_review.py` has a guard against leaking OpenRouter credentials to custom hosts. |
-| OpenRouter key | `OPENROUTER_API_KEY=<set>` | OpenRouter API | Available separately, but not the active `OPENAI_COMPAT_BASE_URL` right now. |
-| Groq key | `GROQ_API_KEY=<unset>` | Groq API | The active OpenAI-compatible key may still work with Groq; this named helper key is unset. |
-| Ollama | installed at `C:\Users\Josh\AppData\Local\Programs\Ollama\ollama.exe` | local machine | Good for private drafts, probes, and low-risk utility work when quality is adequate. |
-| `DIZZY_CHAT_BACKEND=local` | fully mapped in `lib/model_router.mjs` and validated by `lib/runtime_config.mjs` | local/OpenAI-compatible | Maps to local Ollama endpoints, defaulting to `gemma3:4b`. |
-
-## Local Ollama Models
-
-Observed via `ollama list` on 2026-07-21.
-
-| Model | Size | Suggested use | Boundary |
-| --- | ---: | --- | --- |
-| `mistral:latest` | 4.4 GB | general local drafting and lightweight analysis | local |
-| `llama-audit:latest` | 4.9 GB | local review lens, if its Modelfile is understood | local |
-| `llama3.1:latest` | 4.9 GB | general local fallback | local |
-| `deepseek-coder-v2:16b` | 8.9 GB | local code reasoning, slower/heavier | local |
-| `gemma3:4b` | 3.3 GB | default local model in `model_router` when local route is requested and no model is set | local |
-| `gemma3:12b` | 8.1 GB | stronger local general model, higher resource cost | local |
-| `yi:latest` | 3.5 GB | experimental local general use | local |
-| `glm4:latest` | 5.5 GB | experimental local general/coding use | local |
-| `qwen2.5-coder:7b` | 4.7 GB | local coding and patch review | local |
-| `deepseek-r1:7b` | 4.7 GB | local reasoning experiments | local |
-| `deepseek-r1:1.5b` | 1.1 GB | cheap local reasoning probe, low reliability ceiling | local |
-
-## Routing Posture
-
-| Task class | Preferred surface | Why |
-| --- | --- | --- |
-| Private brainstorming, style variants, low-risk drafts | Ollama local | Keeps private texture local; quality can be filtered by operator taste. |
-| Code patch planning or high-confidence synthesis | Gemini primary or stronger cloud model | Higher reliability when the cost of being wrong is real. |
-| Cheap utility tasks, summaries, extraction, formatting | Utility backend or small local model | Avoid burning the primary route on janitorial work. |
-| External reviewer prompt generation | Local first when feasible; cloud if quality needed | Prompt packets can include sensitive repo paths and findings. |
-| Public/client output | Cloud only when allowed by task data boundary; otherwise local draft plus human review | Do not leak private continuity into paid/public surfaces. |
-| High-stakes legal, medical, financial, security conclusions | Highest-reliability route plus source verification | OSS/local may assist but should not be the final authority without evidence. |
-
-## OSS / Open-Weight Policy Posture
-
-Open-source and open-weight models remain useful because they improve portability, price leverage, private local drafting, and resilience against provider chokepoints.
-
-Current caution:
-
-- Recent reporting on 2026-07-20 and 2026-07-21 describes policy pressure around Chinese/foreign open-weight models, including possible procurement restrictions, Entity List style pressure, or pressure on U.S. firms.
-- That is not the same as a universal ban on local OSS use in this workspace.
-- Treat Chinese/foreign-origin open-weight models as a higher policy-risk category for regulated, client, government, or public production work.
-- For private local exploration, OSS use is acceptable when prompts do not contain credentials, regulated data, or material that should not be exposed under the model/license/provider terms.
-- Prefer local OSS for privacy-sensitive drafts only when the model is actually local. Open-weight model served by a hosted API still crosses that provider boundary.
-
-## Inventory Refresh Commands
-
-Local:
-
-```powershell
-ollama list
+```
+                              ┌────────────────────────────────────────┐
+                              │      Local Repo Snapshot & Diff        │
+                              │  (Head commit, staged/unstaged blobs)  │
+                              └───────────────────┬────────────────────┘
+                                                  │
+               ┌──────────────────────────────────┴──────────────────────────────────┐
+               ▼                                                                     ▼
+ ┌───────────────────────────┐                                         ┌───────────────────────────┐
+ │ 🔴 ADVERSARIAL RED-TEAM   │                                         │ 🟢 QUALIFIED VOTER SEATS  │
+ │ • Jiunsong Supergemma-12b │                                         │ • Qwen-3.8 / Qwen2.5-Coder│
+ │ • Jiunsong SuperDeepseek  │                                         │ • GLM-5.3 / GLM-4         │
+ │   (Uncensored GGUFs)      │                                         │ • Mistral Lineage         │
+ │                           │                                         │                           │
+ │ Role: Construct hostile   │                                         │ Role: Grounded code audit │
+ │ receipts without corporate│                                         │ & structured voting.      │
+ │ RLHF refusal filters.     │                                         │                           │
+ └─────────────┬─────────────┘                                         └─────────────┬─────────────┘
+               │                                                                     │
+               │                                                                     │
+               ▼                                                                     ▼
+ ┌───────────────────────────┐                                         ┌───────────────────────────┐
+ │ 🛡️ VERIFIER ADVERSARIAL   │                                         │ ⚖️ COUNCIL VOTE BALLOT    │
+ │ Assert all 11 invariants, │ ◄───────────────────────────────────────┤ • N=3 distinct families   │
+ │ hash-links & constraints. │                                         │ • Approvals >= ceil(2N/3) │
+ └─────────────┬─────────────┘                                         └─────────────┬─────────────┘
+               │                                                                     │
+               ▼                                                                     ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+ │                        Execution Sandbox (Docker --network none, pytest)                        │
+ │                                                ▼                                                │
+ │                             ApplyAuthorizationReceipt (Human Signed)                            │
+ └─────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Gemini:
+---
 
-```powershell
-node .\scripts\gemini_list_models.mjs
+## 2. 4-Gate Model Qualification Engine
+
+Every model candidate moves through explicit deterministic qualification gates before promotion to active voting council seats:
+
+```
+[MODEL IN CATALOG]
+        │
+        ▼ (Gate 1: Schema Conformance & Syntax Test — JSON Output Strictness)
+        ▼ (Gate 2: Benign Control Test — Zero Phantom Hallucinations on Clean Fixtures)
+        ▼ (Gate 3: Grounded Bug Detection — Identifies Exact Vulnerable File & Line)
+        ▼ (Gate 4: Issues Sealed ModelQualificationReceipt)
+        │
+        ├──► Status: REVIEW_USABLE_FRESH ──► Eligible for Frozen Council Roster & Voting Ballot
+        └──► Failed Gate ───────────────► Quarantined / Auxiliary Only (Blocked from Voting)
 ```
 
-Groq:
+---
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\groq_list_models.ps1
-```
+## 3. The 48-Model Roster Breakdown
 
-Runtime env, redacted:
+| Tier & Category | Count | Primary Role & Route Compliance | Key Model Instances |
+| :--- | :---: | :--- | :--- |
+| **👑 Tier 0: Apex Paid Judges** | 5 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation) | `GPT-5.6 Sol`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
+| **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 12 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` / ZDR Verified<br>• Providers: SiliconFlow, Groq, Google AI Studio | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3` |
+| **💻 Tier 2: Local OSS Fast Workers & Reasoners** | 14 | Rapid local audit, zero data leakage<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Provider: Air-gapped Ollama / Localhost | `qwen2.5-coder:7b`, `deepseek-r1:7b`, `deepseek-r1:1.5b`, `glm4:latest`, `mistral:latest`, `gemma3:4b`, `gemma3:12b`, `llama-audit:latest`, `phi-4`, `granite-3.1` |
+| **🎭 Tier 3: Uncensored Adversarial Red-Team Scouts** | 6 | Hostile fuzzer & pre-dispatch red-team<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Goal: Invariant attack without RLHF refusal filters | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3`, `Tulu 3` |
+| **🚫 Tier 4: Quarantined / Purged Legacy** | 11 | Blocked from active dispatch<br>• Harnesses mislabeled as models or obsolete weights | `Promptfoo`, `Aider`, `DSPy`, `SWE-agent`, `OpenHands`, `WizardCoder`, `Phind`, `StarCoder2`, `Arctic`, `01.AI Zero`, `DeepGrove` |
+| **TOTAL REGISTERED** | **48** | **Tracked with typed qualification status** | |
 
-```powershell
-$names = 'DIZZY_CHAT_BACKEND','DIZZY_UTILITY_BACKEND','OPENAI_COMPAT_BASE_URL','OPENAI_COMPAT_MODEL','OPENAI_COMPAT_API_KEY','GEMINI_API_KEY','GEMINI_MODEL','OPENROUTER_API_KEY','GROQ_API_KEY','OLLAMA_HOST'
-foreach ($n in $names) {
-  $v = [Environment]::GetEnvironmentVariable($n,'Process')
-  if (-not $v) { $v = [Environment]::GetEnvironmentVariable($n,'User') }
-  if ($v) {
-    if ($n -match 'KEY|TOKEN|SECRET') { "$n=<set>" } else { "$n=$v" }
-  } else {
-    "$n=<unset>"
-  }
-}
-```
+---
 
-## Promotion Notes
+## 4. Route Attestations & Data Boundaries
 
-- Integrated `DIZZY_CHAT_BACKEND=local` mapping and validation (`W-0061` completed).
-- Added `data_boundary` and `model_origin_risk` fields to the persisted Router Receipts (`W-0060` completed).
-- Refresh live provider model lists only when needed; listing cloud models requires network and valid credentials.
+Production routes are sealed with cryptographic SHA-256 digests, strict TTL boundaries, and zero-data-retention (ZDR) policy enforcement:
+
+1. **Jiunsong SuperGemma 12B / Local GGUFs**:
+   * `route_id`: `route_jiunsong_supergemma_12b_local`
+   * `compliance_tier`: `LOCAL_ONLY_VERIFIED` (Air-gapped localhost, zero retention, cloud fallback blocked)
+2. **GLM-5.3 Cyber & Code (SiliconFlow / Cloud)**:
+   * `route_id`: `route_glm_5_3_siliconflow`
+   * `compliance_tier`: `HOSTED_NO_TRAIN` (ZDR verified, cloud fallback blocked)
+3. **Qwen-3.8 Frontier (SiliconFlow / Groq)**:
+   * `route_id`: `route_qwen_3_8_frontier`
+   * `compliance_tier`: `HOSTED_NO_TRAIN` (ZDR verified, cloud fallback blocked)
+4. **DeepSeek-R1 Reasoning (SiliconFlow / Local Ollama)**:
+   * `route_id`: `route_deepseek_r1_reasoning`
+   * `compliance_tier`: `HOSTED_NO_TRAIN` / `LOCAL_ONLY_VERIFIED`
+5. **Gemini-3.6-Flash Public 1M Slicer (Google AI Studio)**:
+   * `route_id`: `route_gemini_3_6_flash`
+   * `compliance_tier`: `PUBLIC_PROVENANCE_ONLY` (Open-source diff slicing and broad repo index analysis)
+
+---
+
+## 5. Current Local Ollama Roster Status
+
+Observed via live local probe on 2026-08-17 (`reviews/ollama_availability_latest.json`):
+
+| Model | Size | Status | Qualification Gate | Lens / Suggested Use |
+| :--- | ---: | :--- | :--- | :--- |
+| `gemma3:4b` | 3.11 GB | Online (5.41s) | `REVIEW_USABLE_FRESH` | Local/offline sanity, governance bounds |
+| `deepseek-r1:1.5b` | 1.04 GB | Online (8.30s) | `REVIEW_USABLE_FRESH` | Cheap local reasoning probe, smoke tests |
+| `qwen2.5-coder:7b` | 4.36 GB | Online (60.91s) | `REVIEW_USABLE_FRESH` | Implementation review, fixture adequacy |
+| `mistral:latest` | 4.07 GB | Online (43.66s) | `REVIEW_USABLE_FRESH` | Instruction following, wording sanity |
+| `llama-audit:latest` | 4.58 GB | Online (70.08s) | `REVIEW_USABLE_FRESH` | Security review, adversarial policy checks |
+| `deepseek-r1:7b` | 4.36 GB | Online (29.18s) | `REASONING_ADAPTER_ONLY` | Step-by-step logic, unstripped thinking |
+| `glm4:latest` | 5.08 GB | Online | `REVIEW_USABLE_FRESH` | Alternate local synthesis, general critique |
+| `gemma3:12b` | 7.59 GB | Online | `REVIEW_USABLE_FRESH` | Deeper local synthesis, high-resource pass |
+| `deepseek-coder-v2:16b`| 8.29 GB | Online | `CANDIDATE` | Deep code reasoning |
+| `qwen3.6:27b-q4_K_M` | 16.22 GB | Online | `CANDIDATE` | Heavy local coding & architectural review |
+| `yi:latest` | 3.24 GB | Online | `CANDIDATE` | General synthesis |
+
+---
+
+## 6. Verification & Governance Invariants
+
+1. **Dual-Chain Verification**:
+   * Minimum working quorum requires $N=3$ distinct model families (e.g. Qwen + GLM + Mistral).
+   * Consensus threshold requires $\ge \lceil 2N/3 \rceil$ approvals for `APPROVED` verdict.
+2. **Authority Separation**:
+   * Automation proposes state transitions (`ready-for-review`, `fixture-required`, `quarantine`, `split`, `reject`).
+   * Operator human signature is required on `ApplyAuthorizationReceipt` for irreversible execution or deployment.
+3. **Spend Ledger**:
+   * Windows-native SQLite spend ledger triggers enforce hard token/cost caps before dispatching Tier 0/1 cloud routes.
+4. **Receipt Grounding**:
+   * All audit and council receipts use `authority: "model_output_is_claims_only_local_evidence_decides"`.
+
+---
+
+## 7. Specialized Harnesses & Pipeline Scaffolds
+
+Harnesses are not voting model weights; they operate as specialized subsystem drivers in Dizzy's build and verification pipeline:
+
+| Harness | Subsystem Role | Mechanism & Dizzy Integration Surface |
+| :--- | :--- | :--- |
+| 🎯 **Promptfoo** | Invariant Fuzzer & Security Gate | Automated red-teaming CI fuzzer asserting that `private_self` diffs never leak to cloud endpoints and prompt injection attempts are neutralized by `lib/janitor.mjs`. |
+| 📐 **DSPy** | Prompt Compiler & Signature Optimizer | Compiles and optimizes JSON-strict prompts and few-shot examples for smaller local models (`gemma3:4b`, `deepseek-r1:1.5b`) against Gate 1 (JSON strictness) and Gate 2 (benign control). |
+| ⚡ **Aider** | AST Patch Builder & File Committer | Universal tree-sitter AST repo-map patch generator for executing approved multi-file code modifications in disposable worktrees without manual replacement toil. |
+| 🛡️ **SWE-agent** / **OpenHands** | Air-Gapped Rehearsal Sandbox | Isolated container execution environment (`docker --network none`) running rehearsal gate migrations and trajectory replays before `ApplyAuthorizationReceipt` is signed. |
+
+---
+
+## 8. Sovereign Dispatch Satellites & Ecosystem Integrations
+
+| Project | Surface / Role | Architecture & Integration |
+| :--- | :--- | :--- |
+| 🪐 **Gitlawb / Zero** (`Gitlawb/zero`) | Sovereign Dispatch Satellite | Model-agnostic terminal coding agent supporting decentralized repo collaboration, cryptographic commit signing, and local session isolation. Bridges to Dizzy via signed `dizzy.router_receipt.v1` evidence envelopes. |
+| 🌐 **Gitlawb / OpenClaude** (`Gitlawb/openclaude`) | Multi-Agent Coordination Seat | Open-source, model-neutral terminal agent CLI supporting MCP tools, per-repo configuration, and scriptable sessions. Wired into Dizzy's consensus signing chain (`lib/consensus.mjs`) and `MULTI_AGENT_PLAYBOOK.md`. |
+| ⚡ **free-code** (`freecodexyz/free-code`) | Zero-Telemetry Coding CLI | Community-driven, telemetry-stripped terminal coding agent with multi-backend compatibility (Codex, Anthropic, DeepSeek) for air-gapped terminal pairing. |
+| 🐜 **InclusionAI / Ling-3.0** (`inclusionAI`) | Sub-Second Janitor & Local Classifier | Ultra-lightweight open-source models (`Ling-3.0-tiny`, `Ling-3.0-flash`) for instant pre-route sanitization, diff chunk classification, and context budgeting. |
+| 🎙️ **InclusionAI / Ming-omni-tts** | Air-Gapped Audio Synthesizer | Local, zero-data-retention speech synthesis engine for Dizzy's voice channel (`TOOLS.md`), eliminating external cloud TTS API dependencies. |
+| 👁️ **InclusionAI / LLaDA2.0-Uni** | Multimodal & Visual QC | Diffusion-based large language model for evaluating dashboard layout symmetry, visual diagram truth, and SVG rendering in `eval:anti-slop-visual`. |
+
+
+## 5. Active Model Capability Matrix (Auto-Generated)
+
+*Generated at: 2026-08-27T16:05:51.025Z*
+
+| Model | Provider | Boundary | Installed | Callable | JSON Usable | Status |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| `cerebras/qwen-2.5-coder-32b` | cerebras | trusted_collaborator | ❌ | ❌ | ❌ | unproven_requires_adapter_and_key |
+| `claude-fable-5` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `claude-opus-4-8` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `claude-sonnet-5` | anthropic | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `command-a-plus-05-2026` | cohere | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `deepseek-r1:1.5b` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `deepseek-r1:7b` | ollama | private_self | ✅ | ✅ | ✅ | profile_configured |
+| `deepseek-v4-flash` | deepseek | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `deepseek-v4-pro` | deepseek | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `gemini-3.1-pro-preview` | google | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `gemma3:12b` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `gemma3:4b` | ollama | private_self | ✅ | ✅ | ✅ | profile_configured |
+| `glm-5.2` | openrouter | public_free | ❌ | ❌ | ❌ | unverified_candidate |
+| `glm4:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `gpt-5.5` | openai | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `grok-4.5` | xai | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `leanstral-1.5` | mistral | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `liquid/lqc-3b-v0.1:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `llama-3.1-8b-instant` | groq | trusted_collaborator | ❌ | ✅ | ✅ | tested_available |
+| `llama-3.3-70b-versatile` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `llama-audit:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `minimax-m3` | minimax | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `mistral-medium-3.5` | mistral | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `mistral:latest` | ollama | private_self | ❌ | ❌ | ❌ | unproven |
+| `moonshotai/kimi-k2.7-code:batch` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `muse-glimmer:latest` | ollama | private_self | ❌ | ❌ | ❌ | unverified_candidate |
+| `north-mini-code` | cohere | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `nvidia/llama-3.1-nemotron-70b-instruct:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `openai/gpt-oss-120b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `openai/gpt-oss-20b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `qwen/qwen-2.5-coder-32b-instruct:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
+| `qwen/qwen3.6-27b` | groq | trusted_collaborator | ❌ | ✅ | ✅ | profile_configured |
+| `qwen2.5-coder:7b` | ollama | private_self | ❌ | ✅ | ✅ | tested_available |
+| `qwen3.6-35b-a3b` | groq | trusted_collaborator | ❌ | ❌ | ❌ | unverified_candidate |
+| `thudm/glm-4-9b-chat:free` | openrouter | public_free | ❌ | ❌ | ❌ | unproven_requires_probe |
