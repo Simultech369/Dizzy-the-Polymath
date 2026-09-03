@@ -1,5 +1,5 @@
 {
-    "name":  "clawd",
+    "name":  "dizzy",
     "version":  "1.0.0",
     "description":  "Local-first continuity-and-judgment runtime for Dizzy",
     "main":  "index.js",

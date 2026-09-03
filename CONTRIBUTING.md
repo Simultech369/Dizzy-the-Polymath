@@ -12,6 +12,13 @@ You must run the council audit and include the `oss_council_verdict_latest.json`
 
 If your code touches the prompt pack, the architecture, or the local execution boundaries, it *will* be subjected to the `Adversarial Red-Team` tests. If it fails, the PR will be closed.
 
+## Where to Start
+
+If you are new to the repository, look at the `NEXT.md` file for the **External Skill Intake Queue** or the **Hosted Production Horizon**. Good entry points include:
+1. **Writing new deterministic tests:** Look in the `scripts/` directory. We always need more adversarial tests for edge cases.
+2. **Integrating an MCP Server (Lane 1):** Check the intake queue in `NEXT.md` for tools like Playwright or GitHub MCP that we want to safely wrap in our governance layer.
+3. **Documentation Clarifications:** Any PR that reduces cognitive load in the root directory without deleting rules is highly welcome.
+
 ## How to Develop
 
 1. **Clone & Setup:**

@@ -25,7 +25,15 @@ Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the das
 | **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
 | **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
 
-Dizzy is a local-first continuity-and-judgment runtime for agentic work that needs bounded memory, explicit trust zones, and verifiable handoffs. It helps an operator preserve orientation, apply judgment under uncertainty, and carry forward only the context that improves present agency.
+### Why This Exists
+
+Most agent frameworks prioritize infinite autonomy over accountability. Dizzy prioritizes **governance, receipts, and verifiable memory boundaries**. It exists to prove that you can build a highly capable agentic loop without surrendering control, leaking private context across trust zones, or relying on unverified LLM actions.
+
+### Who It's For
+
+- **Operators & Researchers** who need a local-first, memory-bound assistant they can deeply audit.
+- **System Builders** looking for a reference implementation of a verifiable AI control plane (Council routing, A2A cryptography, trajectory ledgers).
+- **Not for:** Those looking for a one-click SaaS chatbot or an unbounded autonomous scraper.
 
 The repo is transparent without turning every working note into doctrine: the runtime is small and bounded; the surrounding documents show how its judgment loop, memory rules, and public/private trust boundaries are being refined.
 
