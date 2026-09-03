@@ -28,6 +28,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 - `AGENTS.md`
 - `BOOTSTRAP.md`
+- `CONTRIBUTING.md`
 - `MULTI_AGENT_PLAYBOOK.md`
 - `.editorconfig`
 - `.env`
@@ -48,8 +49,10 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 - `context-tree.json`
 - `EXPERIMENT_RECONCILIATION.md`
+- `BOUNTY_SCOUT_HANDOFF_2026-09-02.md`
 - `CODEX_55_HANDOFF.md`
 - `PR_W0068_DESCRIPTION.md`
+- `proof_dossier.md`
 
 Planning maps coordinate review and promotion work. They are non-authoritative until their decisions are promoted into `DESIGN.md`, `NEXT.md`, runtime code, or tests.
 
@@ -80,6 +83,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 - `DRIFT_AUDIT.md`
 - `DEPENDENCY_GOVERNANCE.md`
 - `PARALLEL_INFRASTRUCTURE_PATTERNS.md`
+- `THIRD_PARTY_NOTICES.md`
 
 ## Operations And Interfaces
 

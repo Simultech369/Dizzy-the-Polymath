@@ -5618,7 +5618,7 @@ async function testCodexSymlinkJunctionBackupRestore() {
   }
 
   if (linkCreated) {
-    await assert.rejects(
+    assert.throws(
       () => restoreRuntime({ sourceDir: snapshot, runtimeDir: liveRuntime, recoveryRoot: backups }),
       /symlink\/junction detected/,
     );

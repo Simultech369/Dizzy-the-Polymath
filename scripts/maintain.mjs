@@ -236,11 +236,29 @@ function rootFileRoleStatus() {
       .filter((entry) => !entry.includes("/") && !entry.includes("\\")),
   );
 
-  const rootFiles = fs
-    .readdirSync(ROOT, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .filter((name) => name !== "FILE_ROLES.md");
+  const gitRootFiles = new Set();
+  for (const args of [
+    ["ls-files"],
+    ["ls-files", "--others", "--exclude-standard"],
+  ]) {
+    const result = spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
+    if (result.status !== 0) continue;
+    for (const relPath of String(result.stdout || "").split(/\r?\n/).filter(Boolean)) {
+      if (relPath.includes("/") || relPath.includes("\\")) continue;
+      const abs = path.resolve(ROOT, relPath);
+      if (fs.existsSync(abs) && fs.statSync(abs).isFile() && relPath !== "FILE_ROLES.md") {
+        gitRootFiles.add(relPath);
+      }
+    }
+  }
+
+  const rootFiles = gitRootFiles.size
+    ? Array.from(gitRootFiles)
+    : fs
+      .readdirSync(ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => name !== "FILE_ROLES.md");
 
   const unclassified = rootFiles.filter((name) => !classified.has(name)).sort();
 
