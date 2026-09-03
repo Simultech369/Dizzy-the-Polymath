@@ -840,6 +840,7 @@ export async function createRuntime(opts = {}) {
         scriptAssetPath: opts.dashboardScriptAssetPath,
         loginScriptAssetPath: opts.dashboardLoginScriptAssetPath,
         verifiedHttps,
+        hasDashboardSession,
         createDashboardSession,
         clearDashboardSession,
         requestBoundaryAuditGuard,

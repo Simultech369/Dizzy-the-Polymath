@@ -126,20 +126,29 @@ try {
   const unauthDashboard = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`);
   await must(unauthDashboard.status === 401, `expected unauthorized dashboard, got ${unauthDashboard.status}`);
 
+  const loginResp = await fetch(`http://127.0.0.1:${port}/dashboard/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", ...AUTH_HEADERS },
+    body: `token=${SMOKE_AUTH_TOKEN}`,
+    redirect: "manual"
+  });
+  const cookieHeader = loginResp.headers.get("set-cookie") || "";
+  const sessionCookie = cookieHeader.split(";")[0];
+
   const dashHtml = await fetch(`http://127.0.0.1:${port}/dashboard`, {
-    headers: AUTH_HEADERS,
+    headers: { ...AUTH_HEADERS, "Cookie": sessionCookie },
   }).then((r) => r.text());
   await must(dashHtml.includes("Drift & Memory Dashboard"), "dashboard html missing title");
 
   const dashData = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`, {
-    headers: AUTH_HEADERS,
+    headers: { ...AUTH_HEADERS, "Cookie": sessionCookie },
   }).then((r) => r.json());
   await must(dashData.ok === true && Array.isArray(dashData.prompt_sources) && Array.isArray(dashData.docs), "dashboard data invalid");
   await must(dashData.projection === "minimal-v1", "dashboard data projection missing");
   await must(dashData.docs.every((doc) => /^doc-[a-f0-9]{12}$/.test(doc.id) && !("path" in doc) && !("relPath" in doc)), "dashboard data leaked document paths");
 
   const dashQuery = await fetch(`http://127.0.0.1:${port}/api/dashboard-query?q=apples`, {
-    headers: AUTH_HEADERS,
+    headers: { ...AUTH_HEADERS, "Cookie": sessionCookie },
   }).then((r) => r.json());
   await must(dashQuery.ok === true && Array.isArray(dashQuery.snippets), "dashboard query invalid");
   await must(dashQuery.snippets.length > 0, "dashboard query returned no matches");
