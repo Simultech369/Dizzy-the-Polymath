@@ -18,6 +18,10 @@ This is an operational map, not a constitution. If a new memory-like file or led
 | `runtime/auto_memory_candidates/*.json` | Auto-memory staging | auto-memory gate | Delayed candidate before promotion |
 | `runtime/auto_memory/*.json` | Auto-memory dedupe state | auto-memory gate | Signature/cooldown state |
 | `runtime/improvements/*.json` | Self-modification proposal queue | `/improve`, `/memory_review` | Proposed edits requiring explicit apply |
+| `memory/wiki/index.md` | `CognitiveMemoryEngine` | Traversal compile on save | Traversal-first catalog for active and archived memory entries |
+| `memory/wiki/entries/*.md` | `CognitiveMemoryEngine` | `capture`, `consolidate`, `decay` | Durable and expiring cognitive memories with embedded JSON metadata |
+| `memory/wiki/log.md` | `CognitiveMemoryEngine` | Append-only operation log | Chronological ledger of all memory state changes and receipts |
+| `memory/wiki/{preferences,projects,models}/` | `MemoryWikiAdapter` | `writeMemory` | Human-curated and category-partitioned Markdown frontmatter notes |
 
 ## Rules
 
