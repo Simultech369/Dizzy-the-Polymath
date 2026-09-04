@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectRedis, enqueueJob, makeQueueKeys } from "../lib/queue.mjs";
 import { normalizeJobListing, createOpportunityA2AIngestEnvelope } from "../lib/job_board_ingress.mjs";
+import { sanitizeRepositoryRef } from "../lib/bounty_hunter_engine.mjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 const QUEUE_PREFIX = process.env.DIZZY_QUEUE_PREFIX || "dizzy";
@@ -18,7 +19,7 @@ export const MOCK_BOUNTY_LISTINGS = Object.freeze([
     company: "Mock ZK Protocol",
     title: "Senior ZK-SNARK Solidity Dev ($100,000 bounty)",
     description: "We are looking for a dev to write zero-knowledge proofs using circom and solidity for our new protocol.",
-    url: "https://example.com/bounty",
+    url: "https://github.com/mock-zk/protocol/issues/123",
     roleType: "contract_bounty",
     claimabilityState: "open_unassigned",
     salaryOrPayout: "$100,000",
@@ -53,6 +54,14 @@ function githubIssueToListing(issue, repo) {
   };
 }
 
+function sanitizeGithubRepositorySlug(repository) {
+  const safeRef = sanitizeRepositoryRef(repository);
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(safeRef)) {
+    throw new Error("GitHub bounty fetch requires an owner/repo repository slug");
+  }
+  return safeRef;
+}
+
 /**
  * Fetches GitHub issue bounties using an injectable fetch implementation.
  */
@@ -63,8 +72,9 @@ export async function fetchGithubBounties(repo = DEFAULT_REPOSITORY, label = DEF
     throw new Error("fetchGithubBounties requires a fetch-compatible function");
   }
 
+  const safeRepo = sanitizeGithubRepositorySlug(repo);
   const encodedLabel = encodeURIComponent(label);
-  const url = `https://api.github.com/repos/${repo}/issues?labels=${encodedLabel}&state=open&sort=created&direction=desc`;
+  const url = `https://api.github.com/repos/${safeRepo}/issues?labels=${encodedLabel}&state=open&sort=created&direction=desc`;
   const headers = {
     "User-Agent": "Dizzy-Bounty-Harvester/1.0",
     Accept: "application/vnd.github.v3+json",
@@ -84,7 +94,7 @@ export async function fetchGithubBounties(repo = DEFAULT_REPOSITORY, label = DEF
     throw new Error("GitHub API returned a non-array issue payload");
   }
 
-  return issues.map((issue) => githubIssueToListing(issue, repo));
+  return issues.map((issue) => githubIssueToListing(issue, safeRepo));
 }
 
 export function createScanResults(rawListings, {

