@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-02T23:36:17.294Z",
+  "updated_at": "2026-09-04T21:42:12.073Z",
   "canonical_source": "DESIGN.md",
   "docs": {
     "primary": "DESIGN.md",
@@ -125,6 +125,21 @@
       "model_vote_as_truth"
     ],
     "operator_gate": "Simul approval remains required for push, merge, publication, or equivalent boundary actions."
+  },
+  "receipt_authority": {
+    "levels": [
+      "advisory_receipt",
+      "rehearsal_receipt",
+      "promotion_receipt",
+      "public_claim_receipt"
+    ],
+    "default_for_sidecar_or_scratch": [
+      "advisory_receipt",
+      "rehearsal_receipt"
+    ],
+    "promotion_requires": "promotion_receipt",
+    "public_claim_requires": "public_claim_receipt",
+    "rule": "A passing check proves only the authority level named by its receipt; lower-authority receipts can guide planning, but do not authorize runtime promotion or public claims."
   },
   "memory_lifecycle": {
     "claim_metadata": [
@@ -551,6 +566,6 @@
     }
   },
   "derived_from": {
-    "design_md_sha256": "dfc9f590076a3c2a0140c0f068c40b6b10e16c23d0e4615bd85686f24a65faae"
+    "design_md_sha256": "3f940a073479f7f05ce807dfd937753a346c9d35805eb2ef80221d65b7ceddd7"
   }
 }

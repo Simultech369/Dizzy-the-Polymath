@@ -56,8 +56,9 @@ The repo is transparent without turning every working note into doctrine: the ru
 | StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
 | A2A-Style Cryptographic Mailbox | Local sealed handoff/message queue for agent coordination; external HTTP/WebSocket A2A interoperability is not claimed yet (`lib/a2a_mailbox_bridge.mjs`) |
 | Signed A2A HTTP Ingress Boundary | Local `/api/a2a/incoming` route guarded by `DIZZY_A2A_SECRET`, HMAC SHA-256 signatures, timestamp freshness, nonce replay rejection, schema validation, and prompt-marker sanitization. This is boundary proof, not ecosystem interoperability proof (`lib/a2a_boundary_guard.mjs`). |
+| Node/Python Council Bridge Contract | Schema and fixture gate for quarantined sidecar rehearsals; separates bridge payload integrity from bounty-task integrity and keeps sidecar responses rehearsal-only (`docs/node_python_council_bridge_contract.md`, `npm run test:node-python-bridge-contract`) |
 | Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 113 syntax targets and 56 test suites after the A2A boundary, dashboard public-surface, and public-view readiness guards are registered (`npm run check:council`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 115 syntax targets and 57 test suites after the A2A boundary, dashboard public-surface, public-view readiness, and bridge-contract guards are registered (`npm run check:council`) |
 
 ## Quick Start
 
@@ -115,6 +116,7 @@ npm run test:dashboard-public-surface
 npm run test:structural-query-cache
 npm run test:statem-runbook
 npm run test:a2a-mailbox
+npm run test:node-python-bridge-contract
 npm run test:cognitive-memory
 npm run test:memory-wiki
 npm run test:job-board-scanner

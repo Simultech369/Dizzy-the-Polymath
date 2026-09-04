@@ -76,6 +76,8 @@ Before public/client-facing distribution or a broad W-0068 staging claim:
 Status: quarantined offline research sidecar (`scratch/council_engine/`)
 Audited date: 2026-09-04
 Scope: `bridge_rehearsal_runner.py`, `task_delegation_router.py`, `bounty_adversarial_assembly_line.py`, `opportunity_a2a_workflow_engine.py`
+Defect receipt: `reviews/quarantine_defect_receipt_python_sidecar.md` (`advisory_receipt`)
+Bridge contract: `docs/node_python_council_bridge_contract.md`
 
 ### Provenance & Licensing Status
 - **Origin**: Internal scratch engineering prototype developed in Antigravity session scratch space (`council_engine/`).
@@ -85,9 +87,11 @@ Scope: `bridge_rehearsal_runner.py`, `task_delegation_router.py`, `bounty_advers
 ### Promotion Blockers
 Before any component of the Python Council sidecar can be promoted into the live repo tree or test suite, the following technical gates must be cleared:
 
-1. **Cryptographic Payload Tamper Verification**:
-   - `bridge_rehearsal_runner.py` (line 29) currently only asserts that `payload_sha256` is non-empty; it does not compute the canonical SHA-256 digest of the incoming payload and compare it against the claimed hash. A tamper probe changing the payload title while leaving the old hash intact was still verified as `VERIFIED_DISPATCH`.
-   - *Requirement*: Enforce full canonical JSON SHA-256 payload digest verification before emitting dispatch receipts.
+1. **Bridge Payload Integrity & Hash Scope**:
+   - Original finding: `bridge_rehearsal_runner.py` accepted a tampered title with a reused hash because it only checked for `payload_sha256` presence.
+   - Follow-up sidecar probe: the quarantined runner now recomputes a compact sorted-key SHA-256 and rejects a tampered title with the old digest. This is sidecar repair evidence only.
+   - Remaining contract blocker: the repaired sidecar currently overloads `bounty_task.payload_sha256` as the full bridge payload digest. W-0112 reserves `integrity.payload_sha256` for the full bridge payload digest and preserves `payload.bounty_task.payload_sha256` as the task-level digest.
+   - *Requirement*: Satisfy the Node-owned W-0112 contract fixture before emitting dispatch receipts that count beyond rehearsal evidence.
 
 2. **Rigorous Clean-Room Provenance Verification**:
    - `bounty_adversarial_assembly_line.py` (line 83) currently uses a naive placeholder heuristic (checking `len > 0` and absence of `"Borrowed without attribution"` marker) to declare clean-room provenance verified.
@@ -96,4 +100,4 @@ Before any component of the Python Council sidecar can be promoted into the live
 3. **Narrow Mechanism Promotion Only**:
    - Do not promote the entire Python sidecar monolith into the runtime.
    - Promote only narrow, well-bounded mechanisms: specifically tests, fixtures, or a document-backed bridge specification first.
-
+   - A repaired sidecar can provide `rehearsal_receipt` evidence; runtime authority still requires a `promotion_receipt` from the Node council gate.

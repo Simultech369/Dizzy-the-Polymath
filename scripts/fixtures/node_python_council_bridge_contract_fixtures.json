@@ -1,0 +1,173 @@
+{
+  "schema_version": "dizzy.node_python_council_bridge.fixture_set.v1",
+  "contract_version": "W-0112",
+  "valid_bridge_request": {
+    "schema_version": "dizzy.node_python_council_bridge.request.v1",
+    "request_id": "w0112_valid_bridge_request",
+    "source_runtime": "node_mjs",
+    "target_runtime": "python_council_sidecar",
+    "authority": {
+      "requested_receipt_authority": "rehearsal_receipt",
+      "runtime_promotion_allowed": false,
+      "public_claim_allowed": false,
+      "operator_approval_required_for_promotion": true
+    },
+    "integrity": {
+      "canonicalization": "dizzy.stable_json.sort_keys.no_whitespace.v1",
+      "payload_sha256": "1f2a5da6c27f4fa408fa65275c80cfc71395e905cd5821e2fe390b21c2054042"
+    },
+    "payload": {
+      "schema_version": "dizzy.bounty_a2a_ingest.v1",
+      "bounty_task": {
+        "schema_version": "dizzy.bounty_task.v1",
+        "bounty_id": "w0112_fixture_path_traversal",
+        "title": "Patch backend path traversal in artifact parser",
+        "sanitized_description": "Normalize artifact paths and reject traversal before reading workspace files.",
+        "platform": "swe_bench",
+        "repository": "Simultech369/Dizzy-the-Polymath",
+        "source_url": "https://github.com/Simultech369/Dizzy-the-Polymath/issues/112",
+        "role_type": "bounty",
+        "claimability_state": "unverified",
+        "proof_requirements": [
+          "local regression test",
+          "public submission requires operator approval"
+        ],
+        "required_stack": [
+          "node"
+        ],
+        "test_command": "npm test",
+        "payout_usd": 500,
+        "difficulty": "hard",
+        "target_files": [
+          "lib/bounty_hunter_engine.mjs",
+          "scripts/bounty_hunter_engine_test.mjs"
+        ],
+        "payload_sha256": "A87C9CCCF254EA3B40042E041642D2AD5EB09F78043613A83D5B7A3A5B35D22C",
+        "parsed_at": "2026-09-04T21:35:00.000Z"
+      },
+      "triage_receipt": {
+        "schema_version": "dizzy.bounty_triage_receipt.v1",
+        "payout_usd": 500,
+        "difficulty": "hard",
+        "has_reproduction_tests": true,
+        "solve_probability": 0.48,
+        "estimated_cost_usd": 0.225,
+        "expected_value_usd": 239.78,
+        "recommendation": "DISPATCH",
+        "triaged_at": "2026-09-04T21:35:00.000Z"
+      },
+      "state_machine": {
+        "recommended_runbook_name": "bounty-solve-w0112_fixture_path_traversal",
+        "lifecycle": [
+          "plan",
+          "execute",
+          "verify",
+          "handoff"
+        ],
+        "execute_verify_repair_loop": true,
+        "verify_before_handoff": true,
+        "max_auto_repair_cycles": 3
+      },
+      "council_directives": {
+        "economic_triage": "required_before_expensive_model_dispatch",
+        "asymmetric_deliberation": {
+          "builder_lane": "minimal_clean_room_patch",
+          "breaker_lane": "hostile_edge_case_and_regression_tests"
+        },
+        "ingress_scrubbing": "sanitize_untrusted_text_before_context_entry",
+        "clean_room_sealing": "required_before_submission_packet"
+      },
+      "proof_boundaries": [
+        "sidecar_rehearsal_is_not_runtime_promotion",
+        "bridge_payload_hash_lives_in_integrity_payload_sha256",
+        "bounty_task_payload_sha256_remains_task_digest",
+        "public_submission_requires_operator_approval"
+      ],
+      "operator_approval_required_for": [
+        "public_submission",
+        "claiming_bounty",
+        "maintainer_outreach",
+        "external_broadcast"
+      ],
+      "notes": "W-0112 contract fixture: schema-only bridge proof, not sidecar runtime promotion."
+    }
+  },
+  "valid_bridge_response": {
+    "schema_version": "dizzy.node_python_council_bridge.response.v1",
+    "response_id": "w0112_valid_bridge_response",
+    "request_id": "w0112_valid_bridge_request",
+    "status": "VERIFIED_DISPATCH",
+    "receipt_authority": "rehearsal_receipt",
+    "request_payload_sha256": "1f2a5da6c27f4fa408fa65275c80cfc71395e905cd5821e2fe390b21c2054042",
+    "assigned_lane": "SECURITY_REVIEWER",
+    "priority": "HIGH",
+    "validation_gate": "local_regression_required",
+    "escalation_target": "operator",
+    "sanitized_target_files": [
+      "lib/bounty_hunter_engine.mjs",
+      "scripts/bounty_hunter_engine_test.mjs"
+    ],
+    "enforced_verification_command": "npm test",
+    "runtime_promotion_allowed": false,
+    "promotion_receipt_required": true,
+    "public_claim_allowed": false,
+    "sidecar_backend": "python_council_sidecar_quarantined",
+    "rehearsal_verified": true
+  },
+  "negative_request_cases": [
+    {
+      "name": "tampered_title_reuses_bridge_hash",
+      "mutations": [
+        {
+          "path": [
+            "payload",
+            "bounty_task",
+            "title"
+          ],
+          "value": "Tampered title while reusing the original bridge payload hash"
+        }
+      ],
+      "expected_error_codes": [
+        "PAYLOAD_SHA256_MISMATCH"
+      ]
+    },
+    {
+      "name": "legacy_task_hash_used_as_bridge_hash",
+      "mutations": [
+        {
+          "path": [
+            "integrity"
+          ],
+          "delete": true
+        }
+      ],
+      "expected_error_codes": [
+        "MISSING_INTEGRITY",
+        "LEGACY_HASH_SCOPE_OVERLOAD"
+      ]
+    },
+    {
+      "name": "request_attempts_runtime_promotion",
+      "mutations": [
+        {
+          "path": [
+            "authority",
+            "requested_receipt_authority"
+          ],
+          "value": "promotion_receipt"
+        },
+        {
+          "path": [
+            "authority",
+            "runtime_promotion_allowed"
+          ],
+          "value": true
+        }
+      ],
+      "expected_error_codes": [
+        "UNSAFE_REQUESTED_RECEIPT_AUTHORITY",
+        "RUNTIME_PROMOTION_NOT_ALLOWED"
+      ]
+    }
+  ]
+}

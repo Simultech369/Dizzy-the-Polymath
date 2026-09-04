@@ -879,6 +879,46 @@ Consequences:
 
 ---
 
+### D-0043: Receipt Authority Levels
+
+Decision:
+- Define explicit authority levels for generated receipts to prevent "a thing passed somewhere" from becoming "Dizzy can claim it publicly."
+- Adopt the following vocabulary:
+  - `advisory_receipt`: Useful evidence, not authoritative.
+  - `rehearsal_receipt`: Deterministic dry-run evidence, not external truth.
+  - `promotion_receipt`: Accepted into Node council gate (sufficient for promotion).
+  - `public_claim_receipt`: Safe to cite in README / collaborator docs.
+
+Rationale:
+- Prevents structural collapse where any passing test is treated as a launchable product claim.
+- Ensures the cross-project handoff and Council engine can agree on what a given receipt actually proves.
+
+Consequences:
+- `NEXT.md` milestones and Council evaluation gates must explicitly state which receipt authority level they require.
+- Python sidecar or offline scratch evidence defaults to `advisory_receipt` or `rehearsal_receipt`.
+- A lower-authority receipt may guide planning or repair work, but it must not close promotion or public-claim milestones unless that lower authority is explicitly the requested acceptance level.
+
+---
+
+### D-0044: Node/Python Council Bridge Digest Scope
+
+Decision:
+- Define a Node-owned bridge contract before any quarantined Python Council sidecar mechanism can count as runtime authority.
+- Store the full bridge payload digest in `integrity.payload_sha256` using `dizzy.stable_json.sort_keys.no_whitespace.v1` canonicalization.
+- Preserve `payload.bounty_task.payload_sha256` as the bounty-task digest; it must not be overloaded as the full bridge payload hash.
+- Keep Python sidecar responses at `rehearsal_receipt` authority unless a later Node council `promotion_receipt` accepts a narrow mechanism.
+
+Rationale:
+- The repaired sidecar hash check correctly rejects the original tamper probe, but its local hash field collides with Node's existing bounty-task integrity field.
+- A promotion contract must make digest scope and receipt authority explicit before bridge evidence can graduate from scratch evidence.
+
+Consequences:
+- `docs/node_python_council_bridge_contract.md` and `scripts/fixtures/node_python_council_bridge_contract_fixtures.json` define the request/response shape.
+- `scripts/node_python_council_bridge_contract_test.mjs` is the deterministic Node gate for W-0112.
+- Sidecar compatibility work must consume `integrity.payload_sha256` for bridge integrity and preserve task-level payload hashes unchanged.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -1079,6 +1119,21 @@ Edit this block when you want to change what agents read.
       "model_vote_as_truth"
     ],
     "operator_gate": "Simul approval remains required for push, merge, publication, or equivalent boundary actions."
+  },
+  "receipt_authority": {
+    "levels": [
+      "advisory_receipt",
+      "rehearsal_receipt",
+      "promotion_receipt",
+      "public_claim_receipt"
+    ],
+    "default_for_sidecar_or_scratch": [
+      "advisory_receipt",
+      "rehearsal_receipt"
+    ],
+    "promotion_requires": "promotion_receipt",
+    "public_claim_requires": "public_claim_receipt",
+    "rule": "A passing check proves only the authority level named by its receipt; lower-authority receipts can guide planning, but do not authorize runtime promotion or public claims."
   },
   "memory_lifecycle": {
     "claim_metadata": [

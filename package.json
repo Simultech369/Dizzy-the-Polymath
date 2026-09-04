@@ -65,6 +65,7 @@
                     "test:statem-runbook": "node ./scripts/statem_runbook_bridge_test.mjs",
                     "test:bounty-hunter": "node ./scripts/bounty_hunter_engine_test.mjs",
                     "test:bounty-bridge-rehearsal": "node ./scripts/rehearsal_dizzy_to_council_bridge.mjs",
+                    "test:node-python-bridge-contract": "node ./scripts/node_python_council_bridge_contract_test.mjs",
                     "test:a2a-mailbox": "node ./scripts/a2a_mailbox_bridge_test.mjs",
                     "test:a2a-boundary": "node ./scripts/a2a_boundary_test.mjs",
                     "test:cognitive-memory": "node ./scripts/cognitive_memory_engine_test.mjs",
