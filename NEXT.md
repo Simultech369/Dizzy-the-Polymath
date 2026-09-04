@@ -30,20 +30,9 @@ These are future focuses for public collaborators, not current completion claims
 - W-0106: Capture a real dashboard walkthrough proof.
   Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
-- W-0111: Keep license and provenance audit current.
-  Acceptance: Before broad public/client-facing release, review external reference rows, borrowing classes, notices, and clean-room boundaries in `reviews/external_pattern_license_audit.md` and `THIRD_PARTY_NOTICES.md`.
-
-
-
-
-
-
-
-
----
-
 ## Completed
 
+- W-0111: Audited license and provenance status for external references and quarantined Python Council sidecar (`reviews/external_pattern_license_audit.md`, `THIRD_PARTY_NOTICES.md`). Maintained 12 audited external pattern reference rows across mechanism translations and idea-only borrowings with clean-room implementations. Documented provenance, authority boundaries, and technical promotion blockers for the Antigravity Python Council sidecar (`bridge_rehearsal_runner.py` payload SHA-256 verification and `bounty_adversarial_assembly_line.py` clean-room heuristic) with a strict narrow-mechanism promotion checklist. (Verification: `npm run check:external-pattern-licenses`; `npm run test:third-party-notices`; `npm run check:docs`; `npm run check:next`)
 - W-0110: Explained the Memory Wiki with proof-bound examples in `docs/memory_wiki_examples.md` and linked it from `README.md` and `MEMORY_OWNERSHIP.md`. The examples show capture, consolidate, retrieve, reconcile, and decay writing or updating transparent Markdown wiki surfaces while preserving the boundary between `lib/cognitive_memory_engine.mjs` policy/scoring and `lib/memory_wiki_adapter.mjs` path-confined Markdown I/O. The examples are explicitly test-derived and do not claim a live checked-in `memory/wiki/` tree. (Verification: `npm run test:cognitive-memory`; `npm run test:memory-wiki`; `npm run check:docs`; `npm run test:public-view-readiness`)
 - W-0109: Hardened the bounty/opportunity lane (`lib/bounty_hunter_engine.mjs`, `lib/job_board_ingress.mjs`, `scripts/job_board_scanner.mjs`, `scripts/bounty_hunter_engine_test.mjs`, `scripts/job_board_scanner_test.mjs`). Bounty and job-board ingress now enforces allowlisted HTTPS source domains, rejects non-standard ports and credentials, accepts only explicit repository forms (`owner/repo`, allowlisted repo URLs, or jailed `target/<slug>` refs), blocks traversal/absolute/env-var artifact paths, and requires bounty verification commands to exactly match the StateM allowlist. The job-board scanner fixtures now use allowlisted GitHub issue URLs rather than generic external placeholders. (Verification: `npm run test:bounty-hunter`; `npm run test:job-board-scanner`; `npm run test:job-board-tension`; `npm run smoke`; `npm run check:council`)
 - W-0108: Implemented signed local A2A HTTP ingress boundary (`lib/a2a_boundary_guard.mjs`, `/api/a2a/incoming`, `scripts/a2a_boundary_test.mjs`). The route fails closed without a dedicated 32+ character `DIZZY_A2A_SECRET`, verifies exact raw JSON bytes with HMAC SHA-256, rejects stale timestamps and replayed nonces, validates timestamp/nonce/signature formats, recursively strips known prompt markers only after signature verification, and performs schema/sender checks before dispatch. This is local service-boundary proof, not public cross-runtime A2A interoperability. (Verification: `npm run test:a2a-boundary`; `npm run check:council`; see `reviews/oss_council_verdict_latest.json` for the current aggregate count)

@@ -70,3 +70,30 @@ Before public/client-facing distribution or a broad W-0068 staging claim:
 - If copied code/prose/structure is found, either add the required attribution/notice path or rewrite/remove it.
 - If attribution is required across multiple sources, create `THIRD_PARTY_NOTICES.md` or a narrower source-level notice file and link it from the relevant docs.
 - Do not use external-source names in public capability language unless attribution is intentional and reviewed.
+
+## Python Council Sidecar Provenance & Promotion Checklist
+
+Status: quarantined offline research sidecar (`scratch/council_engine/`)
+Audited date: 2026-09-04
+Scope: `bridge_rehearsal_runner.py`, `task_delegation_router.py`, `bounty_adversarial_assembly_line.py`, `opportunity_a2a_workflow_engine.py`
+
+### Provenance & Licensing Status
+- **Origin**: Internal scratch engineering prototype developed in Antigravity session scratch space (`council_engine/`).
+- **External Code Borrowing**: None. Synthesized from first principles with zero direct code or distinctive structure copied from external repos. No unmanaged external dependencies or LLM model-call APIs imported.
+- **Authority / Runtime Boundary**: Quarantined offline. Does not run in production path or govern live Node runtime. It is treated as offline research evidence and evaluation fixture material.
+
+### Promotion Blockers
+Before any component of the Python Council sidecar can be promoted into the live repo tree or test suite, the following technical gates must be cleared:
+
+1. **Cryptographic Payload Tamper Verification**:
+   - `bridge_rehearsal_runner.py` (line 29) currently only asserts that `payload_sha256` is non-empty; it does not compute the canonical SHA-256 digest of the incoming payload and compare it against the claimed hash. A tamper probe changing the payload title while leaving the old hash intact was still verified as `VERIFIED_DISPATCH`.
+   - *Requirement*: Enforce full canonical JSON SHA-256 payload digest verification before emitting dispatch receipts.
+
+2. **Rigorous Clean-Room Provenance Verification**:
+   - `bounty_adversarial_assembly_line.py` (line 83) currently uses a naive placeholder heuristic (checking `len > 0` and absence of `"Borrowed without attribution"` marker) to declare clean-room provenance verified.
+   - *Requirement*: Replace naive string check with deterministic AST-level license/provenance scanning, exact token matching, or hash-bound clean-room proof oracles.
+
+3. **Narrow Mechanism Promotion Only**:
+   - Do not promote the entire Python sidecar monolith into the runtime.
+   - Promote only narrow, well-bounded mechanisms: specifically tests, fixtures, or a document-backed bridge specification first.
+
