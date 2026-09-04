@@ -23,6 +23,8 @@ This is an operational map, not a constitution. If a new memory-like file or led
 | `memory/wiki/log.md` | `CognitiveMemoryEngine` | Append-only operation log | Chronological ledger of all memory state changes and receipts |
 | `memory/wiki/{preferences,projects,models}/` | `MemoryWikiAdapter` | `writeMemory` | Human-curated and category-partitioned Markdown frontmatter notes |
 
+Stage-by-stage examples live in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md). They are test-derived examples, not a claim that live wiki pages are checked into this public tree.
+
 ## Rules
 
 - One durable surface should have one primary writer.
