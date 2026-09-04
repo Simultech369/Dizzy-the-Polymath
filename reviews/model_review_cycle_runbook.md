@@ -112,8 +112,12 @@ This is a review-packet guardrail, not implementation authority, a release gate,
 | Hy3 | long-context reconciliation, active-policy semantics, route/mutation matrix | OpenRouter `tencent/hy3:free` while available; paid `tencent/hy3` requires credits | free route ping succeeded on 2026-07-20; paid route returned 402 with current OpenRouter account |
 | Muse Spark | visual/aesthetic/product-surface critique | Antigravity model/lens prompt, or OpenRouter `meta/muse-spark-1.1` if credits exist | OpenRouter catalog lists Muse Spark 1.1, but ping returned 402 with current OpenRouter account |
 | Seed-2.1-Pro | systems architecture, memory/indexing, backend coherence | Antigravity model/lens prompt | exact OpenRouter slug `bytedance-seed/seed-2.1-pro` returned invalid-model 400 on 2026-07-20; catalog lists Seed 2.0/1.6 variants only, and Seed 2.0 pings require credits |
+| GPT-5.6 Trinity (Sol / Luna / Terra) | surgical public readiness (Sol), operational scan (Luna), crossover gate (Terra) | ChatGPT-5.6 specialized persona prompts / OpenAI API | Apex paid judge tier; high-judgment invariants and final handoff reconciliation |
+| Nemotron | RLHF alignment, reward modeling, high-parameter open alternative | OpenRouter `nvidia/llama-3.1-nemotron-70b-instruct:free` | 70B/120B NVIDIA dense tuning; verifies refusal boundaries and alignment drift |
+| Liquid (LFM / LQC) | continuous state dynamics, non-transformer sequence verification | OpenRouter `liquid/lqc-3b-v0.1:free` | State-space non-attention baseline to check for standard transformer attention blind spots |
 
 ## Debug Rules
+
 
 - HTTP 404 model unavailable:
   - keep the failed artifact/log,

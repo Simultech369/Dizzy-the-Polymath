@@ -68,12 +68,14 @@ Every model candidate moves through explicit deterministic qualification gates b
 
 | Tier & Category | Count | Primary Role & Route Compliance | Key Model Instances |
 | :--- | :---: | :--- | :--- |
-| **👑 Tier 0: Apex Paid Judges** | 5 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation) | `GPT-5.6 Sol`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
-| **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 12 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` / ZDR Verified<br>• Providers: SiliconFlow, Groq, Google AI Studio | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3` |
+| **👑 Tier 0: Apex Paid Judges** | 7 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation)<br>• *Includes ChatGPT 5.6 Trinity:* `Sol` (surgical auditor), `Luna` (operational scanner), `Terra` (crossover gate) | `GPT-5.6 Sol`, `GPT-5.6 Luna`, `GPT-5.6 Terra`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
+| **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 16 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` / ZDR Verified<br>• Providers: SiliconFlow, Groq, Google AI Studio, Moonshot, Tencent | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3/abab6.5t`, `moonshotai/kimi-k2.7-code`, `tencent/hy3`, `cohere/north-mini-code`, `stepfun-step-2` |
 | **💻 Tier 2: Local OSS Fast Workers & Reasoners** | 14 | Rapid local audit, zero data leakage<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Provider: Air-gapped Ollama / Localhost | `qwen2.5-coder:7b`, `deepseek-r1:7b`, `deepseek-r1:1.5b`, `glm4:latest`, `mistral:latest`, `gemma3:4b`, `gemma3:12b`, `llama-audit:latest`, `phi-4`, `granite-3.1` |
-| **🎭 Tier 3: Uncensored Adversarial Red-Team Scouts** | 6 | Hostile fuzzer & pre-dispatch red-team<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Goal: Invariant attack without RLHF refusal filters | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3`, `Tulu 3` |
-| **🚫 Tier 4: Quarantined / Purged Legacy** | 11 | Blocked from active dispatch<br>• Harnesses mislabeled as models or obsolete weights | `Promptfoo`, `Aider`, `DSPy`, `SWE-agent`, `OpenHands`, `WizardCoder`, `Phind`, `StarCoder2`, `Arctic`, `01.AI Zero`, `DeepGrove` |
-| **TOTAL REGISTERED** | **48** | **Tracked with typed qualification status** | |
+| **🎭 Tier 3: Uncensored Adversarial & Non-Transformer Dynamics** | 8 | Hostile fuzzer, pre-dispatch red-team & continuous dynamics<br>• Route: `LOCAL_ONLY_VERIFIED` / ZDR Verified<br>• Goal: Invariant attack without RLHF refusal filters & SSM dynamics | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3 (Nous)`, `Tulu 3`, `liquid/lqc-3b / lfm-40b`, `codestral-mamba-7b` |
+| **🌀 Tier 4: Emerging Exotic Architectures (Momentum Watch)** | 5 | Exploratory non-standard cognitive architectures<br>• Linear attention, ternary 1-bit, evolutionary merges | `RWKV-v6 Eagle/Finch` (O(1) memory state), `BitNet b1.58` (1-bit ternary airlock filter), `Sakana AI Evo-Merge` (anti-homogenization), `AI21 Jamba 1.5` (SSM-MoE hybrid), `Abacus Smaug-72b` |
+| **🚫 Tier 5: Quarantined / Purged Legacy** | 12 | Blocked from active dispatch<br>• Harnesses mislabeled as models, obsolete weights, or integrity-rejected | `Promptfoo`, `Aider`, `DSPy`, `SWE-agent`, `OpenHands`, `WizardCoder`, `Phind`, `StarCoder2`, `Arctic`, `01.AI Zero`, `DeepGrove`, `Poolside Laguna XS 2.1` (§5b integrity rejected) |
+| **TOTAL REGISTERED** | **62** | **Tracked with typed qualification status & cognitive division mapping** | |
+
 
 ---
 
@@ -157,6 +159,9 @@ Harnesses are not voting model weights; they operate as specialized subsystem dr
 | 🐜 **InclusionAI / Ling-3.0** (`inclusionAI`) | Sub-Second Janitor & Local Classifier | Ultra-lightweight open-source models (`Ling-3.0-tiny`, `Ling-3.0-flash`) for instant pre-route sanitization, diff chunk classification, and context budgeting. |
 | 🎙️ **InclusionAI / Ming-omni-tts** | Air-Gapped Audio Synthesizer | Local, zero-data-retention speech synthesis engine for Dizzy's voice channel (`TOOLS.md`), eliminating external cloud TTS API dependencies. |
 | 👁️ **InclusionAI / LLaDA2.0-Uni** | Multimodal & Visual QC | Diffusion-based large language model for evaluating dashboard layout symmetry, visual diagram truth, and SVG rendering in `eval:anti-slop-visual`. |
+| 🎨 **Muse** (`meta-models/muse`) | Generative Visual Substrate | Foundation generative model architecture providing core multimodal representations for UI/visual synthesis without external proprietary cloud endpoints. |
+| 🏊 **Poolside / Laguna** (`poolside/laguna`) | Execution-Guided Synthesis (Quarantined) | Program synthesis specialist. Model proposal for unprompted secret scrubbing / git rewrite was permanently rejected under constitutional §5b integrity clause; retained in test fixtures only. |
+
 
 
 ## 5. Active Model Capability Matrix (Auto-Generated)
