@@ -103,7 +103,7 @@ Production routes are sealed with cryptographic SHA-256 digests, strict TTL boun
 
 ## 5. Current Local Ollama Roster Status
 
-Observed via live local probe on 2026-08-17 (`reviews/ollama_availability_latest.json`):
+Observed via live local probe and seat verification on 2026-09-04 (`outputs/antigravity_to_codex_ollama_seat_verification_2026-09-04.md`): Local daemon active on `localhost:11434`; Builder seat (`qwen2.5-coder:7b`) and Breaker seat (`mistral:latest`) operational for zero-credit patch synthesis.
 
 | Model | Size | Status | Qualification Gate | Lens / Suggested Use |
 | :--- | ---: | :--- | :--- | :--- |
