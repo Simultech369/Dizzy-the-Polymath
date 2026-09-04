@@ -83,6 +83,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 - `ECONOMICS.md`
 - `DRIFT_AUDIT.md`
 - `DEPENDENCY_GOVERNANCE.md`
+- `THREAT_MODEL_A2A.md`
 - `PARALLEL_INFRASTRUCTURE_PATTERNS.md`
 - `THIRD_PARTY_NOTICES.md`
 
