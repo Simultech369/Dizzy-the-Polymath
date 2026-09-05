@@ -7,6 +7,7 @@ import {
   fetchGithubBounties,
   runOfflineScan,
   runScanner,
+  buildBridgeRequestsFromScanResults,
 } from "./job_board_scanner.mjs";
 
 const logger = {
@@ -178,4 +179,28 @@ console.log("[test:job-board-scanner] Starting test suite...");
   console.log("  [PASS] Test 6: No-network artifact mode");
 }
 
-console.log("\n[test:job-board-scanner] ALL 6 TESTS PASSED CLEANLY.\n");
+// Test 7: Bridge adapter transforms scanned opportunity results into W-0112 bridge requests.
+{
+  const { results, skipped } = createScanResults([
+    {
+      id: "scan_bridge_001",
+      boardSource: "ethereum_jobs",
+      company: "Bridge Protocol",
+      title: "ZK Solidity Smart Contract Invariant Bounty ($25,000)",
+      description: "Perform zero-knowledge circom and solidity smart contract formal invariant verification.",
+      url: "https://github.com/bridge/protocol/issues/15",
+      salaryOrPayout: "$25,000",
+    },
+  ]);
+  assert.equal(skipped.length, 0);
+  assert.equal(results.length, 1);
+  const bridgeRequests = buildBridgeRequestsFromScanResults(results);
+  assert.equal(bridgeRequests.length, 1);
+  assert.equal(bridgeRequests[0].schema_version, "dizzy.node_python_council_bridge.request.v1");
+  assert.equal(bridgeRequests[0].authority.requested_receipt_authority, "rehearsal_receipt");
+  assert.equal(typeof bridgeRequests[0].integrity.payload_sha256, "string");
+  assert.equal(bridgeRequests[0].integrity.payload_sha256.length, 64);
+  console.log("  [PASS] Test 7: Bridge adapter transforms scan results into W-0112 bridge request");
+}
+
+console.log("\n[test:job-board-scanner] ALL 7 TESTS PASSED CLEANLY.\n");

@@ -6,6 +6,8 @@ import {
   NODE_PYTHON_BRIDGE_CONTRACT_RECEIPT_SCHEMA,
   canonicalBridgePayloadSha256,
   stableJson,
+  createBridgeRequest,
+  adaptScanResultToBridgeRequest,
   validateBridgeRequest,
   validateBridgeResponse,
 } from "../lib/node_python_council_bridge_contract.mjs";
@@ -94,6 +96,23 @@ assert.equal(unsafeResponseResult.ok, false, "unsafe response should fail");
 assert.ok(unsafeCodes.includes("UNSAFE_RESPONSE_RECEIPT_AUTHORITY"));
 assert.ok(unsafeCodes.includes("PUBLIC_CLAIM_NOT_ALLOWED"));
 console.log("  [PASS] sidecar response cannot escalate to public or promotion authority");
+
+const mockScanResult = {
+  opportunity: {
+    opportunity_id: "mock_test_opp",
+    title: "Mock Vulnerability Bounty",
+  },
+  envelope: {
+    schema_version: "dizzy.bounty_a2a_ingest.v1",
+    payload: validRequest.payload,
+  },
+};
+const adaptedRequest = adaptScanResultToBridgeRequest(mockScanResult);
+const adaptedValidation = validateBridgeRequest(adaptedRequest);
+assert.equal(adaptedValidation.ok, true, JSON.stringify(adaptedValidation.errors));
+assert.equal(adaptedRequest.integrity.payload_sha256, validRequest.integrity.payload_sha256);
+assert.equal(adaptedRequest.authority.requested_receipt_authority, "rehearsal_receipt");
+console.log("  [PASS] adaptScanResultToBridgeRequest produces verified W-0112 bridge request");
 
 const receipt = {
   schema_version: NODE_PYTHON_BRIDGE_CONTRACT_RECEIPT_SCHEMA,

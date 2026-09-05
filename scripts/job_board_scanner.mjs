@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { connectRedis, enqueueJob, makeQueueKeys } from "../lib/queue.mjs";
 import { normalizeJobListing, createOpportunityA2AIngestEnvelope } from "../lib/job_board_ingress.mjs";
 import { sanitizeRepositoryRef } from "../lib/bounty_hunter_engine.mjs";
+import { adaptScanResultToBridgeRequest } from "../lib/node_python_council_bridge_contract.mjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 const QUEUE_PREFIX = process.env.DIZZY_QUEUE_PREFIX || "dizzy";
@@ -135,6 +136,21 @@ export function writeScanResults(results, outputPath = DEFAULT_OUTPUT_PATH) {
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, JSON.stringify(results, null, 2));
   return outFile;
+}
+
+export function buildBridgeRequestsFromScanResults(scanResults, {
+  requestedReceiptAuthority = "rehearsal_receipt",
+} = {}) {
+  const requests = [];
+  for (const item of scanResults || []) {
+    try {
+      const request = adaptScanResultToBridgeRequest(item, { requestedReceiptAuthority });
+      requests.push(request);
+    } catch {
+      // skip un-adaptable items
+    }
+  }
+  return requests;
 }
 
 async function loadRawListings({
