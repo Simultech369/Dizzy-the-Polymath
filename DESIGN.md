@@ -939,6 +939,25 @@ Consequences:
 
 ---
 
+### D-0046: Scanner-to-Bridge Rehearsal Pipeline & Portable Quarantine Resolution
+
+Decision:
+- Enable `scripts/job_board_scanner.mjs` to execute end-to-end bridge rehearsals directly via CLI flag (`--bridge-rehearsal`) and exported runner (`runScannerBridgeRehearsal`), producing structured rehearsal proof artifacts at `artifacts/bounty_scan_bridge_rehearsal.json`.
+- Enforce portable resolution of the quarantined Python sidecar directory across environments using `COUNCIL_ENGINE_DIR` and platform user profiles, removing hardcoded machine usernames from repository scripts (`scripts/job_board_scanner.mjs`, `scripts/rehearsal_dizzy_to_council_bridge.mjs`).
+- Bound all scanner-generated bridge rehearsal receipts strictly to `rehearsal_receipt` authority under D-0043 and D-0045, maintaining the boundary between ingestion scanning and runtime promotion.
+
+Rationale:
+- Transforming opportunities into W-0112 bridge requests is only half the pipeline; operators need a repeatable offline mechanism to verify that scanned listings successfully traverse the cross-runtime bridge and receive valid TaskDelegationRouter lane assignments.
+- Absolute machine-specific usernames in bridge scripts violate clean-room portability and trigger path-leak alarms in public surface tests.
+
+Consequences:
+- `scripts/job_board_scanner.mjs` now exports `runScannerBridgeRehearsal` and supports `--bridge-rehearsal`.
+- `scripts/job_board_scanner_test.mjs` verifies the end-to-end rehearsal pipeline with Test 8.
+- `scripts/rehearsal_dizzy_to_council_bridge.mjs` resolves sidecar paths dynamically via environment and home directories.
+- `artifacts/bounty_scan_bridge_rehearsal.json` serves as the offline receipt artifact, remaining uncommitted in git-ignored `artifacts/`.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

@@ -2,16 +2,24 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
 import { connectRedis, enqueueJob, makeQueueKeys } from "../lib/queue.mjs";
 import { normalizeJobListing, createOpportunityA2AIngestEnvelope } from "../lib/job_board_ingress.mjs";
 import { sanitizeRepositoryRef } from "../lib/bounty_hunter_engine.mjs";
-import { adaptScanResultToBridgeRequest } from "../lib/node_python_council_bridge_contract.mjs";
+import {
+  adaptScanResultToBridgeRequest,
+  validateBridgeResponse,
+} from "../lib/node_python_council_bridge_contract.mjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 const QUEUE_PREFIX = process.env.DIZZY_QUEUE_PREFIX || "dizzy";
 const DEFAULT_REPOSITORY = "ethereum/ethereum-org-website";
 const DEFAULT_LABEL = "bounty";
 const DEFAULT_OUTPUT_PATH = path.join("artifacts", "bounty_scan_results.json");
+const DEFAULT_REHEARSAL_OUTPUT_PATH = path.join("artifacts", "bounty_scan_bridge_rehearsal.json");
+const DEFAULT_COUNCIL_ENGINE_DIR = process.env.USERPROFILE
+  ? path.join(process.env.USERPROFILE, ".gemini", "antigravity", "scratch", "council_engine")
+  : path.resolve("../scratch/council_engine");
 
 export const MOCK_BOUNTY_LISTINGS = Object.freeze([
   Object.freeze({
@@ -276,8 +284,118 @@ export async function runScanner({
   };
 }
 
+export async function runScannerBridgeRehearsal({
+  scanResults = null,
+  rawListings = null,
+  repository = DEFAULT_REPOSITORY,
+  label = DEFAULT_LABEL,
+  outputPath = DEFAULT_REHEARSAL_OUTPUT_PATH,
+  councilEngineDir = process.env.COUNCIL_ENGINE_DIR || DEFAULT_COUNCIL_ENGINE_DIR,
+  pythonBin = process.env.PYTHON_BIN || "python",
+  logger = defaultLogger(),
+} = {}) {
+  let effectiveResults = scanResults;
+  if (!effectiveResults || effectiveResults.length === 0) {
+    const scan = await runOfflineScan({
+      rawListings,
+      repository,
+      label,
+      allowNetworkFetch: false,
+      logger,
+    });
+    effectiveResults = scan.results;
+  }
+
+  const bridgeRequests = buildBridgeRequestsFromScanResults(effectiveResults, {
+    requestedReceiptAuthority: "rehearsal_receipt",
+  });
+
+  if (bridgeRequests.length === 0) {
+    logger.warn("[scanner:bridge] No bridge requests generated from scan results.");
+    return {
+      mode: "bridge_rehearsal",
+      executed_count: 0,
+      requests_count: 0,
+      receipts: [],
+      output_path: null,
+      summary: null,
+    };
+  }
+
+  const runnerScript = councilEngineDir ? path.join(councilEngineDir, "bridge_rehearsal_runner.py") : null;
+  const canExecuteSubprocess = runnerScript && fs.existsSync(runnerScript);
+
+  const receipts = [];
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dizzy-bridge-scan-"));
+
+  try {
+    for (let i = 0; i < bridgeRequests.length; i++) {
+      const bridgeRequest = bridgeRequests[i];
+      if (canExecuteSubprocess) {
+        const inputPath = path.join(tempDir, `req_${i}.json`);
+        const outReceiptPath = path.join(tempDir, `receipt_${i}.json`);
+        fs.writeFileSync(inputPath, JSON.stringify(bridgeRequest, null, 2), "utf8");
+
+        logger.info(`[scanner:bridge] Executing sidecar bridge runner for request: ${bridgeRequest.request_id}`);
+        execFileSync(pythonBin, [runnerScript, inputPath, outReceiptPath], {
+          encoding: "utf8",
+          timeout: 30_000,
+        });
+
+        if (!fs.existsSync(outReceiptPath)) {
+          throw new Error(`Sidecar bridge runner did not produce output receipt at ${outReceiptPath}`);
+        }
+
+        const rawReceipt = JSON.parse(fs.readFileSync(outReceiptPath, "utf8"));
+        const validated = validateBridgeResponse(rawReceipt, bridgeRequest);
+        if (!validated.ok) {
+          throw new Error(`Sidecar response failed bridge contract validation: ${validated.errors.join("; ")}`);
+        }
+        receipts.push(rawReceipt);
+      } else {
+        logger.warn(`[scanner:bridge] Python council engine runner not found at ${runnerScript}; skipped sidecar execution`);
+      }
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+
+  const resolvedOut = path.resolve(process.cwd(), outputPath);
+  fs.mkdirSync(path.dirname(resolvedOut), { recursive: true });
+  const summaryPayload = {
+    schema_version: "dizzy.bounty_scan_bridge_rehearsal.v1",
+    generated_at: new Date().toISOString(),
+    rehearsal_authority: "rehearsal_receipt",
+    requests_count: bridgeRequests.length,
+    receipts_count: receipts.length,
+    requests: bridgeRequests,
+    receipts,
+  };
+  fs.writeFileSync(resolvedOut, JSON.stringify(summaryPayload, null, 2), "utf8");
+  logger.info(`[scanner:bridge] Rehearsal complete. Wrote ${receipts.length} verified bridge receipts to ${resolvedOut}`);
+
+  return {
+    mode: "bridge_rehearsal",
+    executed_count: receipts.length,
+    requests_count: bridgeRequests.length,
+    receipts,
+    output_path: resolvedOut,
+    summary: summaryPayload,
+  };
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  if (process.argv.includes("--offline-proof")) {
+  const isOfflineProof = process.argv.includes("--offline-proof");
+  const isBridgeRehearsal = process.argv.includes("--bridge-rehearsal");
+
+  if (isBridgeRehearsal) {
+    runScannerBridgeRehearsal().then(() => {
+      process.exit(0);
+    }).catch((error) => {
+      console.error("[scanner] Bridge rehearsal failed:", String(error?.message || error));
+      process.exit(1);
+    });
+  } else if (isOfflineProof) {
     runOfflineScan({ allowNetworkFetch: false }).then(() => {
       process.exit(0);
     }).catch((error) => {

@@ -13,7 +13,10 @@ import {
   NODE_PYTHON_BRIDGE_RESPONSE_SCHEMA,
 } from "../lib/node_python_council_bridge_contract.mjs";
 
-const COUNCIL_ENGINE_DIR = "C:\\Users\\Josh\\.gemini\\antigravity\\scratch\\council_engine";
+const DEFAULT_COUNCIL_ENGINE_DIR = process.env.USERPROFILE
+  ? path.join(process.env.USERPROFILE, ".gemini", "antigravity", "scratch", "council_engine")
+  : path.resolve("../scratch/council_engine");
+const COUNCIL_ENGINE_DIR = process.env.COUNCIL_ENGINE_DIR || DEFAULT_COUNCIL_ENGINE_DIR;
 const INPUT_ENVELOPE_PATH = path.join(COUNCIL_ENGINE_DIR, "inputs", "bridge_rehearsal_payload.json");
 const OUTPUT_RECEIPT_PATH = path.join(COUNCIL_ENGINE_DIR, "outputs", "bridge_rehearsal_receipt.json");
 const REVIEWS_RECEIPT_PATH = path.resolve("reviews/bounty_bridge_rehearsal_latest.json");

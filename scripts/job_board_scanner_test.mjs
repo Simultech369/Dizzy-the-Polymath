@@ -8,6 +8,7 @@ import {
   runOfflineScan,
   runScanner,
   buildBridgeRequestsFromScanResults,
+  runScannerBridgeRehearsal,
 } from "./job_board_scanner.mjs";
 
 const logger = {
@@ -203,4 +204,36 @@ console.log("[test:job-board-scanner] Starting test suite...");
   console.log("  [PASS] Test 7: Bridge adapter transforms scan results into W-0112 bridge request");
 }
 
-console.log("\n[test:job-board-scanner] ALL 7 TESTS PASSED CLEANLY.\n");
+// Test 8: runScannerBridgeRehearsal executes end-to-end rehearsal and outputs validated receipts.
+{
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dizzy-scanner-rehearsal-test-"));
+  try {
+    const outputPath = path.join(tempDir, "bounty_scan_bridge_rehearsal.json");
+    const summary = await runScannerBridgeRehearsal({
+      outputPath,
+      logger,
+    });
+
+    assert.equal(summary.mode, "bridge_rehearsal");
+    assert.equal(summary.requests_count, 1);
+    assert.equal(fs.existsSync(outputPath), true);
+    const artifact = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+    assert.equal(artifact.schema_version, "dizzy.bounty_scan_bridge_rehearsal.v1");
+    assert.equal(artifact.rehearsal_authority, "rehearsal_receipt");
+    assert.equal(artifact.requests.length, 1);
+    assert.equal(artifact.requests[0].authority.requested_receipt_authority, "rehearsal_receipt");
+    if (summary.executed_count > 0) {
+      assert.equal(artifact.receipts.length, 1);
+      assert.equal(artifact.receipts[0].schema_version, "dizzy.node_python_council_bridge.response.v1");
+      assert.equal(artifact.receipts[0].receipt_authority, "rehearsal_receipt");
+      assert.equal(artifact.receipts[0].runtime_promotion_allowed, false);
+      assert.equal(artifact.receipts[0].public_claim_allowed, false);
+      assert.equal(artifact.receipts[0].rehearsal_verified, true);
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+  console.log("  [PASS] Test 8: Scanner bridge rehearsal end-to-end execution");
+}
+
+console.log("\n[test:job-board-scanner] ALL 8 TESTS PASSED CLEANLY.\n");
