@@ -1,7 +1,16 @@
 import assert from "node:assert";
 import crypto from "node:crypto";
 import { startServer } from "../agent_server.mjs";
-import { a2aBoundaryGuard, generateA2ASignature, sanitizePromptInjection, validateA2ASecret } from "../lib/a2a_boundary_guard.mjs";
+import {
+  a2aBoundaryGuard,
+  generateA2ASignature,
+  generateA2AEd25519Signature,
+  verifyA2AEd25519Signature,
+  normalizeEd25519PublicKey,
+  Ed25519TrustStore,
+  sanitizePromptInjection,
+  validateA2ASecret,
+} from "../lib/a2a_boundary_guard.mjs";
 
 console.log("=== W-0108 A2A Boundary Guard Test Suite ===");
 
@@ -191,6 +200,170 @@ try {
   assert.strictEqual(result.error, "Invalid A2A schema");
 } finally {
   await server.stop();
+}
+
+// 11. Test Ed25519 public key normalization across KeyObject, PEM, 32-byte hex, and Buffer.
+const { publicKey: edPub, privateKey: edPriv } = crypto.generateKeyPairSync("ed25519");
+const raw32Hex = edPub.export({ type: "spki", format: "der" }).subarray(-32).toString("hex");
+const pemStr = edPub.export({ type: "spki", format: "pem" });
+
+const normKey1 = normalizeEd25519PublicKey(edPub);
+const normKey2 = normalizeEd25519PublicKey(pemStr);
+const normKey3 = normalizeEd25519PublicKey(raw32Hex);
+const normKey4 = normalizeEd25519PublicKey(Buffer.from(raw32Hex, "hex"));
+
+const testMsg = Buffer.from("boundary-test-payload", "utf8");
+const testSig = crypto.sign(null, testMsg, edPriv);
+assert.strictEqual(crypto.verify(null, testMsg, normKey1, testSig), true);
+assert.strictEqual(crypto.verify(null, testMsg, normKey2, testSig), true);
+assert.strictEqual(crypto.verify(null, testMsg, normKey3, testSig), true);
+assert.strictEqual(crypto.verify(null, testMsg, normKey4, testSig), true);
+assert.throws(() => normalizeEd25519PublicKey("not-a-valid-key"), /Unsupported Ed25519 public key format/);
+
+// 12. Test Ed25519TrustStore key management and environment variable parsing.
+const trustStore = new Ed25519TrustStore();
+trustStore.addKey("peer_council", raw32Hex, { role: "council_verifier" });
+assert.strictEqual(trustStore.hasKey("peer_council"), true);
+assert.strictEqual(trustStore.hasKey("unknown_peer"), false);
+assert.strictEqual(trustStore.size(), 1);
+assert.deepStrictEqual(trustStore.keys(), ["peer_council"]);
+assert.throws(() => trustStore.addKey("bad/id/with/slashes", raw32Hex), /Invalid keyId format/);
+
+const envStore = new Ed25519TrustStore({ peer_operator: raw32Hex });
+assert.strictEqual(envStore.hasKey("peer_operator"), true);
+
+// 13. Test valid Ed25519 signed request passes a2aBoundaryGuard.
+const edGuard = a2aBoundaryGuard({ trustStore, allowedAlgorithms: ["ed25519", "hmac-sha256"] });
+function createMockEdReq(body, modifyHeaders = {}) {
+  const timestamp = Date.now().toString();
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const rawBody = JSON.stringify(body);
+  const signature = generateA2AEd25519Signature(rawBody, timestamp, nonce, edPriv);
+
+  return {
+    body,
+    rawBody,
+    headers: {
+      "x-a2a-algorithm": "ed25519",
+      "x-a2a-key-id": "peer_council",
+      "x-a2a-signature": signature,
+      "x-a2a-timestamp": timestamp,
+      "x-a2a-nonce": nonce,
+      ...modifyHeaders,
+    },
+  };
+}
+
+const validEdReq = createMockEdReq({ message: "Hello from Ed25519 Peer" });
+let edNextCalled = false;
+const edRes1 = createMockRes();
+edGuard(validEdReq, edRes1, () => { edNextCalled = true; });
+assert.strictEqual(edNextCalled, true, "Valid Ed25519 request should call next()");
+assert.strictEqual(validEdReq.a2aAuth.algorithm, "ed25519");
+assert.strictEqual(validEdReq.a2aAuth.keyId, "peer_council");
+
+// 14. Test Ed25519 signature tamper rejection (body, timestamp, nonce).
+const tamperedBodyEdReq = createMockEdReq({ message: "Original" });
+tamperedBodyEdReq.rawBody = JSON.stringify({ message: "Tampered" });
+let tamperedNext = false;
+const tamperedRes = createMockRes();
+edGuard(tamperedBodyEdReq, tamperedRes, () => { tamperedNext = true; });
+assert.strictEqual(tamperedNext, false);
+assert.strictEqual(tamperedRes.statusCode, 401);
+assert.strictEqual(tamperedRes.data.error, "Invalid A2A signature");
+
+const tamperedNonceEdReq = createMockEdReq({ message: "Tamper Nonce" });
+tamperedNonceEdReq.headers["x-a2a-nonce"] = crypto.randomBytes(16).toString("hex");
+const tamperedNonceRes = createMockRes();
+edGuard(tamperedNonceEdReq, tamperedNonceRes, () => {});
+assert.strictEqual(tamperedNonceRes.statusCode, 401);
+assert.strictEqual(tamperedNonceRes.data.error, "Invalid A2A signature");
+
+// 15. Test Ed25519 missing or unknown keyId rejection.
+const missingKeyIdReq = createMockEdReq({ message: "Missing KeyId" }, { "x-a2a-key-id": undefined });
+const missingKeyIdRes = createMockRes();
+edGuard(missingKeyIdReq, missingKeyIdRes, () => {});
+assert.strictEqual(missingKeyIdRes.statusCode, 401);
+assert.strictEqual(missingKeyIdRes.data.error, "Missing x-a2a-key-id header for Ed25519 signature");
+
+const unknownKeyIdReq = createMockEdReq({ message: "Unknown KeyId" }, { "x-a2a-key-id": "unknown_peer" });
+const unknownKeyIdRes = createMockRes();
+edGuard(unknownKeyIdReq, unknownKeyIdRes, () => {});
+assert.strictEqual(unknownKeyIdRes.statusCode, 401);
+assert.strictEqual(unknownKeyIdRes.data.error, "Unknown A2A key ID");
+
+// 16. Test Ed25519 malformed signature length rejection.
+const malformedSigReq = createMockEdReq({ message: "Malformed Sig" }, { "x-a2a-signature": "abcd1234" });
+const malformedSigRes = createMockRes();
+edGuard(malformedSigReq, malformedSigRes, () => {});
+assert.strictEqual(malformedSigRes.statusCode, 401);
+assert.strictEqual(malformedSigRes.data.error, "Invalid A2A signature");
+
+// 17. Test Algorithm Pinning and Downgrade Rejection.
+const edOnlyGuard = a2aBoundaryGuard({ trustStore, allowedAlgorithms: ["ed25519"] });
+const hmacReqToEdOnly = createMockReq({ message: "Attempt HMAC downgrade" });
+const hmacToEdRes = createMockRes();
+edOnlyGuard(hmacReqToEdOnly, hmacToEdRes, () => {});
+assert.strictEqual(hmacToEdRes.statusCode, 401);
+assert.strictEqual(hmacToEdRes.data.error, "Unsupported A2A signature algorithm");
+
+const hmacOnlyGuard = a2aBoundaryGuard({ secretKey: SECRET, allowedAlgorithms: ["hmac-sha256"] });
+const edReqToHmacOnly = createMockEdReq({ message: "Attempt Ed25519 on HMAC-only guard" });
+const edToHmacRes = createMockRes();
+hmacOnlyGuard(edReqToHmacOnly, edToHmacRes, () => {});
+assert.strictEqual(edToHmacRes.statusCode, 401);
+assert.strictEqual(edToHmacRes.data.error, "Unsupported A2A signature algorithm");
+
+const unknownAlgoReq = createMockReq({ message: "Unknown algorithm" }, { "x-a2a-algorithm": "rot13" });
+const unknownAlgoRes = createMockRes();
+edGuard(unknownAlgoReq, unknownAlgoRes, () => {});
+assert.strictEqual(unknownAlgoRes.statusCode, 401);
+assert.strictEqual(unknownAlgoRes.data.error, "Unsupported A2A signature algorithm");
+
+// 18. Live HTTP server route verifies Ed25519 signed incoming messages.
+const edServer = await startServer({
+  port: 0,
+  authToken: "local-test-token-123456789012345",
+  a2aTrustStore: trustStore,
+});
+try {
+  const rawBody = '{\n  "schema": "dizzy.a2a_message.v1",\n  "senderId": "peer_council",\n  "text": "Hello Ed25519 Ingress"\n}';
+  const timestamp = Date.now().toString();
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const signature = generateA2AEd25519Signature(rawBody, timestamp, nonce, edPriv);
+
+  const response = await fetch(`http://127.0.0.1:${edServer.boundPort}/api/a2a/incoming`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-a2a-algorithm": "ed25519",
+      "x-a2a-key-id": "peer_council",
+      "x-a2a-signature": signature,
+      "x-a2a-timestamp": timestamp,
+      "x-a2a-nonce": nonce,
+    },
+    body: rawBody,
+  });
+  assert.strictEqual(response.status, 200);
+  const result = await response.json();
+  assert.strictEqual(result.ok, true);
+
+  // Tampered payload over HTTP returns 401
+  const tamperedHttp = await fetch(`http://127.0.0.1:${edServer.boundPort}/api/a2a/incoming`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-a2a-algorithm": "ed25519",
+      "x-a2a-key-id": "peer_council",
+      "x-a2a-signature": signature,
+      "x-a2a-timestamp": timestamp,
+      "x-a2a-nonce": crypto.randomBytes(16).toString("hex"),
+    },
+    body: '{"tampered": true}',
+  });
+  assert.strictEqual(tamperedHttp.status, 401);
+} finally {
+  await edServer.stop();
 }
 
 console.log("A2A_BOUNDARY_GUARD_TESTS_OK");

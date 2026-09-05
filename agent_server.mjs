@@ -12,7 +12,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
-import { a2aBoundaryGuard, validateA2ASecret } from "./lib/a2a_boundary_guard.mjs";
+import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore } from "./lib/a2a_boundary_guard.mjs";
 import {
   buildStreamReceipt,
   buildSseFrame,
@@ -1196,11 +1196,20 @@ export async function createRuntime(opts = {}) {
     return { jobId: result, deduplicated: false };
   }
 
-  // External A2A boundary proof (W-0108). The route stays fail-closed until a dedicated secret is configured.
+  // External A2A boundary proof (W-0108 / W-0118). The route stays fail-closed until a dedicated secret or Ed25519 trust store is configured.
   const a2aSecret = String(opts.a2aSecret ?? process.env.DIZZY_A2A_SECRET ?? "").trim();
-  const a2aSecretValidation = validateA2ASecret(a2aSecret);
-  const a2aIngressHandlers = a2aSecretValidation.ok
-    ? [a2aBoundaryGuard(a2aSecret), requestBoundaryAuditGuard]
+  const a2aTrustStore = opts.a2aTrustStore || (process.env.DIZZY_A2A_TRUST_STORE ? Ed25519TrustStore.fromEnv() : null);
+  const a2aSecretValidation = a2aSecret ? validateA2ASecret(a2aSecret) : { ok: false, reason: "DIZZY_A2A_SECRET is required" };
+  const hasA2AAuth = a2aSecretValidation.ok || (a2aTrustStore && a2aTrustStore.size() > 0);
+  const a2aIngressHandlers = hasA2AAuth
+    ? [
+        a2aBoundaryGuard({
+          secretKey: a2aSecretValidation.ok ? a2aSecret : null,
+          trustStore: a2aTrustStore,
+          allowedAlgorithms: opts.a2aAllowedAlgorithms,
+        }),
+        requestBoundaryAuditGuard,
+      ]
     : [(_req, res) => res.status(503).json({ ok: false, error: a2aSecretValidation.reason || "DIZZY_A2A_SECRET is required" })];
   app.post("/api/a2a/incoming", ...a2aIngressHandlers, async (req, res, next) => {
     try {

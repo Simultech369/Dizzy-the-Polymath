@@ -958,6 +958,25 @@ Consequences:
 
 ---
 
+### D-0047: Ed25519 Ingress Authentication and Asymmetric Key Custody
+
+Decision:
+- Extend `lib/a2a_boundary_guard.mjs` and `/api/a2a/incoming` to support detached Ed25519 asymmetric signature verification alongside the existing HMAC-SHA256 path, guarded by strict algorithm pinning and an explicit public key trust store (`Ed25519TrustStore`).
+- Require `x-a2a-key-id` for Ed25519 requests to bind signatures to authorized peer identities in the trust store; reject unknown key IDs, unpinned algorithms, and signature length drifts before payload processing.
+- Prevent algorithm downgrade attacks: if a deployment configures `allowedAlgorithms`, attempting an unallowed or downgrade algorithm (e.g. attempting HMAC on an Ed25519-only guard) immediately fails closed with HTTP 401.
+- Preserve local boundary scope: this verifies asymmetric sender signatures over exact raw request bytes at the local HTTP boundary; it does not claim public cross-runtime P2P federation or decentralized key discovery.
+
+Rationale:
+- Satisfies the first technical prerequisite of W-0091: independent verification of Ed25519 ingress and key custody in the Node runtime without vendoring Python sidecar code or introducing third-party runtime dependencies.
+- Native Node.js `node:crypto` supports Ed25519 signing and verification with zero external dependencies, providing deterministic performance and strong security guarantees.
+
+Consequences:
+- `lib/a2a_boundary_guard.mjs` exports `Ed25519TrustStore`, `normalizeEd25519PublicKey`, `generateA2AEd25519Signature`, and `verifyA2AEd25519Signature`.
+- `agent_server.mjs` can initialize A2A ingress with either `a2aSecret`, `a2aTrustStore` (or `process.env.DIZZY_A2A_TRUST_STORE`), or both.
+- `scripts/a2a_boundary_test.mjs` verifies Ed25519 signature validation, trust store custody, tamper rejection, algorithm pinning, and live HTTP ingress.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
