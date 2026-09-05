@@ -9,6 +9,7 @@ This is the W-0112 promotion contract for passing Dizzy Node evidence into a qua
 - Python sidecar responses may carry `rehearsal_receipt` authority only.
 - A passing sidecar response is not a `promotion_receipt` and is not a `public_claim_receipt`.
 - Runtime promotion still requires a Node council `promotion_receipt`.
+- Sidecar sandbox and egress evidence is bounded by [`sidecar_sandbox_and_egress_boundary.md`](sidecar_sandbox_and_egress_boundary.md).
 
 ## Canonical Payload Hash
 
@@ -36,6 +37,8 @@ It covers:
 - a tampered payload that reuses the old bridge hash;
 - a legacy hash-scope overload where only `bounty_task.payload_sha256` exists;
 - a request that improperly asks for runtime promotion authority.
+- mock/simulated sidecar execution remaining rehearsal-only;
+- live sidecar execution claims being rejected unless a verified container and egress proof is attached.
 
 The deterministic validator is [`lib/node_python_council_bridge_contract.mjs`](../lib/node_python_council_bridge_contract.mjs), and its gate is:
 
@@ -47,4 +50,4 @@ npm run test:node-python-bridge-contract
 
 The quarantined Python bridge runner has been repaired to reject a tampered payload when its local canonical hash check fails. That repair remains sidecar evidence only.
 
-For promotion, the sidecar must satisfy this Node-owned contract shape: full bridge integrity in `integrity.payload_sha256`, task-level integrity in `payload.bounty_task.payload_sha256`, and rehearsal-only response authority unless a later Node council promotion gate accepts a narrow mechanism.
+For promotion, the sidecar must satisfy this Node-owned contract shape: full bridge integrity in `integrity.payload_sha256`, task-level integrity in `payload.bounty_task.payload_sha256`, rehearsal-only response authority, and W-0116 sandbox/egress proof rules unless a later Node council promotion gate accepts a narrow mechanism.

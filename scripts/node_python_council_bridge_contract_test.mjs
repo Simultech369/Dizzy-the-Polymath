@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   BRIDGE_CANONICALIZATION,
   NODE_PYTHON_BRIDGE_CONTRACT_RECEIPT_SCHEMA,
+  SIDECAR_LIVE_CONTAINER_PROOF_SCHEMA,
   canonicalBridgePayloadSha256,
   stableJson,
   createBridgeRequest,
@@ -19,6 +20,17 @@ const fixtures = JSON.parse(fs.readFileSync(fixturesPath, "utf8"));
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergePatch(target, patch) {
+  for (const [key, value] of Object.entries(patch || {})) {
+    if (isPlainObject(value) && isPlainObject(target[key])) mergePatch(target[key], value);
+    else target[key] = deepClone(value);
+  }
 }
 
 function applyMutation(target, mutation) {
@@ -97,6 +109,27 @@ assert.ok(unsafeCodes.includes("UNSAFE_RESPONSE_RECEIPT_AUTHORITY"));
 assert.ok(unsafeCodes.includes("PUBLIC_CLAIM_NOT_ALLOWED"));
 console.log("  [PASS] sidecar response cannot escalate to public or promotion authority");
 
+for (const fixture of fixtures.response_sandbox_boundary_cases) {
+  const response = deepClone(fixtures.valid_bridge_response);
+  mergePatch(response, fixture.response_patch);
+  const result = validateBridgeResponse(response, validRequest);
+  const actualCodes = result.errors.map((error) => error.code);
+  assert.equal(result.ok, fixture.expected_ok, `${fixture.name} expected ok=${fixture.expected_ok}, got ${JSON.stringify(result.errors)}`);
+  for (const expectedCode of fixture.expected_error_codes || []) {
+    assert.ok(
+      actualCodes.includes(expectedCode),
+      `${fixture.name} expected ${expectedCode}, got ${actualCodes.join(", ")}`
+    );
+  }
+  if (response.execution_environment?.live_container_proof) {
+    assert.equal(
+      response.execution_environment.live_container_proof.schema_version,
+      SIDECAR_LIVE_CONTAINER_PROOF_SCHEMA
+    );
+  }
+  console.log(`  [PASS] sidecar sandbox boundary case: ${fixture.name}`);
+}
+
 const mockScanResult = {
   opportunity: {
     opportunity_id: "mock_test_opp",
@@ -126,6 +159,7 @@ const receipt = {
     valid_request: true,
     valid_response: true,
     negative_request_cases: fixtures.negative_request_cases.map((fixture) => fixture.name),
+    response_sandbox_boundary_cases: fixtures.response_sandbox_boundary_cases.map((fixture) => fixture.name),
     unsafe_response_escalation: true,
   },
   invariants_verified: [
@@ -133,6 +167,8 @@ const receipt = {
     "bounty_task_payload_sha256_remains_task_digest",
     "tampered_payload_reusing_old_hash_is_rejected",
     "sidecar_response_authority_is_rehearsal_only",
+    "simulated_sidecar_execution_cannot_promote_or_make_public_claims",
+    "live_sidecar_execution_claim_requires_verified_container_and_egress_proof",
     "contract_promotion_does_not_promote_python_runtime",
   ],
 };

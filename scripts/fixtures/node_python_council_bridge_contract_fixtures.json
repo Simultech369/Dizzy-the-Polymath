@@ -114,6 +114,125 @@
     "sidecar_backend": "python_council_sidecar_quarantined",
     "rehearsal_verified": true
   },
+  "response_sandbox_boundary_cases": [
+    {
+      "name": "simulated_mock_execution_remains_rehearsal_only",
+      "response_patch": {
+        "execution_environment": {
+          "isolation_mode": "LOCAL_SUBPROCESS_MOCK",
+          "container_engine": "docker_mock",
+          "execution_mode": "SIMULATED",
+          "network_isolated": false
+        }
+      },
+      "expected_ok": true
+    },
+    {
+      "name": "mock_execution_cannot_claim_promotion",
+      "response_patch": {
+        "receipt_authority": "promotion_receipt",
+        "execution_environment": {
+          "isolation_mode": "LOCAL_SUBPROCESS_MOCK",
+          "container_engine": "docker_mock",
+          "execution_mode": "SIMULATED",
+          "network_isolated": false
+        }
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "UNSAFE_RESPONSE_RECEIPT_AUTHORITY",
+        "MOCK_SANDBOX_CANNOT_PROMOTE"
+      ]
+    },
+    {
+      "name": "live_execution_claim_requires_verified_container_proof",
+      "response_patch": {
+        "execution_environment": {
+          "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+          "container_engine": "docker",
+          "execution_mode": "LIVE",
+          "network_isolated": true,
+          "egress_chokepoint_verified": true
+        }
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "LIVE_EXECUTION_REQUIRES_CONTAINER_PROOF"
+      ]
+    },
+    {
+      "name": "live_execution_claim_rejects_unverified_egress_proof",
+      "response_patch": {
+        "execution_environment": {
+          "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+          "container_engine": "docker",
+          "execution_mode": "LIVE",
+          "network_isolated": true,
+          "live_container_proof": {
+            "schema_version": "dizzy.sidecar.live_container_proof.v1",
+            "proof_verified": true,
+            "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+            "container_engine": "docker",
+            "execution_mode": "LIVE",
+            "network_isolated": true,
+            "egress_chokepoint_verified": false,
+            "container_image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "EGRESS_CHOKEPOINT_PROOF_REQUIRED"
+      ]
+    },
+    {
+      "name": "live_execution_claim_rejects_contradictory_mock_engine",
+      "response_patch": {
+        "execution_environment": {
+          "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+          "container_engine": "docker_mock",
+          "execution_mode": "LIVE",
+          "network_isolated": true,
+          "live_container_proof": {
+            "schema_version": "dizzy.sidecar.live_container_proof.v1",
+            "proof_verified": true,
+            "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+            "container_engine": "docker",
+            "execution_mode": "LIVE",
+            "network_isolated": true,
+            "egress_chokepoint_verified": true,
+            "container_image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "INVALID_LIVE_CONTAINER_ENGINE"
+      ]
+    },
+    {
+      "name": "live_execution_claim_with_verified_container_proof_remains_rehearsal_response",
+      "response_patch": {
+        "execution_environment": {
+          "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+          "container_engine": "docker",
+          "execution_mode": "LIVE",
+          "network_isolated": true,
+          "live_container_proof": {
+            "schema_version": "dizzy.sidecar.live_container_proof.v1",
+            "proof_verified": true,
+            "isolation_mode": "DOCKER_CONTAINER_ENFORCED",
+            "container_engine": "docker",
+            "execution_mode": "LIVE",
+            "network_isolated": true,
+            "egress_chokepoint_verified": true,
+            "container_image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "expected_ok": true
+    }
+  ],
   "negative_request_cases": [
     {
       "name": "tampered_title_reuses_bridge_hash",

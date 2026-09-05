@@ -919,6 +919,26 @@ Consequences:
 
 ---
 
+### D-0045: Sidecar Sandbox and Egress Promotion Gate
+
+Decision:
+- Keep mock or simulated Python sidecar execution locked to `advisory_receipt` or `rehearsal_receipt` authority.
+- Require any sidecar response claiming live execution to carry a verified live container proof before Node accepts the execution claim.
+- Require that live proof to show enforced container isolation, `LIVE` execution, Docker or Podman execution, network isolation, an egress chokepoint check, and a SHA-256 container image digest.
+- Preserve Node council promotion authority: even a verified live container proof is not itself a Python runtime promotion.
+
+Rationale:
+- The quarantined sidecar can produce useful dry-run receipts on Windows without proving container isolation.
+- Live Get Me A JOB or PBM intake would feed untrusted external text toward model and execution paths; that must stay rehearsal-only until sandboxing and egress controls are independently proven.
+
+Consequences:
+- `docs/sidecar_sandbox_and_egress_boundary.md` defines the public-safe W-0116 boundary.
+- `lib/node_python_council_bridge_contract.mjs` rejects live execution claims without verified sandbox/egress proof.
+- `scripts/node_python_council_bridge_contract_test.mjs` keeps mock execution from escalating and tests live-proof rejection before any bounty firehose is connected.
+- W-0091 remains open for the broader sidecar promotion blockers, including key custody, public A2A authentication, path-jail evidence, and non-mock sandbox operations.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -1133,6 +1153,18 @@ Edit this block when you want to change what agents read.
     ],
     "promotion_requires": "promotion_receipt",
     "public_claim_requires": "public_claim_receipt",
+    "sidecar_sandbox_boundary": {
+      "mock_or_simulated_max_authority": "rehearsal_receipt",
+      "live_execution_claim_requires": [
+        "DOCKER_CONTAINER_ENFORCED",
+        "LIVE",
+        "docker_or_podman",
+        "network_isolated",
+        "egress_chokepoint_verified",
+        "sha256_container_image_digest"
+      ],
+      "node_gate": "lib/node_python_council_bridge_contract.mjs"
+    },
     "rule": "A passing check proves only the authority level named by its receipt; lower-authority receipts can guide planning, but do not authorize runtime promotion or public claims."
   },
   "memory_lifecycle": {
