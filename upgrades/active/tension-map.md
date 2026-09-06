@@ -3,7 +3,7 @@ id: U-tension-map
 status: active
 tier: 2
 owner_surface: DESIGN.md
-last_reviewed: 2026-07-22
+last_reviewed: 2026-09-06
 next_action: Use to decide which contradictions deserve runtime implementation or explicit deferral.
 ---
 
