@@ -13,6 +13,7 @@ import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } fro
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
 import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore } from "./lib/a2a_boundary_guard.mjs";
+import { A2AMailboxQueue, A2A_MESSAGE_SCHEMA, A2A_SIGNED_ENVELOPE_SCHEMA } from "./lib/a2a_mailbox_bridge.mjs";
 import {
   buildStreamReceipt,
   buildSseFrame,
@@ -138,7 +139,10 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/receipts-telemetry"
     || pathname === "/api/operator/run-scenario-simulation"
     || pathname === "/api/operator/tension-map"
-    || pathname === "/api/operator/job-opportunities";
+    || pathname === "/api/operator/job-opportunities"
+    || pathname === "/api/a2a/mailbox/stats"
+    || pathname === "/api/a2a/mailbox/dequeue"
+    || pathname === "/api/a2a/mailbox/ack";
 }
 
 function parseBool(value, fallback = false) {
@@ -1201,6 +1205,13 @@ export async function createRuntime(opts = {}) {
   const a2aTrustStore = opts.a2aTrustStore || (process.env.DIZZY_A2A_TRUST_STORE ? Ed25519TrustStore.fromEnv() : null);
   const a2aSecretValidation = a2aSecret ? validateA2ASecret(a2aSecret) : { ok: false, reason: "DIZZY_A2A_SECRET is required" };
   const hasA2AAuth = a2aSecretValidation.ok || (a2aTrustStore && a2aTrustStore.size() > 0);
+
+  const a2aMailboxQueue = new A2AMailboxQueue({
+    requireSignature: opts.a2aRequireSignature ?? parseBool(process.env.DIZZY_A2A_REQUIRE_SIGNATURE, false),
+    trustStore: a2aTrustStore,
+    secretKey: a2aSecretValidation.ok ? a2aSecret : null,
+    allowedAlgorithms: opts.a2aAllowedAlgorithms,
+  });
   const a2aIngressHandlers = hasA2AAuth
     ? [
         a2aBoundaryGuard({
@@ -1213,9 +1224,23 @@ export async function createRuntime(opts = {}) {
     : [(_req, res) => res.status(503).json({ ok: false, error: a2aSecretValidation.reason || "DIZZY_A2A_SECRET is required" })];
   app.post("/api/a2a/incoming", ...a2aIngressHandlers, async (req, res, next) => {
     try {
-      if (req.body?.schema !== "dizzy.a2a_message.v1") {
+      const isEnvelope = req.body?.schema_version === A2A_SIGNED_ENVELOPE_SCHEMA;
+      const isMessage = req.body?.schema_version === A2A_MESSAGE_SCHEMA || req.body?.schema === "dizzy.a2a_message.v1";
+
+      if (!isEnvelope && !isMessage) {
         return res.status(400).json({ ok: false, error: "Invalid A2A schema" });
       }
+
+      // If it's a new schema version, try enqueueing it in the mailbox queue
+      if (req.body?.schema_version === A2A_SIGNED_ENVELOPE_SCHEMA || req.body?.schema_version === A2A_MESSAGE_SCHEMA) {
+        try {
+          const receipt = a2aMailboxQueue.enqueue(req.body);
+          return res.json({ ok: true, receipt });
+        } catch (err) {
+          return res.status(400).json({ ok: false, error: err.message });
+        }
+      }
+
       if (!req.body?.senderId || typeof req.body.senderId !== "string") {
         return res.status(400).json({ ok: false, error: "Missing sender identity" });
       }
@@ -1234,6 +1259,39 @@ export async function createRuntime(opts = {}) {
       res.json({ ok: true, ...out });
     } catch (e) {
       next(e);
+    }
+  });
+
+  app.get("/api/a2a/mailbox/stats", operatorControlAuthGuard, (req, res) => {
+    res.json({ ok: true, stats: a2aMailboxQueue.getStats() });
+  });
+
+  app.post("/api/a2a/mailbox/dequeue", operatorControlAuthGuard, (req, res) => {
+    try {
+      const messages = a2aMailboxQueue.dequeue({
+        recipientId: req.body?.recipientId,
+        limit: req.body?.limit,
+        leaseTimeoutMs: req.body?.leaseTimeoutMs,
+      });
+      res.json({ ok: true, messages });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.post("/api/a2a/mailbox/ack", operatorControlAuthGuard, (req, res) => {
+    try {
+      const receipt = a2aMailboxQueue.acknowledge({
+        messageId: req.body?.messageId,
+        leaseToken: req.body?.leaseToken,
+        outcome: req.body?.outcome,
+      });
+      if (receipt.ok === false) {
+        return res.status(400).json({ ok: false, error: receipt.error });
+      }
+      res.json({ ok: true, receipt });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error.message });
     }
   });
 

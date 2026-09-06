@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import {
   createA2AMessage,
   createA2AHandoffPacket,
   A2AMailboxQueue,
+  signA2AMessageEnvelope,
+  verifyA2AMessageEnvelope,
   A2A_MESSAGE_SCHEMA,
   A2A_HANDOFF_SCHEMA,
   A2A_MAILBOX_RECEIPT_SCHEMA,
+  A2A_SIGNED_ENVELOPE_SCHEMA,
 } from "../lib/a2a_mailbox_bridge.mjs";
+import { Ed25519TrustStore } from "../lib/a2a_boundary_guard.mjs";
 
 console.log("[test:a2a-mailbox-bridge] Starting A2A Mailbox Bridge test suite...");
 
@@ -130,4 +135,177 @@ console.log("[test:a2a-mailbox-bridge] Starting A2A Mailbox Bridge test suite...
   console.log("  [PASS] Test 5: Lease expiration and recovery");
 }
 
-console.log("\n[test:a2a-mailbox-bridge] ALL 5 TESTS PASSED CLEANLY.\n");
+// Setup crypto materials for tests 6-13
+const edKeypair = crypto.generateKeyPairSync("ed25519");
+const edPrivateKey = edKeypair.privateKey;
+const edPublicKey = edKeypair.publicKey;
+const trustStore = new Ed25519TrustStore();
+trustStore.addKey("codex", edPublicKey);
+
+const hmacSecret = "super-secret-hmac-key";
+
+// Test 6: Ed25519 signing and verification (valid flow)
+{
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "task_result",
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+  });
+  
+  assert.equal(envelope.schema_version, A2A_SIGNED_ENVELOPE_SCHEMA);
+  assert.equal(envelope.signature_algorithm, "ed25519");
+  
+  const result = verifyA2AMessageEnvelope(envelope, { trustStore });
+  assert.equal(result.ok, true);
+  console.log("  [PASS] Test 6: Ed25519 signing and verification (valid flow)");
+}
+
+// Test 7: HMAC-SHA256 signing and verification (valid flow)
+{
+  const msg = createA2AMessage({
+    senderId: "antigravity",
+    recipientId: "codex",
+    messageType: "heartbeat",
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "hmac-sha256",
+    secretKey: hmacSecret,
+  });
+  
+  assert.equal(envelope.signature_algorithm, "hmac-sha256");
+  
+  const result = verifyA2AMessageEnvelope(envelope, { secretKey: hmacSecret });
+  assert.equal(result.ok, true);
+  console.log("  [PASS] Test 7: HMAC-SHA256 signing and verification (valid flow)");
+}
+
+// Test 8: Tamper rejection (modify payload after signing)
+{
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "task_result",
+    payload: { valid: true }
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+  });
+  
+  // Tamper!
+  envelope.message.payload = { valid: false };
+  
+  const result = verifyA2AMessageEnvelope(envelope, { trustStore });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /Payload digest mismatch/);
+  console.log("  [PASS] Test 8: Tamper rejection (modify payload after signing)");
+}
+
+// Test 9: Clock skew rejection
+{
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "heartbeat",
+  });
+  // Sign with an old timestamp
+  const oldNow = () => new Date(Date.now() - 600_000); // 10 minutes ago
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+    now: oldNow,
+  });
+  
+  const result = verifyA2AMessageEnvelope(envelope, { trustStore }); // default 5m skew
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /clock skew/);
+  console.log("  [PASS] Test 9: Clock skew rejection");
+}
+
+// Test 10: Duplicate nonce / replay rejection
+{
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "task_result",
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+  });
+  
+  const seenNonces = new Set();
+  const res1 = verifyA2AMessageEnvelope(envelope, { trustStore, seenNonces });
+  assert.equal(res1.ok, true);
+  
+  const res2 = verifyA2AMessageEnvelope(envelope, { trustStore, seenNonces });
+  assert.equal(res2.ok, false);
+  assert.match(res2.reason, /Replay attack detected/);
+  console.log("  [PASS] Test 10: Duplicate nonce / replay rejection");
+}
+
+// Test 11: Algorithm downgrade attack
+{
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "heartbeat",
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "hmac-sha256",
+    secretKey: hmacSecret,
+  });
+  
+  const result = verifyA2AMessageEnvelope(envelope, {
+    trustStore,
+    secretKey: hmacSecret,
+    allowedAlgorithms: ["ed25519"] // Downgrade rejection!
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /not permitted by policy/);
+  console.log("  [PASS] Test 11: Algorithm downgrade attack");
+}
+
+// Test 12: requireSignature queue mechanics
+{
+  const mailbox = new A2AMailboxQueue({ requireSignature: true, trustStore });
+  const msg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "heartbeat",
+  });
+  
+  // Unsigned should fail
+  assert.throws(() => mailbox.enqueue(msg), /requires cryptographically signed envelopes/);
+  
+  // Signed should pass
+  const envelope = signA2AMessageEnvelope(msg, { algorithm: "ed25519", privateKey: edPrivateKey });
+  const receipt = mailbox.enqueue(envelope);
+  assert.equal(receipt.action, "ENQUEUED");
+  assert.equal(receipt.signed, true);
+  console.log("  [PASS] Test 12: requireSignature queue mechanics");
+}
+
+// Test 13: Invalid signer key rejection
+{
+  const msg = createA2AMessage({
+    senderId: "unknown_agent",
+    recipientId: "antigravity",
+    messageType: "heartbeat",
+  });
+  const envelope = signA2AMessageEnvelope(msg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey, // Used codex's key, but sender is unknown_agent
+  });
+  
+  const result = verifyA2AMessageEnvelope(envelope, { trustStore });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /not found in trustStore/);
+  console.log("  [PASS] Test 13: Invalid signer key rejection");
+}
+
+console.log("\n[test:a2a-mailbox-bridge] ALL 13 TESTS PASSED CLEANLY.\n");
