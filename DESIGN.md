@@ -1020,6 +1020,28 @@ Consequences:
 
 ---
 
+### D-0050: Memory Consolidation Trust And Sensitivity Partitions
+
+Decision:
+- Treat CognitiveMemoryEngine consolidation scope as `canonical_key + trust_zone + sensitivity_tier`, not canonical key alone.
+- Keep same-key records in separate Markdown pages when trust zone or sensitivity differs.
+- Preserve public retrieval filtering as a final guard, but rely on construction-time separation so private or `do_not_export` content is not appended into public-safe records.
+- Keep MemoryWikiAdapter separate from CognitiveMemoryEngine policy. This fix does not promote mutable wiki state into Council receipt authority.
+
+Rationale:
+- Same-topic memory can exist at different disclosure levels. Merging it into one record lets the older record's public-safe classification mask newly appended private content.
+- Separate page paths make the boundary visible in normal diffs and prevent same-key wiki writes from silently overwriting a different disclosure partition.
+- This closes the W-0121 leak before any memory/wiki state is wired into higher-authority bridge or Council flows.
+
+Consequences:
+- `capture()` only consolidates duplicate content inside the same trust and sensitivity partition.
+- `consolidate()` groups by the same partition key.
+- Same-key captures with different trust or sensitivity remain separate active memories and receive distinct `entries/*.md` page paths when needed.
+- `npm run test:cognitive-memory` includes a regression proving a `private_self/do_not_export` same-key capture is not returned through `paid_public` retrieval.
+- Remaining memory work should focus on lifecycle semantics and operator-approved promotion boundaries, not generic vector memory expansion.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

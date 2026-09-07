@@ -147,6 +147,109 @@ try {
   }
 
   {
+    const publicCapture = engine.capture({
+      content: "Always publish only sanitized memory boundary fixture receipts for collaborators.",
+      canonicalKey: "zone-boundary-fixture",
+      trustZone: "paid_public",
+      sensitivityTier: "public_safe",
+      memoryClass: "durable",
+      confidence: 0.86,
+    });
+    assert.equal(publicCapture.decision, "captured");
+
+    const privateCapture = engine.capture({
+      content: "Always keep private raw memory boundary fixture omega secret inside private notes.",
+      canonicalKey: "zone-boundary-fixture",
+      trustZone: "private_self",
+      sensitivityTier: "do_not_export",
+      memoryClass: "durable",
+      confidence: 0.91,
+    });
+    assert.equal(privateCapture.decision, "captured");
+    assert.notEqual(privateCapture.memory.memory_id, publicCapture.memory.memory_id);
+    assert.notEqual(privateCapture.memory.page_path, publicCapture.memory.page_path);
+
+    const sameKey = engine.list().filter((m) => m.canonical_key === "zone-boundary-fixture");
+    assert.equal(sameKey.length, 2);
+    assert.equal(sameKey.some((m) => m.sensitivity_tier === "do_not_export"), true);
+    assert.equal(sameKey.every((m) => fs.existsSync(path.join(wikiRootPath, m.page_path))), true);
+
+    const publicResult = engine.retrieve("omega memory boundary fixture receipts", {
+      trustZone: "paid_public",
+      limit: 5,
+    });
+    assert.ok(publicResult.memories.some((m) => m.memory_id === publicCapture.memory.memory_id));
+    assert.equal(publicResult.memories.some((m) => m.content.includes("omega secret")), false);
+    assert.equal(publicResult.memories.some((m) => m.sensitivity_tier === "do_not_export"), false);
+
+    console.log("  [PASS] Test 6: Same-key consolidation preserves trust-zone and sensitivity partitions");
+  }
+
+  {
+    const legacyCollisionRoot = path.join(tempDir, "legacy-collision-wiki");
+    const legacyCollisionEngine = new CognitiveMemoryEngine({
+      wikiRootPath: legacyCollisionRoot,
+      duplicateThreshold: 0.1,
+      now: () => fixedNow,
+      memories: [
+        {
+          schema_version: "dizzy.cognitive_memory.v1",
+          memory_id: "mem_legacy_public",
+          memory_class: "durable",
+          canonical_key: "legacy-zone-boundary",
+          polarity: 1,
+          content: "Always publish sanitized legacy boundary fixture receipts.",
+          normalized_content: "always publish sanitized legacy boundary fixture receipts",
+          content_sha256: "placeholder_public",
+          trust_zone: "paid_public",
+          sensitivity_tier: "public_safe",
+          confidence: 0.86,
+          reinforcement_count: 1,
+          status: "active",
+          captured_at: fixedNow.toISOString(),
+          updated_at: fixedNow.toISOString(),
+          last_accessed_at: fixedNow.toISOString(),
+          page_path: "entries/legacy-zone-boundary.md",
+        },
+        {
+          schema_version: "dizzy.cognitive_memory.v1",
+          memory_id: "mem_legacy_private",
+          memory_class: "durable",
+          canonical_key: "legacy-zone-boundary",
+          polarity: 1,
+          content: "Always keep legacy boundary fixture omega secret in private memory.",
+          normalized_content: "always keep legacy boundary fixture omega secret in private memory",
+          content_sha256: "placeholder_private",
+          trust_zone: "private_self",
+          sensitivity_tier: "do_not_export",
+          confidence: 0.91,
+          reinforcement_count: 1,
+          status: "active",
+          captured_at: fixedNow.toISOString(),
+          updated_at: fixedNow.toISOString(),
+          last_accessed_at: fixedNow.toISOString(),
+          page_path: "entries/legacy-zone-boundary.md",
+        },
+      ],
+    });
+
+    const consolidated = legacyCollisionEngine.consolidate({ now: fixedNow });
+    assert.equal(consolidated.consolidated_count, 0);
+    const legacyMemories = legacyCollisionEngine.list();
+    assert.equal(legacyMemories.length, 2);
+    assert.notEqual(legacyMemories[0].page_path, legacyMemories[1].page_path);
+    assert.equal(legacyMemories.every((m) => fs.existsSync(path.join(legacyCollisionRoot, m.page_path))), true);
+
+    const publicResult = legacyCollisionEngine.retrieve("legacy omega boundary fixture", {
+      trustZone: "paid_public",
+      limit: 5,
+    });
+    assert.equal(publicResult.memories.some((m) => m.content.includes("omega secret")), false);
+
+    console.log("  [PASS] Test 7: Legacy same-key page collisions are partitioned before save");
+  }
+
+  {
     const oldNow = new Date("2027-02-28T12:00:00.000Z");
     const decayed = engine.decay({ now: oldNow });
     assert.ok(decayed.decayed_count >= 1);
@@ -158,7 +261,7 @@ try {
     assert.ok(readWiki("index.md").includes("## Archived Memories"));
     assert.ok(readWiki(path.join("entries", "public-readiness-priority.md")).includes("Status: archived"));
 
-    console.log("  [PASS] Test 6: Decay updates Markdown pages and archives expired memories");
+    console.log("  [PASS] Test 8: Decay updates Markdown pages and archives expired memories");
   }
 
   {
@@ -190,7 +293,7 @@ try {
       includeContent: true,
     }), /Cannot export raw memory content/);
 
-    console.log("  [PASS] Test 7: A2A memory update envelope carries wiki references and respects export boundary");
+    console.log("  [PASS] Test 9: A2A memory update envelope carries wiki references and respects export boundary");
   }
 
   assert.ok(fs.existsSync(path.join(wikiRootPath, "index.md")), "Expected Markdown wiki index to be written");
@@ -198,4 +301,4 @@ try {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }
 
-console.log("\n[test:cognitive-memory] ALL 7 TESTS PASSED CLEANLY.\n");
+console.log("\n[test:cognitive-memory] ALL 9 TESTS PASSED CLEANLY.\n");

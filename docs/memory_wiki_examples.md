@@ -8,7 +8,7 @@ These examples are proof-bound to `scripts/cognitive_memory_engine_test.mjs` and
 
 | Layer | Owns | Writes |
 | --- | --- | --- |
-| `lib/cognitive_memory_engine.mjs` | Capture classification, duplicate consolidation, trust-zone retrieval, conflict reconciliation, confidence decay, and A2A memory update envelopes | Compiled traversal wiki pages under `memory/wiki/index.md`, `memory/wiki/entries/*.md`, `memory/wiki/SCHEMA.md`, and `memory/wiki/log.md` when configured with a wiki root |
+| `lib/cognitive_memory_engine.mjs` | Capture classification, duplicate consolidation, trust-zone retrieval, conflict reconciliation, confidence decay, and A2A memory update envelopes | Compiled traversal wiki pages under `memory/wiki/index.md`, trust/sensitivity-partitioned `memory/wiki/entries/*.md`, `memory/wiki/SCHEMA.md`, and `memory/wiki/log.md` when configured with a wiki root |
 | `lib/memory_wiki_adapter.mjs` | Path-confined Markdown file I/O for category-partitioned notes and frontmatter safety | Human-curated adapter pages under `memory/wiki/{preferences,projects,models,archive}/` |
 
 The engine owns memory policy and scoring. The adapter owns filesystem safety for Markdown note I/O. Keeping them separate prevents a frontmatter or path-handling change from silently becoming memory-policy authority.
@@ -20,7 +20,8 @@ The focused engine test creates a temporary wiki root and runs the five lifecycl
 | Stage | Example input | Markdown evidence | Receipt evidence |
 | --- | --- | --- | --- |
 | Capture | `engine.capture({ content: "Always use absolute paths in handoff artifacts for Josh.", canonicalKey: "handoff-path-style" })` | Writes `index.md`, `SCHEMA.md`, `log.md`, and `entries/handoff-path-style.md` | Capture receipt uses `dizzy.cognitive_memory_receipt.v1` and `storage: "markdown_wiki"` |
-| Consolidate | A second capture with the same canonical key and compatible polarity | Updates `entries/handoff-path-style.md` with a `Consolidated note (...)` block and increments reinforcement | Consolidate receipt names the target memory and wiki page |
+| Consolidate | A second capture with the same canonical key, compatible polarity, trust zone, and sensitivity tier | Updates `entries/handoff-path-style.md` with a `Consolidated note (...)` block and increments reinforcement | Consolidate receipt names the target memory and wiki page |
+| Partition | A same-key capture crossing trust zone or sensitivity tier, such as `paid_public/public_safe` beside `private_self/do_not_export` | Keeps separate active memories and separate page paths so private content cannot be appended into the public-safe page | Capture receipt stays scoped to the new memory; public retrieval does not return the private record |
 | Retrieve | `engine.retrieve("handoff absolute paths testing public collaborator", { trustZone: "private_self" })` | Returns `wiki_page: "entries/handoff-path-style.md"` and updates access metadata through a save | Retrieve receipt records query hash, `traversal_index: "index.md"`, returned page paths, and memory IDs |
 | Reconcile | A contradictory capture with the same canonical key, such as "Do not use absolute paths in handoff artifacts." | Does not overwrite the active page; appends `reconcile | flag_conflict` to `log.md` | Reconcile receipt returns `flag_conflict`, conflict count, conflicting memory IDs, and wiki page references |
 | Decay | `engine.decay({ now: futureDate })` after an expiring memory passes its expiry window | Marks expired pages as `Status: archived` and lists them under `## Archived Memories` in `index.md` | Decay receipt records decayed and archived counts |
