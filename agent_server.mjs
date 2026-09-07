@@ -14,6 +14,7 @@ import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
 import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore } from "./lib/a2a_boundary_guard.mjs";
 import { A2AMailboxQueue, A2A_MESSAGE_SCHEMA, A2A_SIGNED_ENVELOPE_SCHEMA } from "./lib/a2a_mailbox_bridge.mjs";
+import { buildCouncilBridgeStatus } from "./lib/council_bridge_status.mjs";
 import {
   buildStreamReceipt,
   buildSseFrame,
@@ -140,6 +141,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/run-scenario-simulation"
     || pathname === "/api/operator/tension-map"
     || pathname === "/api/operator/job-opportunities"
+    || pathname === "/api/operator/council-bridge-status"
     || pathname === "/api/a2a/mailbox/stats"
     || pathname === "/api/a2a/mailbox/dequeue"
     || pathname === "/api/a2a/mailbox/ack";
@@ -156,7 +158,7 @@ function parsePositiveInt(value, fallback) {
 }
 
 function registerDashboardFallbackRoutes(app, { enabled } = {}) {
-  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit", "/api/operator/hardware-status", "/api/operator/consensus-map", "/api/operator/sandbox-preflight", "/api/operator/tension-map", "/api/operator/job-opportunities"]) {
+  for (const route of ["/dashboard", "/assets/dashboard.js", "/assets/dashboard-login.js", "/api/dashboard-data", "/api/dashboard-query", "/api/operator-continuity", "/api/operator-continuity/export", "/api/operator-continuity/audit", "/api/operator/hardware-status", "/api/operator/consensus-map", "/api/operator/sandbox-preflight", "/api/operator/tension-map", "/api/operator/job-opportunities", "/api/operator/council-bridge-status"]) {
     app.get(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({
@@ -671,6 +673,10 @@ export async function createRuntime(opts = {}) {
   const clearDashboardSession = () => {
     dashboardSessionToken = "";
     dashboardSessionExpiresAt = 0;
+  };
+  const operatorDashboardReadAuthGuard = (req, res, next) => {
+    if (dashboardEnabled && hasDashboardSession(req)) return next();
+    return operatorControlAuthGuard(req, res, next);
   };
 
   const hasAnyToken = Boolean(authToken || executeToken || notifyToken);
@@ -1264,6 +1270,17 @@ export async function createRuntime(opts = {}) {
 
   app.get("/api/a2a/mailbox/stats", operatorControlAuthGuard, (req, res) => {
     res.json({ ok: true, stats: a2aMailboxQueue.getStats() });
+  });
+
+  app.get("/api/operator/council-bridge-status", operatorDashboardReadAuthGuard, (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      ok: true,
+      bridge_status: buildCouncilBridgeStatus({
+        mailboxStats: a2aMailboxQueue.getStats(),
+        a2aAuthConfigured: hasA2AAuth,
+      }),
+    });
   });
 
   app.post("/api/a2a/mailbox/dequeue", operatorControlAuthGuard, (req, res) => {

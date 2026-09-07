@@ -977,6 +977,49 @@ Consequences:
 
 ---
 
+### D-0048: Cryptographic A2A Mailbox Envelopes & Leased Dispatch Receipts
+
+Decision:
+- Support strict cryptographic signing on A2A envelopes (`dizzy.a2a_signed_envelope.v1`) before enqueueing them into the Mailbox Queue when signed-envelope mode is configured.
+- The queue issues leased dispatch receipts (`dizzy.a2a_dispatch_receipt.v1`) during dequeue, and requires explicit acknowledgement (ACK) matching the lease token.
+- Expired leases recover to the head of the queue when the recovery helper is invoked; continuous pruning and durable cross-process delivery remain later hardening work.
+- Keep this as a local/rehearsal handoff queue. It does not claim public A2A interoperability or Python sidecar production authority.
+
+Rationale:
+- Bridging the internal Mailbox Queue to cryptographic validation narrows replay and spoofing attack paths across local runtimes when signed-envelope mode is configured.
+- Lease-based dequeue gives the runtime a recoverable in-process delivery pattern if a consumer, including the quarantined Python sidecar, crashes mid-execution; process restart durability is not yet proven.
+- A status-visible mailbox gives the operator an HMI foothold for Council work instead of relying only on handoff documents.
+
+Consequences:
+- `/api/a2a/incoming` conditionally enqueues valid signed envelopes into `A2AMailboxQueue`.
+- Operator endpoints `/api/a2a/mailbox/stats`, `/api/a2a/mailbox/dequeue`, and `/api/a2a/mailbox/ack` expose queue management under operator-control auth.
+- The test suite checks clock skew, replay rejection, tamper rejection, algorithm downgrades, strict lease-token matching for ACK, and explicit expired lease recovery.
+- W-0120 must make this path operator-legible as a Council bridge status proof before claiming an efficient HMI bridge.
+
+---
+
+### D-0049: Council Bridge Operator Status and HMI Proof Quickstart
+
+Decision:
+- Add an operator-visible Council bridge status surface at `/api/operator/council-bridge-status`.
+- Require operator-token or authenticated dashboard-session access for the status route.
+- Report the bridge as `local_rehearsal` component visibility with `advisory_receipt` authority, no runtime promotion, and no public-claim authority.
+- Document the operator inspection path in `docs/council_bridge_quickstart.md`.
+- Add a Markdown encoding guard to the document reference check so NUL-byte or mixed-encoding docs fail before they become canonical-state drift.
+
+Rationale:
+- The bridge is now more than handoff prose, but the operator still needs a simple HMI proof showing configured Council bridge components, current mailbox counts, and which operations remain unobserved or unmeasured.
+- Status visibility should sharpen the local control plane without implying public A2A interoperability or Python sidecar production authority.
+- A canonical design file must remain plain text so deterministic doc and state checks can inspect it.
+
+Consequences:
+- `lib/council_bridge_status.mjs` builds the machine-readable status receipt.
+- `scripts/operator_telemetry_routes_test.mjs` verifies the route, the local/rehearsal authority boundary, authenticated access, and no-token fail-closed behavior.
+- `scripts/doc_reference_check.mjs` rejects tracked Markdown files that contain NUL bytes.
+- W-0091 remains open for non-mock sandbox, egress, path-jail, continuous mailbox-to-sidecar worker, response signing, and public-handshake promotion blockers.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
@@ -1614,21 +1657,3 @@ Edit this block when you want to change what agents read.
 }
 ```
 <!-- STATE_JSON:END -->
- 
- # # #   D - 0 0 4 8 :   C r y p t o g r a p h i c   A 2 A   M a i l b o x   E n v e l o p e s   &   L e a s e d   D i s p a t c h   R e c e i p t s  
-  
- D e c i s i o n :  
- -   E n f o r c e   s t r i c t   c r y p t o g r a p h i c   s i g n i n g   o n   A 2 A   e n v e l o p e s   ( d i z z y . a 2 a _ s i g n e d _ e n v e l o p e . v 1 )   b e f o r e   e n q u e u e i n g   t h e m   i n t o   t h e   M a i l b o x   Q u e u e .  
- -   T h e   q u e u e   i s s u e s   l e a s e d   d i s p a t c h   r e c e i p t s   ( d i z z y . a 2 a _ d i s p a t c h _ r e c e i p t . v 1 )   d u r i n g   d e q u e u e ,   a n d   r e q u i r e s   e x p l i c i t   c r y p t o g r a p h i c   a c k n o w l e d g e m e n t   ( A C K )   m a t c h i n g   t h e   l e a s e   t o k e n .  
- -   E x p i r e d   l e a s e s   a u t o m a t i c a l l y   r e c o v e r   t o   t h e   h e a d   o f   t h e   q u e u e .  
-  
- R a t i o n a l e :  
- -   B r i d g i n g   t h e   i n t e r n a l   M a i l b o x   Q u e u e   t o   c r y p t o g r a p h i c   v a l i d a t i o n   c l o s e s   a   m a s s i v e   r e p l a y   a n d   s p o o f i n g   a t t a c k   v e c t o r   a c r o s s   r u n t i m e s .  
- -   L e a s e - b a s e d   d e q u e u e   e n s u r e s   m e s s a g e s   a r e   n o t   l o s t   i f   a   c o n s u m e r   ( l i k e   t h e   P y t h o n   s i d e c a r )   c r a s h e s   m i d - e x e c u t i o n .  
- -   T h e   c o m b i n a t i o n   o f   t i m e s t a m p ,   n o n c e ,   p a y l o a d   h a s h ,   a n d   E d 2 5 5 1 9   g u a r a n t e e s   t a m p e r - p r o o f   a s y n c h r o n o u s   h a n d o f f s .  
-  
- C o n s e q u e n c e s :  
- -   / a p i / a 2 a / i n c o m i n g   c o n d i t i o n a l l y   e n q u e u e s   v a l i d   s i g n e d   e n v e l o p e s   i n t o   \  2 a M a i l b o x Q u e u e \ .  
- -   N e w   o p e r a t o r / d a s h b o a r d   e n d p o i n t s   \ / a p i / a 2 a / m a i l b o x / s t a t s \ ,   \ / a p i / a 2 a / m a i l b o x / d e q u e u e \ ,   a n d   \ / a p i / a 2 a / m a i l b o x / a c k \   e x p o s e   q u e u e   m a n a g e m e n t .  
- -   T h e   t e s t   s u i t e   e x p l i c i t l y   c h e c k s   c l o c k   s k e w ,   r e p l a y   r e j e c t i o n ,   t a m p e r   r e j e c t i o n ,   a n d   a l g o r i t h m   d o w n g r a d e s .  
- 

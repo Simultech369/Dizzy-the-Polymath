@@ -12,7 +12,7 @@ const REQUIRED_FILES = [
   "PROMPT_CORE.md",
   "INTERACTION_NORMS.md",
 ];
-const ACTIVE_DIRS = ["context-packs", "identity/personas", "skills"];
+const ACTIVE_DIRS = ["context-packs", "identity/personas", "skills", "docs"];
 const RETIRED_REFERENCES = ["HEARTBEAT.md", "GOVERNANCE.md"];
 const RETIRED_REFERENCE_ALLOWLIST = new Set(["EXPERIMENT_RECONCILIATION.md"]);
 
@@ -66,7 +66,12 @@ for (const rel of REQUIRED_FILES) {
 
 for (const abs of listMarkdownFiles()) {
   const rel = toRepoPath(abs);
-  const text = fs.readFileSync(abs, "utf8");
+  const buffer = fs.readFileSync(abs);
+  if (buffer.includes(0)) {
+    issues.push(`${rel}: contains NUL bytes; Markdown must be plain UTF-8 text`);
+    continue;
+  }
+  const text = buffer.toString("utf8");
   const prose = text.replace(/```[\s\S]*?```/g, "").replace(/`[^`]*`/g, "");
   const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const status = frontmatter?.[1]?.match(/^status:\s*(.+)$/m)?.[1]?.trim().toLowerCase() || "";

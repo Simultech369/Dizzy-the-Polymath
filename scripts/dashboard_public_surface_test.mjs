@@ -133,6 +133,7 @@ async function run() {
       "/api/operator/receipts-telemetry",
       "/api/operator/tension-map",
       "/api/operator/job-opportunities",
+      "/api/operator/council-bridge-status",
     ];
     for (const route of apiRoutes) {
       const response = await fetch(`${base}${route}`, { headers });

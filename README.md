@@ -10,7 +10,7 @@
 
 </div>
 
-**Current public-view status:** this repository is ready for serious collaborator review on the staging branch, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
+**Current public-view status:** this repository is ready for serious collaborator review from this checkout, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
 
 `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work (see **Hosted Production And Public A2A Horizon** in [`NEXT.md`](NEXT.md)).
 
@@ -54,11 +54,12 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Deterministic Lifecycle Hooks | SessionStart/Stop ingress receipts and PreToolUse/PostToolUse tool-runner receipts (`lib/lifecycle_hooks.mjs`) |
 | Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
 | StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
-| Cryptographic A2A Mailbox Queue | Local sealed handoff/message queue for agent coordination enforcing strict cryptographic envelopes (`dizzy.a2a_signed_envelope.v1`), leased dispatch receipts (`dizzy.a2a_dispatch_receipt.v1`), explicit cryptographic ACK, and expired lease recovery (`lib/a2a_mailbox_bridge.mjs`) |
+| Cryptographic A2A Mailbox Queue | Local sealed handoff/message queue for agent coordination. It can require Ed25519/HMAC signed envelopes (`dizzy.a2a_signed_envelope.v1`), issues leased dispatch receipts (`dizzy.a2a_dispatch_receipt.v1`), and records lease-token ACK receipts; this is not signed Council response proof or durable cross-process delivery (`lib/a2a_mailbox_bridge.mjs`) |
 | Signed A2A HTTP Ingress Boundary | Local `/api/a2a/incoming` route guarded by `DIZZY_A2A_SECRET` (HMAC SHA-256) or `DIZZY_A2A_TRUST_STORE` (Ed25519 asymmetric signatures), algorithm pinning, timestamp freshness, nonce replay rejection, schema validation, and prompt-marker sanitization. This is boundary proof, not ecosystem interoperability proof (`lib/a2a_boundary_guard.mjs`, `npm run test:a2a-boundary`). |
+| Council Bridge Operator Status | Authenticated local operator status route that reports Council bridge components, current mailbox counts, and open promotion blockers without claiming a continuous mailbox-to-sidecar worker or public interoperability (`/api/operator/council-bridge-status`, [`docs/council_bridge_quickstart.md`](docs/council_bridge_quickstart.md), `npm run test:operator-telemetry`) |
 | Node/Python Council Bridge Contract | Schema and fixture gate for quarantined sidecar rehearsals; separates bridge payload integrity from bounty-task integrity, wires ingress scanner opportunities to sidecar bridge rehearsal (`scripts/job_board_scanner.mjs --bridge-rehearsal`), keeps sidecar responses rehearsal-only, and rejects live-execution claims without verified sandbox/egress proof (`docs/node_python_council_bridge_contract.md`, `docs/sidecar_sandbox_and_egress_boundary.md`, `npm run test:node-python-bridge-contract`, `npm run test:job-board-scanner`) |
 | Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 115 syntax targets and 57 test suites after the A2A boundary, dashboard public-surface, public-view readiness, and bridge-contract guards are registered (`npm run check:council`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine across 116 syntax targets and 57 test suites after the A2A boundary, dashboard public-surface, public-view readiness, and bridge-contract guards are registered (`npm run check:council`) |
 
 ## Quick Start
 
@@ -116,6 +117,7 @@ npm run test:dashboard-public-surface
 npm run test:structural-query-cache
 npm run test:statem-runbook
 npm run test:a2a-mailbox
+npm run test:operator-telemetry
 npm run test:node-python-bridge-contract
 npm run test:cognitive-memory
 npm run test:memory-wiki

@@ -58,6 +58,7 @@ async function runAudit() {
     "lib/citation_grounding_verifier.mjs",
     "lib/context_packer.mjs",
     "lib/council_subcommittee_router.mjs",
+    "lib/council_bridge_status.mjs",
     "lib/cognitive_memory_engine.mjs",
     "lib/memory_wiki_adapter.mjs",
     "lib/node_python_council_bridge_contract.mjs",
