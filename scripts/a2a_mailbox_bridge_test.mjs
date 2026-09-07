@@ -127,11 +127,19 @@ console.log("[test:a2a-mailbox-bridge] Starting A2A Mailbox Bridge test suite...
   // Sleep 25ms to expire lease
   await new Promise((resolve) => setTimeout(resolve, 25));
 
-  // Prune expired leases -> message recovered back to queue
-  const pruneResult = mailbox.pruneExpiredLeases();
-  assert.equal(pruneResult.recovered_count, 1);
+  // Expired ACK fails closed and re-queues the message
+  const expiredAck = mailbox.acknowledge({ messageId: msg.message_id, leaseToken: dequeued[0].lease_token });
+  assert.equal(expiredAck.ok, false);
+  assert.match(expiredAck.error, /Lease expired/);
   assert.equal(mailbox.getStats().queued_count, 1);
   assert.equal(mailbox.getStats().leased_count, 0);
+
+  // Dequeue again without manual pruning -> queue recovers the expired lease automatically
+  const recovered = mailbox.dequeue({ recipientId: "oss_council", leaseTimeoutMs: 10 });
+  assert.equal(recovered.length, 1);
+  assert.equal(recovered[0].message.message_id, msg.message_id);
+  assert.equal(mailbox.getStats().queued_count, 0);
+  assert.equal(mailbox.getStats().leased_count, 1);
   console.log("  [PASS] Test 5: Lease expiration and recovery");
 }
 
@@ -140,7 +148,10 @@ const edKeypair = crypto.generateKeyPairSync("ed25519");
 const edPrivateKey = edKeypair.privateKey;
 const edPublicKey = edKeypair.publicKey;
 const trustStore = new Ed25519TrustStore();
-trustStore.addKey("codex", edPublicKey);
+trustStore.addKey("codex", edPublicKey, {
+  authorized_sender_ids: ["codex"],
+  authorized_trust_zones: ["trusted_collaborator"],
+});
 
 const hmacSecret = "super-secret-hmac-key";
 
@@ -308,4 +319,43 @@ const hmacSecret = "super-secret-hmac-key";
   console.log("  [PASS] Test 13: Invalid signer key rejection");
 }
 
-console.log("\n[test:a2a-mailbox-bridge] ALL 13 TESTS PASSED CLEANLY.\n");
+// Test 14: Ed25519 signer authorization is bound to sender and trust-zone scope
+{
+  const scopedTrustStore = new Ed25519TrustStore();
+  scopedTrustStore.addKey("codex-signer", edPublicKey, {
+    authorized_sender_ids: ["codex"],
+    authorized_trust_zones: ["trusted_collaborator"],
+  });
+
+  const authorizedMsg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "task_result",
+    trustZone: "trusted_collaborator",
+  });
+  const authorizedEnvelope = signA2AMessageEnvelope(authorizedMsg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+    keyId: "codex-signer",
+  });
+  const authorizedResult = verifyA2AMessageEnvelope(authorizedEnvelope, { trustStore: scopedTrustStore });
+  assert.equal(authorizedResult.ok, true);
+
+  const unauthorizedZoneMsg = createA2AMessage({
+    senderId: "codex",
+    recipientId: "antigravity",
+    messageType: "task_result",
+    trustZone: "outside_contact",
+  });
+  const unauthorizedZoneEnvelope = signA2AMessageEnvelope(unauthorizedZoneMsg, {
+    algorithm: "ed25519",
+    privateKey: edPrivateKey,
+    keyId: "codex-signer",
+  });
+  const unauthorizedZoneResult = verifyA2AMessageEnvelope(unauthorizedZoneEnvelope, { trustStore: scopedTrustStore });
+  assert.equal(unauthorizedZoneResult.ok, false);
+  assert.match(unauthorizedZoneResult.reason, /trust_zone/);
+  console.log("  [PASS] Test 14: Ed25519 signer authorization is bound to sender and trust-zone scope");
+}
+
+console.log("\n[test:a2a-mailbox-bridge] ALL 14 TESTS PASSED CLEANLY.\n");

@@ -1042,6 +1042,28 @@ Consequences:
 
 ---
 
+### D-0051: Canonical A2A Mailbox Signing, Signer Scope, and Expired-Lease Recovery
+
+Decision:
+- Replace the mailbox envelope signing string with a canonical JSON signing frame that binds schema version, message identity, sender/recipient, message type, trust zone, priority, parent task, payload digest, timestamp, and nonce.
+- Require Ed25519 envelope verification to honor explicit sender and trust-zone scope from the trust store metadata instead of relying on sender identity alone.
+- Keep HMAC-SHA256 as a symmetric local verification path, but do not allow it to masquerade as signer-authorized mailbox policy when an Ed25519 trust-store policy is configured.
+- Prune expired leases before dequeue delivery and reject expired ACKs explicitly while re-queuing the message for later delivery.
+- Keep this as local/rehearsal control-plane hardening; it does not claim public A2A interoperability or live sidecar promotion.
+
+Rationale:
+- The mailbox queue was already cryptographically protected, but its signing frame left some routing/authority fields outside the signature, signer identity could still be treated too loosely, and lease expiry was only recoverable through manual helper calls.
+- Explicit trust-store metadata keeps sender and trust-zone authorization visible instead of inferring policy from a bare key lookup.
+- Expired lease handling should fail closed at both delivery and acknowledgement boundaries so stale work cannot linger silently in the queue.
+
+Consequences:
+- `lib/a2a_boundary_guard.mjs` now accepts richer trust-store entries with accessible metadata.
+- `lib/a2a_mailbox_bridge.mjs` signs canonical message frames, enforces Ed25519 signer-scope authorization, rejects HMAC envelopes when Ed25519 trust-store policy is present, and auto-recovers expired leases during dequeue / ACK handling.
+- `scripts/a2a_mailbox_bridge_test.mjs` now covers signer authorization and expired-lease rejection in addition to the existing tamper, replay, and downgrade coverage.
+- W-0123 can reuse the canonical signing pattern instead of rebuilding another ad hoc digest format.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces
