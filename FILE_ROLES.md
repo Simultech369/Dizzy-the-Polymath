@@ -154,6 +154,7 @@ These files may carry optional economic, strategy, or campaign-specific orientat
 ## Local Artifacts / Cleanup Candidates
 
 - `dizzylogofull.png`
+- `DRIPS_WAVE8_PAYMENT_INQUIRY_2026-09-06.md`
 
 Root scratch probes should be archived under ignored runtime storage such as `runtime/local-artifacts/` rather than kept beside governing files. `dizzylogofull.png` is a root asset used by the README and `/assets/logo`; it should not be read as doctrine.
 

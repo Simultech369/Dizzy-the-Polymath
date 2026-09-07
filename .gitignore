@@ -35,6 +35,7 @@ __pycache__/
 .openclaude/
 scratch/goose-runtime/
 reviews/*_latest.json
+reviews/dizzy_public_safe_review_packet_*.md
 reviews/review_cycle_history.json
 codex-bench-tools/
 codex-bench-tools-py/
@@ -43,6 +44,7 @@ codex-bench-run/
 .extraction/
 *.index
 DRIPS_WAVE_*
+post-drips-*.ps1
 Heliobond-*
 ProofOfHeart-*
 *.patch
