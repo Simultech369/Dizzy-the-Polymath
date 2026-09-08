@@ -6,6 +6,7 @@ import {
   NODE_PYTHON_BRIDGE_CONTRACT_RECEIPT_SCHEMA,
   SIDECAR_LIVE_CONTAINER_PROOF_SCHEMA,
   canonicalBridgePayloadSha256,
+  normalizeStableJsonValue,
   stableJson,
   createBridgeRequest,
   adaptScanResultToBridgeRequest,
@@ -76,6 +77,7 @@ assert.equal(
   "stable JSON hash must ignore object insertion order"
 );
 assert.equal(stableJson(reorderedPayload), stableJson(validRequest.payload));
+assert.equal(Object.getPrototypeOf(normalizeStableJsonValue(validRequest.payload)), null);
 console.log("  [PASS] canonical JSON is stable across key ordering");
 
 for (const fixture of fixtures.negative_request_cases) {
@@ -130,6 +132,21 @@ for (const fixture of fixtures.response_sandbox_boundary_cases) {
   console.log(`  [PASS] sidecar sandbox boundary case: ${fixture.name}`);
 }
 
+for (const fixture of fixtures.response_binding_cases || []) {
+  const response = deepClone(fixtures.valid_bridge_response);
+  mergePatch(response, fixture.response_patch);
+  const result = validateBridgeResponse(response, validRequest);
+  const actualCodes = result.errors.map((error) => error.code);
+  assert.equal(result.ok, fixture.expected_ok, `${fixture.name} expected ok=${fixture.expected_ok}, got ${JSON.stringify(result.errors)}`);
+  for (const expectedCode of fixture.expected_error_codes || []) {
+    assert.ok(
+      actualCodes.includes(expectedCode),
+      `${fixture.name} expected ${expectedCode}, got ${actualCodes.join(", ")}`
+    );
+  }
+  console.log(`  [PASS] bridge response binding case: ${fixture.name}`);
+}
+
 const mockScanResult = {
   opportunity: {
     opportunity_id: "mock_test_opp",
@@ -160,6 +177,7 @@ const receipt = {
     valid_response: true,
     negative_request_cases: fixtures.negative_request_cases.map((fixture) => fixture.name),
     response_sandbox_boundary_cases: fixtures.response_sandbox_boundary_cases.map((fixture) => fixture.name),
+    response_binding_cases: (fixtures.response_binding_cases || []).map((fixture) => fixture.name),
     unsafe_response_escalation: true,
   },
   invariants_verified: [

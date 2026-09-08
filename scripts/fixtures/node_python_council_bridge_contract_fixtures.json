@@ -233,6 +233,51 @@
       "expected_ok": true
     }
   ],
+  "response_binding_cases": [
+    {
+      "name": "response_request_id_mismatch",
+      "response_patch": {
+        "request_id": "w0112_wrong_request",
+        "sanitized_target_files": [
+          "lib/bounty_hunter_engine.mjs",
+          "scripts/bounty_hunter_engine_test.mjs"
+        ],
+        "enforced_verification_command": "npm test"
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "RESPONSE_REQUEST_ID_MISMATCH"
+      ]
+    },
+    {
+      "name": "response_target_files_mismatch",
+      "response_patch": {
+        "sanitized_target_files": [
+          "lib/bounty_hunter_engine.mjs",
+          "scripts/job_board_scanner_test.mjs"
+        ],
+        "enforced_verification_command": "npm test"
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "RESPONSE_TARGET_FILES_MISMATCH"
+      ]
+    },
+    {
+      "name": "response_verification_command_mismatch",
+      "response_patch": {
+        "sanitized_target_files": [
+          "lib/bounty_hunter_engine.mjs",
+          "scripts/bounty_hunter_engine_test.mjs"
+        ],
+        "enforced_verification_command": "npm run test:bounty-hunter"
+      },
+      "expected_ok": false,
+      "expected_error_codes": [
+        "RESPONSE_VERIFICATION_COMMAND_MISMATCH"
+      ]
+    }
+  ],
   "negative_request_cases": [
     {
       "name": "tampered_title_reuses_bridge_hash",
@@ -248,6 +293,50 @@
       ],
       "expected_error_codes": [
         "PAYLOAD_SHA256_MISMATCH"
+      ]
+    },
+    {
+      "name": "own_proto_key_is_not_canonicalizable",
+      "mutations": [
+        {
+          "path": [
+            "payload",
+            "bounty_task"
+          ],
+          "value": {
+            "schema_version": "dizzy.bounty_task.v1",
+            "bounty_id": "w0112_fixture_path_traversal",
+            "title": "Patch backend path traversal in artifact parser",
+            "sanitized_description": "Normalize artifact paths and reject traversal before reading workspace files.",
+            "platform": "swe_bench",
+            "repository": "Simultech369/Dizzy-the-Polymath",
+            "source_url": "https://github.com/Simultech369/Dizzy-the-Polymath/issues/112",
+            "role_type": "bounty",
+            "claimability_state": "unverified",
+            "proof_requirements": [
+              "local regression test",
+              "public submission requires operator approval"
+            ],
+            "required_stack": [
+              "node"
+            ],
+            "test_command": "npm test",
+            "payout_usd": 500,
+            "difficulty": "hard",
+            "target_files": [
+              "lib/bounty_hunter_engine.mjs",
+              "scripts/bounty_hunter_engine_test.mjs"
+            ],
+            "payload_sha256": "A87C9CCCF254EA3B40042E041642D2AD5EB09F78043613A83D5B7A3A5B35D22C",
+            "parsed_at": "2026-09-04T21:35:00.000Z",
+            "__proto__": {
+              "polluted": true
+            }
+          }
+        }
+      ],
+      "expected_error_codes": [
+        "PAYLOAD_NOT_CANONICALIZABLE"
       ]
     },
     {

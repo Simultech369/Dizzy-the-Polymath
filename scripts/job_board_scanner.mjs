@@ -111,6 +111,7 @@ export function createScanResults(rawListings, {
   toAgent = "oss_council",
   testCommand = "npm test",
   files = ["README.md"],
+  benchmarkMode = false,
   now = asIsoNow,
 } = {}) {
   const results = [];
@@ -124,6 +125,7 @@ export function createScanResults(rawListings, {
         toAgent,
         testCommand,
         files,
+        benchmarkMode,
         now,
       });
       results.push({ opportunity, envelope });
@@ -207,16 +209,19 @@ export async function runOfflineScan({
     logger,
   });
   const selectedListings = selectFallbackListings(liveOrProvidedListings);
-  const { results, skipped } = createScanResults(selectedListings);
+  const useMockFallback = selectedListings === MOCK_BOUNTY_LISTINGS || liveOrProvidedListings.length === 0;
+  const { results, skipped } = createScanResults(selectedListings, {
+    benchmarkMode: useMockFallback,
+  });
   const outFile = writeScanResults(results, outputPath);
 
-  logger.info(`[scanner] Offline/artifact mode complete. Exported ${results.length} valid bounties to ${outFile}`);
+  logger.info(`[scanner] Offline/artifact mode complete. Exported ${results.length} review packets to ${outFile}`);
   return {
     mode: "artifact",
     output_path: outFile,
     exported_count: results.length,
     skipped_count: skipped.length,
-    used_mock_fallback: selectedListings === MOCK_BOUNTY_LISTINGS || liveOrProvidedListings.length === 0,
+    used_mock_fallback: useMockFallback,
     results,
     skipped,
   };
@@ -269,13 +274,13 @@ export async function runScanner({
       });
       const queuedId = Array.isArray(enqueued) ? String(enqueued[0]) : String(enqueued);
       queuedJobIds.push(queuedId);
-      logger.info(`[scanner] Enqueued verified bounty: ${opportunity.title} (EV source payout: ${opportunity.payout_usd_est == null ? "unknown" : `$${opportunity.payout_usd_est}`})`);
+      logger.info(`[scanner] Enqueued opportunity packet: ${opportunity.title} (EV source payout: ${opportunity.payout_usd_est == null ? "unknown" : `$${opportunity.payout_usd_est}`})`);
     }
   } finally {
     await redis.disconnect?.();
   }
 
-  logger.info(`[scanner] Run complete. Successfully ingested ${queuedJobIds.length} qualified bounties into queue.`);
+  logger.info(`[scanner] Run complete. Successfully ingested ${queuedJobIds.length} opportunity packets into queue.`);
   return {
     mode: "redis_queue",
     ingested_count: queuedJobIds.length,

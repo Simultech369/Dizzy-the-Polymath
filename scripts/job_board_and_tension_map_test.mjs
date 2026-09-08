@@ -62,13 +62,14 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
   });
 
   const converted = convertOpportunityToBountyTask(listing);
-  assert.equal(converted.qualified, true);
+  assert.equal(converted.qualified, false);
+  assert.equal(converted.eligibility_state, "needs_verification");
   assert.equal(converted.bounty_task.platform, "dragonfly_xyz");
   assert.equal(converted.bounty_task.claimability_state, "unverified");
   assert.equal(converted.bounty_task.payout_usd, 0);
   assert.equal(converted.ev_receipt.payout_usd, 0);
-  assert.equal(converted.ev_receipt.recommendation, "EVAL_BENCHMARK_ONLY");
-  console.log("  [PASS] Test 3: Convert qualified opportunity to StateM task");
+  assert.equal(converted.ev_receipt.recommendation, "NEEDS_VERIFICATION");
+  console.log("  [PASS] Test 3: Convert sample opportunity into needs-verification StateM task");
 }
 
 // Test 4: Build Pluralistic Tension Map
@@ -134,9 +135,11 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
     company: "Avalanche Labs",
     title: "Autonomous Agent & Subnet Protocol Engineer",
     salaryOrPayout: "$175,000",
+    payoutUsd: 175000,
+    claimabilityState: "open_unassigned",
+    proofRequirements: ["reproduction test"],
     description: "Implement high-throughput multi-agent subnet verification with StateM runbooks.",
     url: "https://jobs.avax.network/opp-99",
-    proofRequirements: ["npm test", "deterministic receipt"],
   });
 
   const a2aEnvelope = createOpportunityA2AIngestEnvelope(listing, {
@@ -148,7 +151,9 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
   assert.equal(a2aEnvelope.envelope.message_type, "bounty_alert");
   assert.equal(a2aEnvelope.envelope.payload.bounty_task.platform, "avax_jobs");
   assert.equal(a2aEnvelope.envelope.payload.bounty_task.role_type, "contract_bounty");
-  assert.deepEqual(a2aEnvelope.envelope.payload.bounty_task.proof_requirements, ["npm test", "deterministic receipt"]);
+  assert.equal(a2aEnvelope.envelope.payload.bounty_task.claimability_state, "open_unassigned");
+  assert.deepEqual(a2aEnvelope.envelope.payload.bounty_task.proof_requirements, ["reproduction test"]);
+  assert.equal(a2aEnvelope.envelope.payload.triage_receipt.recommendation, "DISPATCH");
   assert.ok(a2aEnvelope.payload_sha256.length === 64);
   console.log("  [PASS] Test 7: Transform Qualified Opportunity Directly into Sealed A2A Ingest Envelope");
 }

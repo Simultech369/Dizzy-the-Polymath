@@ -50,8 +50,9 @@ try {
     assert.equal(data.opportunities[0].opportunity.claimability_state, "unverified");
     assert.equal(data.opportunities[0].opportunity.payout_usd_est, null);
     assert.ok(typeof data.opportunities[0].opportunity.salary_or_payout === "string");
-    assert.equal(data.opportunities[0].task_conversion.qualified, true);
-    assert.equal(data.opportunities[0].task_conversion.ev_receipt.recommendation, "EVAL_BENCHMARK_ONLY");
+    assert.equal(data.opportunities[0].task_conversion.qualified, false);
+    assert.equal(data.opportunities[0].task_conversion.eligibility_state, "needs_verification");
+    assert.equal(data.opportunities[0].task_conversion.ev_receipt.recommendation, "NEEDS_VERIFICATION");
     console.log("  [PASS] Test 2: GET /api/operator/job-opportunities");
   }
 

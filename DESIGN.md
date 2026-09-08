@@ -1069,7 +1069,7 @@ Consequences:
 Decision:
 - Default normalized job-board opportunities to `unverified` claimability unless a source explicitly provides something stronger.
 - Preserve raw salary or payout text as text, but do not invent `payout_usd_est` values when payout is absent or ambiguous.
-- Treat opportunity conversion into bounty tasks as benchmark-only when payout is unknown, rather than synthesizing expected-value certainty from salary text.
+- Treat opportunity conversion into bounty tasks as `needs_verification` when payout is unknown or unproven, and reserve benchmark-only EV for an explicit operator/demo choice rather than synthesizing expected-value certainty from salary text.
 - Mark the operator `/api/operator/job-opportunities` surface as `sample_only` so the cockpit can show examples without implying claimable work.
 
 Rationale:
@@ -1078,7 +1078,7 @@ Rationale:
 - Avoiding synthetic payout defaults keeps the route honest and prevents downstream EV logic from turning uncertainty into false confidence.
 
 Consequences:
-- `lib/job_board_ingress.mjs` now preserves raw salary text, leaves payout estimates null unless explicitly supplied, and emits benchmark-only EV when no payout is present.
+- `lib/job_board_ingress.mjs` now preserves raw salary text, leaves payout estimates null unless explicitly supplied, emits `needs_verification` for unknown or unproven rows, and only emits benchmark-only EV when benchmark mode is explicitly selected.
 - `agent_server.mjs` marks operator job-opportunity rows as `sample_only` while still exposing the normalized opportunity and task conversion.
 - `scripts/job_board_scanner.mjs`, `scripts/job_board_scanner_test.mjs`, `scripts/job_board_and_tension_map_test.mjs`, and `scripts/operator_telemetry_routes_test.mjs` now pin the unverified / unknown / sample-only posture.
 

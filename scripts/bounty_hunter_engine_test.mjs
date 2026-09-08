@@ -77,10 +77,18 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   assert.ok(goodEv.expected_value_usd > 1000);
   assert.equal(goodEv.recommendation, "DISPATCH");
 
-  // Zero payout evaluation -> EVAL_BENCHMARK_ONLY
+  // Zero payout without an explicit benchmark flag -> needs verification
+  const needsVerificationEv = calculateBountyEv({
+    payoutUsd: 0,
+    difficulty: "hard",
+  });
+  assert.equal(needsVerificationEv.recommendation, "NEEDS_VERIFICATION");
+
+  // Zero payout with an explicit benchmark flag -> benchmark-only
   const benchEv = calculateBountyEv({
     payoutUsd: 0,
     difficulty: "hard",
+    benchmarkMode: true,
   });
   assert.equal(benchEv.recommendation, "EVAL_BENCHMARK_ONLY");
 
@@ -218,6 +226,8 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
     description: "Invalidate cache on write.",
     platform: "web3_career",
     repository: "org/app",
+    claimabilityState: "open_unassigned",
+    proofRequirements: ["reproduction test", "clean-room note"],
     payoutUsd: 1200,
     difficulty: "medium",
     testCommand: "npm run test:bounty-hunter",
@@ -227,6 +237,7 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   assert.equal(result.schema_version, BOUNTY_INGEST_JOB_RESULT_SCHEMA);
   assert.equal(result.bounty_id, "worker_bounty_101");
   assert.equal(result.qualified, true);
+  assert.equal(result.eligibility_state, "eligible");
   assert.equal(result.status, "QUALIFIED_AND_ROUTED");
   assert.ok(result.runbook);
   assert.equal(result.runbook.receipt.runbook_name, "bounty-solve-worker_bounty_101");
@@ -261,6 +272,8 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
     title: "Validate schema integrity",
     repository: "org/schema",
     testCommand: "npm run check:docs",
+    claimabilityState: "open_unassigned",
+    proofRequirements: ["reproduction test", "deterministic receipt"],
     payoutUsd: 2500,
     difficulty: "easy",
   });
@@ -275,6 +288,7 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   assert.equal(result.schema_version, BOUNTY_INGEST_JOB_RESULT_SCHEMA);
   assert.equal(result.bounty_id, "a2a_bounty_202");
   assert.equal(result.qualified, true);
+  assert.equal(result.eligibility_state, "eligible");
   assert.equal(result.status, "COMPLETED");
   assert.ok(result.fsm_receipt);
   assert.equal(result.fsm_receipt.terminal_state, "COMPLETED");
