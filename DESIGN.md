@@ -1064,6 +1064,26 @@ Consequences:
 
 ---
 
+### D-0052: Honest Job-Board Claimability, Unknown Payouts, and Sample-Only Operator Rows
+
+Decision:
+- Default normalized job-board opportunities to `unverified` claimability unless a source explicitly provides something stronger.
+- Preserve raw salary or payout text as text, but do not invent `payout_usd_est` values when payout is absent or ambiguous.
+- Treat opportunity conversion into bounty tasks as benchmark-only when payout is unknown, rather than synthesizing expected-value certainty from salary text.
+- Mark the operator `/api/operator/job-opportunities` surface as `sample_only` so the cockpit can show examples without implying claimable work.
+
+Rationale:
+- Job-board and bounty surfaces often contain salary ranges, sample listings, or stale assignment hints without reliable claimability or payout proof.
+- The cockpit should distinguish illustrative rows from actionable bounty intake so operators can tell sample data from verified work.
+- Avoiding synthetic payout defaults keeps the route honest and prevents downstream EV logic from turning uncertainty into false confidence.
+
+Consequences:
+- `lib/job_board_ingress.mjs` now preserves raw salary text, leaves payout estimates null unless explicitly supplied, and emits benchmark-only EV when no payout is present.
+- `agent_server.mjs` marks operator job-opportunity rows as `sample_only` while still exposing the normalized opportunity and task conversion.
+- `scripts/job_board_scanner.mjs`, `scripts/job_board_scanner_test.mjs`, `scripts/job_board_and_tension_map_test.mjs`, and `scripts/operator_telemetry_routes_test.mjs` now pin the unverified / unknown / sample-only posture.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

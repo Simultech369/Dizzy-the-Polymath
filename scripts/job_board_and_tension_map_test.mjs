@@ -41,7 +41,9 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
 
   assert.equal(listing.schema_version, JOB_BOARD_INGRESS_SCHEMA);
   assert.equal(listing.board_source, "midnight_network");
-  assert.equal(listing.payout_usd_est, 180000);
+  assert.equal(listing.salary_or_payout, "$180,000 - $220,000");
+  assert.equal(listing.payout_usd_est, null);
+  assert.equal(listing.claimability_state, "unverified");
   assert.ok(listing.alignment_score >= 0.70);
   assert.ok(!listing.sanitized_description.includes("<system_prompt_override>"));
   assert.ok(listing.payload_sha256.length === 64);
@@ -62,7 +64,10 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
   const converted = convertOpportunityToBountyTask(listing);
   assert.equal(converted.qualified, true);
   assert.equal(converted.bounty_task.platform, "dragonfly_xyz");
-  assert.ok(converted.ev_receipt.expected_value_usd > 10000);
+  assert.equal(converted.bounty_task.claimability_state, "unverified");
+  assert.equal(converted.bounty_task.payout_usd, 0);
+  assert.equal(converted.ev_receipt.payout_usd, 0);
+  assert.equal(converted.ev_receipt.recommendation, "EVAL_BENCHMARK_ONLY");
   console.log("  [PASS] Test 3: Convert qualified opportunity to StateM task");
 }
 
@@ -104,7 +109,6 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
     title: "Rust & EVM Security Researcher",
     salaryOrPayout: "$160,000",
     roleType: "contract_bounty",
-    claimabilityState: "open_unassigned",
     requiredStack: ["rust", "solidity", "foundry"],
     proofRequirements: ["reproduction test", "clean-room git patch"],
     description: "Audit decentralized payment rails and verify zero reentrancy.",
@@ -112,7 +116,9 @@ console.log("[test:job-board-and-tension-map] Starting test suite...");
   });
 
   assert.equal(listing.role_type, "contract_bounty");
-  assert.equal(listing.claimability_state, "open_unassigned");
+  assert.equal(listing.salary_or_payout, "$160,000");
+  assert.equal(listing.payout_usd_est, null);
+  assert.equal(listing.claimability_state, "unverified");
   assert.ok(listing.skill_tags.includes("rust"));
   assert.ok(listing.skill_tags.includes("solidity"));
   assert.ok(listing.skill_tags.includes("foundry"));

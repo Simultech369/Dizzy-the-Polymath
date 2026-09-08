@@ -43,9 +43,15 @@ try {
     const { status, data } = await getJson(`${baseUrl}/api/operator/job-opportunities`);
     assert.equal(status, 200);
     assert.equal(data.ok, true);
+    assert.equal(data.sample_only, true);
     assert.ok(data.count >= 3);
+    assert.equal(data.opportunities[0].sample_only, true);
     assert.equal(data.opportunities[0].opportunity.schema_version, JOB_BOARD_INGRESS_SCHEMA);
+    assert.equal(data.opportunities[0].opportunity.claimability_state, "unverified");
+    assert.equal(data.opportunities[0].opportunity.payout_usd_est, null);
+    assert.ok(typeof data.opportunities[0].opportunity.salary_or_payout === "string");
     assert.equal(data.opportunities[0].task_conversion.qualified, true);
+    assert.equal(data.opportunities[0].task_conversion.ev_receipt.recommendation, "EVAL_BENCHMARK_ONLY");
     console.log("  [PASS] Test 2: GET /api/operator/job-opportunities");
   }
 
@@ -63,6 +69,8 @@ try {
     assert.equal(data.bridge_status.auth_boundary, "operator_token_or_dashboard_session_required");
     assert.equal(data.bridge_status.a2a_ingress.auth_configured, false);
     assert.equal(data.bridge_status.a2a_ingress.route_posture, "fail_closed_until_a2a_secret_or_trust_store");
+    assert.equal(data.bridge_status.mailbox.require_signature, true);
+    assert.equal(data.bridge_status.mailbox.signed_envelope_policy, "required_by_queue");
     assert.ok(data.bridge_status.component_map.some((step) => step.route === "/api/a2a/incoming"));
     assert.ok(data.bridge_status.component_map.some((step) => step.step === "sidecar_rehearsal"));
     assert.ok(data.bridge_status.observed_operations.some((item) => item.operation === "a2a_ingress_auth_configuration" && item.status === "fail_closed_unconfigured"));

@@ -1167,11 +1167,12 @@ export async function createRuntime(opts = {}) {
       const normalized = sampleFeed.map((item) => {
         const opp = normalizeJobListing(item);
         const task = convertOpportunityToBountyTask(opp);
-        return { opportunity: opp, task_conversion: task };
+        return { sample_only: true, opportunity: opp, task_conversion: task };
       });
 
       res.json({
         ok: true,
+        sample_only: true,
         count: normalized.length,
         opportunities: normalized,
       });
@@ -1213,7 +1214,7 @@ export async function createRuntime(opts = {}) {
   const hasA2AAuth = a2aSecretValidation.ok || (a2aTrustStore && a2aTrustStore.size() > 0);
 
   const a2aMailboxQueue = new A2AMailboxQueue({
-    requireSignature: opts.a2aRequireSignature ?? parseBool(process.env.DIZZY_A2A_REQUIRE_SIGNATURE, false),
+    requireSignature: opts.a2aRequireSignature ?? parseBool(process.env.DIZZY_A2A_REQUIRE_SIGNATURE, true),
     trustStore: a2aTrustStore,
     secretKey: a2aSecretValidation.ok ? a2aSecret : null,
     allowedAlgorithms: opts.a2aAllowedAlgorithms,
@@ -1237,32 +1238,16 @@ export async function createRuntime(opts = {}) {
         return res.status(400).json({ ok: false, error: "Invalid A2A schema" });
       }
 
-      // If it's a new schema version, try enqueueing it in the mailbox queue
-      if (req.body?.schema_version === A2A_SIGNED_ENVELOPE_SCHEMA || req.body?.schema_version === A2A_MESSAGE_SCHEMA) {
-        try {
-          const receipt = a2aMailboxQueue.enqueue(req.body);
-          return res.json({ ok: true, receipt });
-        } catch (err) {
-          return res.status(400).json({ ok: false, error: err.message });
-        }
+      if (isMessage && !isEnvelope) {
+        return res.status(400).json({ ok: false, error: "Signed A2A envelope required for mailbox admission" });
       }
 
-      if (!req.body?.senderId || typeof req.body.senderId !== "string") {
-        return res.status(400).json({ ok: false, error: "Missing sender identity" });
+      try {
+        const receipt = a2aMailboxQueue.enqueue(req.body);
+        return res.json({ ok: true, receipt });
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
       }
-
-      const message = buildIncomingMessage(req.body, req, { channel: "a2a" });
-      // Force channel and origin to prevent escalation to private_self
-      message.channel = "a2a";
-      message.from = req.body.senderId;
-      message.trustZone = "outside_contact";
-      const out = await handleIncomingMessage({
-        message,
-        enqueue: ({ tool, payload, effect, notify }) =>
-          enqueueTool({ tool, payload, effect, notify, idempotencyKey: req.headers["x-a2a-nonce"] }),
-      });
-
-      res.json({ ok: true, ...out });
     } catch (e) {
       next(e);
     }

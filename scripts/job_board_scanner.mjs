@@ -30,8 +30,8 @@ export const MOCK_BOUNTY_LISTINGS = Object.freeze([
     description: "We are looking for a dev to write zero-knowledge proofs using circom and solidity for our new protocol.",
     url: "https://github.com/mock-zk/protocol/issues/123",
     roleType: "contract_bounty",
-    claimabilityState: "open_unassigned",
-    salaryOrPayout: "$100,000",
+    claimabilityState: "unverified",
+    salaryOrPayout: null,
   }),
 ]);
 
@@ -57,8 +57,8 @@ function githubIssueToListing(issue, repo) {
     description: issue.body || "No description provided.",
     url: issue.html_url,
     roleType: "contract_bounty",
-    claimabilityState: "open_unassigned",
-    salaryOrPayout: payoutMatch ? payoutMatch[0] : "$1,000",
+    claimabilityState: "unverified",
+    salaryOrPayout: payoutMatch ? payoutMatch[0] : null,
     now: asIsoNow,
   };
 }
@@ -269,7 +269,7 @@ export async function runScanner({
       });
       const queuedId = Array.isArray(enqueued) ? String(enqueued[0]) : String(enqueued);
       queuedJobIds.push(queuedId);
-      logger.info(`[scanner] Enqueued verified bounty: ${opportunity.title} (EV source payout: $${opportunity.payout_usd_est})`);
+      logger.info(`[scanner] Enqueued verified bounty: ${opportunity.title} (EV source payout: ${opportunity.payout_usd_est == null ? "unknown" : `$${opportunity.payout_usd_est}`})`);
     }
   } finally {
     await redis.disconnect?.();
