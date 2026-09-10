@@ -159,17 +159,18 @@ console.log("[test:job-board-scanner] Starting test suite...");
       },
       outputPath,
       logger,
+      demoMode: true,
     });
 
     assert.equal(summary.mode, "artifact");
     assert.equal(summary.used_mock_fallback, true);
     assert.equal(summary.exported_count, 1);
     const artifact = JSON.parse(fs.readFileSync(outputPath, "utf8"));
-    assert.equal(artifact[0].opportunity.opportunity_id, "mock_123");
-    assert.equal(artifact[0].opportunity.claimability_state, "unverified");
-    assert.equal(artifact[0].opportunity.salary_or_payout, null);
-    assert.equal(artifact[0].opportunity.payout_usd_est, null);
-    assert.equal(artifact[0].envelope.envelope.recipient_id, "oss_council");
+    assert.equal(artifact.results[0].opportunity.opportunity_id, "mock_123");
+    assert.equal(artifact.results[0].opportunity.claimability_state, "unverified");
+    assert.equal(artifact.results[0].opportunity.salary_or_payout, null);
+    assert.equal(artifact.results[0].opportunity.payout_usd_est, null);
+    assert.equal(artifact.results[0].envelope.envelope.recipient_id, "oss_council");
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -189,6 +190,7 @@ console.log("[test:job-board-scanner] Starting test suite...");
       allowNetworkFetch: false,
       outputPath: path.join(tempDir, "no_network.json"),
       logger,
+      demoMode: true,
     });
     assert.equal(fetchCalled, false);
   } finally {
@@ -242,6 +244,10 @@ console.log("[test:job-board-scanner] Starting test suite...");
     assert.equal(artifact.rehearsal_authority, "rehearsal_receipt");
     assert.equal(artifact.requests.length, 1);
     assert.equal(artifact.requests[0].authority.requested_receipt_authority, "rehearsal_receipt");
+    assert.equal(artifact.outcomes.executed, summary.executed_count);
+    assert.equal(artifact.outcomes.skipped, summary.skipped_count);
+    assert.equal(typeof artifact.tested_snapshot, "string");
+    
     if (summary.executed_count > 0) {
       assert.equal(artifact.receipts.length, 1);
       assert.equal(artifact.receipts[0].schema_version, "dizzy.node_python_council_bridge.response.v1");
@@ -249,6 +255,8 @@ console.log("[test:job-board-scanner] Starting test suite...");
       assert.equal(artifact.receipts[0].runtime_promotion_allowed, false);
       assert.equal(artifact.receipts[0].public_claim_allowed, false);
       assert.equal(artifact.receipts[0].rehearsal_verified, true);
+    } else {
+      assert.equal(artifact.outcomes.skipped, 1);
     }
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });

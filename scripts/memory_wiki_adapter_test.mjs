@@ -60,6 +60,20 @@ try {
   assert.throws(() => adapter.readMemory(path.join(tempDir, "..", "outside.md")), /escapes/);
   console.log("[PASS] Read path traversal outside wiki root is rejected.");
 
+  const collisionMemory = {
+    ...mockMemory,
+    memory_id: "mem_handoff_rules_v2",
+    title: "handoffs",
+    content: "New variant of handoff rules.",
+  };
+  const collisionPath = adapter.writeMemory(collisionMemory);
+  assert.notEqual(collisionPath, writtenPath, "Colliding titles with different memory_ids must get distinct paths");
+  assert.equal(fs.existsSync(writtenPath), true, "Original memory file must still exist");
+  assert.equal(fs.existsSync(collisionPath), true, "Collision disambiguated memory file must exist");
+  assert.equal(adapter.readMemory(writtenPath).memory_id, mockMemory.memory_id);
+  assert.equal(adapter.readMemory(collisionPath).memory_id, collisionMemory.memory_id);
+  console.log("[PASS] Same-title collision disambiguation preserves both files.");
+
   console.log("\nALL MEMORY WIKI ADAPTER TESTS PASSED CLEANLY.");
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });

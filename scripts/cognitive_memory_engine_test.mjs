@@ -7,6 +7,7 @@ import {
   A2A_MEMORY_UPDATE_SCHEMA,
   COGNITIVE_MEMORY_RECEIPT_SCHEMA,
   COGNITIVE_MEMORY_WIKI_SCHEMA,
+  VALID_SENSITIVITY_TIERS,
   CognitiveMemoryEngine,
   classifyForCapture,
   createA2AMemoryUpdateEnvelope,
@@ -41,6 +42,25 @@ try {
     });
     assert.equal(durable.decision, "capture");
     assert.equal(durable.memory_class, "durable");
+
+    const invalidZone = classifyForCapture({
+      content: "Always use absolute paths in handoff artifacts for Josh.",
+      trustZone: "forbidden_zone",
+    });
+    assert.equal(invalidZone.decision, "reject");
+    assert.equal(invalidZone.reason, "invalid_trust_zone");
+
+    const invalidSensitivity = classifyForCapture({
+      content: "Always use absolute paths in handoff artifacts for Josh.",
+      trustZone: "private_self",
+      sensitivityTier: "super_classified",
+    });
+    assert.equal(invalidSensitivity.decision, "reject");
+    assert.equal(invalidSensitivity.reason, "invalid_sensitivity_tier");
+
+    assert.ok(VALID_SENSITIVITY_TIERS.has("public_safe"));
+    assert.ok(VALID_SENSITIVITY_TIERS.has("normal"));
+    assert.ok(VALID_SENSITIVITY_TIERS.has("do_not_export"));
 
     console.log("  [PASS] Test 1: Capture filter drops noise and keeps durable rules");
   }
@@ -142,6 +162,12 @@ try {
       limit: 5,
     });
     assert.equal(publicResult.memories.some((m) => m.sensitivity_tier === "do_not_export"), false);
+
+    const invalidZoneResult = engine.retrieve("handoff absolute paths", {
+      trustZone: "unregistered_zone",
+    });
+    assert.equal(invalidZoneResult.memories.length, 0);
+    assert.equal(invalidZoneResult.receipt.status, "invalid_trust_zone");
 
     console.log("  [PASS] Test 5: Retrieve scores relevant pages and enforces trust-zone filtering");
   }

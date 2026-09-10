@@ -1084,6 +1084,27 @@ Consequences:
 
 ---
 
+### D-0053: Memory Sensitivity Enums, Explicit Retrieval Rejection, and Wiki Adapter Collision Disambiguation
+
+Decision:
+- Enforce explicit enumerated sensitivity tiers (`public_safe`, `normal`, `do_not_export`) on CognitiveMemoryEngine capture (`VALID_SENSITIVITY_TIERS`), rejecting unknown tiers with `invalid_sensitivity_tier`.
+- Explicitly reject invalid retrieval trust zones in `CognitiveMemoryEngine.retrieve()` with an `invalid_trust_zone` status receipt instead of silently returning empty results under a fallback.
+- Disambiguate MemoryWikiAdapter file path collisions by appending memory ID suffixes when different memories share sanitized title slugs, and enforce lexical plus realpath confinement against symlink escapes.
+- Include explicit `ev_ratio` in bounty triage receipts so downstream bridge rehearsals preserve expected-value return ratios deterministically.
+
+Rationale:
+- Free-form sensitivity tiers risk accidental boundary drift if an unreviewed label is assumed to be exportable or private.
+- Callers requesting retrieval with an invalid trust zone should receive an explicit failure receipt that is logged in the wiki log rather than an ambiguous empty result.
+- Memory title slugs can collide across distinct memory records; disambiguating collisions preserves both records without destructive overwrites.
+
+Consequences:
+- `lib/cognitive_memory_engine.mjs` exports `VALID_SENSITIVITY_TIERS`, validates sensitivity on capture, and returns explicit `invalid_trust_zone` receipts on bad retrieval requests.
+- `lib/memory_wiki_adapter.mjs` resolves real paths when checking boundaries and disambiguates slug collisions.
+- `lib/bounty_hunter_engine.mjs` exports `ev_ratio` in triage receipts.
+- Focused suites `scripts/cognitive_memory_engine_test.mjs`, `scripts/memory_wiki_adapter_test.mjs`, and `scripts/bounty_hunter_engine_test.mjs` pin these invariants.
+
+---
+
 ## 3) Interfaces
 
 ### 3.1 Messaging / Surfaces

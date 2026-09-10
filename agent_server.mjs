@@ -12,7 +12,7 @@ import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_grap
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
 import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
-import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore } from "./lib/a2a_boundary_guard.mjs";
+import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore, sanitizePromptInjection } from "./lib/a2a_boundary_guard.mjs";
 import { A2AMailboxQueue, A2A_MESSAGE_SCHEMA, A2A_SIGNED_ENVELOPE_SCHEMA } from "./lib/a2a_mailbox_bridge.mjs";
 import { buildCouncilBridgeStatus } from "./lib/council_bridge_status.mjs";
 import {
@@ -1148,6 +1148,8 @@ export async function createRuntime(opts = {}) {
       const svg = renderTensionMapSvg(map);
       res.json({
         ok: true,
+        demonstration: true,
+        message: "This endpoint provides illustrative demonstration data until visibly integrated.",
         tension_map: map,
         svg,
       });
@@ -1173,6 +1175,8 @@ export async function createRuntime(opts = {}) {
       res.json({
         ok: true,
         sample_only: true,
+        demonstration: true,
+        message: "This endpoint provides illustrative demonstration data until visibly integrated.",
         count: normalized.length,
         opportunities: normalized,
       });
@@ -1275,7 +1279,14 @@ export async function createRuntime(opts = {}) {
         limit: req.body?.limit,
         leaseTimeoutMs: req.body?.leaseTimeoutMs,
       });
-      res.json({ ok: true, messages });
+      // Consumer projection: treat dequeued payloads as untrusted data and provide a sanitized copy
+      const projectedMessages = messages.map(msg => {
+        return {
+          ...msg,
+          sanitized_payload: msg.payload ? sanitizePromptInjection(msg.payload) : msg.payload,
+        };
+      });
+      res.json({ ok: true, messages: projectedMessages });
     } catch (error) {
       res.status(400).json({ ok: false, error: error.message });
     }

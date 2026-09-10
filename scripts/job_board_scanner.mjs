@@ -199,6 +199,7 @@ export async function runOfflineScan({
   allowNetworkFetch = true,
   outputPath = DEFAULT_OUTPUT_PATH,
   logger = defaultLogger(),
+  demoMode = false,
 } = {}) {
   const liveOrProvidedListings = await loadRawListings({
     rawListings,
@@ -208,23 +209,34 @@ export async function runOfflineScan({
     allowNetworkFetch,
     logger,
   });
-  const selectedListings = selectFallbackListings(liveOrProvidedListings);
-  const useMockFallback = selectedListings === MOCK_BOUNTY_LISTINGS || liveOrProvidedListings.length === 0;
+  
+  const selectedListings = (demoMode && liveOrProvidedListings.length === 0)
+    ? MOCK_BOUNTY_LISTINGS.map((listing) => ({ ...listing, now: asIsoNow() }))
+    : liveOrProvidedListings;
+    
+  const useMockFallback = demoMode && liveOrProvidedListings.length === 0;
   const { results, skipped } = createScanResults(selectedListings, {
     benchmarkMode: useMockFallback,
   });
-  const outFile = writeScanResults(results, outputPath);
-
-  logger.info(`[scanner] Offline/artifact mode complete. Exported ${results.length} review packets to ${outFile}`);
-  return {
+  
+  const summaryPayload = {
+    schema_version: "dizzy.job_board_scan.v1",
+    timestamp: asIsoNow(),
     mode: "artifact",
-    output_path: outFile,
+    demo_mode: demoMode,
+    used_mock_fallback: useMockFallback,
     exported_count: results.length,
     skipped_count: skipped.length,
-    used_mock_fallback: useMockFallback,
     results,
     skipped,
   };
+
+  const resolvedOut = path.resolve(process.cwd(), outputPath);
+  fs.mkdirSync(path.dirname(resolvedOut), { recursive: true });
+  fs.writeFileSync(resolvedOut, JSON.stringify(summaryPayload, null, 2), "utf8");
+
+  logger.info(`[scanner] Offline/artifact mode complete. Exported ${results.length} review packets to ${resolvedOut}`);
+  return summaryPayload;
 }
 
 export async function runScanner({
@@ -298,40 +310,30 @@ export async function runScannerBridgeRehearsal({
   councilEngineDir = process.env.COUNCIL_ENGINE_DIR || DEFAULT_COUNCIL_ENGINE_DIR,
   pythonBin = process.env.PYTHON_BIN || "python",
   logger = defaultLogger(),
+  demoMode = true,
 } = {}) {
   let effectiveResults = scanResults;
+  let offlineSummary = null;
   if (!effectiveResults || effectiveResults.length === 0) {
-    const scan = await runOfflineScan({
+    offlineSummary = await runOfflineScan({
       rawListings,
       repository,
       label,
       allowNetworkFetch: false,
       logger,
+      demoMode,
     });
-    effectiveResults = scan.results;
+    effectiveResults = offlineSummary.results;
   }
 
   const bridgeRequests = buildBridgeRequestsFromScanResults(effectiveResults, {
     requestedReceiptAuthority: "rehearsal_receipt",
   });
 
-  if (bridgeRequests.length === 0) {
-    logger.warn("[scanner:bridge] No bridge requests generated from scan results.");
-    return {
-      mode: "bridge_rehearsal",
-      executed_count: 0,
-      requests_count: 0,
-      receipts: [],
-      output_path: null,
-      summary: null,
-    };
-  }
-
-  const runnerScript = councilEngineDir ? path.join(councilEngineDir, "bridge_rehearsal_runner.py") : null;
-  const canExecuteSubprocess = runnerScript && fs.existsSync(runnerScript);
-
   const receipts = [];
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dizzy-bridge-scan-"));
+  const runnerScript = councilEngineDir ? path.join(councilEngineDir, "bridge_rehearsal_runner.py") : null;
+  const canExecuteSubprocess = runnerScript && fs.existsSync(runnerScript);
 
   try {
     for (let i = 0; i < bridgeRequests.length; i++) {
@@ -367,12 +369,23 @@ export async function runScannerBridgeRehearsal({
 
   const resolvedOut = path.resolve(process.cwd(), outputPath);
   fs.mkdirSync(path.dirname(resolvedOut), { recursive: true });
+  
+  const skippedCount = bridgeRequests.length - receipts.length;
+  
   const summaryPayload = {
     schema_version: "dizzy.bounty_scan_bridge_rehearsal.v1",
     generated_at: new Date().toISOString(),
     rehearsal_authority: "rehearsal_receipt",
     requests_count: bridgeRequests.length,
     receipts_count: receipts.length,
+    outcomes: {
+      executed: receipts.length,
+      skipped: skippedCount,
+      failed: 0,
+      empty: bridgeRequests.length === 0 ? 1 : 0
+    },
+    demo_mode: demoMode,
+    tested_snapshot: offlineSummary ? offlineSummary.timestamp : null,
     requests: bridgeRequests,
     receipts,
   };
@@ -383,6 +396,7 @@ export async function runScannerBridgeRehearsal({
     mode: "bridge_rehearsal",
     executed_count: receipts.length,
     requests_count: bridgeRequests.length,
+    skipped_count: skippedCount,
     receipts,
     output_path: resolvedOut,
     summary: summaryPayload,
@@ -394,14 +408,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const isBridgeRehearsal = process.argv.includes("--bridge-rehearsal");
 
   if (isBridgeRehearsal) {
-    runScannerBridgeRehearsal().then(() => {
+    runScannerBridgeRehearsal({ demoMode: true }).then(() => {
       process.exit(0);
     }).catch((error) => {
       console.error("[scanner] Bridge rehearsal failed:", String(error?.message || error));
       process.exit(1);
     });
   } else if (isOfflineProof) {
-    runOfflineScan({ allowNetworkFetch: false }).then(() => {
+    runOfflineScan({ allowNetworkFetch: false, demoMode: true }).then(() => {
       process.exit(0);
     }).catch((error) => {
       console.error("[scanner] Offline proof failed:", String(error?.message || error));
@@ -413,12 +427,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
       console.log("[scanner] Falling back to artifact mode at artifacts/bounty_scan_results.json");
 
       try {
-        await runOfflineScan({ allowNetworkFetch: true });
+        await runOfflineScan({ allowNetworkFetch: true, demoMode: true });
         process.exit(0);
       } catch (fallbackError) {
         console.error("[scanner] Artifact fallback failed:", String(fallbackError?.message || fallbackError));
         const emergencyPath = path.join(os.tmpdir(), "dizzy-bounty-scan-results.json");
-        const { results } = createScanResults(MOCK_BOUNTY_LISTINGS.map((listing) => ({ ...listing, now: asIsoNow })));
+        const { results } = createScanResults(MOCK_BOUNTY_LISTINGS.map((listing) => ({ ...listing, now: asIsoNow() })));
         fs.writeFileSync(emergencyPath, JSON.stringify(results, null, 2));
         console.error(`[scanner] Wrote emergency mock artifact to ${emergencyPath}`);
         process.exit(1);
