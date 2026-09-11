@@ -166,3 +166,4 @@ npm run check:council
 `UNIFIED_HANDOFF_PACKET.md` is an internal, local handoff artifact. When that file is present at the repository root, `test:public-view-readiness` and therefore the aggregate Council run are expected to fail the public-branch absence rule. Generate/verify the public receipt before creating the packet, keep the packet untracked, and record that ordering in the handoff.
 
 
+

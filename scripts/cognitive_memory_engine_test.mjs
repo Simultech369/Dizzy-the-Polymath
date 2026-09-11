@@ -120,16 +120,46 @@ try {
     const conflict = engine.capture({
       content: "Do not use absolute paths in handoff artifacts.",
       canonicalKey: "handoff-path-style",
-      confidence: 0.7,
+      confidence: 0.7, // Lower confidence than existing (0.84)
     });
-    assert.equal(conflict.decision, "flag_conflict");
+    // Neurosymbolic Formal Prover correctly rejects the incoming memory (0.7 < 0.84)
+    assert.equal(conflict.decision, "reject");
+    assert.equal(conflict.reason, "rejected_invariant_violation");
     assert.equal(conflict.receipt.action, "reconcile");
-    assert.equal(conflict.conflicts.length, 1);
-    assert.equal(conflict.conflicts[0].wiki_page, "entries/handoff-path-style.md");
-    assert.ok(readWiki("log.md").includes("reconcile | flag_conflict"));
+    assert.equal(conflict.receipt.status, "rejected_invariant_violation");
 
-    console.log("  [PASS] Test 4: Reconcile stage flags contradictory memories in the wiki log");
+    console.log("  [PASS] Test 4: Reconcile stage formally resolves contradictions (rejects weaker incoming)");
   }
+    {
+      const conflictTie = engine.capture({
+        content: "Do not use absolute paths in handoff artifacts.",
+        canonicalKey: "handoff-path-style",
+        confidence: 0.88, // Exact tie with existing (0.88 after +0.04 reinforcement)
+      });
+      // Neurosymbolic Formal Prover cannot resolve a tie purely on confidence, falls back to flag_conflict
+      assert.equal(conflictTie.decision, "flag_conflict");
+      assert.equal(conflictTie.receipt.action, "reconcile");
+      assert.equal(conflictTie.receipt.status, "flag_conflict");
+      assert.equal(conflictTie.conflicts.length, 1);
+      assert.ok(readWiki("log.md").includes("reconcile | flag_conflict"));
+      console.log("  [PASS] Test 4b: Reconcile stage falls back to flag_conflict on tied formal invariants");
+
+      const conflictWin = engine.capture({
+        content: "Do not use absolute paths in handoff artifacts.",
+        canonicalKey: "handoff-path-style",
+        confidence: 0.99, // Strictly dominates existing (0.84)
+      });
+      // Neurosymbolic Formal Prover accepts incoming and decays existing, letting it capture
+      assert.equal(conflictWin.decision, "captured");
+      assert.equal(conflictWin.receipt.action, "capture");
+      assert.equal(conflictWin.receipt.status, "captured");
+      // Check that existing memory was archived (the array of active memories for this key is now 1, the new one)
+      const reloaded = engine.list();
+      const activeForThisKey = reloaded.filter(m => m.canonical_key === "handoff-path-style");
+      assert.equal(activeForThisKey.length, 1);
+      assert.equal(activeForThisKey[0].confidence, 0.99);
+      console.log("  [PASS] Test 4c: Reconcile stage formally resolves contradictions (accepts dominant incoming)");
+    }
 
   {
     engine.capture({
@@ -152,7 +182,7 @@ try {
       trustZone: "private_self",
       limit: 3,
     });
-    assert.ok(privateResult.memories.some((m) => m.memory_id === absolutePathMemory.memory_id));
+    assert.ok(privateResult.memories.some((m) => m.canonical_key === "handoff-path-style"));
     assert.equal(privateResult.receipt.traversal_index, undefined);
     assert.equal(privateResult.receipt.details.traversal_index, "index.md");
     assert.ok(privateResult.memories.every((m) => m.wiki_page.endsWith(".md")));
@@ -328,3 +358,5 @@ try {
 }
 
 console.log("\n[test:cognitive-memory] ALL 9 TESTS PASSED CLEANLY.\n");
+
+
