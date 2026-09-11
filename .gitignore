@@ -1,8 +1,9 @@
-﻿node_modules/
+node_modules/
 runtime/
 artifacts/
 outputs/
 scratch/
+sidecars/
 .pnpm-store/
 .npm-cache/
 nirium-sdk-43/
