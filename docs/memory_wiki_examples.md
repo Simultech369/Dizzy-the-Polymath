@@ -79,18 +79,16 @@ Export rules are deliberately narrower than local retrieval:
 ## Example Compiled Page
 
 ```markdown
-<!-- dizzy-memory-metadata
-{
-  "schema_version": "dizzy.cognitive_memory.v1",
-  "memory_id": "mem_...",
-  "memory_class": "durable",
-  "canonical_key": "handoff-path-style",
-  "trust_zone": "private_self",
-  "sensitivity_tier": "normal",
-  "status": "active",
-  "normalized_content_sha256": "..."
-}
--->
+---
+schema_version: "dizzy.cognitive_memory.v1"
+memory_id: "mem_..."
+memory_class: "durable"
+canonical_key: "handoff-path-style"
+trust_zone: "private_self"
+sensitivity_tier: "normal"
+status: "active"
+normalized_content_sha256: "..."
+---
 
 # handoff-path-style
 

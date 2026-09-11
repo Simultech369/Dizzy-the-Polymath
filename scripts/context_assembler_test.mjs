@@ -55,7 +55,7 @@ const mockSnapshot = {
   const result = assembleContext({
     trust_zone: "private_self",
     task: "tell me about mode preferences",
-    budget_tokens: 1000,
+    budget_bytes: 1000,
     allowed_sources: mockSnapshot
   });
   
@@ -71,7 +71,7 @@ const mockSnapshot = {
   const result = assembleContext({
     trust_zone: "paid_public",
     task: "tell me about Secret API keys",
-    budget_tokens: 1000,
+    budget_bytes: 1000,
     allowed_sources: mockSnapshot
   });
   
@@ -89,7 +89,7 @@ const mockSnapshot = {
     assembleContext({
       trust_zone: "private_self",
       task: "architecture",
-      budget_tokens: 10, // Not enough to even pack the separator
+      budget_bytes: 10, // Not enough to even pack the separator
       allowed_sources: mockSnapshot
     });
     assert.fail("Should have thrown BudgetExceededError");
