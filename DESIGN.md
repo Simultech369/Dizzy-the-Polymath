@@ -1742,3 +1742,16 @@ Edit this block when you want to change what agents read.
 }
 ```
 <!-- STATE_JSON:END -->
+
+### D-0054: Context Assembler and Deterministic Policy Scorer (W-0126)
+
+Decision:
+- Implement the Context Assembler as a pure, stateless JS pipeline (Validate -> Admit -> Select -> Deduplicate -> Pack -> Receipt) fed by immutable snapshot arrays from lib/context_sources.mjs.
+- Remove the Z3 SMT solver and Python bridge for memory conflict resolution, replacing it with a pure JavaScript deterministic empirical policy-ranking scorer (confidence + 0.02 * reinforcement).
+- Hardcode governance invariants (e.g., durable_rule, do_not_export) as absolute predicates that run *before* empirical scoring to prevent mathematically superseding governance rules.
+- Replace fragmented markdown and graph retrieval calls in dispatch.mjs with the unified assembleContext() pipeline.
+
+Rationale:
+- Memory conflict resolution and context packing are empirical policy-ranking and capability-intersection problems, not formal satisfiability problems. The Python Z3 bridge introduced cross-language fragility without providing actual governance authority.
+- A pure JS pipeline allows for deterministic, out-of-band evaluation (using promptfoo and local Ollama seats) without entangling evaluation logic in the runtime data plane.
+- By separating filesystem I/O (context_sources.mjs) from packing logic (context_assembler.mjs), we can assert strict budget compliance (via Buffer.byteLength) and rigid trust zone partitioning without side effects.

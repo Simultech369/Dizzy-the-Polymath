@@ -18,10 +18,10 @@ Resolved note: D-0039 was closed by the W-0068/W-0104 staging packet and the ref
 
 ## Work Queue
 
-
-- W-0091: Keep the Python `council_engine` proof lab quarantined until promotion gates are independently satisfied.
-  Acceptance: Python pass counts are recorded as scratch/sidecar evidence only. Latest Council context supplied on 2026-08-27 after Codex Patch 9D reports 322 tests passing across 62 discoverable test modules, 70 raw non-test Python files, 19 non-output Markdown docs/specs, 13 domain blueprints, `CONTRACT_VERSION 4.7.0`, 30 contract sections, and 37 payload receipt schemas. Codex did not rerun that Python suite in this clawd pass; older 181/237/298 scratch baselines are superseded by the Patch 9D sidecar report. W-0116 documents and tests that mock or simulated sidecar evidence cannot promote and that live execution claims need verified sandbox/egress proof. W-0118 implements and verifies zero-dependency Ed25519 asymmetric signature verification, SPKI DER public key normalization, and an in-memory key custody trust store in the Node runtime, narrowing ingress cryptographic prerequisites. W-0121 closes the known same-key memory disclosure collapse before memory/wiki evidence can be wired upward. Promotion remains blocked on independent verification of non-mock sandbox operations, full P2P/public A2A boundaries, provenance, sensitivity, and path-jail evidence. Next strategic fork: build the live container proof generator for `dizzy.sidecar.live_container_proof.v1`, or explicitly keep the Python sidecar rehearsal-only.
-
+- W-0127: Finalize the new `Context Assembler` pure pipeline and integrate `promptfoo` evaluations out-of-band.
+  Acceptance: The `Context Assembler` replaces the fragmented `getRelevantMarkdownSnippets` calls in `dispatch.mjs` and utilizes `lib/context_sources.mjs` to fetch allowed source snapshots. A `promptfoo` sidecar measures assembler faithfulness and relevance using local Ollama seats. No bloated generic RAG frameworks were used.
+- W-0126: Replace the Python/Z3 bridge with a deterministic policy scorer.
+  Acceptance: Completely removed the synchronous Python subprocess and Z3 SMT solver from memory conflict resolution. Implemented a pure JavaScript deterministic scorer based on `confidence + 0.02 * reinforcement` with a strict `0.05` dominance margin. Hard governance invariants (e.g., `durable_rule`) are enforced as hard predicates before scoring. Re-anchored our roadmap around Anthropic's "Building Effective Agents" doctrine (workflows over agent loops).
 ---
 
 ## Community-Facing Roadmap
