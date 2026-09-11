@@ -1755,3 +1755,13 @@ Rationale:
 - Memory conflict resolution and context packing are empirical policy-ranking and capability-intersection problems, not formal satisfiability problems. The Python Z3 bridge introduced cross-language fragility without providing actual governance authority.
 - A pure JS pipeline allows for deterministic, out-of-band evaluation (using promptfoo and local Ollama seats) without entangling evaluation logic in the runtime data plane.
 - By separating filesystem I/O (context_sources.mjs) from packing logic (context_assembler.mjs), we can assert strict budget compliance (via Buffer.byteLength) and rigid trust zone partitioning without side effects.
+
+### D-0055: Dizzy/Council Architectural Boundary
+
+Decision:
+- Formalize the separation of concerns based on Codex (5.5) review: Dizzy owns the Human-Machine Interface (HMI), memory, ingress, and rehearsal. Council owns promotion authority and immutable verification.
+
+Rationale:
+- This establishes a clean, non-overlapping boundary between the Node.js interactive runtime (Dizzy) and the Python offline verification engine (Council). 
+- Dizzy focuses on high-bandwidth operator interaction, cognitive memory consolidation, incoming network events (A2A, telegram), and running safe rehearsals in isolated sandboxes.
+- Council acts as the unyielding promotion gate, maintaining independent, immutable verification of sidecar proofs, ensuring that no empirical rehearsal automatically graduates to production authority without strict cryptographic and rule-based validation.
