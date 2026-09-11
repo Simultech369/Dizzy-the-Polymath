@@ -122,11 +122,11 @@ try {
       canonicalKey: "handoff-path-style",
       confidence: 0.7, // Lower confidence than existing (0.84)
     });
-    // Neurosymbolic Formal Prover correctly rejects the incoming memory (0.7 < 0.84)
+    // Deterministic Policy Scorer correctly rejects the incoming memory (0.7 < 0.84)
     assert.equal(conflict.decision, "reject");
-    assert.equal(conflict.reason, "rejected_invariant_violation");
+    assert.equal(conflict.reason, "rejected_policy_violation");
     assert.equal(conflict.receipt.action, "reconcile");
-    assert.equal(conflict.receipt.status, "rejected_invariant_violation");
+    assert.equal(conflict.receipt.status, "rejected_policy_violation");
 
     console.log("  [PASS] Test 4: Reconcile stage formally resolves contradictions (rejects weaker incoming)");
   }
@@ -136,7 +136,7 @@ try {
         canonicalKey: "handoff-path-style",
         confidence: 0.88, // Exact tie with existing (0.88 after +0.04 reinforcement)
       });
-      // Neurosymbolic Formal Prover cannot resolve a tie purely on confidence, falls back to flag_conflict
+      // Deterministic Policy Scorer cannot resolve a tie purely on confidence, falls back to flag_conflict
       assert.equal(conflictTie.decision, "flag_conflict");
       assert.equal(conflictTie.receipt.action, "reconcile");
       assert.equal(conflictTie.receipt.status, "flag_conflict");
@@ -149,7 +149,7 @@ try {
         canonicalKey: "handoff-path-style",
         confidence: 0.99, // Strictly dominates existing (0.84)
       });
-      // Neurosymbolic Formal Prover accepts incoming and decays existing, letting it capture
+      // Deterministic Policy Scorer accepts incoming and decays existing, letting it capture
       assert.equal(conflictWin.decision, "captured");
       assert.equal(conflictWin.receipt.action, "capture");
       assert.equal(conflictWin.receipt.status, "captured");
@@ -358,5 +358,6 @@ try {
 }
 
 console.log("\n[test:cognitive-memory] ALL 9 TESTS PASSED CLEANLY.\n");
+
 
 
