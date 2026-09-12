@@ -271,6 +271,7 @@ async function runAudit() {
     { name: "Context Assembler Suite", script: "scripts/context_assembler_test.mjs" },
     { name: "Circuit Breaker Suite", script: "scripts/circuit_breaker_test.mjs" },
     { name: "Structured Tool-Call Evaluator Suite", script: "scripts/tool_call_eval_test.mjs" },
+    { name: "Trajectory Eval Suite", script: "scripts/trajectory_eval_test.mjs" },
     { name: "Receipt Trace Replay Suite", script: "scripts/receipt_trace_viewer_test.mjs" },
     { name: "Citation Grounding Verifier Suite", script: "scripts/citation_grounding_test.mjs" },
     { name: "StateM Runbook Bridge Suite", script: "scripts/statem_runbook_bridge_test.mjs" },
