@@ -18,10 +18,7 @@ Resolved note: D-0039 was closed by the W-0068/W-0104 staging packet and the ref
 
 ## Work Queue
 
-- W-0127: Finalize the new `Context Assembler` pure pipeline and integrate `promptfoo` evaluations out-of-band.
-  Acceptance: The `Context Assembler` replaces the fragmented `getRelevantMarkdownSnippets` calls in `dispatch.mjs` and utilizes `lib/context_sources.mjs` to fetch allowed source snapshots. A `promptfoo` sidecar measures assembler faithfulness and relevance using local Ollama seats. No bloated generic RAG frameworks were used.
-- W-0126: Replace the Python/Z3 bridge with a deterministic policy scorer.
-  Acceptance: Completely removed the synchronous Python subprocess and Z3 SMT solver from memory conflict resolution. Implemented a pure JavaScript deterministic scorer based on `confidence + 0.02 * reinforcement` with a strict `0.05` dominance margin. Hard governance invariants (e.g., `durable_rule`) are enforced as hard predicates before scoring. Re-anchored our roadmap around Anthropic's "Building Effective Agents" doctrine (workflows over agent loops).
+
 ---
 
 ## Community-Facing Roadmap
@@ -32,6 +29,11 @@ These are future focuses for public collaborators, not current completion claims
   Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
 ## Completed
+
+- W-0126: Replaced the Python/Z3 bridge with a deterministic policy scorer. Removed the synchronous Python subprocess and Z3 SMT solver from memory conflict resolution. Implemented a pure JavaScript deterministic scorer based on confidence + 0.02 * reinforcement with a strict 0.05 dominance margin. Hard governance invariants are enforced as hard predicates before scoring. Re-anchored our roadmap around Anthropic's Building Effective Agents doctrine. (Verification: npm run check:council)
+
+- W-0127: Finalized the new Context Assembler pure pipeline and integrated promptfoo evaluations out-of-band. The Context Assembler replaced fragmented getRelevantMarkdownSnippets calls in dispatch.mjs. The promptfoo sidecar is configured in evaluations/promptfoo/promptfoo.yaml with a JS provider that uses ssembleContext and local Ollama model assertions to measure faithfulness to trust-zone restrictions and task relevance without bloated generic RAG frameworks. (Verification: Configured out-of-band sidecar; 
+pm run check:council)
 
 - W-0125: Hardened CognitiveMemoryEngine sensitivity tiers, invalid-retrieval-zone rejection, and adapter collision defenses (`lib/cognitive_memory_engine.mjs`, `lib/memory_wiki_adapter.mjs`, `lib/bounty_hunter_engine.mjs`, `docs/memory_wiki_examples.md`, `scripts/cognitive_memory_engine_test.mjs`, `scripts/memory_wiki_adapter_test.mjs`, `DESIGN.md` [D-0053]). Enforced explicit enumerated sensitivity tiers (`public_safe`, `normal`, `do_not_export`) with fail-closed capture rejection for unlisted tiers, made `retrieve()` return an explicit `invalid_trust_zone` receipt on unrecognized zones, added collision-disambiguation with memory ID suffixes in `MemoryWikiAdapter.writeMemory()`, enforced realpath confinement against symlink traversal, and ensured bounty triage receipts include an explicit `ev_ratio`. (Verification: `npm run test:cognitive-memory`; `npm run test:memory-wiki`; `npm run test:bounty-hunter`; `npm run check:council`)
 
@@ -183,3 +185,5 @@ These are future focuses for public collaborators, not current completion claims
 - Hosted sandboxing: microVM/Wasm isolation, no ambient filesystem, hardened egress proxy.
 - Multi-tenant memory: strict tenant partitioning, no cross-user retrieval bleed.
 - Hosted operations: OAuth/OIDC, distributed rate limits, billing guards, fleet telemetry.
+
+
