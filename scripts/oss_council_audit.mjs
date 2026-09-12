@@ -277,6 +277,7 @@ async function runAudit() {
     { name: "StateM Runbook Bridge Suite", script: "scripts/statem_runbook_bridge_test.mjs" },
     { name: "Bounty Hunter Engine Suite", script: "scripts/bounty_hunter_engine_test.mjs" },
     { name: "A2A Mailbox Bridge Suite", script: "scripts/a2a_mailbox_bridge_test.mjs" },
+    { name: "A2A Injection Fuzzing Suite", script: "scripts/a2a_fuzz_injection_test.mjs" },
     { name: "Cognitive Memory Wiki Suite", script: "scripts/cognitive_memory_engine_test.mjs" },
     { name: "Memory Wiki Adapter Suite", script: "scripts/memory_wiki_adapter_test.mjs" },
     { name: "Node/Python Council Bridge Contract Suite", script: "scripts/node_python_council_bridge_contract_test.mjs" },
