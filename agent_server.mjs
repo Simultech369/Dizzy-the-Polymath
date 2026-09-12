@@ -1281,9 +1281,10 @@ export async function createRuntime(opts = {}) {
       });
       // Consumer projection: treat dequeued payloads as untrusted data and provide a sanitized copy
       const projectedMessages = messages.map(msg => {
+        const hasPayload = msg.message && Object.prototype.hasOwnProperty.call(msg.message, "payload");
         return {
           ...msg,
-          sanitized_payload: msg.payload ? sanitizePromptInjection(msg.payload) : msg.payload,
+          sanitized_payload: hasPayload ? sanitizePromptInjection(msg.message.payload) : undefined,
         };
       });
       res.json({ ok: true, messages: projectedMessages });

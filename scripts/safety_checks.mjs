@@ -3567,6 +3567,8 @@ function testTrajectoryDistilleryManualPath() {
 
   assert.throws(() => appendTrajectory({
     goal: "Block raw transcript storage",
+    actions_taken: ["reviewed a proposed trajectory distillation contract"],
+    outcome: "success",
     reusable_pattern: "Keep trajectory contracts sparse and evidence-gated",
     reuse_tags: ["trajectory"],
     strength: 7,

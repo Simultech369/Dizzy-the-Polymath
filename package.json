@@ -28,6 +28,7 @@
         "test:router": "node ./scripts/dynamic_router_test.mjs",
         "test:risk-scaler": "node --disable-warning=ExperimentalWarning ./scripts/risk_scaler_test.mjs",
         "test:model-router": "node ./scripts/model_router_test.mjs",
+        "test:routing-policy": "node ./scripts/routing_policy_test.mjs",
         "test:dashboard-safety": "node ./scripts/dashboard_safety_harness_test.mjs",
         "test:dashboard-public-surface": "node --disable-warning=ExperimentalWarning ./scripts/dashboard_public_surface_test.mjs",
         "test:dashboard-proof": "node --disable-warning=ExperimentalWarning ./scripts/dashboard_proof_capture.mjs",
