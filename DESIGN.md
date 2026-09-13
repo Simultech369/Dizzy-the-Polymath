@@ -1777,3 +1777,15 @@ Rationale:
 - Routing policy was already tested as a control-plane module; this promotes it into the actual model-call path without granting any new promotion authority.
 - Operator views should reflect the route actually attempted, not reconstruct model choice from environment defaults after the fact.
 - Capability-first routing keeps frontend labels, backend execution, and prompt language aligned: use the best policy-permitted model available on this surface, then record what was actually selected.
+
+### D-0057: Operator-Visible Routing Policy Telemetry
+
+Decision:
+- Project routing-policy sub-receipts through router receipts and `/api/operator/receipts-telemetry`.
+- Summarize policy status and selected tier from persisted receipt facts, not from current environment defaults.
+- Keep the projection bounded to route IDs, model IDs, selected tier, attempt status, provider invocation, and receipt hashes.
+
+Rationale:
+- The operator cockpit needs to show whether a response was routed, blocked, downgraded, or served by a provider without requiring code inspection.
+- Persisted receipts may be older than current configuration, so telemetry must describe what happened at the time of execution rather than what the current model router would choose now.
+- This remains observability only. It does not prove output quality, provider availability beyond the attempted call, or Council promotion authority.

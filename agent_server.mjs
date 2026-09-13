@@ -437,6 +437,36 @@ function normalizeFreeText(value, maxChars = 20_000) {
   return String(value ?? "").trim().slice(0, Math.max(1, Number(maxChars) || 20_000));
 }
 
+function summarizeRoutingPolicyMetadata(policy) {
+  if (!policy || typeof policy !== "object" || Array.isArray(policy)) return null;
+  const attempts = Array.isArray(policy.attempts) ? policy.attempts.slice(0, 4).map((attempt) => ({
+    route_id: normalizeFreeText(attempt?.route_id || "", 160),
+    model_id: normalizeFreeText(attempt?.model_id || "", 160),
+    status: normalizeIdentifier(attempt?.status || "unknown", "unknown"),
+    error: attempt?.error ? normalizeIdentifier(attempt.error, "unknown_error") : null,
+    sent_model: normalizeFreeText(attempt?.sent_model || "", 160) || null,
+    reported_model: normalizeFreeText(attempt?.reported_model || "", 160) || null,
+    usage_known: attempt?.usage_known === true,
+    status_code: Number(attempt?.status_code) > 0 ? Number(attempt.status_code) : null,
+  })) : [];
+
+  return {
+    status: normalizeIdentifier(policy.status || "unknown", "unknown"),
+    task_class: normalizeIdentifier(policy.task_class || "unknown", "unknown"),
+    surface_id: normalizeIdentifier(policy.surface_id || "unknown", "unknown"),
+    requested_model: normalizeFreeText(policy.requested_model || "", 160) || null,
+    selected_tier: normalizeIdentifier(policy.selected_tier || "unknown", "unknown").toUpperCase(),
+    selected_model_or_route: normalizeFreeText(policy.selected_model_or_route || "", 160) || null,
+    provider_invoked: policy.provider_invoked === true,
+    downgrade_reason: policy.downgrade_reason ? normalizeIdentifier(policy.downgrade_reason, "unknown") : null,
+    fail_closed_reason: policy.fail_closed_reason ? normalizeIdentifier(policy.fail_closed_reason, "unknown") : null,
+    routing_receipt_sha256: /^[a-f0-9]{64}$/i.test(String(policy.routing_receipt_sha256 || ""))
+      ? String(policy.routing_receipt_sha256).toLowerCase()
+      : null,
+    attempts,
+  };
+}
+
 function countJsonlRows(filePath) {
   try {
     const raw = fs.readFileSync(filePath, "utf8").trim();
@@ -1020,6 +1050,7 @@ export async function createRuntime(opts = {}) {
       }
 
       function summarizeReceipt(receipt = {}) {
+        const routingPolicy = summarizeRoutingPolicyMetadata(receipt.routing_policy);
         return {
           schema_version: receipt.schema_version || "",
           task_id: receipt.task_id || "",
@@ -1031,6 +1062,7 @@ export async function createRuntime(opts = {}) {
           latency_ms: Number.isFinite(Number(receipt.latency_ms)) ? Math.max(0, Math.round(Number(receipt.latency_ms))) : 0,
           provider_health: receipt.provider_health || "unknown",
           persisted: Boolean(receipt.persisted),
+          routing_policy: routingPolicy,
         };
       }
 
@@ -1098,6 +1130,8 @@ export async function createRuntime(opts = {}) {
       const trustZonesSummary = {};
       const costBandsSummary = {};
       const latencyBandsSummary = {};
+      const routingPolicyStatuses = {};
+      const selectedTiersSummary = {};
       let totalLatencyMs = 0;
       let latencyCount = 0;
 
@@ -1110,6 +1144,12 @@ export async function createRuntime(opts = {}) {
         costBandsSummary[costBand] = (costBandsSummary[costBand] || 0) + 1;
         const band = latencyBand(r.latency_ms);
         latencyBandsSummary[band] = (latencyBandsSummary[band] || 0) + 1;
+        if (r.routing_policy) {
+          const policyStatus = r.routing_policy.status || "unknown";
+          routingPolicyStatuses[policyStatus] = (routingPolicyStatuses[policyStatus] || 0) + 1;
+          const selectedTier = r.routing_policy.selected_tier || "UNKNOWN";
+          selectedTiersSummary[selectedTier] = (selectedTiersSummary[selectedTier] || 0) + 1;
+        }
         if (typeof r.latency_ms === "number" && r.latency_ms > 0) {
           totalLatencyMs += r.latency_ms;
           latencyCount++;
@@ -1125,6 +1165,8 @@ export async function createRuntime(opts = {}) {
           trust_zones: trustZonesSummary,
           cost_bands: costBandsSummary,
           latency_bands: latencyBandsSummary,
+          routing_policy_statuses: routingPolicyStatuses,
+          selected_tiers: selectedTiersSummary,
           avg_latency_ms: latencyCount > 0 ? Math.round(totalLatencyMs / latencyCount) : 0,
         },
         pareto_frontier: paretoFrontier,
@@ -1409,6 +1451,7 @@ export async function createRuntime(opts = {}) {
       path: "none",
       blocked_reason: noExecutionReason
     };
+    const routingPolicy = summarizeRoutingPolicyMetadata(executionMetadata?.routing_policy);
 
     const receipt = {
       schema_version: "dizzy.router_receipt.v1",
@@ -1425,6 +1468,7 @@ export async function createRuntime(opts = {}) {
       provider_health: typeof executionMetadata?.provider_health === "string" ? executionMetadata.provider_health : (isNoneModel ? "unconfigured" : "healthy"),
       reason: executionMetadata?.reason || (isNoneModel ? `no_model_execution:${noExecutionReason}` : "default_triage_routing_to_chat"),
       fallback,
+      routing_policy: routingPolicy,
       trust_zone: capabilities.trust_zone || "paid_public",
       durable_memory_allowed: capabilities.durable_memory_allowed ?? false,
       voice_consent: false,
