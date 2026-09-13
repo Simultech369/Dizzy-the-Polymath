@@ -172,6 +172,26 @@ assert.equal(
   true
 );
 
+const unknownAdapterCannotClaimPrivate = planRouting(baseRequest({
+  trust_zone: "private_self",
+  sensitivity: "internal",
+}), {
+  now,
+  surface_id: "desktop",
+  context,
+  route_evidence: [localRoute({
+    route_id: "corp-proxy:private-claim",
+    adapter: "corp_proxy",
+    provider_boundary: "private_self",
+  })],
+});
+assert.equal(unknownAdapterCannotClaimPrivate.fail_closed_reason, "no_eligible_route");
+assert.equal(
+  unknownAdapterCannotClaimPrivate.rejected_routes[0].reasons.includes("boundary_not_allowed"),
+  true,
+  "Unknown adapters must not self-declare private_self boundaries"
+);
+
 const requestedModelBlocked = planRouting(baseRequest({ requested_model: "gpt-5.5" }), {
   now,
   surface_id: "desktop",
@@ -261,6 +281,15 @@ const incompleteMetadataBlocked = planRouting(baseRequest(), {
 });
 assert.equal(incompleteMetadataBlocked.fail_closed_reason, "no_eligible_route");
 assert.equal(incompleteMetadataBlocked.rejected_routes[0].reasons.includes("task_classes_required"), true);
+
+const t2CannotBecomeT0 = planRouting(baseRequest(), {
+  now,
+  surface_id: "desktop",
+  context,
+  deterministic_handlers: [{ task_class: "code_review", trust_zone: "trusted_collaborator", response_contract: "review.v1", route_id: "deterministic:review" }],
+});
+assert.equal(t2CannotBecomeT0.selected_tier, "BLOCKED");
+assert.equal(t2CannotBecomeT0.fail_closed_reason, "no_eligible_route", "T2 requests must not downshift to T0 deterministic handlers");
 
 const twoAttemptPlan = planRouting(baseRequest(), {
   now,
@@ -366,9 +395,34 @@ const tamperedExecution = await executeRoutingPlan(tamperedPlan, {
   },
 });
 assert.equal(tamperedExecution.status, "BLOCKED");
-assert.equal(tamperedExecution.fail_closed_reason, "invalid_routing_receipt");
+assert.equal(tamperedExecution.fail_closed_reason, "invalid_plan_authority");
 assert.equal(tamperedExecution.attempts.length, 0);
 assert.equal(invalidPlanInvoked, false);
+
+let forgedPlanInvoked = false;
+const forgedPlan = {
+  ...twoAttemptPlan,
+  planned_chain: [cloudRoute({
+    route_id: "forged:private-openai",
+    adapter: "openai_compat",
+    provider_boundary: "private_self",
+    trust_zones: ["private_self"],
+    sensitivity_classes: ["internal", "public"],
+  })],
+  selected_model_or_route: "forged:private-openai",
+  compute_budget: { ...twoAttemptPlan.compute_budget, max_attempts: 1 },
+};
+forgedPlan.routing_receipt = buildRoutingReceipt(forgedPlan);
+const forgedExecution = await executeRoutingPlan(forgedPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => {
+    forgedPlanInvoked = true;
+    return { text: "must not run" };
+  },
+});
+assert.equal(forgedExecution.status, "BLOCKED");
+assert.equal(forgedExecution.fail_closed_reason, "invalid_plan_authority");
+assert.equal(forgedPlanInvoked, false, "A recomputed public receipt must not grant execution authority");
 
 const excessivePolicyPlan = planRouting(baseRequest(), {
   now,
@@ -392,6 +446,20 @@ const malformedResultExecution = await executeRoutingPlan(twoAttemptPlan, {
 assert.equal(malformedResultExecution.status, "BLOCKED");
 assert.equal(malformedResultExecution.attempts[0].status, "BLOCKED");
 assert.equal(malformedResultExecution.attempts[0].error, "response_payload_missing");
+
+const emptyTextExecution = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({ text: "" }),
+});
+assert.equal(emptyTextExecution.status, "BLOCKED");
+assert.equal(emptyTextExecution.attempts[0].error, "response_payload_missing");
+
+const nullPayloadExecution = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({ payload: null }),
+});
+assert.equal(nullPayloadExecution.status, "BLOCKED");
+assert.equal(nullPayloadExecution.attempts[0].error, "response_payload_missing");
 
 console.log("[PASS] Capability-first routing policy tests passed.");
 console.log("ROUTING_POLICY_TESTS_OK");

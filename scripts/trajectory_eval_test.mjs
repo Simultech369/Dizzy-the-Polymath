@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { evaluateBatch, evaluateTrajectory } from '../lib/trajectory_evaluator.mjs';
 import { appendTrajectory, readTrajectories } from '../lib/trajectories.mjs';
@@ -9,6 +10,11 @@ console.log('=== W-0128 Trajectory Eval Gates Test Suite ===');
 const fixturesPath = path.resolve(process.cwd(), 'scripts/fixtures/trajectory_eval_fixtures.json');
 const fixturesData = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
 const trajectories = fixturesData.trajectories;
+const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dizzy-trajectory-eval-'));
+
+function testLedgerPath(name) {
+  return path.join(tempRoot, name);
+}
 
 let allUnitTestsPassed = true;
 for (const fixture of trajectories) {
@@ -151,7 +157,7 @@ const sparseBatchReceipt = evaluateBatch(Array(1));
 assert.equal(sparseBatchReceipt.overall_status, 'TRAJECTORY_SUITE_FAILED', 'Sparse batches must not pass');
 assert.equal(sparseBatchReceipt.failed_trajectories, 1);
 
-const admissionRejectPath = path.resolve(process.cwd(), 'runtime/test-trajectory-admission-reject.jsonl');
+const admissionRejectPath = testLedgerPath('test-trajectory-admission-reject.jsonl');
 fs.rmSync(admissionRejectPath, { force: true });
 assert.throws(() => appendTrajectory({
   id: 'known-good-rejects-bad-evidence',
@@ -165,7 +171,7 @@ assert.throws(() => appendTrajectory({
 }, { filePath: admissionRejectPath, checkEligibility: false }), /trajectory_admission_rejected/);
 assert.equal(fs.existsSync(admissionRejectPath), false, 'Rejected trajectory admission must not create the known-good ledger file');
 
-const admissionConflictPath = path.resolve(process.cwd(), 'runtime/test-trajectory-admission-conflict.jsonl');
+const admissionConflictPath = testLedgerPath('test-trajectory-admission-conflict.jsonl');
 fs.rmSync(admissionConflictPath, { force: true });
 assert.throws(() => appendTrajectory({
   id: 'known-good-rejects-failure-only-success',
@@ -179,7 +185,7 @@ assert.throws(() => appendTrajectory({
 }, { filePath: admissionConflictPath, checkEligibility: false }), /trajectory_admission_rejected/);
 assert.equal(fs.existsSync(admissionConflictPath), false, 'Rejected conflicted trajectory admission must not create the known-good ledger file');
 
-const admissionAcceptPath = path.resolve(process.cwd(), 'runtime/test-trajectory-admission-accept.jsonl');
+const admissionAcceptPath = testLedgerPath('test-trajectory-admission-accept.jsonl');
 fs.rmSync(admissionAcceptPath, { force: true });
 const acceptedAdmission = appendTrajectory({
   id: 'known-good-admission-binds-evidence',
@@ -209,7 +215,7 @@ assert.equal(
   acceptedAdmission.admission_receipt.input_evidence_sha256
 );
 
-const stepsAdmissionPath = path.resolve(process.cwd(), 'runtime/test-trajectory-admission-steps.jsonl');
+const stepsAdmissionPath = testLedgerPath('test-trajectory-admission-steps.jsonl');
 fs.rmSync(stepsAdmissionPath, { force: true });
 const stepsAdmission = appendTrajectory({
   id: 'known-good-admission-preserves-step-evidence',
@@ -226,7 +232,25 @@ const stepsRows = readTrajectories({ filePath: stepsAdmissionPath });
 assert.equal(stepsRows.length, 1);
 assert.ok(stepsRows[0].actions_taken.length > 0, 'Readback must preserve derived action evidence');
 
-const malformedKnownGoodPath = path.resolve(process.cwd(), 'runtime/test-trajectory-malformed-readback.jsonl');
+const objectActionAdmissionPath = testLedgerPath('test-trajectory-admission-object-action.jsonl');
+fs.rmSync(objectActionAdmissionPath, { force: true });
+const objectActionAdmission = appendTrajectory({
+  id: 'known-good-admission-serializes-object-action',
+  goal: 'Persist object action evidence without losing semantics',
+  success_criteria: 'Object actions must not collapse to [object Object]',
+  actions_taken: [{ status: 'success', action: 'ran verification' }],
+  outcome: 'success',
+  reusable_pattern: 'Serialize object action evidence into stable summaries',
+  reuse_tags: ['trajectory', 'admission'],
+  strength: 7,
+}, { filePath: objectActionAdmissionPath, checkEligibility: false });
+assert.ok(!objectActionAdmission.trajectory.actions_taken.includes('[object Object]'));
+assert.match(objectActionAdmission.trajectory.actions_taken[0], /ran verification/);
+const objectActionRows = readTrajectories({ filePath: objectActionAdmissionPath });
+assert.equal(objectActionRows.length, 1);
+assert.ok(!objectActionRows[0].actions_taken.includes('[object Object]'));
+
+const malformedKnownGoodPath = testLedgerPath('test-trajectory-malformed-readback.jsonl');
 fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   id: 'malformed-known-good-row',
   goal: 'Reject malformed readback rows',
