@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -14,6 +15,10 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dizzy-trajectory-eval-')
 
 function testLedgerPath(name) {
   return path.join(tempRoot, name);
+}
+
+function sha256(text) {
+  return crypto.createHash('sha256').update(String(text), 'utf8').digest('hex');
 }
 
 let allUnitTestsPassed = true;
@@ -311,6 +316,20 @@ const structuredErrorResult = evaluateTrajectory({
 assert.equal(structuredErrorResult.status, 'FAILED');
 assert.ok(structuredErrorResult.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
 
+for (const action of [
+  { status: 'success', action: 'ran verification', error: { code: 'ENOENT', message: 'no such file or directory' } },
+  { status: 'success', action: 'ran verification', error: { code: 'ETIMEDOUT', message: 'operation timed out' } },
+  { status: 'success', action: 'ran verification', error: { nested: { exit_code: 17 } } },
+]) {
+  const result = evaluateTrajectory({
+    id: 'object-action-structured-error-family',
+    actions_taken: [action],
+    outcome: 'success',
+  });
+  assert.equal(result.status, 'FAILED', 'Structured error action must fail: ' + JSON.stringify(action));
+  assert.ok(result.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
+}
+
 const objectActionFailurePath = testLedgerPath('test-trajectory-admission-object-action-failure.jsonl');
 fs.rmSync(objectActionFailurePath, { force: true });
 assert.throws(() => appendTrajectory({
@@ -353,6 +372,20 @@ assert.throws(() => appendTrajectory({
 }, { filePath: structuredErrorFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
 assert.equal(fs.existsSync(structuredErrorFailurePath), false, 'Rejected structured error evidence must not create a known-good ledger');
 
+const nestedExitCodeFailurePath = testLedgerPath('test-trajectory-admission-nested-exit-code.jsonl');
+fs.rmSync(nestedExitCodeFailurePath, { force: true });
+assert.throws(() => appendTrajectory({
+  id: 'known-good-rejects-nested-exit-code',
+  goal: 'Reject object actions whose nested error carries an exit code',
+  success_criteria: 'Nested nonzero exit codes cannot support a successful known-good row',
+  actions_taken: [{ status: 'success', action: 'ran verification', error: { nested: { exit_code: 17 } } }],
+  outcome: 'success',
+  reusable_pattern: 'Reject success claims contradicted by nested structured errors',
+  reuse_tags: ['trajectory', 'admission'],
+  strength: 7,
+}, { filePath: nestedExitCodeFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
+assert.equal(fs.existsSync(nestedExitCodeFailurePath), false, 'Rejected nested exit-code evidence must not create a known-good ledger');
+
 const malformedKnownGoodPath = testLedgerPath('test-trajectory-malformed-readback.jsonl');
 fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   id: 'malformed-known-good-row',
@@ -386,6 +419,74 @@ fs.writeFileSync(placeholderKnownGoodPath, JSON.stringify({
   admission_receipt: { overall_status: 'TRAJECTORY_SUITE_PASSED' },
 }) + '\n', 'utf8');
 assert.equal(readTrajectories({ filePath: placeholderKnownGoodPath }).length, 0, 'Placeholder admission objects must not be retrieved');
+
+const hashLightPlaceholderPath = testLedgerPath('test-trajectory-hash-light-placeholders.jsonl');
+const hashLightRow = {
+  id: 'forged-review-hash-light',
+  goal: 'Validate trajectory admission',
+  success_criteria: 'Reject placeholder receipt hashes',
+  actions_taken: ['ran verification'],
+  outcome: 'success',
+  reusable_pattern: 'Never retrieve hash-light placeholder evidence',
+  reuse_tags: ['trajectory'],
+  strength: 7,
+};
+const hashLightNormalized = normalizeTrajectory(hashLightRow);
+fs.writeFileSync(hashLightPlaceholderPath, JSON.stringify({
+  ...hashLightRow,
+  admission_evidence: {
+    evaluator_revision: 'trajectory_evaluator.v2',
+    policy_sha256: 'x',
+    input_evidence_sha256: 'x',
+    normalized_record_sha256: sha256(JSON.stringify(hashLightNormalized)),
+    admission_receipt_sha256: 'x',
+  },
+  admission_receipt: {
+    schema: 'dizzy.trajectory_eval_receipt.v1',
+    evaluator_revision: 'trajectory_evaluator.v2',
+    policy_sha256: 'x',
+    input_evidence_sha256: 'x',
+    total_trajectories: 1,
+    passed_trajectories: 1,
+    failed_trajectories: 0,
+    total_violations: 0,
+    overall_status: 'TRAJECTORY_SUITE_PASSED',
+    batch_violations: [],
+    results: [],
+    receipt_sha256: 'x',
+  },
+}) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: hashLightPlaceholderPath }).length, 0, 'Hash-light placeholder admission evidence must not be retrieved');
+
+const failedReceiptTamperPath = testLedgerPath('test-trajectory-failed-receipt-tamper.jsonl');
+const failedReceiptRow = {
+  id: 'forged-review-failed-receipt-tamper',
+  goal: 'Validate trajectory admission',
+  success_criteria: 'Reject tampered failed receipts',
+  actions_taken: ['ran verification'],
+  outcome: 'success',
+  reusable_pattern: 'Never retrieve rows whose receipt status was patched after failure',
+  reuse_tags: ['trajectory'],
+  strength: 7,
+};
+const failedReceiptNormalized = normalizeTrajectory(failedReceiptRow);
+const failedReceipt = evaluateBatch([{
+  id: 'failed-receipt-source',
+  steps: Array.from({ length: 4 }, () => ({ status: 'ERROR' })),
+}]);
+const tamperedFailedReceipt = { ...failedReceipt, overall_status: 'TRAJECTORY_SUITE_PASSED' };
+fs.writeFileSync(failedReceiptTamperPath, JSON.stringify({
+  ...failedReceiptRow,
+  admission_evidence: {
+    evaluator_revision: tamperedFailedReceipt.evaluator_revision,
+    policy_sha256: tamperedFailedReceipt.policy_sha256,
+    input_evidence_sha256: tamperedFailedReceipt.input_evidence_sha256,
+    normalized_record_sha256: sha256(JSON.stringify(failedReceiptNormalized)),
+    admission_receipt_sha256: tamperedFailedReceipt.receipt_sha256,
+  },
+  admission_receipt: tamperedFailedReceipt,
+}) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: failedReceiptTamperPath }).length, 0, 'Tampered failed receipts must not be retrieved as known-good rows');
 
 const forgedKnownGoodNoReceiptPath = testLedgerPath('test-trajectory-forged-no-admission.jsonl');
 fs.writeFileSync(forgedKnownGoodNoReceiptPath, JSON.stringify({

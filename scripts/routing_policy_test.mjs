@@ -530,7 +530,14 @@ for (const payload of emptyPayloadCases) {
   assert.equal(payloadExecution.attempts[0].error, "response_payload_missing");
 }
 
-const nestedEmptyPayloadCases = [[null], { text: "" }, { choices: [] }];
+const nestedEmptyPayloadCases = [
+  [null],
+  { text: "" },
+  { choices: [] },
+  { content: [{ type: "text", text: "" }] },
+  { message: { role: "assistant", content: "" } },
+  { choices: [], response_metadata: { model: "local:first", finish_reason: "stop" } },
+];
 for (const payload of nestedEmptyPayloadCases) {
   const payloadExecution = await executeRoutingPlan(twoAttemptPlan, {
     now: () => now.getTime(),
