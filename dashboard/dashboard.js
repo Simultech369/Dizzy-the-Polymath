@@ -114,8 +114,16 @@ async function fetchJson(url, options = {}) {
 }
 
 function switchTab(tabId) {
-  document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tabTarget === tabId));
-  document.querySelectorAll(".tab-content").forEach((content) => content.classList.toggle("active", content.id === tabId));
+  document.querySelectorAll(".tab").forEach((tab) => {
+    const selected = tab.dataset.tabTarget === tabId;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-content").forEach((content) => {
+    const selected = content.id === tabId;
+    content.classList.toggle("active", selected);
+    content.toggleAttribute("hidden", !selected);
+  });
 }
 
 async function runSearch() {
@@ -430,6 +438,7 @@ function setButtonBusy(button, text) {
   if (!button) return;
   button.dataset.originalText = button.dataset.originalText || button.textContent;
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   button.textContent = text;
 }
 
@@ -442,6 +451,7 @@ function flashButtonDone(button, text, className = "btn-success") {
     button.textContent = original;
     button.classList.remove(className);
     button.disabled = false;
+    button.removeAttribute("aria-busy");
   }, 1500);
 }
 
@@ -449,6 +459,7 @@ function resetButton(button) {
   if (!button) return;
   button.textContent = button.dataset.originalText || button.textContent;
   button.disabled = false;
+  button.removeAttribute("aria-busy");
 }
 
 function renderRecords(report) {
@@ -470,9 +481,9 @@ function renderRecords(report) {
         <td>${expiry}</td>
         <td>
           <div class="record-actions">
-            <button class="btn btn-secondary btn-small" data-continuity-audit="${escapeHtml(record.conversation_key)}">Audit</button>
-            <button class="btn btn-secondary btn-small" data-continuity-export="${escapeHtml(record.conversation_key)}">Export</button>
-            <button class="btn btn-danger btn-small" data-continuity-delete="${escapeHtml(record.conversation_key)}">Revoke</button>
+            <button class="btn btn-secondary btn-small" type="button" data-continuity-audit="${escapeHtml(record.conversation_key)}">Audit</button>
+            <button class="btn btn-secondary btn-small" type="button" data-continuity-export="${escapeHtml(record.conversation_key)}">Export</button>
+            <button class="btn btn-danger btn-small" type="button" data-continuity-delete="${escapeHtml(record.conversation_key)}">Revoke</button>
           </div>
         </td>
       </tr>
@@ -965,6 +976,7 @@ function initChatSurface() {
     chatInputText.value = "";
     chatInputText.style.height = "auto";
     chatSendBtn.disabled = true;
+    chatSendBtn.setAttribute("aria-busy", "true");
 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -1017,6 +1029,7 @@ function initChatSurface() {
       scrollToBottom();
     } finally {
       chatSendBtn.disabled = false;
+      chatSendBtn.removeAttribute("aria-busy");
     }
   }
 

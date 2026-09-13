@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dizzy - Drift & Memory Dashboard</title>
+  <meta name="description" content="Local Dizzy operator dashboard for capability routing, memory state, receipts, and rehearsal-only council surfaces.">
+  <title>Dizzy Local Operator Dashboard</title>
   <style>
     :root {
       --bg-color: #06080d;
@@ -166,6 +167,18 @@
       background-color: currentColor;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Grid Layout */
     .grid {
       display: grid;
@@ -285,6 +298,7 @@
       font-size: 0.9rem;
       border-radius: 8px;
       border: 1px solid transparent;
+      background: transparent;
       transition: background-color 0.2s, border-color 0.2s, color 0.2s;
       white-space: nowrap;
     }
@@ -817,12 +831,46 @@
     body.dev-mode-off .dev-only {
       display: none !important;
     }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 1rem;
+      }
+
+      header,
+      .header-actions,
+      .logo-title,
+      .search-container,
+      .chat-input-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .console-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card,
+      .console-panel {
+        padding: 1rem;
+      }
+
+      .chat-bubble {
+        max-width: 100%;
+      }
+
+      .btn,
+      .suggestion-chip,
+      .tab {
+        min-height: 44px;
+      }
+    }
   </style>
 </head>
 <body>
   <header>
     <div class="logo-container">
-      <div class="logo-mark">DZ</div>
+      <div class="logo-mark" aria-hidden="true">DZ</div>
       <div>
         <div class="logo-title">
           Dizzy Operational Surface
@@ -832,7 +880,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-secondary btn-small" id="btn-download-audit-report">
+      <button class="btn btn-secondary btn-small" id="btn-download-audit-report" type="button">
         Download Audit Report
       </button>
       <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; cursor: pointer; user-select: none; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
@@ -843,7 +891,7 @@
     </div>
   </header>
 
-  <div class="grid">
+  <main class="grid" aria-label="Dizzy dashboard workspace">
     <!-- Sidebar: Prompt Pack Details -->
     <div class="card">
       <div class="card-title">
@@ -860,17 +908,17 @@
 
     <!-- Main Content Area -->
     <div class="card">
-      <div class="tab-container">
-        <div class="tab active" data-tab-target="tab-chat">Interactive Chat</div>
-        <div class="tab" data-tab-target="tab-memory">Memory Database</div>
-        <div class="tab" data-tab-target="tab-search">Sieve Retrieval Tester</div>
-        <div class="tab" data-tab-target="tab-console">Operator Console</div>
-        <div class="tab" data-tab-target="tab-governance">Governance &amp; Routing</div>
-        <div class="tab" data-tab-target="tab-receipts">Receipts &amp; Observability</div>
+      <div class="tab-container" role="tablist" aria-label="Dashboard sections">
+        <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-chat" data-tab-target="tab-chat">Interactive Chat</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-memory" data-tab-target="tab-memory">Memory Database</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-search" data-tab-target="tab-search">Sieve Retrieval Tester</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-console" data-tab-target="tab-console">Operator Console</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-governance" data-tab-target="tab-governance">Governance &amp; Routing</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-receipts" data-tab-target="tab-receipts">Receipts &amp; Observability</button>
       </div>
 
       <!-- Tab 0: Interactive Chat Surface -->
-      <div id="tab-chat" class="tab-content active">
+      <div id="tab-chat" class="tab-content active" role="tabpanel" aria-label="Interactive Chat">
         <div class="chat-container">
           <div class="chat-header">
             <div class="chat-title">
@@ -879,7 +927,7 @@
               <span class="badge badge-amber" id="chat-backend-badge">Route unverified</span>
             </div>
             <div class="chat-controls">
-              <button class="btn btn-secondary" id="chat-clear-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Thread</button>
+              <button class="btn btn-secondary" id="chat-clear-btn" type="button" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Thread</button>
             </div>
           </div>
 
@@ -897,15 +945,16 @@
           </div>
 
           <div class="chat-suggestions">
-            <button class="suggestion-chip" data-prompt="Summarize recent work and active queue in NEXT.md">Summarize NEXT.md</button>
-            <button class="suggestion-chip" data-prompt="Audit trust zone boundaries and memory decay rules">Audit Memory Rules</button>
-            <button class="suggestion-chip" data-prompt="Explain W-0066 fail-closed dynamic router isolation">Explain W-0066 Router</button>
-            <button class="suggestion-chip" data-prompt="Check system health and hardware status">Check Status</button>
+            <button class="suggestion-chip" type="button" data-prompt="Summarize recent work and active queue in NEXT.md">Summarize NEXT.md</button>
+            <button class="suggestion-chip" type="button" data-prompt="Audit trust zone boundaries and memory decay rules">Audit Memory Rules</button>
+            <button class="suggestion-chip" type="button" data-prompt="Explain W-0066 fail-closed dynamic router isolation">Explain W-0066 Router</button>
+            <button class="suggestion-chip" type="button" data-prompt="Check system health and hardware status">Check Status</button>
           </div>
 
           <div class="chat-input-row">
+            <label class="sr-only" for="chat-input-text">Message Dizzy</label>
             <textarea id="chat-input-text" class="chat-textarea" placeholder="Message Dizzy... (Press Enter to send, Shift+Enter for newline)" rows="1"></textarea>
-            <button id="chat-send-btn" class="btn">
+            <button id="chat-send-btn" class="btn" type="button">
               <span>Send</span>
             </button>
           </div>
@@ -913,17 +962,18 @@
       </div>
 
       <!-- Tab 1: Memory Database -->
-      <div id="tab-memory" class="tab-content">
+      <div id="tab-memory" class="tab-content" role="tabpanel" aria-label="Memory Database" hidden>
         <div class="card-list" id="memory-docs-list">
           <!-- Rendered dynamically -->
         </div>
       </div>
 
       <!-- Tab 2: Sieve Retrieval Tester -->
-      <div id="tab-search" class="tab-content">
+      <div id="tab-search" class="tab-content" role="tabpanel" aria-label="Sieve Retrieval Tester" hidden>
         <div class="search-container">
+          <label class="sr-only" for="search-query">Retrieval sieve query</label>
           <input type="text" id="search-query" class="search-input" placeholder="Query retrieval sieve (e.g. anti-extraction, trust zone, or preventative economics)...">
-          <button class="btn" id="search-button">Run Sieve</button>
+          <button class="btn" id="search-button" type="button">Run Sieve</button>
         </div>
         <div id="search-results-container">
           <table class="results-table">
@@ -946,7 +996,7 @@
       </div>
 
       <!-- Tab 3: Operator Console -->
-      <div id="tab-console" class="tab-content">
+      <div id="tab-console" class="tab-content" role="tabpanel" aria-label="Operator Console" hidden>
         <div class="console-grid">
           <div class="console-panel">
             <h3>Execute Subprocess</h3>
@@ -966,7 +1016,7 @@
               <label>Brief Input
                 <textarea id="console-brief" class="console-textarea">Summarize trust zone boundaries and memory lifecycle for this session.</textarea>
               </label>
-              <button class="btn" id="console-execute-button">Execute Brief</button>
+              <button class="btn" id="console-execute-button" type="button">Execute Brief</button>
             </div>
           </div>
 
@@ -998,7 +1048,7 @@
         <div class="console-panel" style="margin-top: 1.25rem;">
           <div class="card-title" style="margin-bottom: 0.75rem;">
             <span>Continuity Records</span>
-            <button class="btn btn-secondary btn-small" id="console-refresh-records">Refresh</button>
+            <button class="btn btn-secondary btn-small" id="console-refresh-records" type="button">Refresh</button>
           </div>
           <div class="records-wrap">
             <table class="results-table">
@@ -1023,7 +1073,7 @@
       </div>
 
       <!-- Tab 4: Governance & Routing -->
-      <div id="tab-governance" class="tab-content">
+      <div id="tab-governance" class="tab-content" role="tabpanel" aria-label="Governance and Routing" hidden>
         <div class="governance-grid">
           <!-- Bounded Inference & Routing Monitor -->
           <div class="console-panel">
@@ -1106,8 +1156,8 @@
               </div>
 
               <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-                <button class="btn btn-success" id="btn-operator-signoff" style="flex: 1;">Record Simulated Sign-Off</button>
-                <button class="btn btn-danger" id="btn-veto-override" style="flex: 1;">Record Simulated Veto</button>
+                <button class="btn btn-success" id="btn-operator-signoff" type="button" style="flex: 1;">Record Simulated Sign-Off</button>
+                <button class="btn btn-danger" id="btn-veto-override" type="button" style="flex: 1;">Record Simulated Veto</button>
               </div>
             </div>
           </div>
@@ -1118,7 +1168,7 @@
             <div class="field-stack" style="margin-top: 0.75rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <span style="color: var(--text-muted); font-size: 0.825rem;">Bounded static smoke harness</span>
-                <button class="btn btn-secondary btn-small" id="btn-run-simulation">Run Static Smoke</button>
+                <button class="btn btn-secondary btn-small" id="btn-run-simulation" type="button">Run Static Smoke</button>
               </div>
               <pre id="sandbox-terminal-log" style="background: #04060a; border: 1px solid rgba(69, 243, 255, 0.2); border-radius: 8px; padding: 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.825rem; color: var(--cyan); max-height: 240px; overflow-y: auto; white-space: pre-wrap; line-height: 1.45;"></pre>
             </div>
@@ -1144,7 +1194,7 @@
       </div>
 
       <!-- TAB: RECEIPTS & OBSERVABILITY -->
-      <div id="tab-receipts" class="tab-content">
+      <div id="tab-receipts" class="tab-content" role="tabpanel" aria-label="Receipts and Observability" hidden>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Total Router Receipts</div>
@@ -1256,7 +1306,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script src="/assets/dashboard.js" defer></script>
 </body>

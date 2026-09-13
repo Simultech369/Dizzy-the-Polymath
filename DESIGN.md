@@ -1813,3 +1813,17 @@ Rationale:
 - Operator-facing polish should reduce confusion without softening boundaries. A failure should say whether the API is unreachable, unauthorized, blocked, or unavailable.
 - Capability-first routing depends on the UI not inventing route availability when no backend evidence was returned.
 - These are presentation and recovery improvements only; they do not create live provider availability, worker recovery, or Council promotion authority.
+
+### D-0060: Dashboard Accessibility Supports Trust
+
+Decision:
+- The dashboard uses factual title and meta description text for the local operator surface.
+- Tab controls expose `tablist`, `tab`, `tabpanel`, `aria-selected`, and hidden inactive panels.
+- Chat/search controls and dashboard login fields have explicit accessible labels and error regions.
+- Busy buttons expose disabled and `aria-busy` state while local operations are pending.
+- Small-screen layout rules collapse operator grids and input rows without changing authority claims.
+
+Rationale:
+- Welcomingness is part of trust when it makes state, control, and failure easier to understand.
+- Accessibility polish should support the control-plane truth: pending means pending, unavailable means unavailable, and simulated actions remain labeled as simulated.
+- This does not create public hosting readiness, production account lifecycle, or Council promotion authority.

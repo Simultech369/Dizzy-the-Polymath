@@ -1,11 +1,16 @@
 const loginForm = document.getElementById("dashboard-login-form");
 const loginError = document.getElementById("login-error");
+const loginSubmit = document.getElementById("dashboard-login-submit");
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   loginError.textContent = "";
   const tokenInput = loginForm.elements.namedItem("token");
   const body = new URLSearchParams({ token: tokenInput.value });
+  loginSubmit.disabled = true;
+  loginSubmit.setAttribute("aria-busy", "true");
+  const originalText = loginSubmit.textContent;
+  loginSubmit.textContent = "Checking...";
 
   try {
     const response = await fetch("/dashboard/session", {
@@ -22,5 +27,9 @@ loginForm.addEventListener("submit", async (event) => {
   } catch {
     tokenInput.value = "";
     loginError.textContent = "Dashboard session unavailable.";
+  } finally {
+    loginSubmit.disabled = false;
+    loginSubmit.removeAttribute("aria-busy");
+    loginSubmit.textContent = originalText;
   }
 });

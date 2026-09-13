@@ -5,6 +5,7 @@ import { startServer } from "../agent_server.mjs";
 
 const DASHBOARD_HTML = "dashboard/index.html";
 const DASHBOARD_JS = "dashboard/dashboard.js";
+const DASHBOARD_LOGIN_JS = "dashboard/dashboard-login.js";
 const TOKEN = "local-public-surface-token-0123456789";
 
 function assertStatus(response, expected, label) {
@@ -75,14 +76,28 @@ async function run() {
 
   const htmlSource = fs.readFileSync(DASHBOARD_HTML, "utf8");
   const jsSource = fs.readFileSync(DASHBOARD_JS, "utf8");
+  const loginJsSource = fs.readFileSync(DASHBOARD_LOGIN_JS, "utf8");
   assertNoDecorativeSurfaceTerms(htmlSource, DASHBOARD_HTML);
   assertNoDecorativeSurfaceTerms(jsSource, DASHBOARD_JS);
   assertAscii(htmlSource, DASHBOARD_HTML);
   assertAscii(jsSource, DASHBOARD_JS);
+  assertAscii(loginJsSource, DASHBOARD_LOGIN_JS);
   assertInitialDashboardTruthfulness(htmlSource);
+  assert(htmlSource.includes('<meta name="description"'), "dashboard should include a factual meta description");
+  assert(htmlSource.includes("<title>Dizzy Local Operator Dashboard</title>"), "dashboard title should identify the local operator surface");
+  assert(htmlSource.includes('role="tablist"'), "dashboard tabs should expose a tablist role");
+  assert(htmlSource.includes('role="tabpanel"'), "dashboard panels should expose tabpanel roles");
+  assert(htmlSource.includes('class="sr-only" for="chat-input-text"'), "chat input should have a screen-reader label");
+  assert(htmlSource.includes('class="sr-only" for="search-query"'), "search input should have a screen-reader label");
+  assert(htmlSource.includes("@media (max-width: 760px)"), "dashboard should include a mobile layout breakpoint");
+  assert(!/<div class="tab(?:\s|")/.test(htmlSource), "dashboard tab controls should be buttons, not inert divs");
   assert(jsSource.includes("chatSurfaceInitialized"), "chat surface initializer should be idempotent");
   assert(jsSource.includes("fetchJson(`/api/dashboard-query"), "dashboard search should use explicit non-OK fetch handling");
   assert(jsSource.includes("formatFetchError"), "dashboard should preserve HTTP status and reason codes in visible errors");
+  assert(jsSource.includes('setAttribute("aria-busy", "true")'), "dashboard buttons should expose busy states");
+  assert(jsSource.includes('setAttribute("aria-selected"'), "dashboard tab state should update aria-selected");
+  assert(jsSource.includes('toggleAttribute("hidden"'), "dashboard tab state should hide inactive panels");
+  assert(loginJsSource.includes('setAttribute("aria-busy", "true")'), "login form should expose a busy state while submitting");
   assert(!jsSource.includes("Local route available"), "dashboard must not invent route availability when telemetry is missing");
   assert(!jsSource.includes("Runtime Online"), "dashboard should report reachability, not broad runtime health");
   assert(jsSource.includes("Route unverified"), "dashboard should use unverified route language before capability evidence");
@@ -108,6 +123,14 @@ async function run() {
       redirect: "manual",
     });
     assertStatus(unauthDashboard, 401, "unauthenticated dashboard");
+
+    const loginPage = await fetchText(`${base}/dashboard/login`, {
+      headers: { accept: "text/html" },
+    });
+    assertStatus(loginPage.response, 200, "dashboard login");
+    assert(loginPage.text.includes('for="dashboard-token"'), "dashboard login token field should have an explicit label");
+    assert(loginPage.text.includes('aria-describedby="login-error"'), "dashboard login input should reference the error region");
+    assert(loginPage.text.includes('aria-live="polite"'), "dashboard login error region should be announced politely");
 
     const session = await fetch(`${base}/dashboard/session`, {
       method: "POST",
