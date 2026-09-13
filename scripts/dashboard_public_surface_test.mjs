@@ -82,6 +82,11 @@ async function run() {
   assertInitialDashboardTruthfulness(htmlSource);
   assert(jsSource.includes("chatSurfaceInitialized"), "chat surface initializer should be idempotent");
   assert(jsSource.includes("fetchJson(`/api/dashboard-query"), "dashboard search should use explicit non-OK fetch handling");
+  assert(jsSource.includes("formatFetchError"), "dashboard should preserve HTTP status and reason codes in visible errors");
+  assert(!jsSource.includes("Local route available"), "dashboard must not invent route availability when telemetry is missing");
+  assert(!jsSource.includes("Runtime Online"), "dashboard should report reachability, not broad runtime health");
+  assert(jsSource.includes("Route unverified"), "dashboard should use unverified route language before capability evidence");
+  assert(jsSource.includes("Dispatch blocked or unavailable"), "dashboard chat failures should not look like successful acknowledgements");
   assert(!jsSource.includes("\"8/8 Blocked\""), "dashboard adversarial status should be receipt-derived, not hardcoded");
 
   const started = await startServer({

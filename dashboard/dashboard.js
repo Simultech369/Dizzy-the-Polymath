@@ -8,17 +8,24 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
+function formatFetchError(error) {
+  const status = Number.isFinite(Number(error?.status)) ? `HTTP ${Number(error.status)}` : "request_failed";
+  const code = error?.code ? ` ${String(error.code)}` : "";
+  const message = String(error?.message || "Unknown error").trim();
+  return `${status}${code}: ${message}`;
+}
+
 async function loadData() {
   try {
-    const data = await fetch("/api/dashboard-data").then((response) => response.json());
+    const data = await fetchJson("/api/dashboard-data");
     const runtimeBadge = document.getElementById("runtime-status-badge");
     if (runtimeBadge) {
       runtimeBadge.className = "badge badge-emerald";
-      runtimeBadge.innerHTML = '<span class="status-dot"></span>Runtime Online';
+      runtimeBadge.innerHTML = '<span class="status-dot"></span>Local API reachable';
     }
     const chatBackendBadge = document.getElementById("chat-backend-badge");
     if (chatBackendBadge) {
-      const backend = data.runtime?.chat_backend || data.runtime?.chat_backend_status || "Local route available";
+      const backend = data.runtime?.chat_backend || data.runtime?.chat_backend_status || "Route unverified";
       chatBackendBadge.className = "badge badge-primary";
       chatBackendBadge.textContent = backend;
     }
@@ -81,7 +88,7 @@ async function loadData() {
     `;
     document.getElementById("memory-docs-list").innerHTML = `
       <div style="color: var(--text-muted); text-align: center; padding: 2rem;">
-        Local dashboard data is unavailable.
+        Local dashboard data is unavailable. ${escapeHtml(formatFetchError(error))}
       </div>
     `;
   }
@@ -97,7 +104,11 @@ async function fetchJson(url, options = {}) {
     body = { ok: false, error: text || response.statusText };
   }
   if (!response.ok) {
-    throw new Error(body?.error || response.statusText || `HTTP ${response.status}`);
+    const error = new Error(body?.error || response.statusText || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.code = body?.code || "";
+    error.body = body;
+    throw error;
   }
   return body;
 }
@@ -131,7 +142,7 @@ async function runSearch() {
       `;
     }).join("");
   } catch (error) {
-    body.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--rose);">Error running query: ${escapeHtml(error.message)}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--rose);">Query blocked or unavailable: ${escapeHtml(formatFetchError(error))}</td></tr>`;
   }
 }
 
@@ -669,14 +680,14 @@ async function loadGovernanceData() {
   } catch (error) {
     console.error("Failed to load governance details:", error);
     document.getElementById("memory-val").textContent = "Unavailable";
-    document.getElementById("active-model-route").textContent = "Offline";
+    document.getElementById("active-model-route").textContent = "Unavailable";
     document.getElementById("active-model-route").className = "badge badge-rose";
-    document.getElementById("active-routing-basis").textContent = "Local telemetry unavailable";
+    document.getElementById("active-routing-basis").textContent = `Local telemetry unavailable: ${formatFetchError(error)}`;
     document.getElementById("compression-val").textContent = "Unavailable";
     document.getElementById("routing-warning-banner").innerHTML = `
       <div class="warning-banner">
         <span style="font-weight: 700;">LOCAL DATA UNAVAILABLE:</span>
-        Operator telemetry could not be loaded.
+        Operator telemetry could not be loaded. ${escapeHtml(formatFetchError(error))}
       </div>
     `;
   }
@@ -977,19 +988,16 @@ function initChatSurface() {
     scrollToBottom();
 
     try {
-      const response = await fetch("/dispatch/incoming", {
+      const response = await fetchJson("/dispatch/incoming", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel: "dashboard_chat", text })
-      }).then(r => r.json());
+      });
 
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
 
-      const isUnauthorized = response.status === 401 || response.error === "Unauthorized" || response.error === "Dashboard requires DIZZY_AUTH_TOKEN";
-      const assistantText = isUnauthorized 
-        ? 'Session expired or unauthorized. Please <a href="/dashboard/login" style="color: var(--cyan); text-decoration: underline; font-weight: bold;">click here to log in</a> with your operator token.'
-        : (response.text || (response.ok ? "Task acknowledged and processed." : ("Execution issue: " + (response.error || "Unknown error"))));
+      const assistantText = response.text || (response.ok ? "Dispatch accepted; no response text was returned." : ("Dispatch issue: " + (response.error || "Unknown error")));
       const receipt = response.capability_receipt || response.router_receipt || null;
 
       chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", assistantText, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt));
@@ -1000,7 +1008,10 @@ function initChatSurface() {
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
 
-      const errorMsg = "Dispatch error: " + err.message;
+      const isUnauthorized = err.status === 401 || err.code === "LOCAL_CONTROL_UNAUTHORIZED";
+      const errorMsg = isUnauthorized
+        ? "Session expired or unauthorized. Return to dashboard login with your operator token."
+        : "Dispatch blocked or unavailable: " + formatFetchError(err);
       chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", errorMsg));
       saveMessageToHistory("assistant", errorMsg);
       scrollToBottom();

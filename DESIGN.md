@@ -1801,3 +1801,15 @@ Rationale:
 - Unknown routes are an operator experience and security boundary. They should be legible without leaking stack traces, filesystem paths, or implementation details.
 - Route-not-found responses should help a collaborator recover without implying that hidden routes exist or that the dashboard is publicly available.
 - This keeps public/operator polish aligned with the control-plane posture: truthful, local-first, and non-overclaiming.
+
+### D-0059: Dashboard Failure States Carry Reason Codes
+
+Decision:
+- Dashboard client fetches preserve HTTP status and backend reason codes in visible operator errors.
+- Missing route telemetry stays `Route unverified` instead of becoming `Local route available`.
+- Chat dispatch, retrieval, governance telemetry, and dashboard data failures use blocked/unavailable language rather than success-style acknowledgements.
+
+Rationale:
+- Operator-facing polish should reduce confusion without softening boundaries. A failure should say whether the API is unreachable, unauthorized, blocked, or unavailable.
+- Capability-first routing depends on the UI not inventing route availability when no backend evidence was returned.
+- These are presentation and recovery improvements only; they do not create live provider availability, worker recovery, or Council promotion authority.
