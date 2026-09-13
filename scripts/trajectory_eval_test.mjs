@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { evaluateBatch, evaluateTrajectory } from '../lib/trajectory_evaluator.mjs';
-import { appendTrajectory, readTrajectories } from '../lib/trajectories.mjs';
+import { appendTrajectory, normalizeTrajectory, readTrajectories } from '../lib/trajectories.mjs';
 
 console.log('=== W-0128 Trajectory Eval Gates Test Suite ===');
 
@@ -250,6 +250,40 @@ const objectActionRows = readTrajectories({ filePath: objectActionAdmissionPath 
 assert.equal(objectActionRows.length, 1);
 assert.ok(!objectActionRows[0].actions_taken.includes('[object Object]'));
 
+const objectActionSummary = normalizeTrajectory({
+  id: 'object-action-summary-preserves-failure-fields',
+  goal: 'Preserve object action diagnostic fields',
+  success_criteria: 'Object action summary retains exit code and stderr evidence',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 17, stderr: 'fatal' }],
+  outcome: 'success',
+  reusable_pattern: 'Keep diagnostic fields visible when summarizing object actions',
+  reuse_tags: ['trajectory'],
+}).actions_taken[0];
+assert.match(objectActionSummary, /exit_code=17/);
+assert.match(objectActionSummary, /stderr=fatal/);
+
+const failureSignalResult = evaluateTrajectory({
+  id: 'object-action-failure-signal-conflicts-with-success',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 17, stderr: 'fatal' }],
+  outcome: 'success',
+});
+assert.equal(failureSignalResult.status, 'FAILED');
+assert.ok(failureSignalResult.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
+
+const objectActionFailurePath = testLedgerPath('test-trajectory-admission-object-action-failure.jsonl');
+fs.rmSync(objectActionFailurePath, { force: true });
+assert.throws(() => appendTrajectory({
+  id: 'known-good-rejects-object-action-failure-signal',
+  goal: 'Reject object actions whose diagnostics contradict success',
+  success_criteria: 'Nonzero exit code and fatal stderr cannot support a successful known-good row',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 17, stderr: 'fatal' }],
+  outcome: 'success',
+  reusable_pattern: 'Reject success claims contradicted by execution diagnostics',
+  reuse_tags: ['trajectory', 'admission'],
+  strength: 7,
+}, { filePath: objectActionFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
+assert.equal(fs.existsSync(objectActionFailurePath), false, 'Rejected object-action failure evidence must not create a known-good ledger');
+
 const malformedKnownGoodPath = testLedgerPath('test-trajectory-malformed-readback.jsonl');
 fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   id: 'malformed-known-good-row',
@@ -263,6 +297,19 @@ fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   admission_receipt: { overall_status: 'TRAJECTORY_SUITE_PASSED' },
 }) + '\n', 'utf8');
 assert.equal(readTrajectories({ filePath: malformedKnownGoodPath }).length, 0, 'Malformed known-good rows must not be retrieved');
+
+const forgedKnownGoodNoReceiptPath = testLedgerPath('test-trajectory-forged-no-admission.jsonl');
+fs.writeFileSync(forgedKnownGoodNoReceiptPath, JSON.stringify({
+  id: 'forged-known-good-no-admission',
+  goal: 'Reject valid-looking rows without admission receipt',
+  success_criteria: 'Rows must carry admission evidence and receipt',
+  actions_taken: ['ran verification'],
+  outcome: 'success',
+  reusable_pattern: 'Do not retrieve rows without admission proof',
+  reuse_tags: ['trajectory'],
+  strength: 7,
+}) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: forgedKnownGoodNoReceiptPath }).length, 0, 'Rows without admission evidence/receipt must not be retrieved');
 
 if (!allUnitTestsPassed) {
   process.exit(1);

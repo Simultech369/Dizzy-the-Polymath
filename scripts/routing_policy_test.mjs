@@ -192,6 +192,27 @@ assert.equal(
   "Unknown adapters must not self-declare private_self boundaries"
 );
 
+const conflictingAdapterProviderBlocked = planRouting(baseRequest({
+  trust_zone: "private_self",
+  sensitivity: "internal",
+}), {
+  now,
+  surface_id: "desktop",
+  context,
+  route_evidence: [localRoute({
+    route_id: "conflict:adapter-provider",
+    adapter: "ollama",
+    provider: "openai",
+    provider_boundary: "private_self",
+  })],
+});
+assert.equal(conflictingAdapterProviderBlocked.fail_closed_reason, "no_eligible_route");
+assert.equal(
+  conflictingAdapterProviderBlocked.rejected_routes[0].reasons.includes("boundary_not_allowed"),
+  true,
+  "Conflicting adapter/provider identity fields must not be eligible"
+);
+
 const requestedModelBlocked = planRouting(baseRequest({ requested_model: "gpt-5.5" }), {
   now,
   surface_id: "desktop",
@@ -424,6 +445,32 @@ assert.equal(forgedExecution.status, "BLOCKED");
 assert.equal(forgedExecution.fail_closed_reason, "invalid_plan_authority");
 assert.equal(forgedPlanInvoked, false, "A recomputed public receipt must not grant execution authority");
 
+let inheritedAuthorityInvoked = false;
+const inheritedAuthorityPlan = Object.create(twoAttemptPlan);
+Object.defineProperties(inheritedAuthorityPlan, {
+  selected_tier: { value: "T0", enumerable: true, configurable: true },
+  selected_model_or_route: { value: "deterministic:forged", enumerable: true, configurable: true },
+  planned_chain: { value: [], enumerable: true, configurable: true },
+  fallback_chain: { value: [], enumerable: true, configurable: true },
+});
+Object.defineProperty(inheritedAuthorityPlan, "routing_receipt", {
+  value: buildRoutingReceipt(inheritedAuthorityPlan),
+  enumerable: true,
+  configurable: true,
+});
+const inheritedAuthorityExecution = await executeRoutingPlan(inheritedAuthorityPlan, {
+  now: () => now.getTime(),
+  deterministicHandlers: {
+    "deterministic:forged": () => {
+      inheritedAuthorityInvoked = true;
+      return { text: "must not run" };
+    },
+  },
+});
+assert.equal(inheritedAuthorityExecution.status, "BLOCKED");
+assert.equal(inheritedAuthorityExecution.fail_closed_reason, "invalid_plan_authority");
+assert.equal(inheritedAuthorityInvoked, false, "Inherited routing authority must not grant execution");
+
 const excessivePolicyPlan = planRouting(baseRequest(), {
   now,
   surface_id: "desktop",
@@ -460,6 +507,16 @@ const nullPayloadExecution = await executeRoutingPlan(twoAttemptPlan, {
 });
 assert.equal(nullPayloadExecution.status, "BLOCKED");
 assert.equal(nullPayloadExecution.attempts[0].error, "response_payload_missing");
+
+const emptyPayloadCases = ["", [], {}, false, 0];
+for (const payload of emptyPayloadCases) {
+  const payloadExecution = await executeRoutingPlan(twoAttemptPlan, {
+    now: () => now.getTime(),
+    invokeRoute: async () => ({ payload }),
+  });
+  assert.equal(payloadExecution.status, "BLOCKED", `Empty payload ${JSON.stringify(payload)} must fail closed`);
+  assert.equal(payloadExecution.attempts[0].error, "response_payload_missing");
+}
 
 console.log("[PASS] Capability-first routing policy tests passed.");
 console.log("ROUTING_POLICY_TESTS_OK");
