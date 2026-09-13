@@ -323,6 +323,18 @@ const twoAttemptPlan = planRouting(baseRequest(), {
   ],
 });
 assert.equal(twoAttemptPlan.planned_chain.length, 2, "Default provider attempts must be capped at two");
+assert.equal(Object.isFrozen(twoAttemptPlan), true, "Sealed routing plan root must be immutable");
+assert.equal(Object.isFrozen(twoAttemptPlan.planned_chain[0]), true, "Sealed routing plan routes must be immutable");
+assert.equal(Object.isFrozen(twoAttemptPlan.routing_receipt), true, "Sealed routing plan receipt must be immutable");
+assert.throws(() => {
+  Object.assign(twoAttemptPlan.planned_chain[0], {
+    adapter: "openai",
+    model_id: "gpt-5.5",
+    provider_boundary: "trusted_collaborator",
+  });
+}, TypeError, "Authorized plan routes must not remain mutable under a frozen root");
+assert.equal(twoAttemptPlan.planned_chain[0].adapter, "ollama");
+assert.equal(twoAttemptPlan.planned_chain[0].provider_boundary, "private_self");
 
 let attempts = 0;
 const execution = await executeRoutingPlan(twoAttemptPlan, {
@@ -517,6 +529,22 @@ for (const payload of emptyPayloadCases) {
   assert.equal(payloadExecution.status, "BLOCKED", `Empty payload ${JSON.stringify(payload)} must fail closed`);
   assert.equal(payloadExecution.attempts[0].error, "response_payload_missing");
 }
+
+const nestedEmptyPayloadCases = [[null], { text: "" }, { choices: [] }];
+for (const payload of nestedEmptyPayloadCases) {
+  const payloadExecution = await executeRoutingPlan(twoAttemptPlan, {
+    now: () => now.getTime(),
+    invokeRoute: async () => ({ payload }),
+  });
+  assert.equal(payloadExecution.status, "BLOCKED", `Nested empty payload ${JSON.stringify(payload)} must fail closed`);
+  assert.equal(payloadExecution.attempts[0].error, "response_payload_missing");
+}
+
+const nestedMeaningfulPayload = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({ payload: { choices: [{ text: "review complete" }] } }),
+});
+assert.equal(nestedMeaningfulPayload.status, "SUCCEEDED", "Structured payloads with meaningful nested text remain valid");
 
 console.log("[PASS] Capability-first routing policy tests passed.");
 console.log("ROUTING_POLICY_TESTS_OK");

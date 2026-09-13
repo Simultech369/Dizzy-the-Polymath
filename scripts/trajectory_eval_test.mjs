@@ -262,6 +262,31 @@ const objectActionSummary = normalizeTrajectory({
 assert.match(objectActionSummary, /exit_code=17/);
 assert.match(objectActionSummary, /stderr=fatal/);
 
+const aliasConflictSummary = normalizeTrajectory({
+  id: 'object-action-summary-preserves-conflicting-exit-aliases',
+  goal: 'Preserve all exit code aliases when action evidence conflicts',
+  success_criteria: 'Object action summary retains both exit code aliases',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 0, exitCode: 17 }],
+  outcome: 'success',
+  reusable_pattern: 'Keep conflicting diagnostic fields visible when summarizing object actions',
+  reuse_tags: ['trajectory'],
+}).actions_taken[0];
+assert.match(aliasConflictSummary, /exit_code=0/);
+assert.match(aliasConflictSummary, /exitCode=17/);
+
+const structuredErrorSummary = normalizeTrajectory({
+  id: 'object-action-summary-preserves-structured-error',
+  goal: 'Preserve structured error evidence',
+  success_criteria: 'Object action summary must not collapse errors to object string',
+  actions_taken: [{ status: 'success', action: 'ran verification', error: { code: 'EACCES', message: 'permission denied' } }],
+  outcome: 'success',
+  reusable_pattern: 'Keep structured diagnostic fields visible when summarizing object actions',
+  reuse_tags: ['trajectory'],
+}).actions_taken[0];
+assert.doesNotMatch(structuredErrorSummary, /\[object Object\]/);
+assert.match(structuredErrorSummary, /EACCES/);
+assert.match(structuredErrorSummary, /permission denied/);
+
 const failureSignalResult = evaluateTrajectory({
   id: 'object-action-failure-signal-conflicts-with-success',
   actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 17, stderr: 'fatal' }],
@@ -269,6 +294,22 @@ const failureSignalResult = evaluateTrajectory({
 });
 assert.equal(failureSignalResult.status, 'FAILED');
 assert.ok(failureSignalResult.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
+
+const aliasConflictResult = evaluateTrajectory({
+  id: 'object-action-exit-alias-conflict',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 0, exitCode: 17 }],
+  outcome: 'success',
+});
+assert.equal(aliasConflictResult.status, 'FAILED');
+assert.ok(aliasConflictResult.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
+
+const structuredErrorResult = evaluateTrajectory({
+  id: 'object-action-structured-error-conflicts-with-success',
+  actions_taken: [{ status: 'success', action: 'ran verification', error: { code: 'EACCES', message: 'permission denied' } }],
+  outcome: 'success',
+});
+assert.equal(structuredErrorResult.status, 'FAILED');
+assert.ok(structuredErrorResult.violations.some((violation) => violation.startsWith('ACTION_STATUS_CONFLICTS_WITH_FAILURE_SIGNAL')));
 
 const objectActionFailurePath = testLedgerPath('test-trajectory-admission-object-action-failure.jsonl');
 fs.rmSync(objectActionFailurePath, { force: true });
@@ -284,6 +325,34 @@ assert.throws(() => appendTrajectory({
 }, { filePath: objectActionFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
 assert.equal(fs.existsSync(objectActionFailurePath), false, 'Rejected object-action failure evidence must not create a known-good ledger');
 
+const aliasConflictFailurePath = testLedgerPath('test-trajectory-admission-exit-alias-conflict.jsonl');
+fs.rmSync(aliasConflictFailurePath, { force: true });
+assert.throws(() => appendTrajectory({
+  id: 'known-good-rejects-exit-alias-conflict',
+  goal: 'Reject object actions whose aliases contradict success',
+  success_criteria: 'Conflicting exit aliases cannot support a successful known-good row',
+  actions_taken: [{ status: 'success', action: 'ran verification', exit_code: 0, exitCode: 17 }],
+  outcome: 'success',
+  reusable_pattern: 'Reject success claims contradicted by exit-code aliases',
+  reuse_tags: ['trajectory', 'admission'],
+  strength: 7,
+}, { filePath: aliasConflictFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
+assert.equal(fs.existsSync(aliasConflictFailurePath), false, 'Rejected exit-alias conflict evidence must not create a known-good ledger');
+
+const structuredErrorFailurePath = testLedgerPath('test-trajectory-admission-structured-error.jsonl');
+fs.rmSync(structuredErrorFailurePath, { force: true });
+assert.throws(() => appendTrajectory({
+  id: 'known-good-rejects-structured-error',
+  goal: 'Reject object actions whose structured error contradicts success',
+  success_criteria: 'Structured error objects cannot support a successful known-good row',
+  actions_taken: [{ status: 'success', action: 'ran verification', error: { code: 'EACCES', message: 'permission denied' } }],
+  outcome: 'success',
+  reusable_pattern: 'Reject success claims contradicted by structured errors',
+  reuse_tags: ['trajectory', 'admission'],
+  strength: 7,
+}, { filePath: structuredErrorFailurePath, checkEligibility: false }), /trajectory_admission_rejected/);
+assert.equal(fs.existsSync(structuredErrorFailurePath), false, 'Rejected structured error evidence must not create a known-good ledger');
+
 const malformedKnownGoodPath = testLedgerPath('test-trajectory-malformed-readback.jsonl');
 fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   id: 'malformed-known-good-row',
@@ -297,6 +366,26 @@ fs.writeFileSync(malformedKnownGoodPath, JSON.stringify({
   admission_receipt: { overall_status: 'TRAJECTORY_SUITE_PASSED' },
 }) + '\n', 'utf8');
 assert.equal(readTrajectories({ filePath: malformedKnownGoodPath }).length, 0, 'Malformed known-good rows must not be retrieved');
+
+const placeholderKnownGoodPath = testLedgerPath('test-trajectory-placeholder-admission-readback.jsonl');
+fs.writeFileSync(placeholderKnownGoodPath, JSON.stringify({
+  id: 'forged-review-placeholder-admission',
+  goal: 'Validate trajectory admission',
+  success_criteria: 'Reject verification failures',
+  actions_taken: [{
+    status: 'success',
+    action: 'ran verification',
+    exit_code: 17,
+    stderr: 'fatal',
+  }],
+  outcome: 'success',
+  reusable_pattern: 'Reuse this verification pattern',
+  reuse_tags: ['trajectory'],
+  strength: 7,
+  admission_evidence: {},
+  admission_receipt: { overall_status: 'TRAJECTORY_SUITE_PASSED' },
+}) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: placeholderKnownGoodPath }).length, 0, 'Placeholder admission objects must not be retrieved');
 
 const forgedKnownGoodNoReceiptPath = testLedgerPath('test-trajectory-forged-no-admission.jsonl');
 fs.writeFileSync(forgedKnownGoodNoReceiptPath, JSON.stringify({
