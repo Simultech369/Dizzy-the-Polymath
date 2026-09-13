@@ -127,6 +127,28 @@ async function run() {
     assertStatus(script.response, 200, "dashboard script");
     assert(script.text.includes("chatSurfaceInitialized"), "served dashboard script should include idempotent chat guard");
 
+    const missingApi = await fetch(`${base}/api/not-a-real-route`, {
+      headers: { authorization: `Bearer ${TOKEN}` },
+    });
+    assertStatus(missingApi, 404, "missing API route");
+    assert((missingApi.headers.get("content-type") || "").includes("application/json"), "missing API route should return JSON");
+    const missingApiBody = await missingApi.json();
+    assert.deepEqual(missingApiBody, {
+      ok: false,
+      code: "ROUTE_NOT_FOUND",
+      error: "Route not found",
+      route_type: "api",
+      method: "GET",
+    });
+
+    const missingDashboard = await fetchText(`${base}/dashboard/not-a-real-page`, {
+      headers: { ...headers, accept: "text/html" },
+    });
+    assertStatus(missingDashboard.response, 404, "missing dashboard route");
+    assert((missingDashboard.response.headers.get("content-type") || "").includes("text/html"), "missing dashboard route should return HTML");
+    assert(missingDashboard.text.includes("<title>Dizzy Route Not Found</title>"), "missing dashboard route should explain the route state");
+    assert(!/stack|trace|agent_server|internal server error/i.test(missingDashboard.text), "missing dashboard route must not expose stack details");
+
     const apiRoutes = [
       "/api/dashboard-data",
       "/api/operator/hardware-status",

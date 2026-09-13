@@ -1789,3 +1789,15 @@ Rationale:
 - The operator cockpit needs to show whether a response was routed, blocked, downgraded, or served by a provider without requiring code inspection.
 - Persisted receipts may be older than current configuration, so telemetry must describe what happened at the time of execution rather than what the current model router would choose now.
 - This remains observability only. It does not prove output quality, provider availability beyond the attempted call, or Council promotion authority.
+
+### D-0058: Non-Leaky Route Not Found Contract
+
+Decision:
+- Unknown API, agent, dispatch, asset, dashboard, and page routes return a stable route-not-found contract.
+- API-like routes receive JSON with `ROUTE_NOT_FOUND`, route type, and method only.
+- Browser/page routes receive a small HTML page that explains the route is not exposed on this local surface.
+
+Rationale:
+- Unknown routes are an operator experience and security boundary. They should be legible without leaking stack traces, filesystem paths, or implementation details.
+- Route-not-found responses should help a collaborator recover without implying that hidden routes exist or that the dashboard is publicly available.
+- This keeps public/operator polish aligned with the control-plane posture: truthful, local-first, and non-overclaiming.

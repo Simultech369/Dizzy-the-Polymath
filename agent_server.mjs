@@ -147,6 +147,11 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/a2a/mailbox/ack";
 }
 
+function isDashboardPath(pathname) {
+  const value = String(pathname || "");
+  return value === "/dashboard" || value.startsWith("/dashboard/");
+}
+
 function parseBool(value, fallback = false) {
   const raw = String(value ?? (fallback ? "1" : "0")).trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
@@ -437,6 +442,42 @@ function normalizeFreeText(value, maxChars = 20_000) {
   return String(value ?? "").trim().slice(0, Math.max(1, Number(maxChars) || 20_000));
 }
 
+function routeNotFoundKind(pathname) {
+  const value = String(pathname || "");
+  if (value.startsWith("/api/")) return "api";
+  if (value.startsWith("/dashboard")) return "dashboard";
+  if (value.startsWith("/assets/")) return "asset";
+  if (value.startsWith("/agent/")) return "agent";
+  if (value.startsWith("/dispatch/")) return "dispatch";
+  return "page";
+}
+
+function wantsRouteNotFoundHtml(req, kind) {
+  if (["api", "agent", "dispatch", "asset"].includes(kind)) return false;
+  const accept = String(req.headers?.accept || "");
+  return accept.includes("text/html") || accept.includes("*/*");
+}
+
+function sendRouteNotFound(req, res) {
+  const kind = routeNotFoundKind(req.path);
+  const body = {
+    ok: false,
+    code: "ROUTE_NOT_FOUND",
+    error: "Route not found",
+    route_type: kind,
+    method: normalizeIdentifier(req.method || "GET", "GET").toUpperCase(),
+  };
+  res.setHeader("Cache-Control", "no-store");
+
+  if (wantsRouteNotFoundHtml(req, kind)) {
+    return res.status(404).type("text/html").send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dizzy Route Not Found</title></head>
+<body><main><h1>Route not found</h1><p>This local Dizzy surface does not expose that route.</p><p>Use the dashboard or an authenticated API route that is available on this surface.</p></main></body></html>`);
+  }
+
+  return res.status(404).json(body);
+}
+
 function summarizeRoutingPolicyMetadata(policy) {
   if (!policy || typeof policy !== "object" || Array.isArray(policy)) return null;
   const attempts = Array.isArray(policy.attempts) ? policy.attempts.slice(0, 4).map((attempt) => ({
@@ -724,7 +765,7 @@ export async function createRuntime(opts = {}) {
       if (publicSurfaceMode === "discovery" && anonymousDiscoveryRoutes.has(req.path)) return next();
       if (req.path === "/api/a2a/incoming") return next();
       if (dashboardEnabled && ["/dashboard/login", "/dashboard/session", "/assets/dashboard-login.js"].includes(req.path)) return next();
-      if (dashboardEnabled && isDashboardRoute(req.path) && hasDashboardSession(req)) return next();
+      if (dashboardEnabled && (isDashboardRoute(req.path) || isDashboardPath(req.path)) && hasDashboardSession(req)) return next();
 
       const auth = String(req.headers?.authorization ?? "");
       const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
@@ -1857,7 +1898,7 @@ export async function createRuntime(opts = {}) {
   });
 
   app.use((req, res) => {
-    res.status(404).json({ ok: false, error: "Not found" });
+    return sendRouteNotFound(req, res);
   });
 
   app.use((err, req, res, next) => {
