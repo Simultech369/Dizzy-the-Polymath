@@ -1765,3 +1765,15 @@ Rationale:
 - This establishes a clean, non-overlapping boundary between the Node.js interactive runtime (Dizzy) and the Python offline verification engine (Council). 
 - Dizzy focuses on high-bandwidth operator interaction, cognitive memory consolidation, incoming network events (A2A, telegram), and running safe rehearsals in isolated sandboxes.
 - Council acts as the unyielding promotion gate, maintaining independent, immutable verification of sidecar proofs, ensuring that no empirical rehearsal automatically graduates to production authority without strict cryptographic and rule-based validation.
+
+### D-0056: Capability-First Dispatch Execution Receipts
+
+Decision:
+- Route live chat and utility provider calls through the capability-first routing policy before invoking Gemini or OpenAI-compatible adapters.
+- Keep the user-facing contract unchanged while adding routing-policy execution metadata to receipts: task class, selected tier, selected route, attempt status, provider invocation, downgrade reason, and fail-closed reason.
+- Treat configured provider/model values as route evidence for the current dispatch surface, not as global availability proof. Exact provider availability remains bounded to the attempted call.
+
+Rationale:
+- Routing policy was already tested as a control-plane module; this promotes it into the actual model-call path without granting any new promotion authority.
+- Operator views should reflect the route actually attempted, not reconstruct model choice from environment defaults after the fact.
+- Capability-first routing keeps frontend labels, backend execution, and prompt language aligned: use the best policy-permitted model available on this surface, then record what was actually selected.

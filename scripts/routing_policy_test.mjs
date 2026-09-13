@@ -46,8 +46,8 @@ function localRoute(overrides = {}) {
     surface_id: "desktop",
     callable: true,
     evidence_expires_at: future,
-    capabilities: ["code_review", "code_synthesis", "extract"],
-    task_classes: ["code_review", "code_synthesis", "extraction"],
+    capabilities: ["chat", "utility", "code_review", "code_synthesis", "extract"],
+    task_classes: ["chat", "utility", "code_review", "code_synthesis", "extraction"],
     trust_zones: ["private_self", "trusted_collaborator"],
     sensitivity_classes: ["public", "internal"],
     efforts: ["low", "standard"],
@@ -84,6 +84,43 @@ const resolved = resolveRequirements(baseRequest(), { surface_id: "desktop", now
 assert.equal(resolved.ok, true);
 assert.equal(resolved.selected_tier, "T2");
 assert.ok(resolved.policy_sha256);
+
+const chatPlan = planRouting(baseRequest({
+  task_class: "chat",
+  requested_model: "gemma3:4b",
+  response_contract: "text.v1",
+  request: "hello",
+}), {
+  now,
+  surface_id: "desktop",
+  context,
+  route_evidence: [localRoute({
+    route_id: "openai_compat:gemma3:4b",
+    model_id: "gemma3:4b",
+  })],
+});
+assert.equal(chatPlan.selected_tier, "T2");
+assert.equal(chatPlan.selected_model_or_route, "openai_compat:gemma3:4b");
+assert.equal(chatPlan.fail_closed_reason, null);
+
+const utilityPlan = planRouting(baseRequest({
+  task_class: "utility",
+  effort_hint: "low",
+  requested_model: "gemma3:4b",
+  response_contract: "text.v1",
+  request: "summarize this",
+}), {
+  now,
+  surface_id: "desktop",
+  context,
+  route_evidence: [localRoute({
+    route_id: "openai_compat:gemma3:4b",
+    model_id: "gemma3:4b",
+  })],
+});
+assert.equal(utilityPlan.selected_tier, "T1");
+assert.equal(utilityPlan.selected_model_or_route, "openai_compat:gemma3:4b");
+assert.equal(utilityPlan.fail_closed_reason, null);
 
 const missing = resolveRequirements({ task_class: "code_review" }, { surface_id: "desktop" });
 assert.equal(missing.ok, false);

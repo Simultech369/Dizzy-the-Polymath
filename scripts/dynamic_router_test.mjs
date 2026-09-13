@@ -158,6 +158,12 @@ async function runIntegrationTests() {
       assert.equal(requests.length, 1, "Dispatch must issue exactly one provider request");
       assert.equal(requests[0].body.model, "gemma3:4b", "Local OpenAI-compatible dispatch must not send cloud-only qwen slug to a local endpoint");
       assert.equal(res.execution_metadata.chosen_model, "openai_compat:gemma3:4b", "Receipt must match the model sent to the provider");
+      assert.equal(res.execution_metadata.routing_policy.status, "SUCCEEDED", "Provider execution must be covered by routing policy");
+      assert.equal(res.execution_metadata.routing_policy.task_class, "chat");
+      assert.equal(res.execution_metadata.routing_policy.selected_tier, "T2");
+      assert.equal(res.execution_metadata.routing_policy.selected_model_or_route, "openai_compat:gemma3:4b");
+      assert.equal(res.execution_metadata.routing_policy.provider_invoked, true);
+      assert.equal(res.execution_metadata.routing_policy.attempts[0].sent_model, "gemma3:4b");
     });
 
     // Test Case A: Offline Local Backend
