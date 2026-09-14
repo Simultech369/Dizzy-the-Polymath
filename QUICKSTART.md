@@ -1,6 +1,6 @@
 # QUICKSTART.md - Try Dizzy Locally
 
-Dizzy is a local-first operator console and control-plane prototype for bounded memory, trust zones, receipts, and agentic work. This guide proves what runs locally today.
+Dizzy is a local-first operator console and control-plane prototype for bounded memory, trust zones, receipts, and agentic work. This guide shows what can be checked locally today.
 
 It does not claim a hosted production product, public A2A interoperability, or finished commercial application.
 
@@ -75,13 +75,15 @@ Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
 Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
 ```
 
-Current local receipt after the W-0105 public-view readiness guard:
+Read these fields from your current local receipt:
 
-```text
-VERIFIED_PASSED
-2026-09-02T01:55:02.622Z
-113 syntax targets / 56 deterministic execution suites / 2 governance checks
-SHA-256: F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56
+```powershell
+$receipt = Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
+"VERDICT=$($receipt.verdict)"
+"TIMESTAMP=$($receipt.timestamp)"
+"SYNTAX_TARGETS=$($receipt.layers.syntax.details.Count)"
+"EXECUTION_SUITES=$($receipt.layers.execution.details.Count)"
+Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
 ```
 
 Receipts are local evidence, not a promise about every future machine. Rerunning the council audit writes a fresh timestamp and hash.

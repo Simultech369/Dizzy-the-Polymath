@@ -74,6 +74,11 @@ assertAbsent("public docs", Object.values(docs).join("\n"), [
   /fully autonomous/i,
   /public A2A interoperability is live/i,
   /hosted production (product|service|launch) is ready/i,
+  /113 syntax targets/i,
+  /56 deterministic execution suites/i,
+  /116 syntax targets/i,
+  /57 test suites/i,
+  /F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56/i,
 ]);
 
 for (const relPath of trackedMarkdownFiles()) {
@@ -111,6 +116,17 @@ assertPresent("PR_W0068_DESCRIPTION.md", docs["PR_W0068_DESCRIPTION.md"], [
 assertAbsent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
   /All Routes Operational/i,
   /Greetings\. Chat history cleared/i,
+  /Receipt & Capability Proof/i,
+  /Live Route Circuit Breakers/i,
+  /Latency-Cost-Trust Pareto Frontier HUD/i,
+  /Multi-objective frontier plotting/i,
+]);
+
+assertPresent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
+  /Receipt &(amp;)? Capability Evidence/i,
+  /Reported Route Circuit Breakers \(Demonstration Data\)/i,
+  /Reported Latency-Cost-Trust Map/i,
+  /receipt-scoped verification scores/i,
 ]);
 
 for (const relPath of [

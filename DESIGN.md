@@ -1852,3 +1852,15 @@ Rationale:
 - Provider fan-out is useful infrastructure but is not the rare part of this project. Dizzy's distinctive value is the control plane around routing: memory, trust zones, receipts, honest UI states, and fail-closed downgrade visibility.
 - External router projects should lower adapter effort, not pressure the repo into overclaiming generic gateway maturity.
 - This keeps the public story aligned with the runtime: Dizzy can use gateway surfaces, but it does not confuse provider availability with verification authority.
+
+### D-0063: Public Truth Language Is Receipt-Bound
+
+Decision:
+- Public README, quickstart, memory-wiki, and dashboard surfaces should avoid frozen receipt counts, stale hashes, and broad proof language when the current receipt can be read from disk.
+- Use `evidence`, `reported`, `receipt-scoped`, `operator-observed`, `rehearsal`, and `local` language where those are the actual authority levels.
+- Do not describe demonstration data, unavailable routes, or per-run verification counts as live, global, or timeless facts.
+
+Rationale:
+- Public polish is only useful if it increases trust without increasing overclaims.
+- Counts, timestamps, hashes, provider availability, and route health drift between runs and machines.
+- A small vocabulary guard keeps collaborator-facing docs welcoming while preserving the system's core distinction between verified, rehearsal, local, and operator-mediated states.

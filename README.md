@@ -27,7 +27,7 @@ Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the das
 
 ### Why This Exists
 
-Most agent frameworks prioritize infinite autonomy over accountability. Dizzy prioritizes **governance, receipts, and verifiable memory boundaries**. It exists to prove that you can build a highly capable agentic loop without surrendering control, leaking private context across trust zones, or relying on unverified LLM actions.
+Most agent frameworks prioritize infinite autonomy over accountability. Dizzy prioritizes **governance, receipts, and verifiable memory boundaries**. It exists to test a more accountable agentic loop without surrendering control, leaking private context across trust zones, or relying on unverified LLM actions.
 
 ### Who It's For
 
@@ -59,7 +59,7 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Council Bridge Operator Status | Authenticated local operator status route that reports Council bridge components, current mailbox counts, and open promotion blockers without claiming a continuous mailbox-to-sidecar worker or public interoperability (`/api/operator/council-bridge-status`, [`docs/council_bridge_quickstart.md`](docs/council_bridge_quickstart.md), `npm run test:operator-telemetry`) |
 | Node/Python Council Bridge Contract | Schema and fixture gate for quarantined sidecar rehearsals; separates bridge payload integrity from bounty-task integrity, wires ingress scanner opportunities to sidecar bridge rehearsal (`scripts/job_board_scanner.mjs --bridge-rehearsal`), keeps sidecar responses rehearsal-only, and rejects live-execution claims without verified sandbox/egress proof (`docs/node_python_council_bridge_contract.md`, `docs/sidecar_sandbox_and_egress_boundary.md`, `npm run test:node-python-bridge-contract`, `npm run test:job-board-scanner`) |
 | Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine across 116 syntax targets and 57 test suites after the A2A boundary, dashboard public-surface, public-view readiness, and bridge-contract guards are registered (`npm run check:council`) |
+| OSS Council Audit Suite | 3-layer deterministic verification engine. Exact syntax-target and execution-suite counts are receipt facts from the current `npm run check:council` run, not timeless README claims. |
 
 ## Quick Start
 

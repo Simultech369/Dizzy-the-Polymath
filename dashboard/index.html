@@ -1033,7 +1033,7 @@
           </div>
 
           <div class="console-panel console-panel-receipt">
-            <h3>Receipt &amp; Capability Proof</h3>
+            <h3>Receipt &amp; Capability Evidence</h3>
             <div id="console-receipt" class="trace-stack" aria-live="polite">
               <div class="summary-card">
                 <div class="summary-title">No receipt generated</div>
@@ -1174,12 +1174,12 @@
             </div>
           </div>
 
-          <!-- Live Route Circuit Breakers -->
+          <!-- Reported Route Circuit Breakers -->
           <div class="console-panel" style="grid-column: 1 / -1; margin-top: 0.5rem;">
             <div class="card-title" style="margin-bottom: 0.75rem;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span class="status-dot" style="color: var(--emerald);"></span>
-                <span>Live Route Circuit Breakers (Demonstration Data)</span>
+                <span>Reported Route Circuit Breakers (Demonstration Data)</span>
               </div>
               <span class="badge badge-amber" id="circuit-breaker-aggregate-badge">Awaiting telemetry</span>
             </div>
@@ -1230,17 +1230,17 @@
           </div>
         </div>
 
-        <!-- Latency-Cost-Trust Pareto Frontier HUD -->
+        <!-- Reported Latency-Cost-Trust Map -->
         <div class="card" style="padding: 1.25rem; background: var(--card-bg); margin-bottom: 1.5rem;">
           <div class="card-title">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="status-dot" style="color: var(--cyan);"></span>
-              <span>Latency-Cost-Trust Pareto Frontier HUD</span>
+              <span>Reported Latency-Cost-Trust Map</span>
             </div>
             <span class="badge badge-primary" id="pareto-frontier-count">0 Models Mapped</span>
           </div>
           <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Multi-objective frontier plotting model spend vs empirical verification accuracy vs latency (Demonstration Data).
+            Reported model spend, receipt-scoped verification scores, and latency from available demo/operator telemetry.
           </div>
           <div class="pareto-hud-container" id="pareto-hud-container" style="position: relative; width: 100%; height: 260px; background: #05070c; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
             <svg id="pareto-hud-svg" class="pareto-svg" viewBox="0 0 600 240" style="width: 100%; height: 100%; display: block;">

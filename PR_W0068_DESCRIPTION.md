@@ -2,7 +2,7 @@
 
 **Branch**: [`feat/dizzy-general-distro`](https://github.com/Simultech369/Dizzy-the-Polymath/tree/feat/dizzy-general-distro)
 **Base**: `main`
-**Verdict**: `OSS Council Audit VERIFIED_PASSED` (113 syntax targets, 56 execution suites, 2 governance checks; anchored to latest checked local receipt `reviews/oss_council_verdict_latest.json` as of `2026-09-02T01:55:02.622Z`, SHA-256 `F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56`)
+**Verdict**: `OSS Council Audit VERIFIED_PASSED` when the local `reviews/oss_council_verdict_latest.json` receipt says so. Exact syntax-target count, execution-suite count, timestamp, and SHA-256 are per-run facts that must be read from the current checkout before public reuse.
 
 ---
 
@@ -63,27 +63,20 @@ This PR delivers the consolidated, clean execution stack for:
 
 ---
 
-## Verification & Proof
+## Verification & Evidence
 
-All 113 syntax targets, 56 execution suites, and 2 governance checks passed in the latest local `npm run check:council` receipt:
+The latest local `npm run check:council` receipt records the exact syntax-target count, execution-suite count, governance status, timestamp, and verdict for this checkout:
 
-```
-==================================================
-   Dizzy OSS Model Council Verification Engine
-==================================================
-
-[PASS] Layer 1: All target files passed syntax checks. (113 checked)
-[PASS] Layer 2: Governance and isolation policies verified.
-[PASS] Layer 3: All deterministic test suites passed. (56 checked)
-
-==================================================
-   COUNCIL VERDICT: VERIFIED_PASSED (READY FOR STAGING)
-==================================================
+```powershell
+$receipt = Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
+"VERDICT=$($receipt.verdict)"
+"TIMESTAMP=$($receipt.timestamp)"
+"SYNTAX_TARGETS=$($receipt.layers.syntax.details.Count)"
+"EXECUTION_SUITES=$($receipt.layers.execution.details.Count)"
+Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
 ```
 
 Receipt: `reviews/oss_council_verdict_latest.json`
-Timestamp: `2026-09-02T01:55:02.622Z`
-SHA-256: `F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56`
 
 Receipt hashes are per-run evidence. If `npm run check:council` is rerun, refresh the timestamp/hash against the local receipt before public reuse.
 
