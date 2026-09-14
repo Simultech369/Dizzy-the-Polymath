@@ -1123,6 +1123,16 @@ export async function createRuntime(opts = {}) {
 
       function summarizeCouncilVerdict(receipt) {
         if (!receipt || typeof receipt !== "object") return null;
+        const gitBinding = receipt.git_binding && typeof receipt.git_binding === "object"
+          ? {
+              schema_version: receipt.git_binding.schema_version || "",
+              branch: receipt.git_binding.branch || "unknown",
+              head_commit: receipt.git_binding.head_commit || "unknown",
+              is_dirty: Boolean(receipt.git_binding.is_dirty),
+              status_count: Array.isArray(receipt.git_binding.status_short) ? receipt.git_binding.status_short.length : 0,
+              binding_sha256: receipt.git_binding.binding_sha256 || "",
+            }
+          : null;
         return {
           verdict: receipt.verdict || "UNKNOWN",
           timestamp: receipt.timestamp || "",
@@ -1130,6 +1140,7 @@ export async function createRuntime(opts = {}) {
           governance_status: receipt.layers?.governance?.status || "UNKNOWN",
           execution_status: receipt.layers?.execution?.status || "UNKNOWN",
           execution_suite_count: Array.isArray(receipt.layers?.execution?.details) ? receipt.layers.execution.details.length : 0,
+          git_binding: gitBinding,
         };
       }
 

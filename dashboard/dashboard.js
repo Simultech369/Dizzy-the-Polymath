@@ -933,7 +933,7 @@ function initChatSurface() {
     if (receipt) {
       receiptHtml = `
         <details style="margin-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; font-size: 0.78rem;">
-          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">Capability Proof (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
+          <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">Capability Evidence (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
           <div style="margin-top: 0.4rem; color: var(--text-dim); line-height: 1.4;">
             <div>Mode: <code>${escapeHtml(receipt.retention_scope || "ephemeral")}</code></div>
             <div>Model Route: <code>${escapeHtml(receipt.chosen_model || "local")}</code></div>
@@ -1073,6 +1073,7 @@ async function loadReceiptsTelemetry() {
     const latencyElem = document.getElementById("receipts-summary-latency");
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
     const councilElem = document.getElementById("latest-council-verdict-badge");
+    const councilGitElem = document.getElementById("latest-council-git-binding");
     const modelsElem = document.getElementById("receipts-models-breakdown");
     const trustElem = document.getElementById("receipts-trust-zones");
     const latencyBandsElem = document.getElementById("receipts-latency-bands");
@@ -1100,6 +1101,18 @@ async function loadReceiptsTelemetry() {
     if (councilElem) {
       const verdict = data.latest_council_verdict?.verdict || "UNKNOWN";
       councilElem.innerText = escapeHtml(verdict);
+    }
+
+    if (councilGitElem) {
+      const binding = data.latest_council_verdict?.git_binding;
+      if (!binding) {
+        councilGitElem.innerText = "No Git binding";
+        councilGitElem.style.color = "var(--text-muted)";
+      } else {
+        const shortHead = String(binding.head_commit || "unknown").slice(0, 8);
+        councilGitElem.innerText = `${escapeHtml(binding.branch || "unknown")} ${shortHead} ${binding.is_dirty ? "dirty" : "clean"}`;
+        councilGitElem.style.color = binding.is_dirty ? "var(--amber)" : "var(--emerald)";
+      }
     }
 
     if (modelsElem) {
@@ -1191,10 +1204,12 @@ async function loadReceiptsTelemetry() {
     console.error("Receipts telemetry error:", err);
     const councilElem = document.getElementById("latest-council-verdict-badge");
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
+    const councilGitElem = document.getElementById("latest-council-git-binding");
     const routingStatusElem = document.getElementById("routing-policy-status-summary");
     const routingTierElem = document.getElementById("routing-policy-tier-summary");
     if (councilElem) councilElem.innerText = "UNREACHABLE";
     if (cycleElem) cycleElem.innerText = "UNREACHABLE";
+    if (councilGitElem) councilGitElem.innerText = "UNREACHABLE";
     if (routingStatusElem) routingStatusElem.innerText = "UNREACHABLE";
     if (routingTierElem) routingTierElem.innerText = "UNREACHABLE";
     renderParetoHud([]);

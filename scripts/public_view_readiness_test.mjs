@@ -42,6 +42,7 @@ const docs = {
   "QUICKSTART.md": read("QUICKSTART.md"),
   "RUNBOOK.md": read("RUNBOOK.md"),
   "PR_W0068_DESCRIPTION.md": read("PR_W0068_DESCRIPTION.md"),
+  "docs/public_truth_language.md": read("docs/public_truth_language.md"),
 };
 
 const dashboardAssets = {
@@ -91,9 +92,21 @@ for (const relPath of trackedMarkdownFiles()) {
 
 assertPresent("README.md", docs["README.md"], [
   /not a hosted production launch/i,
+  /Public Truth Language/i,
   /DIZZY_DASHBOARD_ENABLED=1/i,
   /Operator captured the W-0106 walkthrough screenshots offline/i,
   /single-runtime, shared-secret signed JSON ingress proof/i,
+]);
+
+assertPresent("docs/public_truth_language.md", docs["docs/public_truth_language.md"], [
+  /verified/i,
+  /rehearsal/i,
+  /local/i,
+  /operator-mediated/i,
+  /sample/i,
+  /unknown/i,
+  /blocked/i,
+  /receipt-scoped evidence/i,
 ]);
 
 assertPresent("QUICKSTART.md", docs["QUICKSTART.md"], [
@@ -127,6 +140,7 @@ assertPresent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
   /Reported Route Circuit Breakers \(Demonstration Data\)/i,
   /Reported Latency-Cost-Trust Map/i,
   /receipt-scoped verification scores/i,
+  /Receipt Git State/i,
 ]);
 
 for (const relPath of [

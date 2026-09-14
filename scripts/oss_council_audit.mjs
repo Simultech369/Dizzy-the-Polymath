@@ -1,10 +1,75 @@
 import { spawnSync } from "child_process";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
+const DIRECT_RUN_PATH = process.argv[1] ? path.resolve(process.argv[1]) : "";
+
+function stableStringify(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+}
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(String(value)).digest("hex");
+}
+
+function gitOutput(rootDir, args) {
+  const run = spawnSync("git", args, {
+    cwd: rootDir,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (run.status !== 0) return "";
+  return String(run.stdout || "").trim();
+}
+
+export function buildGitBindingDigest(binding) {
+  const stableBinding = {
+    schema_version: binding.schema_version,
+    branch: binding.branch,
+    head_commit: binding.head_commit,
+    is_dirty: binding.is_dirty,
+    status_short: binding.status_short,
+  };
+  return sha256Hex(stableStringify(stableBinding));
+}
+
+export function collectGitBinding(rootDir = ROOT_DIR) {
+  const statusShort = gitOutput(rootDir, ["status", "--short"])
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+  const binding = {
+    schema_version: "dizzy.git_binding.v1",
+    branch: gitOutput(rootDir, ["branch", "--show-current"]) || "unknown",
+    head_commit: gitOutput(rootDir, ["rev-parse", "HEAD"]) || "unknown",
+    is_dirty: statusShort.length > 0,
+    status_short: statusShort,
+  };
+  return {
+    ...binding,
+    binding_sha256: buildGitBindingDigest(binding),
+  };
+}
+
+export function createAuditResults({ now = new Date(), rootDir = ROOT_DIR } = {}) {
+  return {
+    timestamp: now.toISOString(),
+    git_binding: collectGitBinding(rootDir),
+    layers: {
+      syntax: { status: "PENDING", details: [] },
+      governance: { status: "PENDING", details: [] },
+      execution: { status: "PENDING", details: [] },
+    },
+    verdict: "REJECTED",
+  };
+}
 
 /**
  * OSS Model Council Audit Harness
@@ -31,15 +96,7 @@ async function runAudit() {
   console.log("   Dizzy OSS Model Council Verification Engine    ");
   console.log("==================================================\n");
 
-  const results = {
-    timestamp: new Date().toISOString(),
-    layers: {
-      syntax: { status: "PENDING", details: [] },
-      governance: { status: "PENDING", details: [] },
-      execution: { status: "PENDING", details: [] },
-    },
-    verdict: "REJECTED",
-  };
+  const results = createAuditResults();
 
   // --- Layer 1: Syntax & Static Integrity ---
   logStep("Layer 1: Auditing JS/MJS syntax integrity (Synthesizer Layer)...");
@@ -166,6 +223,7 @@ async function runAudit() {
     "scripts/trajectory_snapshot_store_test.mjs",
     "scripts/test_active_integration.mjs",
     "scripts/usage_report_test.mjs",
+    "scripts/council_receipt_git_binding_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -293,6 +351,7 @@ async function runAudit() {
     { name: "Council Subcommittee Router Suite", script: "scripts/council_subcommittee_router_test.mjs" },
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
     { name: "Usage Report Suite", script: "scripts/usage_report_test.mjs" },
+    { name: "Council Receipt Git Binding Suite", script: "scripts/council_receipt_git_binding_test.mjs" },
   ];
 
   let execFailed = false;
@@ -331,6 +390,7 @@ async function runAudit() {
 }
 
 function saveReceipt(results) {
+  results.git_binding = results.git_binding || collectGitBinding();
   const reviewsDir = path.join(ROOT_DIR, "reviews");
   if (!fs.existsSync(reviewsDir)) {
     fs.mkdirSync(reviewsDir, { recursive: true });
@@ -340,4 +400,6 @@ function saveReceipt(results) {
   console.log(`Saved audit receipt to: ${receiptPath}`);
 }
 
-runAudit();
+if (DIRECT_RUN_PATH === fileURLToPath(import.meta.url)) {
+  runAudit();
+}

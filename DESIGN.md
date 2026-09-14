@@ -1864,3 +1864,15 @@ Rationale:
 - Public polish is only useful if it increases trust without increasing overclaims.
 - Counts, timestamps, hashes, provider availability, and route health drift between runs and machines.
 - A small vocabulary guard keeps collaborator-facing docs welcoming while preserving the system's core distinction between verified, rehearsal, local, and operator-mediated states.
+
+### D-0064: Council Audit Receipts Bind Git State
+
+Decision:
+- `npm run check:council` receipts include a `dizzy.git_binding.v1` object with branch, HEAD commit, dirty-tree status, dirty path lines, and a SHA-256 digest over those stable fields.
+- Operator receipt telemetry may project the binding, but it must describe receipt-time Git state rather than current working-tree state.
+- Public and dashboard copy should treat the binding as scope evidence: it narrows what a receipt describes, but does not make stale receipts current.
+
+Rationale:
+- A passing audit receipt without HEAD and dirty-tree binding cannot prove which tree was checked.
+- The dashboard should make clean/dirty receipt scope visible without asking collaborators to infer it from local Git commands.
+- Binding Git state in the audit plane lets future runtime-hardening work proceed without weakening the public/rehearsal/local/operator-mediated language boundary.
