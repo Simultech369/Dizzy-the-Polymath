@@ -159,6 +159,7 @@ Before a model is treated as review-usable, it must prove its reliability:
 
 As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
 - **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
+- **External Gateway Posture**: Dizzy can integrate model gateways and provider routers as adapter surfaces, but provider reach is not verification authority. See [`docs/external_gateway_posture.md`](docs/external_gateway_posture.md).
 - **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and cryptographic route attestations.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).

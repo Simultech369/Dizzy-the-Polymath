@@ -75,6 +75,7 @@
         "test:job-board-scanner": "node ./scripts/job_board_scanner_test.mjs",
         "test:operator-telemetry": "node ./scripts/operator_telemetry_routes_test.mjs",
         "test:third-party-notices": "node ./scripts/third_party_notices_test.mjs",
+        "test:external-gateway-posture": "node ./scripts/external_gateway_posture_test.mjs",
         "test:subcommittee-router": "node ./scripts/council_subcommittee_router_test.mjs",
         "review:plan": "node ./scripts/review_cycle_plan.mjs",
         "review:run": "node ./scripts/review_cycle_run.mjs",

@@ -1839,3 +1839,16 @@ Rationale:
 - Capability-first routing is only useful to an operator if the cockpit shows the actual selected path and any downgrade or block.
 - The receipt view should explain what happened at execution time, not what the current router might choose now.
 - This remains observability. It does not attest provider quality, route availability after the fact, or Council promotion authority.
+
+### D-0062: External Gateways Are Adapter Surfaces, Not Authority
+
+Decision:
+- Treat generic LLM gateway and provider-router projects as possible adapter surfaces, benchmark comparators, or clean-room pattern inputs rather than Dizzy's product center.
+- Keep the capability-first rule as the boundary: execution code resolves the best policy-permitted route available on the current surface, while UI and prompts describe capability instead of aspirational slugs.
+- External gateways can provide reach, not authority. Their outputs remain untrusted provider output until checked by Dizzy's local policy, cache-partition, budget, and receipt rules. Promotion claims still require the offline Council verification boundary.
+- Do not copy implementation details, command vocabulary, dashboards, prompt text, or distinctive UX flows from external gateway projects without license/provenance review.
+
+Rationale:
+- Provider fan-out is useful infrastructure but is not the rare part of this project. Dizzy's distinctive value is the control plane around routing: memory, trust zones, receipts, honest UI states, and fail-closed downgrade visibility.
+- External router projects should lower adapter effort, not pressure the repo into overclaiming generic gateway maturity.
+- This keeps the public story aligned with the runtime: Dizzy can use gateway surfaces, but it does not confuse provider availability with verification authority.
