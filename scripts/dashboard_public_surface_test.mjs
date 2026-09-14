@@ -90,6 +90,8 @@ async function run() {
   assert(htmlSource.includes('class="sr-only" for="chat-input-text"'), "chat input should have a screen-reader label");
   assert(htmlSource.includes('class="sr-only" for="search-query"'), "search input should have a screen-reader label");
   assert(htmlSource.includes("@media (max-width: 760px)"), "dashboard should include a mobile layout breakpoint");
+  assert(htmlSource.includes('id="routing-policy-status-summary"'), "receipts view should expose routing policy status summary");
+  assert(htmlSource.includes('id="routing-policy-tier-summary"'), "receipts view should expose selected routing tier summary");
   assert(!/<div class="tab(?:\s|")/.test(htmlSource), "dashboard tab controls should be buttons, not inert divs");
   assert(jsSource.includes("chatSurfaceInitialized"), "chat surface initializer should be idempotent");
   assert(jsSource.includes("fetchJson(`/api/dashboard-query"), "dashboard search should use explicit non-OK fetch handling");
@@ -97,6 +99,11 @@ async function run() {
   assert(jsSource.includes('setAttribute("aria-busy", "true")'), "dashboard buttons should expose busy states");
   assert(jsSource.includes('setAttribute("aria-selected"'), "dashboard tab state should update aria-selected");
   assert(jsSource.includes('toggleAttribute("hidden"'), "dashboard tab state should hide inactive panels");
+  assert(jsSource.includes("routingPolicySummaryHtml"), "receipt history should render routing policy details");
+  assert(jsSource.includes("selected_model_or_route"), "receipt history should show selected route facts");
+  assert(jsSource.includes("provider_invoked"), "receipt history should show whether a provider was invoked");
+  assert(jsSource.includes("downgrade_reason"), "receipt history should show downgrade reason");
+  assert(jsSource.includes("fail_closed_reason"), "receipt history should show fail-closed reason");
   assert(loginJsSource.includes('setAttribute("aria-busy", "true")'), "login form should expose a busy state while submitting");
   assert(!jsSource.includes("Local route available"), "dashboard must not invent route availability when telemetry is missing");
   assert(!jsSource.includes("Runtime Online"), "dashboard should report reachability, not broad runtime health");

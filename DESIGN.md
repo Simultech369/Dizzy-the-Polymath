@@ -1827,3 +1827,15 @@ Rationale:
 - Welcomingness is part of trust when it makes state, control, and failure easier to understand.
 - Accessibility polish should support the control-plane truth: pending means pending, unavailable means unavailable, and simulated actions remain labeled as simulated.
 - This does not create public hosting readiness, production account lifecycle, or Council promotion authority.
+
+### D-0061: Receipt View Shows Routing Policy Facts
+
+Decision:
+- The receipts dashboard projects routing-policy status and selected tier into visible summary cards.
+- Recent receipt rows show selected route, selected tier, provider invocation, downgrade reason, and fail-closed reason when the receipt includes routing-policy metadata.
+- Receipts without routing-policy metadata are labeled as not recorded rather than inferred from current environment defaults.
+
+Rationale:
+- Capability-first routing is only useful to an operator if the cockpit shows the actual selected path and any downgrade or block.
+- The receipt view should explain what happened at execution time, not what the current router might choose now.
+- This remains observability. It does not attest provider quality, route availability after the fact, or Council promotion authority.

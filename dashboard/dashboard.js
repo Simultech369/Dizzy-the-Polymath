@@ -1078,9 +1078,19 @@ async function loadReceiptsTelemetry() {
     const latencyBandsElem = document.getElementById("receipts-latency-bands");
     const costBandsElem = document.getElementById("receipts-cost-bands");
     const historyElem = document.getElementById("receipts-history-list");
+    const routingStatusElem = document.getElementById("routing-policy-status-summary");
+    const routingTierElem = document.getElementById("routing-policy-tier-summary");
 
     if (totalElem) totalElem.innerText = String(data.receipt_count || 0);
     if (latencyElem) latencyElem.innerText = `${data.summary?.avg_latency_ms || 0} ms`;
+    if (routingStatusElem) {
+      routingStatusElem.innerText = firstCountLabel(data.summary?.routing_policy_statuses || {}, "No routing policy receipts");
+      routingStatusElem.style.color = data.summary?.routing_policy_statuses?.succeeded ? "var(--emerald)" : "var(--text-muted)";
+    }
+    if (routingTierElem) {
+      routingTierElem.innerText = firstCountLabel(data.summary?.selected_tiers || {}, "No selected tier recorded");
+      routingTierElem.style.color = Object.keys(data.summary?.selected_tiers || {}).length ? "var(--cyan)" : "var(--text-muted)";
+    }
 
     if (cycleElem) {
       const cycleState = data.latest_review_cycle?.state_transition || "none";
@@ -1168,6 +1178,7 @@ async function loadReceiptsTelemetry() {
               <span>Cost Band: <strong style="color: var(--text-muted);">${escapeHtml(r.estimated_cost_band || r.cost_band || "unknown")}</strong></span>
               <span>Latency: <strong style="color: var(--text-muted);">${r.latency_ms || 0}ms</strong></span>
             </div>
+            ${routingPolicySummaryHtml(r.routing_policy)}
           </div>
         `).join("");
       }
@@ -1180,8 +1191,12 @@ async function loadReceiptsTelemetry() {
     console.error("Receipts telemetry error:", err);
     const councilElem = document.getElementById("latest-council-verdict-badge");
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
+    const routingStatusElem = document.getElementById("routing-policy-status-summary");
+    const routingTierElem = document.getElementById("routing-policy-tier-summary");
     if (councilElem) councilElem.innerText = "UNREACHABLE";
     if (cycleElem) cycleElem.innerText = "UNREACHABLE";
+    if (routingStatusElem) routingStatusElem.innerText = "UNREACHABLE";
+    if (routingTierElem) routingTierElem.innerText = "UNREACHABLE";
     renderParetoHud([]);
     renderVerificationSummaries({});
     renderCircuitBreakers([]);
@@ -1400,6 +1415,48 @@ function renderCircuitBreakers(breakers = []) {
       </div>
     `;
   }).join("");
+}
+
+function firstCountLabel(counts = {}, fallback = "No receipts") {
+  const entries = Object.entries(counts)
+    .filter(([, count]) => Number(count) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+  if (!entries.length) return fallback;
+  const [label, count] = entries[0];
+  return `${label}: ${count}`;
+}
+
+function routingPolicySummaryHtml(policy) {
+  if (!policy) {
+    return `
+      <div class="routing-policy-summary" style="margin-top: 0.45rem; color: var(--text-muted); font-size: 0.78rem;">
+        Routing policy: not recorded on this receipt.
+      </div>
+    `;
+  }
+
+  const status = policy.status || "unknown";
+  const tier = policy.selected_tier || "UNKNOWN";
+  const route = policy.selected_model_or_route || "none";
+  const provider = policy.provider_invoked ? "provider invoked" : "no provider call";
+  const downgrade = policy.downgrade_reason || "none";
+  const blocked = policy.fail_closed_reason || "none";
+  const statusClass = blocked !== "none"
+    ? "badge-rose"
+    : status === "succeeded"
+      ? "badge-emerald"
+      : "badge-amber";
+
+  return `
+    <div class="routing-policy-summary" style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.775rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+      <span class="badge ${statusClass}">Policy: ${escapeHtml(status)}</span>
+      <span class="badge badge-primary">Tier: ${escapeHtml(tier)}</span>
+      <span>Route: <strong style="color: var(--text-main);">${escapeHtml(route)}</strong></span>
+      <span>${escapeHtml(provider)}</span>
+      <span>Downgrade: ${escapeHtml(downgrade)}</span>
+      <span>Fail closed: ${escapeHtml(blocked)}</span>
+    </div>
+  `;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
