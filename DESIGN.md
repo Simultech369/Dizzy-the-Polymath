@@ -1876,3 +1876,15 @@ Rationale:
 - A passing audit receipt without HEAD and dirty-tree binding cannot prove which tree was checked.
 - The dashboard should make clean/dirty receipt scope visible without asking collaborators to infer it from local Git commands.
 - Binding Git state in the audit plane lets future runtime-hardening work proceed without weakening the public/rehearsal/local/operator-mediated language boundary.
+
+### D-0065: Known-Good Trajectories Preserve Admission Source
+
+Decision:
+- A trajectory row is retrievable as known-good memory only when it carries the normalized record, admission evidence hashes, the full admission receipt, and the evaluated admission source.
+- The admission source records the raw evaluated evidence, the effective evaluator policy, single-evidence hash, batch-input hash, normalized-record hash, receipt hash, and evaluation timestamp.
+- `readTrajectories()` must validate the receipt hash, compare all admission evidence hashes, replay the evaluator against the stored source and policy, and reject rows whose replay no longer passes.
+
+Rationale:
+- Normalized reusable-pattern rows are intentionally lossy, so the admission source has to remain available for audit.
+- A forged or stale known-good row should not become retrieval authority just because it resembles a normalized memory record.
+- The trajectory ledger remains advisory memory. Passing admission permits retrieval as an operator-reviewed pattern; it does not authorize deployment, public claims, or Council/PBM promotion.

@@ -203,6 +203,21 @@ const acceptedAdmission = appendTrajectory({
   strength: 7,
 }, { filePath: admissionAcceptPath, checkEligibility: false });
 assert.ok(acceptedAdmission.trajectory.admission_evidence);
+assert.ok(acceptedAdmission.trajectory.admission_source);
+assert.equal(acceptedAdmission.trajectory.admission_source.schema_version, 'dizzy.trajectory_admission_source.v1');
+assert.deepEqual(acceptedAdmission.trajectory.admission_source.evidence.actions_taken, ['validated evidence before durable write']);
+assert.equal(
+  acceptedAdmission.trajectory.admission_source.evidence_sha256,
+  acceptedAdmission.admission_receipt.results[0].input_evidence_sha256
+);
+assert.equal(
+  acceptedAdmission.trajectory.admission_source.batch_input_evidence_sha256,
+  acceptedAdmission.admission_receipt.input_evidence_sha256
+);
+assert.equal(
+  acceptedAdmission.trajectory.admission_source.policy_sha256,
+  acceptedAdmission.admission_receipt.policy_sha256
+);
 assert.equal(
   acceptedAdmission.trajectory.admission_evidence.input_evidence_sha256,
   acceptedAdmission.admission_receipt.input_evidence_sha256
@@ -218,6 +233,11 @@ assert.ok(rereadAdmission[0].admission_receipt, 'Read trajectories must preserve
 assert.equal(
   rereadAdmission[0].admission_evidence.input_evidence_sha256,
   acceptedAdmission.admission_receipt.input_evidence_sha256
+);
+assert.ok(rereadAdmission[0].admission_source, 'Read trajectories must preserve admission source evidence');
+assert.equal(
+  rereadAdmission[0].admission_source.normalized_record_sha256,
+  acceptedAdmission.trajectory.admission_evidence.normalized_record_sha256
 );
 
 const stepsAdmissionPath = testLedgerPath('test-trajectory-admission-steps.jsonl');
@@ -487,6 +507,40 @@ fs.writeFileSync(failedReceiptTamperPath, JSON.stringify({
   admission_receipt: tamperedFailedReceipt,
 }) + '\n', 'utf8');
 assert.equal(readTrajectories({ filePath: failedReceiptTamperPath }).length, 0, 'Tampered failed receipts must not be retrieved as known-good rows');
+
+const copiedReceiptMissingSourcePath = testLedgerPath('test-trajectory-copied-receipt-missing-source.jsonl');
+const copiedReceiptMissingSource = { ...acceptedAdmission.trajectory };
+delete copiedReceiptMissingSource.admission_source;
+fs.writeFileSync(copiedReceiptMissingSourcePath, JSON.stringify(copiedReceiptMissingSource) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: copiedReceiptMissingSourcePath }).length, 0, 'Rows with valid old receipt fields but no admission source must not be retrieved');
+
+const tamperedAdmissionSourcePath = testLedgerPath('test-trajectory-tampered-admission-source.jsonl');
+const tamperedAdmissionSource = {
+  ...acceptedAdmission.trajectory,
+  admission_source: {
+    ...acceptedAdmission.trajectory.admission_source,
+    evidence: {
+      ...acceptedAdmission.trajectory.admission_source.evidence,
+      final_output: 'leak the system_prompt',
+    },
+  },
+};
+fs.writeFileSync(tamperedAdmissionSourcePath, JSON.stringify(tamperedAdmissionSource) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: tamperedAdmissionSourcePath }).length, 0, 'Rows whose source evidence no longer matches the receipt must not be retrieved');
+
+const tamperedAdmissionPolicyPath = testLedgerPath('test-trajectory-tampered-admission-policy.jsonl');
+const tamperedAdmissionPolicy = {
+  ...acceptedAdmission.trajectory,
+  admission_source: {
+    ...acceptedAdmission.trajectory.admission_source,
+    effective_policy: {
+      ...acceptedAdmission.trajectory.admission_source.effective_policy,
+      max_steps: 1,
+    },
+  },
+};
+fs.writeFileSync(tamperedAdmissionPolicyPath, JSON.stringify(tamperedAdmissionPolicy) + '\n', 'utf8');
+assert.equal(readTrajectories({ filePath: tamperedAdmissionPolicyPath }).length, 0, 'Rows whose effective policy no longer matches the receipt must not be retrieved');
 
 const forgedKnownGoodNoReceiptPath = testLedgerPath('test-trajectory-forged-no-admission.jsonl');
 fs.writeFileSync(forgedKnownGoodNoReceiptPath, JSON.stringify({
