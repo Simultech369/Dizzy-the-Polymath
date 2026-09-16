@@ -202,6 +202,7 @@ pm run check:council)
 - W-0143: Implemented pure JS `StateMCheckpointEngine` (`lib/statem_checkpoint.mjs`) for pausing and resuming long-running StateM jobs via JSONL checkpoints (resolving Priority #5).
 - W-0144: Created `dizzy.prompt_registry.v1` (`lib/prompt_registry.mjs`) and rewired `prompt_bundle.mjs` to resolve physical prompt versions and support runtime A/B testing overrides via `DIZZY_PROMPT_EXPERIMENT` (resolving Priority #6).
 - W-0145: Added `rollbackHandler` and `cancelIntent` logic to `executeStateMFsm` enabling interrupt, undo, and graceful cancellation of reversible actions.
+- W-0146: Implemented `scripts/mine_incident.mjs` to satisfy P1.4 Support-mined evals. Converts raw incident trajectory logs into redacted CI evaluation fixtures natively.
 
 ## Hosted Production And Public A2A Horizon
 
