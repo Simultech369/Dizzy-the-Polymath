@@ -4,6 +4,7 @@ import path from "path";
 
 import { summarizeFrictionSync as summarizeFriction } from "../lib/friction_ledger.mjs";
 import { summarizeMemoryMetabolism } from "../lib/memory_metabolism.mjs";
+import { inspectTrajectoryLedger } from "../lib/trajectories.mjs";
 
 const ROOT = process.cwd();
 
@@ -303,30 +304,19 @@ function trajectoryStatus() {
     return { ok: true, status: "green", message: "No trajectory ledger yet." };
   }
 
-  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/).filter(Boolean);
-  let malformed = 0;
-  let weak = 0;
-  for (const line of lines) {
-    try {
-      const row = JSON.parse(line);
-      if (Number(row?.strength || 0) < 6) weak += 1;
-    } catch {
-      malformed += 1;
-    }
-  }
-
-  if (malformed > 0) {
+  const diagnostics = inspectTrajectoryLedger({ filePath });
+  if (diagnostics.parse_errors > 0 || diagnostics.rejected_rows > 0) {
     return {
       ok: false,
       status: "yellow",
-      message: `${lines.length} trajectories, ${malformed} malformed row(s).`,
+      message: `${diagnostics.total_rows} rows: ${diagnostics.accepted_rows} accepted, ${diagnostics.rejected_rows} rejected (${diagnostics.parse_errors} parse errors).`,
     };
   }
 
   return {
     ok: true,
-    status: weak > 0 ? "yellow" : "green",
-    message: `${lines.length} trajectories${weak > 0 ? `, ${weak} below retrieval strength` : ""}.`,
+    status: "green",
+    message: `${diagnostics.total_rows} trajectories (all accepted).`,
   };
 }
 
@@ -448,20 +438,6 @@ function scanZoneViolations() {
 
 function schemaCheckFiles() {
   const issues = [];
-  const trajPath = path.resolve(ROOT, process.env.DIZZY_TRAJECTORY_PATH || "runtime/trajectories/known_good.jsonl");
-  if (fs.existsSync(trajPath)) {
-    const lines = fs.readFileSync(trajPath, "utf8").split(/\r?\n/).filter(Boolean);
-    lines.forEach((line, index) => {
-      try {
-        const obj = JSON.parse(line);
-        if (!obj.goal) issues.push(`Trajectory line ${index + 1}: missing goal.`);
-        if (!obj.reusable_pattern) issues.push(`Trajectory line ${index + 1}: missing reusable_pattern.`);
-        if (!Array.isArray(obj.reuse_tags) || obj.reuse_tags.length === 0) issues.push(`Trajectory line ${index + 1}: reuse_tags must be non-empty.`);
-      } catch (err) {
-        issues.push(`Trajectory line ${index + 1}: invalid JSON (${err.message}).`);
-      }
-    });
-  }
 
   const frictionPath = path.resolve(ROOT, process.env.DIZZY_FRICTION_PATH || "runtime/friction/ledger.jsonl");
   if (fs.existsSync(frictionPath)) {

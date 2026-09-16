@@ -198,6 +198,8 @@ pm run check:council)
 - W-0035-note: Moved optional flavor/economic overlay files into `flavor/` and updated prompt-pack references.
 - W-0035: Prototyped three-pool retrieval as report-only (`core`, `stale_important`, `edge_hypothesis`) in retrieval plans and capability receipts, with safety checks preventing auto-promotion or memory writes.
 - W-0141: Added hash-only local diagnostics for trajectory known-good ledger rows via `inspectTrajectoryLedger(opts)`. Diagnostics report row counts, parse errors, row hashes, and reason codes without exposing raw content.
+- W-0142: Implemented operator view `/api/operator/trajectory-diagnostics` endpoint and wired trajectory health checks into `scripts/maintain.mjs`.
+- W-0143: Implemented pure JS `StateMCheckpointEngine` (`lib/statem_checkpoint.mjs`) for pausing and resuming long-running StateM jobs via JSONL checkpoints (resolving Priority #5).
 
 ## Hosted Production And Public A2A Horizon
 

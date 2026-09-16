@@ -172,6 +172,17 @@ try {
     console.log("  [PASS] Test 6: receipts telemetry exposes routing policy facts");
   }
 
+  // Test 7: GET /api/operator/trajectory-diagnostics returns diagnostics schema
+  {
+    const { status, data } = await getJson(`${baseUrl}/api/operator/trajectory-diagnostics`);
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+    assert.ok(data.diagnostics);
+    assert.equal(data.diagnostics.schema_version, "dizzy.trajectory_ledger_diagnostics.v1");
+    assert.equal(data.diagnostics.authority, "local_diagnostics_not_promotion");
+    console.log("  [PASS] Test 7: GET /api/operator/trajectory-diagnostics");
+  }
+
   console.log("\n[test:operator-telemetry-routes] ALL TESTS PASSED CLEANLY.\n");
 } finally {
   await runtime.stop?.();

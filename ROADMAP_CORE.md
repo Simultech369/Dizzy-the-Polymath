@@ -31,8 +31,8 @@ To maintain focus and avoid industry bingo-card sprawl, the following are strict
    - **Status:** A2A boundary guard, anti-slop, and zone disclosure rules exist.
 
 5. **Orchestrator/StateM Checkpoints**
-   - **Goal:** Small, receipt-backed checkpoints for long jobs (`StateM plan → execute → verify → handoff`).
-   - **Status:** State machine shape is right. Avoid full mini-Temporal bloat.
+   - **Goal:** Small, receipt-backed checkpoints for long jobs (`StateM plan -> execute -> verify -> handoff`).
+   - **Status:** Done (`lib/statem_checkpoint.mjs`). Implemented native JSONL deterministic state checkpoints for halting and resuming finite-state machine workflows without Temporal.
 
 6. **Prompt Registry Versioning & Rollback**
    - **Goal:** Add version pins, rollback, and optional receipted A/B testing to `PROMPT_CORE`.

@@ -1900,3 +1900,15 @@ Decision:
 Rationale:
 - Memory rows that fail validation are silently discarded during normal `readTrajectories()` retrieval, which limits operator visibility into corrupted or forged memory.
 - A local diagnostic projection lets operators audit validation failures without bypassing the strict payload constraints of the Council or the memory system.
+
+### D-0067: StateM Checkpoints
+
+Decision:
+- Finite-state machine jobs run via `executeStateMFsm` can now pass a `StateMCheckpointEngine` instance.
+- Long-running jobs save their state (current step, verification attempts, and transitions) to a deterministic JSONL log (e.g., `runtime/checkpoints/statem.jsonl`).
+- If a job throws a `SUSPEND` error, it halts execution without failing, preserving its current state in the checkpoint.
+- Calling `executeStateMFsm` with a known `jobId` and a configured checkpoint engine will automatically resume execution from the last recorded state.
+
+Rationale:
+- Satisfies Roadmap Priority #5 (Orchestrator/StateM Checkpoints) without introducing the bloat of external frameworks like Temporal or LangGraph.
+- By keeping checkpoint logic orthogonal but tightly integrated into the 4-phase finite-state machine (plan, execute, verify, handoff), we maintain local-first, receipt-backed observability.
