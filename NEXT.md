@@ -197,6 +197,7 @@ pm run check:council)
 - W-0034-note: Aligned prompt retrieval block headers with receipt source labels for trusted markdown, memory graph, and trajectory ledger.
 - W-0035-note: Moved optional flavor/economic overlay files into `flavor/` and updated prompt-pack references.
 - W-0035: Prototyped three-pool retrieval as report-only (`core`, `stale_important`, `edge_hypothesis`) in retrieval plans and capability receipts, with safety checks preventing auto-promotion or memory writes.
+- W-0141: Added hash-only local diagnostics for trajectory known-good ledger rows via `inspectTrajectoryLedger(opts)`. Diagnostics report row counts, parse errors, row hashes, and reason codes without exposing raw content.
 
 ## Hosted Production And Public A2A Horizon
 

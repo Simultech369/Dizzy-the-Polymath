@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { evaluateBatch, evaluateTrajectory } from '../lib/trajectory_evaluator.mjs';
-import { appendTrajectory, normalizeTrajectory, readTrajectories } from '../lib/trajectories.mjs';
+import { appendTrajectory, inspectTrajectoryLedger, normalizeTrajectory, readTrajectories } from '../lib/trajectories.mjs';
 
 console.log('=== W-0128 Trajectory Eval Gates Test Suite ===');
 
@@ -554,6 +554,51 @@ fs.writeFileSync(forgedKnownGoodNoReceiptPath, JSON.stringify({
   strength: 7,
 }) + '\n', 'utf8');
 assert.equal(readTrajectories({ filePath: forgedKnownGoodNoReceiptPath }).length, 0, 'Rows without admission evidence/receipt must not be retrieved');
+
+const diagnosticsPath = testLedgerPath('test-trajectory-ledger-diagnostics.jsonl');
+const privateDiagnosticText = 'do not leak secret_token or raw operator notes';
+const malformedDiagnosticLine = '{not json with secret_token and operator notes';
+fs.writeFileSync(
+  diagnosticsPath,
+  [
+    JSON.stringify(acceptedAdmission.trajectory),
+    malformedDiagnosticLine,
+    JSON.stringify({
+      id: 'diagnostic-forged-known-good',
+      goal: 'Reject forged rows while preserving local diagnostics',
+      success_criteria: privateDiagnosticText,
+      actions_taken: ['claimed verification without admission proof'],
+      outcome: 'success',
+      reusable_pattern: 'Do not retrieve forged known-good memory',
+      reuse_tags: ['trajectory'],
+      strength: 7,
+    }),
+  ].join('\n') + '\n',
+  'utf8'
+);
+const diagnostics = inspectTrajectoryLedger({ filePath: diagnosticsPath, includeAccepted: true });
+assert.equal(diagnostics.schema_version, 'dizzy.trajectory_ledger_diagnostics.v1');
+assert.equal(diagnostics.authority, 'local_diagnostics_not_promotion');
+assert.equal(diagnostics.total_rows, 3);
+assert.equal(diagnostics.accepted_rows, 1);
+assert.equal(diagnostics.rejected_rows, 2);
+assert.equal(diagnostics.parse_errors, 1);
+assert.equal(diagnostics.accepted[0].trajectory_id, acceptedAdmission.trajectory.id);
+assert.match(diagnostics.accepted[0].row_sha256, /^[a-f0-9]{64}$/);
+assert.ok(diagnostics.rejected.every((row) => /^[a-f0-9]{64}$/.test(row.row_sha256)));
+assert.ok(
+  diagnostics.rejected.some((row) => row.reasons.includes('MALFORMED_JSON')),
+  'Diagnostics must report malformed JSON rows without exposing row contents'
+);
+assert.ok(
+  diagnostics.rejected.some((row) => row.reasons.includes('MISSING_ADMISSION_EVIDENCE')),
+  'Diagnostics must report forged rows without admission evidence'
+);
+const diagnosticsJson = JSON.stringify(diagnostics);
+assert.ok(!diagnosticsJson.includes(privateDiagnosticText), 'Diagnostics must not expose raw forged row text');
+assert.ok(!diagnosticsJson.includes(malformedDiagnosticLine), 'Diagnostics must not expose malformed row text');
+const redactedDiagnostics = inspectTrajectoryLedger({ filePath: diagnosticsPath });
+assert.deepEqual(redactedDiagnostics.accepted, [], 'Accepted row IDs remain opt-in diagnostics');
 
 if (!allUnitTestsPassed) {
   process.exit(1);

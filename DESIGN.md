@@ -1888,3 +1888,15 @@ Rationale:
 - Normalized reusable-pattern rows are intentionally lossy, so the admission source has to remain available for audit.
 - A forged or stale known-good row should not become retrieval authority just because it resembles a normalized memory record.
 - The trajectory ledger remains advisory memory. Passing admission permits retrieval as an operator-reviewed pattern; it does not authorize deployment, public claims, or Council/PBM promotion.
+
+### D-0066: Trajectory Ledger Diagnostics
+
+Decision:
+- Trajectory ledger row validation requires hash-only local diagnostics via `inspectTrajectoryLedger(opts)`.
+- The diagnostic payload uses schema `dizzy.trajectory_ledger_diagnostics.v1` and reports row counts, accepted/rejected counts, parse errors, row SHA-256 values, and failure reason codes.
+- Diagnostic payloads intentionally omit raw row content to prevent leaking secrets from malformed or forged rows.
+- The trajectory ledger remains advisory. It may guide memory retrieval, but it must not authorize deployment, public claims, PBM state changes, or Council promotion.
+
+Rationale:
+- Memory rows that fail validation are silently discarded during normal `readTrajectories()` retrieval, which limits operator visibility into corrupted or forged memory.
+- A local diagnostic projection lets operators audit validation failures without bypassing the strict payload constraints of the Council or the memory system.
