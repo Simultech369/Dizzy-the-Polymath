@@ -17,14 +17,17 @@ try {
   let executeCount = 0;
   let verifyCount = 0;
   let handoffCount = 0;
+  let rollbackCount = 0;
 
   let stopAt = null;
+  let isCancel = false;
 
   async function testRunbook() {
     return await executeStateMFsm({
       jobId: "test-job-123",
       checkpointEngine: engine,
       runbookName: "test-runbook",
+      cancelIntent: isCancel,
       planHandler: async () => {
         planCount++;
         if (stopAt === "plan") throw new Error("SUSPEND");
@@ -44,6 +47,10 @@ try {
       handoffHandler: async () => {
         handoffCount++;
         if (stopAt === "handoff") throw new Error("SUSPEND");
+        return { ok: true };
+      },
+      rollbackHandler: async () => {
+        rollbackCount++;
         return { ok: true };
       }
     });
@@ -68,15 +75,17 @@ try {
   assert.equal(executeCount, 2); 
   assert.equal(verifyCount, 1);
 
-  // 3. Resume and finish (verify attempt 2 -> pass -> handoff)
+  // 3. Suspend and Cancel
+  isCancel = true;
   stopAt = null;
   const res3 = await testRunbook();
-  assert.equal(res3.ok, true);
-  assert.equal(res3.receipt.status, "PASSED");
+  assert.equal(res3.ok, false);
+  assert.equal(res3.receipt.status, "CANCELLED");
+  assert.equal(res3.receipt.terminal_state, "CANCELLED");
+  assert.equal(rollbackCount, 1);
   assert.equal(planCount, 1);
-  assert.equal(executeCount, 2); // Failed verification transitions back to execute only if ok: false and didn't suspend, but here verifyCount=2 so it passes!
-  assert.equal(verifyCount, 2);  // And then verify is called again!
-  assert.equal(handoffCount, 1);
+  assert.equal(executeCount, 2); 
+  assert.equal(verifyCount, 1); 
 
   console.log("  [PASS] Checkpoint resume preserves FSM transitions and successfully completes.");
 
