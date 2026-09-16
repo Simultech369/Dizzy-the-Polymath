@@ -200,6 +200,7 @@ pm run check:council)
 - W-0141: Added hash-only local diagnostics for trajectory known-good ledger rows via `inspectTrajectoryLedger(opts)`. Diagnostics report row counts, parse errors, row hashes, and reason codes without exposing raw content.
 - W-0142: Implemented operator view `/api/operator/trajectory-diagnostics` endpoint and wired trajectory health checks into `scripts/maintain.mjs`.
 - W-0143: Implemented pure JS `StateMCheckpointEngine` (`lib/statem_checkpoint.mjs`) for pausing and resuming long-running StateM jobs via JSONL checkpoints (resolving Priority #5).
+- W-0144: Created `dizzy.prompt_registry.v1` (`lib/prompt_registry.mjs`) and rewired `prompt_bundle.mjs` to resolve physical prompt versions and support runtime A/B testing overrides via `DIZZY_PROMPT_EXPERIMENT` (resolving Priority #6).
 
 ## Hosted Production And Public A2A Horizon
 

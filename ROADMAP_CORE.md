@@ -36,7 +36,7 @@ To maintain focus and avoid industry bingo-card sprawl, the following are strict
 
 6. **Prompt Registry Versioning & Rollback**
    - **Goal:** Add version pins, rollback, and optional receipted A/B testing to `PROMPT_CORE`.
-   - **Status:** Prompt packs exist as a light registry.
+   - **Status:** Done (`lib/prompt_registry.mjs`). Implemented `prompt_registry.json` capability in `prompt_bundle.mjs` for declarative version pins, runtime A/B testing via `DIZZY_PROMPT_EXPERIMENT`, and dynamic physical path mapping.
 
 *Everything else is deferred unless a concrete operator pain demands it.*
 

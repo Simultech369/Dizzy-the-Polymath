@@ -1912,3 +1912,13 @@ Decision:
 Rationale:
 - Satisfies Roadmap Priority #5 (Orchestrator/StateM Checkpoints) without introducing the bloat of external frameworks like Temporal or LangGraph.
 - By keeping checkpoint logic orthogonal but tightly integrated into the 4-phase finite-state machine (plan, execute, verify, handoff), we maintain local-first, receipt-backed observability.
+
+### D-0068: Prompt Registry Versioning
+
+Decision:
+- Introduced `lib/prompt_registry.mjs` with schema `dizzy.prompt_registry.v1` to map logical prompt paths (e.g., `PROMPT_CORE.md`) to physical paths (e.g., `archive/PROMPT_CORE_v2.md`).
+- Bound `prompt_bundle.mjs` to query the registry during source resolution.
+- Added A/B testing support via `DIZZY_PROMPT_EXPERIMENT` matching an active registry experiment to seamlessly alter prompt text on invocation.
+
+Rationale:
+- Completes Priority #6. It provides strict rollback and explicit receipted version tracking by appending `registry_version` and `registry_experiment` variables natively to the prompt source records without needing a heavy version control overlay.
