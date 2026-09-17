@@ -22,6 +22,7 @@ import {
   configureSseResponse,
   nextStreamEventId,
   writeSseFrame,
+  StreamingLatencyTracker,
 } from "./lib/sse_stream.mjs";
 import { getAllDivisions, getAllRoles, getChosenModelString } from "./lib/model_router.mjs";
 import { buildTensionMap, renderTensionMapSvg } from "./lib/tension_map_engine.mjs";
@@ -622,6 +623,8 @@ export async function createRuntime(opts = {}) {
   const streamMaxFrameBytes = parsePositiveInt(opts.streamMaxFrameBytes ?? process.env.DIZZY_STREAM_MAX_EVENT_BYTES, 256 * 1024);
   const streamMaxResultFrameBytes = parsePositiveInt(opts.streamMaxResultFrameBytes ?? process.env.DIZZY_STREAM_MAX_RESULT_EVENT_BYTES, streamMaxFrameBytes);
   const streamDrainTimeoutMs = parsePositiveInt(opts.streamDrainTimeoutMs ?? process.env.DIZZY_STREAM_DRAIN_TIMEOUT_MS, 30_000);
+  const streamStallThresholdMs = parsePositiveInt(opts.streamStallThresholdMs ?? process.env.DIZZY_STREAM_STALL_THRESHOLD_MS, 5000);
+  const streamStallAbortMs = parsePositiveInt(opts.streamStallAbortMs ?? process.env.DIZZY_STREAM_STALL_ABORT_MS, 30_000);
   const rawStreamReceiptPath = String(opts.streamReceiptPath ?? process.env.DIZZY_STREAM_RECEIPT_PATH ?? "runtime/stream_receipts.jsonl").trim();
   const streamReceiptPath = /^(?:off|none|disabled)$/i.test(rawStreamReceiptPath) ? "" : rawStreamReceiptPath;
   const allowUnauthenticatedLocalControl = opts.allowUnauthenticatedLocalControl !== undefined
@@ -1685,6 +1688,10 @@ export async function createRuntime(opts = {}) {
       : `agent_execute_${crypto.randomUUID()}`;
     const startedAtMs = Date.now();
     const controller = new AbortController();
+    const latencyTracker = new StreamingLatencyTracker({
+      stallThresholdMs: streamStallThresholdMs,
+      stallAbortMs: streamStallAbortMs,
+    });
     let eventSeq = 0;
     let framesAttempted = 0;
     let framesWritten = 0;
@@ -1715,28 +1722,34 @@ export async function createRuntime(opts = {}) {
       reason,
       errorCode,
       completedAtMs,
-    } = {}) => buildStreamReceipt({
-      streamId,
-      eventId,
-      eventType,
-      route: "/agent/execute/stream",
-      method: req.method,
-      status,
-      reason,
-      requestBody: req.body,
-      headers: {
-        "idempotency-key": req.header("idempotency-key"),
-        "last-event-id": req.header("last-event-id"),
-      },
-      retryMs: streamRetryMs,
-      framesAttempted,
-      framesWritten,
-      bytesWritten,
-      backpressureCount,
-      startedAtMs,
-      completedAtMs,
-      errorCode,
-    });
+    } = {}) => {
+      const metrics = latencyTracker.getMetrics();
+      return buildStreamReceipt({
+        streamId,
+        eventId,
+        eventType,
+        route: "/agent/execute/stream",
+        method: req.method,
+        status,
+        reason,
+        requestBody: req.body,
+        headers: {
+          "idempotency-key": req.header("idempotency-key"),
+          "last-event-id": req.header("last-event-id"),
+        },
+        retryMs: streamRetryMs,
+        framesAttempted,
+        framesWritten,
+        bytesWritten,
+        backpressureCount,
+        maxItlMs: metrics.max_itl_ms,
+        avgItlMs: metrics.avg_itl_ms,
+        stallCount: metrics.stall_count,
+        startedAtMs,
+        completedAtMs,
+        errorCode,
+      });
+    };
 
     const reserveEventId = () => {
       eventSeq += 1;
@@ -1750,6 +1763,22 @@ export async function createRuntime(opts = {}) {
       const id = eventId || reserveEventId();
       const frame = buildSseFrame({ id, event, data, retry });
       framesAttempted += 1;
+      const nowMs = Date.now();
+      const latencyStatus = latencyTracker.recordFrame(nowMs);
+      if (!latencyStatus.ok) {
+        terminalState = "failed";
+        const failureEventId = reserveEventId();
+        persistStreamReceipt(makeReceipt({
+          eventId: failureEventId,
+          eventType: "stream_partial_failure",
+          status: "failed",
+          reason: latencyStatus.reason,
+          errorCode: latencyStatus.errorCode,
+          completedAtMs: nowMs,
+        }));
+        if (!res.writableEnded) res.end();
+        return { ok: false, status: "stream_stall_timeout", bytes: 0 };
+      }
       const result = await writeSseFrame(res, frame, {
         signal: controller.signal,
         maxFrameBytes: maxFrameBytes ?? streamMaxFrameBytes,

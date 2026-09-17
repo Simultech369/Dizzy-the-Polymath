@@ -1957,5 +1957,18 @@ Decision:
 Rationale:
 - Resolves W-0149. Aligns with the core architectural principle of "Thin economics only" — per-run cost/effort budgets without requiring external GPU fleet management or complex autoscaling frameworks. Prevents token waste on trivial queries and provides hard kill-switch guardrails at the capability routing boundary.
 
+### D-0072: Streaming Inter-Token Latency & Stall Guardrails
+
+Decision:
+- Augmented `lib/sse_stream.mjs` and `agent_server.mjs` with native streaming latency and inter-token latency (ITL) tracking:
+  - Added `StreamingLatencyTracker` class tracking inter-frame intervals, `max_itl_ms`, `avg_itl_ms`, and `stall_count`.
+  - Configured stall thresholds (`DIZZY_STREAM_STALL_THRESHOLD_MS`, default 5000ms) and hard stall abort limits (`DIZZY_STREAM_STALL_ABORT_MS`, default 30000ms).
+  - Extended `dizzy.stream_receipt.v1` to record `max_itl_ms`, `avg_itl_ms`, and `stall_count` on all streaming receipts (`stream_start`, `stream_complete`, `backpressure`, `stream_partial_failure`).
+  - Implemented fail-closed stall abort: if an upstream provider hangs beyond the stall abort budget, the stream aborts gracefully with an explicit `stream_stall_timeout` / `STREAM_STALL_TIMEOUT` failure receipt rather than hanging operator connections indefinitely.
+
+Rationale:
+- Resolves W-0150. Aligns with the core reliability principle of "light TTFT/ITL awareness, chaos on boundaries, native receipts" without building a heavyweight cloud gateway product. Protects operators against stalled model streams and provides verifiable inter-frame latency metrics directly in local stream receipts.
+
+
 
 

@@ -235,6 +235,7 @@ async function runAudit() {
     "scripts/usage_report_test.mjs",
     "scripts/council_receipt_git_binding_test.mjs",
     "scripts/thin_economics_guard_test.mjs",
+    "scripts/streaming_latency_guard_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -369,6 +370,7 @@ async function runAudit() {
     { name: "Usage Report Suite", script: "scripts/usage_report_test.mjs" },
     { name: "Council Receipt Git Binding Suite", script: "scripts/council_receipt_git_binding_test.mjs" },
     { name: "Thin Economics Guard Suite", script: "scripts/thin_economics_guard_test.mjs" },
+    { name: "Streaming Latency Guard Suite", script: "scripts/streaming_latency_guard_test.mjs" },
   ];
 
   let execFailed = false;
