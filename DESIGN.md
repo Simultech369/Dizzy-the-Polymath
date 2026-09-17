@@ -1933,3 +1933,15 @@ Decision:
 Rationale:
 - Resolves W-0147. Prevents the "naked EOA" security failure mode where compromised autonomous agents possess unconstrained authority over smart contract wallets. Enforces least privilege at the calldata and key manager boundary.
 
+### D-0070: Trajectory Replay Simulator (Dream-RSI Pattern)
+
+Decision:
+- Implemented `TrajectoryReplaySimulator` in `lib/trajectory_replay_simulator.mjs` conforming to schema `dizzy.trajectory_replay.v1`.
+- Enables off-policy virtual environment simulation by replaying candidate agent executions against historical golden trajectories and incident fixtures.
+- Intercepts tool calls, matches normalized invocation hashes, and returns cached outputs without executing live shell commands or external network calls.
+- Detects divergence instantly (`tool_mismatch`, `args_mismatch`, `trajectory_exhausted`) and emits structured replay receipts.
+
+Rationale:
+- Resolves W-0148. Incorporates the Dream-RSI rehearsal pattern into Dizzy's local control plane. Allows testing candidate prompt packs and router policies offline against known-good trajectories with zero token waste on shell execution and zero side-effect risk.
+
+
