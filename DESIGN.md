@@ -1944,4 +1944,18 @@ Decision:
 Rationale:
 - Resolves W-0148. Incorporates the Dream-RSI rehearsal pattern into Dizzy's local control plane. Allows testing candidate prompt packs and router policies offline against known-good trajectories with zero token waste on shell execution and zero side-effect risk.
 
+### D-0071: Thin Economics & Route Guardrails
+
+Decision:
+- Augmented `lib/routing_policy.mjs` with thin economics budgets and thinking token clamping:
+  - Added `TIER_ESTIMATED_COST_PER_1K` ($0 for T0, $0.0002 for T1, $0.003 for T2, $0.015 for T3).
+  - Clamped reasoning/thinking tokens on easy queries (`EASY_TASK_CLASSES`: `deterministic_status`, `extraction`, `utility`, `chat`), ensuring easy queries never burn excessive thinking tokens (0 for deterministic, 1024 for standard easy tasks).
+  - Enforced per-request cost kill switch (`max_cost_usd`): requests whose estimated cost exceeds the threshold fail closed with `cost_budget_exceeded`.
+  - Added native latency observability to `executeRoutingPlan()` and attempt receipts (`duration_ms`, `ttft_ms`).
+  - Added boundary chaos test coverage for timeout detection and graceful fail-closed fallback execution.
+
+Rationale:
+- Resolves W-0149. Aligns with the core architectural principle of "Thin economics only" — per-run cost/effort budgets without requiring external GPU fleet management or complex autoscaling frameworks. Prevents token waste on trivial queries and provides hard kill-switch guardrails at the capability routing boundary.
+
+
 

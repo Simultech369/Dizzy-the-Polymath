@@ -234,6 +234,7 @@ async function runAudit() {
     "scripts/test_active_integration.mjs",
     "scripts/usage_report_test.mjs",
     "scripts/council_receipt_git_binding_test.mjs",
+    "scripts/thin_economics_guard_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -367,6 +368,7 @@ async function runAudit() {
     { name: "Safety Checks Suite", script: "scripts/safety_checks.mjs" },
     { name: "Usage Report Suite", script: "scripts/usage_report_test.mjs" },
     { name: "Council Receipt Git Binding Suite", script: "scripts/council_receipt_git_binding_test.mjs" },
+    { name: "Thin Economics Guard Suite", script: "scripts/thin_economics_guard_test.mjs" },
   ];
 
   let execFailed = false;
@@ -379,6 +381,8 @@ async function runAudit() {
     });
     if (run.status !== 0) {
       logFailure(`Suite ${suite.name} failed with exit code ${run.status}`);
+      if (run.stdout) console.log(`--- [${suite.name} STDOUT] ---\n${run.stdout}`);
+      if (run.stderr) console.error(`--- [${suite.name} STDERR] ---\n${run.stderr}`);
       results.layers.execution.details.push(`FAILED: ${suite.name} (Code ${run.status})`);
       execFailed = true;
     } else {
