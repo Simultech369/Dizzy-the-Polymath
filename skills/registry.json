@@ -107,6 +107,10 @@
     "web-search-router": {
       "status": "standby",
       "trigger_terms": ["search strategy", "fresh web search", "deep research", "primary source search"]
+    },
+    "lsp-standards": {
+      "status": "standby",
+      "trigger_terms": ["lsp", "erc725", "erc-725", "universal profile", "lsp0", "lsp6", "key manager", "smart account", "on-chain identity"]
     }
   }
 }

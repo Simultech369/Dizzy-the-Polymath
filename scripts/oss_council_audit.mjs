@@ -121,6 +121,7 @@ async function runAudit() {
     "lib/node_python_council_bridge_contract.mjs",
     "lib/prompt_bundle.mjs",
     "lib/prompt_registry.mjs",
+    "lib/lsp_standards.mjs",
     "lib/dispatch.mjs",
     "lib/friction_anomaly_detector.mjs",
     "lib/gemini_client.mjs",
@@ -176,6 +177,7 @@ async function runAudit() {
     "scripts/statem_checkpoint_test.mjs",
     "scripts/prompt_registry_test.mjs",
     "scripts/mine_incident_test.mjs",
+    "scripts/lsp_standards_test.mjs",
     "scripts/tool_call_eval_test.mjs",
     "scripts/trace_chain_test.mjs",
     "scripts/local_chaos_harness_test.mjs",
@@ -347,6 +349,7 @@ async function runAudit() {
     { name: "StateM Checkpoints Suite", script: "scripts/statem_checkpoint_test.mjs" },
     { name: "Prompt Registry Suite", script: "scripts/prompt_registry_test.mjs" },
     { name: "Incident Miner Suite", script: "scripts/mine_incident_test.mjs" },
+    { name: "LSP Standards & Permission Guardrail Suite", script: "scripts/lsp_standards_test.mjs" },
     { name: "Bounty Hunter Engine Suite", script: "scripts/bounty_hunter_engine_test.mjs" },
     { name: "A2A Mailbox Bridge Suite", script: "scripts/a2a_mailbox_bridge_test.mjs" },
     { name: "A2A Injection Fuzzing Suite", script: "scripts/a2a_fuzz_injection_test.mjs" },
@@ -369,6 +372,7 @@ async function runAudit() {
     const run = spawnSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.join(ROOT_DIR, suite.script)], {
       encoding: "utf8",
       cwd: ROOT_DIR,
+      maxBuffer: 20 * 1024 * 1024,
     });
     if (run.status !== 0) {
       logFailure(`Suite ${suite.name} failed with exit code ${run.status}`);

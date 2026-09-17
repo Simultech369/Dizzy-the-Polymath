@@ -28,10 +28,9 @@ These are future focuses for public collaborators, not current completion claims
 - W-0106: Capture a real dashboard walkthrough proof.
   Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
-- W-0147: Ingest ERC-725 and LUKSO Standard Proposals (LSPs) as an authoritative skill and calldata guardrail specification.
-  Acceptance: Create `skills/lsp-standards/SKILL.md` defining canonical interfaces for LSP0 (ERC725Account / Universal Profile), LSP2 (ERC725Y JSON Schema), and LSP6 (Key Manager). Specify permission bitmask auditing and target/function allowlist policies so agents can execute scoped on-chain identity operations without raw EOA risk.
-
 ## Completed
+
+- W-0147: Ingested ERC-725 and LUKSO Standard Proposals (LSPs) into an authoritative skill (`skills/lsp-standards/SKILL.md`) and runtime guardrail engine (`lib/lsp_standards.mjs`, `scripts/lsp_standards_test.mjs`, `DESIGN.md` [D-0069]). Defined canonical interfaces for LSP0 (ERC725Account / Universal Profile), LSP2 (ERC725Y JSON Schema), and LSP6 (Key Manager permissions). Built `validateAgentLsp6Permissions()` to enforce least privilege and fail closed on prohibited root permissions (`DELEGATECALL`, `CHANGEOWNER`), and added `createLspExecutionReceipt()` for verifiable attestation logging. (Verification: `node scripts/lsp_standards_test.mjs`; `node scripts/skill_registry_check.mjs`; `npm run check:council`)
 
 - W-0140: Hardened known-good trajectory admission and retrieval (`lib/trajectory_evaluator.mjs`, `lib/trajectories.mjs`, `scripts/trajectory_eval_test.mjs`, `DESIGN.md` [D-0065]). Accepted trajectory rows now persist the evaluated admission source and effective policy alongside the normalized row and receipt; readback validates the receipt, compares single-record and batch evidence hashes, replays the evaluator, and drops copied/forged/tampered rows before retrieval. This remains advisory memory admission only, not deployment, public-claim, or Council/PBM promotion authority. (Verification: `node --disable-warning=ExperimentalWarning scripts/trajectory_eval_test.mjs`; `npm run check:safety`; `npm run check:state`; `npm run check:council`)
 

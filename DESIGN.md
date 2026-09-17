@@ -1922,3 +1922,14 @@ Decision:
 
 Rationale:
 - Completes Priority #6. It provides strict rollback and explicit receipted version tracking by appending `registry_version` and `registry_experiment` variables natively to the prompt source records without needing a heavy version control overlay.
+
+### D-0069: LSP Standards & On-Chain Agent Guardrails
+
+Decision:
+- Ingested ERC-725 and LUKSO Standard Proposals (LSPs) into `skills/lsp-standards/SKILL.md` and `lib/lsp_standards.mjs`.
+- Defined canonical permission bitmasks (`LSP6_PERMISSIONS`) and built `validateAgentLsp6Permissions()`, strictly prohibiting `DELEGATECALL`, `SUPER_DELEGATECALL`, `CHANGEOWNER`, and `CHANGEPERMISSIONS` for autonomous agent keys.
+- Implemented `createLspExecutionReceipt()` conforming to `dizzy.lsp_execution_receipt.v1` to bind on-chain transaction attempts to verifiable execution receipts.
+
+Rationale:
+- Resolves W-0147. Prevents the "naked EOA" security failure mode where compromised autonomous agents possess unconstrained authority over smart contract wallets. Enforces least privilege at the calldata and key manager boundary.
+
