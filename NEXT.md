@@ -28,6 +28,9 @@ These are future focuses for public collaborators, not current completion claims
 - W-0106: Capture a real dashboard walkthrough proof.
   Acceptance: Start the dashboard with `DIZZY_DASHBOARD_ENABLED=1`, verify the first screen in a live browser, and save or attach a screenshot/GIF artifact that confirms the cockpit is usable, sober, and truthful. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
 
+- W-0147: Ingest ERC-725 and LUKSO Standard Proposals (LSPs) as an authoritative skill and calldata guardrail specification.
+  Acceptance: Create `skills/lsp-standards/SKILL.md` defining canonical interfaces for LSP0 (ERC725Account / Universal Profile), LSP2 (ERC725Y JSON Schema), and LSP6 (Key Manager). Specify permission bitmask auditing and target/function allowlist policies so agents can execute scoped on-chain identity operations without raw EOA risk.
+
 ## Completed
 
 - W-0140: Hardened known-good trajectory admission and retrieval (`lib/trajectory_evaluator.mjs`, `lib/trajectories.mjs`, `scripts/trajectory_eval_test.mjs`, `DESIGN.md` [D-0065]). Accepted trajectory rows now persist the evaluated admission source and effective policy alongside the normalized row and receipt; readback validates the receipt, compares single-record and batch evidence hashes, replays the evaluator, and drops copied/forged/tampered rows before retrieval. This remains advisory memory admission only, not deployment, public-claim, or Council/PBM promotion authority. (Verification: `node --disable-warning=ExperimentalWarning scripts/trajectory_eval_test.mjs`; `npm run check:safety`; `npm run check:state`; `npm run check:council`)
@@ -211,5 +214,7 @@ pm run check:council)
 - Hosted sandboxing: microVM/Wasm isolation, no ambient filesystem, hardened egress proxy.
 - Multi-tenant memory: strict tenant partitioning, no cross-user retrieval bleed.
 - Hosted operations: OAuth/OIDC, distributed rate limits, billing guards, fleet telemetry.
+- Decentralized identity & scoped execution: LSP0 (Universal Profile / ERC725Account) on-chain identity anchors with LSP6 Key Manager permission scoping (function/target allowlists, spend caps) and LSP25 meta-transaction relayers.
+- On-chain attestation anchoring: ERC725Y key-value schema (LSP2) for public verification of Council verdict digests and capability receipts.
 
 

@@ -40,6 +40,13 @@ To maintain focus and avoid industry bingo-card sprawl, the following are strict
 
 *Everything else is deferred unless a concrete operator pain demands it.*
 
+## On-Chain Standards & Public Identity Horizon (ERC-725 / LUKSO LSPs)
+To eliminate the risk of agents operating with unconstrained private keys (naked EOA compromise), Dizzy defines an on-chain identity and execution standard:
+- **Universal Profile Identity (LSP0 / ERC725Account)**: Persistent smart contract accounts acting as on-chain identity anchors for Dizzy agents.
+- **Granular Scoped Permissions (LSP6 Key Manager)**: Operational sub-keys constrained by contract bytecode to explicit function allowlists, destination target allowlists, and daily/monthly spending caps.
+- **Verifiable Receipt Attestations (ERC725Y / LSP2)**: Attaching cryptographic Council verdict digests (`oss_council_verdict_latest.json`) and trajectory proofs into structured on-chain key-value storage.
+- **Implementation Strategy**: Delivered as an authoritative Skill (`skills/lsp-standards/`) and calldata-verification gate in Council rather than injecting heavy Web3 runtime dependencies into the local Node control plane.
+
 ## The Dizzy/Council Architectural Boundary
 Codex (5.5) formalized the primary architectural separation of concerns:
 * **Dizzy Owns**: Human-Machine Interface (HMI), cognitive memory, network ingress (A2A envelopes, Telegram), and sandbox rehearsal.
