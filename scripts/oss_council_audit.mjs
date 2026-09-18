@@ -241,6 +241,7 @@ async function runAudit() {
     "scripts/unified_context_pipeline_test.mjs",
     "scripts/trajectory_eval_test.mjs",
     "scripts/trajectory_regression_gate_test.mjs",
+    "scripts/routing_delta_guard_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -378,6 +379,7 @@ async function runAudit() {
     { name: "Streaming Latency Guard Suite", script: "scripts/streaming_latency_guard_test.mjs" },
     { name: "Unified Context Pipeline Suite", script: "scripts/unified_context_pipeline_test.mjs" },
     { name: "Trajectory Regression Gate Suite", script: "scripts/trajectory_regression_gate_test.mjs" },
+    { name: "Routing Delta Guard Suite", script: "scripts/routing_delta_guard_test.mjs" },
   ];
 
   let execFailed = false;

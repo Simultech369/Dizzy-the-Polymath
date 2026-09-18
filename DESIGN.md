@@ -1995,6 +1995,20 @@ Decision:
 Rationale:
 - Resolves W-0152 and Priority 2 of `ROADMAP_CORE.md`. Moving beyond "answer-only" evals to full multi-step trajectory grading ensures agents do not flounder, leak banned keywords, or introduce execution conflicts before code promotion to higher environments.
 
+### D-0075: Live Routing Quality/Cost/Latency Deltas & Asymmetric Economics
+
+Decision:
+- Augmented `lib/routing_policy.mjs` with asymmetric input vs. reasoning/output token pricing:
+  - Added `TIER_INPUT_COST_PER_1K` and `TIER_OUTPUT_COST_PER_1K`, properly modeling frontier reasoning models (T3) where thinking/output tokens cost up to 5x input rates ($0.025/1k vs. $0.005/1k).
+  - Implemented `calculateAsymmetricCostUsd()` and bound `asymmetric_estimated_cost_usd` into resolved requirements.
+  - Added `TIER_BASELINE_LATENCY_MS` (T0: 10ms, T1: 250ms, T2: 1200ms, T3: 4500ms).
+  - Extended `executeRoutingPlan()` to calculate and emit `routing_deltas` across all execution paths (T0 deterministic, invoked provider routes, and exhausted fallbacks), logging `actual_cost_usd`, `cost_delta_usd`, `baseline_latency_ms`, `latency_delta_ms`, `fallback_occurred`, `fallback_attempts_count`, and `quality_delta` (`nominal` vs. `fallback_degraded` vs. `exhausted_blocked`).
+  - Added `buildRouteDeltaReceipt()` (schema `dizzy.routing_delta_receipt.v1`) to emit verifiable cryptographic delta receipts binding plan, execution, and delta metrics.
+
+Rationale:
+- Resolves W-0153 and Priority 3 of `ROADMAP_CORE.md`. Flat per-1k pricing underestimates frontier thinking token costs and fails to provide operators with live visibility into route quality, cost savings, or latency regressions across fallback chains.
+
+
 
 
 
