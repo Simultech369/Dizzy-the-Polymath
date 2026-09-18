@@ -55,7 +55,7 @@ assert.ok(privateResult.packed_text.includes("Private credential hash"), "Privat
 // Test byte budget exhaustion / omission
 const oversizedResult = packer.packContext({
   trust_zone: "paid_public",
-  max_byte_budget: 150, // Tiny budget
+  max_byte_budget: 250, // Tiny budget (fits headers + 1 item)
   must_include: [{ id: "kernel", content: "KERNEL" }],
   candidate_evidence: [
     { id: "ev_1", priority: 10, sensitivity_tier: "public_safe", content: "A".repeat(80) },
@@ -63,7 +63,7 @@ const oversizedResult = packer.packContext({
   ]
 });
 
-assert.equal(oversizedResult.receipt.optional_included_count, 1, "Only first item fits within 150 byte budget");
+assert.equal(oversizedResult.receipt.optional_included_count, 1, "Only first item fits within 250 byte budget");
 assert.equal(oversizedResult.receipt.optional_omitted_budget_count, 1, "Second item omitted due to budget limit");
 
 const receiptPath = path.resolve(process.cwd(), "reviews/context_packer_latest.json");

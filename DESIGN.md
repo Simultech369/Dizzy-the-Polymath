@@ -1969,6 +1969,18 @@ Decision:
 Rationale:
 - Resolves W-0150. Aligns with the core reliability principle of "light TTFT/ITL awareness, chaos on boundaries, native receipts" without building a heavyweight cloud gateway product. Protects operators against stalled model streams and provides verifiable inter-frame latency metrics directly in local stream receipts.
 
+### D-0073: Unified Context Assembly Pipeline
+
+Decision:
+- Upgraded `lib/context_assembler.mjs` to use the `ContextPacker` 3-slot model (`MUST_INCLUDE` / `OPTIONAL_EVIDENCE` / `FORBIDDEN`) internally, creating a single pipeline that implements `zone → sources → admit → score → dedup → pack → provenance`.
+- The assembler now delegates packing to `ContextPacker.packContext()` after performing admission (zone restriction, status rejection), task-overlap scoring, and content deduplication.
+- Zone-aware budgets from `DEFAULT_ZONE_BUDGETS` are applied automatically when `budget_bytes` is not explicitly provided.
+- Unified provenance receipt (schema `dizzy.context_assembler.v2`) includes slot counts, zone budget metadata, headroom tracking, and chained packer receipt hash.
+- Backward-compatible API shape preserved: `assembleContext()` still returns `{ packed_context, provenance_receipt }`.
+- `BudgetExceededError` backward compatibility maintained by catching packer budget errors and re-throwing with the expected prefix.
+
+Rationale:
+- Resolves W-0151. The `context_assembler.mjs` and `context_packer.mjs` were parallel implementations — the assembler ran in live dispatch but lacked the packer's structured slot categorization and zone budgets, while the packer had structured receipts but wasn't wired into dispatch. Unifying them makes the positioning doc's `zone → sources → budget → pack → provenance` claim mechanically real.
 
 
 
