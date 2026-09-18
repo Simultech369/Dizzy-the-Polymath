@@ -155,6 +155,8 @@ async function runAudit() {
     "lib/statem_checkpoint.mjs",
     "lib/structural_query_cache.mjs",
     "lib/trajectory_snapshot_store.mjs",
+    "lib/trajectory_evaluator.mjs",
+    "lib/trajectory_regression_gate.mjs",
     "lib/visual_slop_scanner.mjs",
     "scripts/a2a_boundary_test.mjs",
     "scripts/a2a_mailbox_bridge_test.mjs",
@@ -237,6 +239,8 @@ async function runAudit() {
     "scripts/thin_economics_guard_test.mjs",
     "scripts/streaming_latency_guard_test.mjs",
     "scripts/unified_context_pipeline_test.mjs",
+    "scripts/trajectory_eval_test.mjs",
+    "scripts/trajectory_regression_gate_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -373,6 +377,7 @@ async function runAudit() {
     { name: "Thin Economics Guard Suite", script: "scripts/thin_economics_guard_test.mjs" },
     { name: "Streaming Latency Guard Suite", script: "scripts/streaming_latency_guard_test.mjs" },
     { name: "Unified Context Pipeline Suite", script: "scripts/unified_context_pipeline_test.mjs" },
+    { name: "Trajectory Regression Gate Suite", script: "scripts/trajectory_regression_gate_test.mjs" },
   ];
 
   let execFailed = false;

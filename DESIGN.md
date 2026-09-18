@@ -1982,5 +1982,19 @@ Decision:
 Rationale:
 - Resolves W-0151. The `context_assembler.mjs` and `context_packer.mjs` were parallel implementations — the assembler ran in live dispatch but lacked the packer's structured slot categorization and zone budgets, while the packer had structured receipts but wasn't wired into dispatch. Unifying them makes the positioning doc's `zone → sources → budget → pack → provenance` claim mechanically real.
 
+### D-0074: Trajectory Eval CI Regression Gates & Promotion Policy Integration
+
+Decision:
+- Formalized trajectory evaluation as a blocking CI regression gate within `scripts/eval_gate_policy_check.mjs` and `scripts/oss_council_audit.mjs`:
+  - Created `lib/trajectory_regression_gate.mjs` (schema `dizzy.trajectory_regression_gate.v1`) to run dual-phase evaluation: unit fixture conformance (testing negative invariants like floundering and banned keyword slop) and golden benchmark batch evaluation.
+  - Authored canonical production golden benchmark trajectories in `scripts/fixtures/golden_trajectories.json` covering context assembly, multi-tier routing, streaming latency tracking, StateM runbook orchestration, and council review.
+  - Enforced a strict 100% pass rate floor (`min_pass_rate_pct: 100.0`) and zero violation limit (`max_violations: 0`) in `DEFAULT_THRESHOLDS` under `dizzy.eval_gate_policy.v1`.
+  - Bound `evaluateTrajectoryPromotion()` directly into `runEvalGatePolicy()` checks alongside golden retrieval, and added both `trajectory-eval` and `trajectory-regression-gate` to `REQUIRED_HARNESSES`.
+  - Registered `lib/trajectory_evaluator.mjs`, `lib/trajectory_regression_gate.mjs`, and their test suites in Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
+Rationale:
+- Resolves W-0152 and Priority 2 of `ROADMAP_CORE.md`. Moving beyond "answer-only" evals to full multi-step trajectory grading ensures agents do not flounder, leak banned keywords, or introduce execution conflicts before code promotion to higher environments.
+
+
 
 

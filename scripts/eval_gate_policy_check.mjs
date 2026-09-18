@@ -2,6 +2,11 @@ import { spawnSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { runRetrievalEval } from "./retrieval_eval.mjs";
+import {
+  runTrajectoryRegressionGate,
+  evaluateTrajectoryPromotion,
+  DEFAULT_TRAJECTORY_GATE_THRESHOLDS,
+} from "../lib/trajectory_regression_gate.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -11,7 +16,12 @@ export const EVAL_GATE_POLICY_SCHEMA = "dizzy.eval_gate_policy.v1";
 export const DEFAULT_THRESHOLDS = Object.freeze({
   retrieval_hit_rate_top_3_pct: 85.0,
   retrieval_mrr: 0.60,
+  trajectory_pass_rate_pct: DEFAULT_TRAJECTORY_GATE_THRESHOLDS.min_pass_rate_pct,
+  max_trajectory_violations: DEFAULT_TRAJECTORY_GATE_THRESHOLDS.max_violations,
+  min_golden_trajectories: DEFAULT_TRAJECTORY_GATE_THRESHOLDS.min_golden_trajectories,
 });
+
+export { evaluateTrajectoryPromotion };
 
 export const GENERATED_RECEIPT_PATTERNS = Object.freeze([
   /^reviews\/[^/]+_latest\.json$/i,
@@ -41,6 +51,16 @@ const REQUIRED_HARNESSES = Object.freeze([
     id: "review-model-runner",
     label: "Review Model Runner Safety",
     command: [process.execPath, ["scripts/review_model_runner_test.mjs"]],
+  },
+  {
+    id: "trajectory-eval",
+    label: "Trajectory Eval Gate Suite",
+    command: [process.execPath, ["scripts/trajectory_eval_test.mjs"]],
+  },
+  {
+    id: "trajectory-regression-gate",
+    label: "Trajectory Regression Gate Suite",
+    command: [process.execPath, ["scripts/trajectory_regression_gate_test.mjs"]],
   },
 ]);
 
@@ -155,6 +175,13 @@ export async function runEvalGatePolicy({
     logger,
   });
   checks.push(evaluateRetrievalPromotion(retrieval, thresholds));
+
+  const trajectoryGate = runTrajectoryRegressionGate({
+    rootDir,
+    thresholds,
+    logger,
+  });
+  checks.push(evaluateTrajectoryPromotion(trajectoryGate, thresholds));
 
   if (runHarnesses) {
     for (const harness of REQUIRED_HARNESSES) checks.push(runHarness(harness, { rootDir }));

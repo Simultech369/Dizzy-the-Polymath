@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_THRESHOLDS,
   evaluateRetrievalPromotion,
+  evaluateTrajectoryPromotion,
   findGeneratedReceiptMaterial,
   isGeneratedReceiptArtifact,
   runEvalGatePolicy,
@@ -48,6 +49,35 @@ const weakRetrieval = evaluateRetrievalPromotion({
 });
 assert.equal(weakRetrieval.status, "failed");
 
+// Trajectory promotion floor tests
+const strongTrajectory = evaluateTrajectoryPromotion({
+  ok: true,
+  status: "passed",
+  fixture_conformance: { mismatched: 0 },
+  metrics: {
+    total_golden: 5,
+    passed_golden: 5,
+    failed_golden: 0,
+    pass_rate_pct: 100.0,
+    total_violations: 0,
+  },
+});
+assert.equal(strongTrajectory.status, "passed");
+
+const weakTrajectory = evaluateTrajectoryPromotion({
+  ok: false,
+  status: "failed",
+  fixture_conformance: { mismatched: 0 },
+  metrics: {
+    total_golden: 5,
+    passed_golden: 4,
+    failed_golden: 1,
+    pass_rate_pct: 80.0,
+    total_violations: 1,
+  },
+});
+assert.equal(weakTrajectory.status, "failed");
+
 const noHarnessReport = await runEvalGatePolicy({
   runHarnesses: false,
   receiptPaths: [],
@@ -59,6 +89,7 @@ const noHarnessReport = await runEvalGatePolicy({
 assert.equal(noHarnessReport.schema_version, "dizzy.eval_gate_policy.v1");
 assert.equal(noHarnessReport.status, "passed");
 assert.equal(noHarnessReport.checks.some((check) => check.id === "golden-retrieval"), true);
+assert.equal(noHarnessReport.checks.some((check) => check.id === "golden-trajectory"), true);
 assert.equal(noHarnessReport.checks.some((check) => check.id === "generated-receipt-material"), true);
 
 const receiptLeakReport = await runEvalGatePolicy({
