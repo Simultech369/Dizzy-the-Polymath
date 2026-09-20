@@ -5,6 +5,8 @@ reviewed: 2026-08-17
 
 Purpose: maintain model availability, routing posture, 4-gate qualification ladder, route boundaries, and dual-chain multi-agent council verification. This file is an operational catalog and authority boundary specification.
 
+Catalog entries are not execution proof. Dizzy's OSS council baseline is local/open-weight seats plus deterministic harnesses; hosted proprietary models are bounded advisory routes when configured and must remain visibly separate from local/open-weight execution claims. The dashboard exposes only implemented model/harness combinations returned by `/api/operator/router-divisions`.
+
 ---
 
 ## 1. Dual-Chain Multi-Agent Council Architecture

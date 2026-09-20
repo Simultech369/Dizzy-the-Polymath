@@ -46,7 +46,7 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
 | Guided Trust Cockpit Dashboard | Served locally at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`; W-0105 source/API guard verifies neutral startup states, route wiring, and auth/session behavior. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. |
-| 62-Model Catalog & Evidence Ladder | 6 tiers (50 active across T0-T4, 12 quarantined/purged in T5), 4-gate qualification engine, and route specifications in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
+| Model Catalog & Evidence Ladder | Cataloged local/open-weight seats, hosted advisory routes, and quarantined candidates with route specifications in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md). Dashboard execution exposes only implemented combinations returned by `/api/operator/router-divisions`. |
 | Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
 | Cognitive Memory Engine | 5-stage memory lifecycle (`Capture`, `Consolidate`, `Retrieve`, `Reconcile`, `Decay`) that compiles durable preferences and project lessons into transparent wiki state, with consolidation and wiki pages partitioned by trust zone and sensitivity (`lib/cognitive_memory_engine.mjs`, `npm run test:cognitive-memory`; examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
 | LLM-Wiki Storage Adapter | Path-confined Markdown wiki I/O adapter with frontmatter injection protection; kept separate from cognitive policy/math by design (`lib/memory_wiki_adapter.mjs`, `npm run test:memory-wiki`; boundary examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
@@ -131,6 +131,8 @@ npm run check:pattern-provenance
 
 Dizzy is not a generic chatbot wrapper. It is a local-first control plane with deterministic checks, bounded model routing, and review receipts. The OSS Model Council is the staging gate used to test routing, memory, receipts, anti-slop checks, and adversarial failure cases before promotion.
 
+Dizzy prioritizes local and open-weight model seats. Hosted proprietary models may be configured as bounded advisory routes, but they do not define the OSS council baseline.
+
 The council separates model availability into explicit trust zones, deterministic qualification gates, and review roles:
 
 ```
@@ -162,7 +164,7 @@ Before a model is treated as review-usable, it must prove its reliability:
 As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
 - **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
 - **External Gateway Posture**: Dizzy can integrate model gateways and provider routers as adapter surfaces, but provider reach is not verification authority. See [`docs/external_gateway_posture.md`](docs/external_gateway_posture.md).
-- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 62-model catalog (50 active across Tiers 0-4, 12 quarantined in Tier 5), tier mappings, and route boundaries.
+- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for cataloged model seats, hosted advisory routes, quarantined candidates, tier mappings, and route boundaries. Catalog membership is not execution proof; dashboard-callable combinations are the server-returned executable options.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 

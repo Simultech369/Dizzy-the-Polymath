@@ -46,9 +46,30 @@ fs.writeFileSync(receiptPath, JSON.stringify({
     selected_model_or_route: "openai_compat:gemma3:4b",
     provider_invoked: true,
     routing_receipt_sha256: routingReceiptHash,
+    selection: {
+      requested_seat_id: "gemma3_local",
+      requested_model_id: "gemma3:4b",
+      requested_harness_id: "native_chat",
+      selected_seat_id: "gemma3_local",
+      selected_harness_id: "native_chat",
+      selection_authority: "operator_requested_not_availability_proof",
+      seat_class: "local_open_weight",
+      evidence_state: "configured_unverified",
+    },
     attempts: [{
       route_id: "openai_compat:gemma3:4b",
       model_id: "gemma3:4b",
+      adapter: "ollama",
+      provider_boundary: "local_machine",
+      adapter_invoked: true,
+      transport_started: true,
+      selection: {
+        requested_seat_id: "gemma3_local",
+        requested_model_id: "gemma3:4b",
+        requested_harness_id: "native_chat",
+        selected_seat_id: "gemma3_local",
+        selected_harness_id: "native_chat",
+      },
       status: "SUCCEEDED",
       sent_model: "gemma3:4b",
       reported_model: "gemma3:4b",
@@ -157,6 +178,8 @@ try {
     assert.equal(status, 200);
     assert.equal(data.ok, true);
     assert.equal(data.receipt_count, 1);
+    assert.equal(data.receipt_window_limit, 50);
+    assert.equal(data.receipt_log_total_count, 1);
     assert.equal(data.summary.routing_policy_statuses.succeeded, 1);
     assert.equal(data.summary.selected_tiers.T2, 1);
     const receipt = data.recent_receipts[0];
@@ -168,6 +191,13 @@ try {
     assert.equal(receipt.routing_policy.selected_model_or_route, "openai_compat:gemma3:4b");
     assert.equal(receipt.routing_policy.provider_invoked, true);
     assert.equal(receipt.routing_policy.routing_receipt_sha256, routingReceiptHash);
+    assert.equal(receipt.routing_policy.selection.requested_seat_id, "gemma3_local");
+    assert.equal(receipt.routing_policy.selection.requested_harness_id, "native_chat");
+    assert.equal(receipt.selection.requested_seat_id, "gemma3_local");
+    assert.equal(receipt.routing_policy.attempts[0].adapter, "ollama");
+    assert.equal(receipt.routing_policy.attempts[0].provider_boundary, "local_machine");
+    assert.equal(receipt.routing_policy.attempts[0].adapter_invoked, true);
+    assert.equal(receipt.routing_policy.attempts[0].transport_started, true);
     assert.equal(receipt.routing_policy.attempts[0].sent_model, "gemma3:4b");
     assert.ok(data.telemetry_generated_at, "telemetry_generated_at should be present");
     assert.ok(data.council_freshness, "council_freshness should be present");

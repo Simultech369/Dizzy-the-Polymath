@@ -122,9 +122,11 @@ async function runIntegrationTests() {
       });
       await new Promise((r) => server.listen(0, "127.0.0.1", r));
       const port = server.address().port;
+      const previousOllamaBaseUrl = process.env.OLLAMA_BASE_URL;
       try {
         process.env.DIZZY_CHAT_BACKEND = "openai_compat";
         process.env.OPENAI_COMPAT_BASE_URL = `http://127.0.0.1:${port}/v1`;
+        process.env.OLLAMA_BASE_URL = `http://127.0.0.1:${port}/v1`;
         process.env.OPENAI_COMPAT_MODEL = "qwen/qwen3-32b";
         process.env.OPENAI_COMPAT_API_KEY = "local_nop";
         delete process.env.OLLAMA_MODEL;
@@ -136,6 +138,8 @@ async function runIntegrationTests() {
         delete process.env.OPENAI_COMPAT_MODEL;
         delete process.env.OPENAI_COMPAT_API_KEY;
         delete process.env.OLLAMA_MODEL;
+        if (previousOllamaBaseUrl === undefined) delete process.env.OLLAMA_BASE_URL;
+        else process.env.OLLAMA_BASE_URL = previousOllamaBaseUrl;
       }
     }
 
@@ -164,6 +168,34 @@ async function runIntegrationTests() {
       assert.equal(res.execution_metadata.routing_policy.selected_model_or_route, "openai_compat:gemma3:4b");
       assert.equal(res.execution_metadata.routing_policy.provider_invoked, true);
       assert.equal(res.execution_metadata.routing_policy.attempts[0].sent_model, "gemma3:4b");
+    });
+
+    await withCapturingOpenAICompat("selected qwen response", async ({ requests }) => {
+      const res = await handleIncomingMessage({
+        message: {
+          text: "Hello explicit local council seat",
+          runtime_context: { trust_zone: "paid_public" },
+          channel: "cli",
+          selection: {
+            seat_id: "qwen_local",
+            model_id: "qwen2.5-coder:7b",
+            harness_id: "native_chat",
+          },
+        }
+      });
+      assert.equal(res.kind, "reply");
+      assert.ok(res.text.includes("selected qwen response"));
+      assert.equal(requests.length, 1, "Explicit seat selection must issue one request to the selected local endpoint");
+      assert.equal(requests[0].body.model, "qwen2.5-coder:7b", "Explicit qwen_local selection must not be rewritten to the env default");
+      const policy = res.execution_metadata.routing_policy;
+      assert.equal(policy.selected_model_or_route, "ollama:qwen2.5-coder:7b");
+      assert.equal(policy.selection.requested_seat_id, "qwen_local");
+      assert.equal(policy.selection.requested_harness_id, "native_chat");
+      assert.equal(policy.attempts[0].adapter, "ollama");
+      assert.equal(policy.attempts[0].provider_boundary, "local_machine");
+      assert.equal(policy.attempts[0].adapter_invoked, true);
+      assert.equal(policy.attempts[0].transport_started, true);
+      assert.equal(policy.attempts[0].selection.selected_seat_id, "qwen_local");
     });
 
     // Test Case A: Offline Local Backend

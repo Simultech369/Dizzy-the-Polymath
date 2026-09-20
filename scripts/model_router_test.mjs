@@ -5,9 +5,12 @@ import {
   getAllDivisions,
   getAllRoles,
   getChosenModelString,
+  getCouncilSelectionOptions,
   getDivisionForRole,
   getModelRoute,
   normalizeOpenAICompatModelForBaseUrl,
+  normalizeCouncilSelection,
+  resolveCouncilSelection,
   resolveDivisionModelRoute,
   resolveOpenAICompatTimeoutMs,
 } from "../lib/model_router.mjs";
@@ -134,5 +137,39 @@ assert.strictEqual(
 assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "https://api.openai.com/v1" }), 20000);
 assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "http://127.0.0.1:11434/v1" }), 120000);
 assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "http://127.0.0.1:11434/v1", timeoutMs: 5000 }), 10000);
+
+const selectionOptions = getCouncilSelectionOptions();
+assert.ok(selectionOptions.length >= 4, "dashboard selector should expose implemented local/open-weight chat seats");
+const qwenOption = selectionOptions.find((option) => option.seat_id === "qwen_local");
+assert.ok(qwenOption, "qwen local seat should be selectable");
+assert.strictEqual(qwenOption.model_id, "qwen2.5-coder:7b");
+assert.strictEqual(qwenOption.harness_id, "native_chat");
+assert.strictEqual(qwenOption.evidence_state, "configured_unverified");
+assert.strictEqual(qwenOption.authority, "operator_requested_not_availability_proof");
+
+assert.deepStrictEqual(
+  normalizeCouncilSelection({ seat: " QWEN_Local ", harness: "" }),
+  { seat_id: "qwen_local", model_id: "", harness_id: "native_chat" },
+);
+
+withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
+  const resolved = resolveCouncilSelection({ seat_id: "qwen_local", harness_id: "native_chat" });
+  assert.strictEqual(resolved.ok, true);
+  assert.strictEqual(resolved.backend, "openai_compat");
+  assert.strictEqual(resolved.adapter, "ollama");
+  assert.strictEqual(resolved.route_id, "ollama:qwen2.5-coder:7b");
+  assert.strictEqual(resolved.provider_boundary, "local_machine");
+});
+
+assert.strictEqual(resolveCouncilSelection({}).empty, true);
+assert.strictEqual(resolveCouncilSelection({ seat_id: "unknown", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", model_id: "mistral:latest" }).reason, "seat_model_mismatch");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", harness_id: "dizzy_json_review" }).reason, "review_harness_not_wired_to_chat_selection");
+
+withEnv({ OLLAMA_BASE_URL: "https://compat.example.test/v1" }, () => {
+  const resolved = resolveCouncilSelection({ seat_id: "qwen_local" });
+  assert.strictEqual(resolved.ok, false);
+  assert.strictEqual(resolved.reason, "local_seat_requires_loopback_or_private_lan_ollama");
+});
 
 console.log("MODEL_ROUTER_TESTS_OK");

@@ -920,8 +920,12 @@ function initChatSurface() {
   const chatInputText = document.getElementById("chat-input-text");
   const chatSendBtn = document.getElementById("chat-send-btn");
   const chatClearBtn = document.getElementById("chat-clear-btn");
+  const chatSeatSelect = document.getElementById("chat-seat-select");
+  const chatHarnessSelect = document.getElementById("chat-harness-select");
+  const chatSeatNote = document.getElementById("chat-seat-note");
   const dashboardLogoutBtn = document.getElementById("btn-dashboard-logout");
   const suggestionChips = document.querySelectorAll(".suggestion-chip");
+  const seatOptionsById = new Map();
 
   if (!chatMessagesList || !chatInputText || !chatSendBtn) return;
 
@@ -947,6 +951,28 @@ function initChatSurface() {
     }
   }
 
+  function routeEvidenceFromReceipt(receipt) {
+    const router = receipt?.router_receipt && typeof receipt.router_receipt === "object"
+      ? receipt.router_receipt
+      : receipt;
+    const policy = router?.routing_policy || receipt?.routing_policy || null;
+    const attempts = Array.isArray(policy?.attempts) ? policy.attempts : [];
+    const lastAttempt = attempts.length ? attempts[attempts.length - 1] : null;
+    return {
+      chosenModel: router?.chosen_model || receipt?.chosen_model || "not recorded",
+      selectedRoute: policy?.selected_model_or_route || lastAttempt?.route_id || "",
+      requestedSeat: policy?.selection?.requested_seat_id || router?.selection?.requested_seat_id || "",
+      requestedHarness: policy?.selection?.requested_harness_id || router?.selection?.requested_harness_id || "",
+      adapter: lastAttempt?.adapter || "",
+      providerBoundary: lastAttempt?.provider_boundary || "",
+      providerStatus: policy?.status || "",
+      attemptStatus: lastAttempt?.status || "",
+      transportStarted: lastAttempt?.transport_started === true,
+      attemptError: lastAttempt?.error || "",
+      statusCode: lastAttempt?.status_code || "",
+    };
+  }
+
   function createBubbleHtml(role, text, time = "Just now", receipt = null) {
     const isUser = role === "user";
     const bubbleClass = isUser ? "user-bubble" : "assistant-bubble";
@@ -961,12 +987,18 @@ function initChatSurface() {
 
     let receiptHtml = "";
     if (receipt) {
+      const routeEvidence = routeEvidenceFromReceipt(receipt);
       receiptHtml = `
         <details style="margin-top: 0.65rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; font-size: 0.78rem;">
           <summary style="cursor: pointer; color: var(--text-muted); font-family: monospace;">Capability Evidence (${escapeHtml(receipt.trust_zone || "private_self")})</summary>
           <div style="margin-top: 0.4rem; color: var(--text-dim); line-height: 1.4;">
             <div>Mode: <code>${escapeHtml(receipt.retention_scope || "ephemeral")}</code></div>
-            <div>Model Route: <code>${escapeHtml(receipt.chosen_model || "local")}</code></div>
+            <div>Model Result: <code>${escapeHtml(routeEvidence.chosenModel)}</code></div>
+            ${routeEvidence.requestedSeat ? `<div>Requested Seat: <code>${escapeHtml(routeEvidence.requestedSeat)}</code></div>` : ""}
+            ${routeEvidence.requestedHarness ? `<div>Harness: <code>${escapeHtml(routeEvidence.requestedHarness)}</code></div>` : ""}
+            ${routeEvidence.selectedRoute ? `<div>Planned Route: <code>${escapeHtml(routeEvidence.selectedRoute)}</code></div>` : ""}
+            ${routeEvidence.adapter ? `<div>Adapter: <code>${escapeHtml(routeEvidence.adapter)}${routeEvidence.providerBoundary ? ` / ${escapeHtml(routeEvidence.providerBoundary)}` : ""}</code></div>` : ""}
+            ${routeEvidence.attemptStatus ? `<div>Last Attempt: <code>${escapeHtml(routeEvidence.attemptStatus)}${routeEvidence.transportStarted ? " / transport started" : ""}${routeEvidence.attemptError ? ` / ${escapeHtml(routeEvidence.attemptError)}` : ""}${routeEvidence.statusCode ? ` / HTTP ${escapeHtml(routeEvidence.statusCode)}` : ""}</code></div>` : ""}
           </div>
         </details>
       `;
@@ -1002,9 +1034,50 @@ function initChatSurface() {
     console.warn("Failed to load session chat history:", e);
   }
 
+  function currentCouncilSelection() {
+    if (!chatSeatSelect || !chatSeatSelect.value) return null;
+    const option = seatOptionsById.get(chatSeatSelect.value);
+    if (!option) return null;
+    return {
+      seat_id: option.seat_id,
+      model_id: option.model_id,
+      harness_id: chatHarnessSelect?.value || option.harness_id || "native_chat",
+    };
+  }
+
+  async function loadCouncilSeatOptions() {
+    if (!chatSeatSelect) return;
+    try {
+      const data = await fetchJson("/api/operator/router-divisions");
+      const options = Array.isArray(data.executable_combinations) ? data.executable_combinations : [];
+      seatOptionsById.clear();
+      const defaultOption = `<option value="">Configured default - execution unverified</option>`;
+      const rendered = options
+        .filter((option) => option && option.enabled !== false && option.harness_id === "native_chat")
+        .map((option) => {
+          seatOptionsById.set(option.seat_id, option);
+          const label = `${option.label || option.seat_id} - ${option.model_id || "model unknown"}`;
+          return `<option value="${escapeHtml(option.seat_id)}">${escapeHtml(label)}</option>`;
+        })
+        .join("");
+      chatSeatSelect.innerHTML = defaultOption + rendered;
+      chatSeatSelect.disabled = false;
+      if (chatSeatNote) {
+        chatSeatNote.textContent = options.length
+          ? "Configured choices only; the next receipt records requested seat, selected route, and execution result."
+          : "No executable local/open-weight seats were reported by this surface.";
+      }
+    } catch (err) {
+      chatSeatSelect.disabled = true;
+      if (chatSeatNote) chatSeatNote.textContent = "Seat options unavailable from the local operator API.";
+      console.warn("Failed to load council seat options:", err);
+    }
+  }
+
   async function handleSend() {
     const text = chatInputText.value.trim();
     if (!text) return;
+    const selection = currentCouncilSelection();
 
     chatInputText.value = "";
     chatInputText.style.height = "auto";
@@ -1036,14 +1109,20 @@ function initChatSurface() {
       const response = await fetchJson("/dispatch/incoming", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "dashboard_chat", text })
+        body: JSON.stringify({
+          channel: "dashboard_chat",
+          text,
+          ...(selection ? { selection } : {}),
+        })
       });
 
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
 
       const assistantText = response.text || (response.ok ? "Dispatch accepted; no response text was returned." : ("Dispatch issue: " + (response.error || "Unknown error")));
-      const receipt = response.capability_receipt || response.router_receipt || null;
+      const receipt = response.capability_receipt
+        ? { ...response.capability_receipt, router_receipt: response.router_receipt || null }
+        : response.router_receipt || null;
 
       chatMessagesList.insertAdjacentHTML("beforeend", createBubbleHtml("assistant", assistantText, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt));
       saveMessageToHistory("assistant", assistantText, receipt);
@@ -1088,6 +1167,8 @@ function initChatSurface() {
       }
     });
   });
+
+  loadCouncilSeatOptions();
 
   if (chatClearBtn) {
     chatClearBtn.addEventListener("click", () => {
@@ -1152,7 +1233,12 @@ async function loadReceiptsTelemetry() {
     const routingStatusElem = document.getElementById("routing-policy-status-summary");
     const routingTierElem = document.getElementById("routing-policy-tier-summary");
 
-    if (totalElem) totalElem.innerText = String(data.receipt_count || 0);
+    if (totalElem) {
+      const windowCount = Number(data.receipt_count || 0);
+      const totalRows = Number(data.receipt_log_total_count || windowCount);
+      totalElem.innerText = totalRows > windowCount ? `${windowCount}/${totalRows}` : String(windowCount);
+      totalElem.title = `Showing the latest ${windowCount} persisted router receipts${totalRows > windowCount ? ` from ${totalRows} total rows` : ""}.`;
+    }
     if (latencyElem) latencyElem.innerText = `${data.summary?.avg_latency_ms || 0} ms`;
     if (routingStatusElem) {
       routingStatusElem.innerText = firstCountLabel(data.summary?.routing_policy_statuses || {}, "No routing policy receipts");
@@ -1592,9 +1678,14 @@ function routingPolicySummaryHtml(policy) {
   const status = policy.status || "unknown";
   const tier = policy.selected_tier || "UNKNOWN";
   const route = policy.selected_model_or_route || "none";
-  const provider = policy.provider_invoked ? "provider invoked" : "no provider call";
+  const attempts = Array.isArray(policy.attempts) ? policy.attempts : [];
+  const attemptedTransport = attempts.some((attempt) => attempt?.adapter_invoked === true || attempt?.transport_started === true || attempt?.status === "failed");
+  const provider = policy.provider_invoked || attemptedTransport ? "provider transport attempted" : "no provider call";
   const downgrade = policy.downgrade_reason || "none";
   const blocked = policy.fail_closed_reason || "none";
+  const selection = policy.selection?.requested_seat_id
+    ? `Seat: ${policy.selection.requested_seat_id}`
+    : "Seat: default";
   const statusClass = blocked !== "none"
     ? "badge-rose"
     : status === "succeeded"
@@ -1606,6 +1697,7 @@ function routingPolicySummaryHtml(policy) {
       <span class="badge ${statusClass}">Policy: ${escapeHtml(status)}</span>
       <span class="badge badge-primary">Tier: ${escapeHtml(tier)}</span>
       <span>Route: <strong style="color: var(--text-main);">${escapeHtml(route)}</strong></span>
+      <span>${escapeHtml(selection)}</span>
       <span>${escapeHtml(provider)}</span>
       <span>Downgrade: ${escapeHtml(downgrade)}</span>
       <span>Fail closed: ${escapeHtml(blocked)}</span>

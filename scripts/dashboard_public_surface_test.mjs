@@ -86,6 +86,12 @@ async function run() {
   assert(htmlSource.includes('<meta name="description"'), "dashboard should include a factual meta description");
   assert(htmlSource.includes("<title>Dizzy Local Operator Dashboard</title>"), "dashboard title should identify the local operator surface");
   assert(htmlSource.includes("Receipt &amp; Capability Evidence"), "dashboard should label receipts as evidence rather than broad proof");
+  assert(htmlSource.includes("Router Receipt Window"), "dashboard should label receipt counts as a bounded telemetry window");
+  assert(htmlSource.includes("Latest persisted receipts, not live call count"), "dashboard should explain that receipt totals are not live call counts");
+  assert(htmlSource.includes("Local/open-weight council seat"), "dashboard should expose local/open-weight seat selection language");
+  assert(htmlSource.includes('id="chat-seat-select"'), "dashboard should expose a council seat selector");
+  assert(htmlSource.includes('id="chat-harness-select"'), "dashboard should expose a harness selector");
+  assert(htmlSource.includes("Configured default - execution unverified"), "dashboard selector should not claim availability before receipt evidence");
   assert(htmlSource.includes('id="latest-council-git-binding"'), "dashboard should expose the council receipt Git binding");
   assert(htmlSource.includes('id="btn-refresh-telemetry"'), "dashboard should provide a refresh affordance for telemetry");
   assert(htmlSource.includes('id="latest-council-freshness-badge"'), "dashboard should expose a council freshness badge");
@@ -93,6 +99,13 @@ async function run() {
   assert(htmlSource.includes('id="latest-council-freshness-detail"'), "dashboard should display freshness detail");
   assert(jsSource.includes("council_freshness"), "dashboard should process council freshness metadata");
   assert(jsSource.includes("telemetry_generated_at"), "dashboard should process telemetry generation timestamps");
+  assert(jsSource.includes("receipt_log_total_count"), "dashboard should distinguish sampled receipt windows from total log rows");
+  assert(jsSource.includes("executable_combinations"), "dashboard should populate selectable combinations from operator API evidence");
+  assert(jsSource.includes("currentCouncilSelection"), "dashboard should send explicit model/harness selections when chosen");
+  assert(jsSource.includes("Requested Seat:"), "chat receipt drawer should show requested seat");
+  assert(jsSource.includes("transport started"), "chat receipt drawer should distinguish attempted transport from no-call failures");
+  assert(jsSource.includes("Model Result:"), "chat receipt drawer should show model result rather than implying a local route");
+  assert(jsSource.includes("Planned Route:"), "chat receipt drawer should expose the actual planned route when available");
   assert(htmlSource.includes("Reported Route Circuit Breakers (Demonstration Data)"), "dashboard circuit-breaker heading should be report-scoped");
   assert(htmlSource.includes("Reported Latency-Cost-Trust Map"), "dashboard route map heading should be report-scoped");
   assert(!htmlSource.includes("Receipt &amp; Capability Proof"), "dashboard should not use broad proof language for receipts");

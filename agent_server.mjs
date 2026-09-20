@@ -25,7 +25,7 @@ import {
   writeSseFrame,
   StreamingLatencyTracker,
 } from "./lib/sse_stream.mjs";
-import { getAllDivisions, getAllRoles, getChosenModelString } from "./lib/model_router.mjs";
+import { getAllDivisions, getAllRoles, getChosenModelString, getCouncilSelectionOptions, normalizeCouncilSelection } from "./lib/model_router.mjs";
 import { buildTensionMap, renderTensionMapSvg } from "./lib/tension_map_engine.mjs";
 import { normalizeJobListing, convertOpportunityToBountyTask } from "./lib/job_board_ingress.mjs";
 import {
@@ -485,11 +485,39 @@ function sendRouteNotFound(req, res) {
 
 function summarizeRoutingPolicyMetadata(policy) {
   if (!policy || typeof policy !== "object" || Array.isArray(policy)) return null;
+  const selection = policy.selection && typeof policy.selection === "object" && !Array.isArray(policy.selection)
+    ? {
+        requested_seat_id: normalizeIdentifier(policy.selection.requested_seat_id || "", ""),
+        requested_model_id: normalizeFreeText(policy.selection.requested_model_id || "", 160) || null,
+        requested_harness_id: normalizeIdentifier(policy.selection.requested_harness_id || "", ""),
+        selected_seat_id: normalizeIdentifier(policy.selection.selected_seat_id || "", ""),
+        selected_model_id: normalizeFreeText(policy.selection.selected_model_id || "", 160) || null,
+        selected_harness_id: normalizeIdentifier(policy.selection.selected_harness_id || "", ""),
+        selection_authority: normalizeIdentifier(policy.selection.selection_authority || "", ""),
+        seat_class: normalizeIdentifier(policy.selection.seat_class || "", ""),
+        evidence_state: normalizeIdentifier(policy.selection.evidence_state || "", ""),
+      }
+    : null;
   const attempts = Array.isArray(policy.attempts) ? policy.attempts.slice(0, 4).map((attempt) => ({
     route_id: normalizeFreeText(attempt?.route_id || "", 160),
     model_id: normalizeFreeText(attempt?.model_id || "", 160),
+    adapter: normalizeIdentifier(attempt?.adapter || "", ""),
+    provider_boundary: normalizeIdentifier(attempt?.provider_boundary || "", ""),
+    selection: attempt?.selection && typeof attempt.selection === "object" && !Array.isArray(attempt.selection)
+      ? {
+          requested_seat_id: normalizeIdentifier(attempt.selection.requested_seat_id || "", ""),
+          requested_model_id: normalizeFreeText(attempt.selection.requested_model_id || "", 160) || null,
+          requested_harness_id: normalizeIdentifier(attempt.selection.requested_harness_id || "", ""),
+          selected_seat_id: normalizeIdentifier(attempt.selection.selected_seat_id || "", ""),
+          selected_model_id: normalizeFreeText(attempt.selection.selected_model_id || "", 160) || null,
+          selected_harness_id: normalizeIdentifier(attempt.selection.selected_harness_id || "", ""),
+        }
+      : null,
     status: normalizeIdentifier(attempt?.status || "unknown", "unknown"),
+    adapter_invoked: attempt?.adapter_invoked === true,
+    transport_started: attempt?.transport_started === true,
     error: attempt?.error ? normalizeIdentifier(attempt.error, "unknown_error") : null,
+    error_code: attempt?.error_code ? normalizeIdentifier(attempt.error_code, "unknown_error") : null,
     sent_model: normalizeFreeText(attempt?.sent_model || "", 160) || null,
     reported_model: normalizeFreeText(attempt?.reported_model || "", 160) || null,
     usage_known: attempt?.usage_known === true,
@@ -506,6 +534,7 @@ function summarizeRoutingPolicyMetadata(policy) {
     provider_invoked: policy.provider_invoked === true,
     downgrade_reason: policy.downgrade_reason ? normalizeIdentifier(policy.downgrade_reason, "unknown") : null,
     fail_closed_reason: policy.fail_closed_reason ? normalizeIdentifier(policy.fail_closed_reason, "unknown") : null,
+    selection,
     routing_receipt_sha256: /^[a-f0-9]{64}$/i.test(String(policy.routing_receipt_sha256 || ""))
       ? String(policy.routing_receipt_sha256).toLowerCase()
       : null,
@@ -567,6 +596,8 @@ function buildExecuteConversationKey(body = {}) {
 }
 
 function buildIncomingMessage(body, req, defaults = {}) {
+  const selection = normalizeCouncilSelection(body?.selection ?? body?.model_selection ?? defaults.selection ?? {});
+  const hasSelection = Boolean(selection.seat_id || selection.model_id || selection.harness_id !== "native_chat");
   // HTTP normalization is an operator-safety boundary for machine-facing surfaces.
   // It exists to keep queue keys, logs, and transport payloads sane, not to shape voice.
   return {
@@ -577,6 +608,7 @@ function buildIncomingMessage(body, req, defaults = {}) {
       Math.max(1_000, Number(process.env.DIZZY_HTTP_MESSAGE_MAX_CHARS || 20_000) || 20_000),
     ),
     meta: normalizeMeta(body?.meta ?? defaults.meta ?? {}),
+    ...(hasSelection ? { selection } : {}),
     runtime_context: {
       ...buildRuntimeContext(req),
       ...(defaults.runtime_context && typeof defaults.runtime_context === "object" ? defaults.runtime_context : {}),
@@ -1130,6 +1162,12 @@ export async function createRuntime(opts = {}) {
       role_count: Object.keys(roles).length,
       active_model: getChosenModelString("chat"),
       divisions: getAllDivisions(),
+      selection_contract: {
+        schema_version: "dizzy.operator_model_harness_selection.v1",
+        supported_harnesses: ["native_chat"],
+        authority: "configured_options_not_availability_proof",
+      },
+      executable_combinations: getCouncilSelectionOptions(),
     });
   });
 
@@ -1165,6 +1203,7 @@ export async function createRuntime(opts = {}) {
           latency_ms: Number.isFinite(Number(receipt.latency_ms)) ? Math.max(0, Math.round(Number(receipt.latency_ms))) : 0,
           provider_health: receipt.provider_health || "unknown",
           persisted: Boolean(receipt.persisted),
+          selection: receipt.selection || routingPolicy?.selection || null,
           routing_policy: routingPolicy,
         };
       }
@@ -1207,9 +1246,13 @@ export async function createRuntime(opts = {}) {
       }
 
       const receiptsPath = path.resolve(process.cwd(), process.env.DIZZY_ROUTER_RECEIPT_PATH || "runtime/router_receipts.jsonl");
+      const receiptWindowLimit = 50;
+      let receiptLogTotalCount = 0;
       let recentReceipts = [];
       if (fs.existsSync(receiptsPath)) {
-        const lines = fs.readFileSync(receiptsPath, "utf8").split(/\r?\n/).filter(Boolean).slice(-50);
+        const allLines = fs.readFileSync(receiptsPath, "utf8").split(/\r?\n/).filter(Boolean);
+        receiptLogTotalCount = allLines.length;
+        const lines = allLines.slice(-receiptWindowLimit);
         for (const line of lines) {
           try {
             recentReceipts.push(summarizeReceipt(JSON.parse(line)));
@@ -1379,6 +1422,8 @@ export async function createRuntime(opts = {}) {
       res.json({
         ok: true,
         receipt_count: recentReceipts.length,
+        receipt_window_limit: receiptWindowLimit,
+        receipt_log_total_count: receiptLogTotalCount,
         telemetry_generated_at: new Date().toISOString(),
         current_checkout: currentCheckout,
         council_freshness: councilFreshness,
@@ -1705,6 +1750,7 @@ export async function createRuntime(opts = {}) {
       provider_health: typeof executionMetadata?.provider_health === "string" ? executionMetadata.provider_health : (isNoneModel ? "unconfigured" : "healthy"),
       reason: executionMetadata?.reason || (isNoneModel ? `no_model_execution:${noExecutionReason}` : "default_triage_routing_to_chat"),
       fallback,
+      selection: routingPolicy?.selection || executionMetadata?.selection || null,
       routing_policy: routingPolicy,
       trust_zone: capabilities.trust_zone || "paid_public",
       durable_memory_allowed: capabilities.durable_memory_allowed ?? false,
