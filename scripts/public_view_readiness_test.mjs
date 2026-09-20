@@ -37,31 +37,38 @@ function trackedMarkdownFiles() {
   }
 }
 
-const docs = {
+const asciiDocs = {
   "README.md": read("README.md"),
   "QUICKSTART.md": read("QUICKSTART.md"),
   "RUNBOOK.md": read("RUNBOOK.md"),
   "PR_W0068_DESCRIPTION.md": read("PR_W0068_DESCRIPTION.md"),
   "docs/public_truth_language.md": read("docs/public_truth_language.md"),
+  "docs/positioning_and_doctrine.md": read("docs/positioning_and_doctrine.md"),
 };
+
+const allDocs = {
+  ...asciiDocs,
+  "MODEL_INVENTORY.md": read("MODEL_INVENTORY.md"),
+};
+const docs = allDocs;
 
 const dashboardAssets = {
   "dashboard/index.html": read("dashboard/index.html"),
   "dashboard/dashboard.js": read("dashboard/dashboard.js"),
 };
 
-for (const [relPath, text] of Object.entries(docs)) {
+for (const [relPath, text] of Object.entries(asciiDocs)) {
   assertAscii(relPath, text);
 }
 
-assertAbsent("README.md", docs["README.md"], [
+assertAbsent("README.md", allDocs["README.md"], [
   /img\.shields\.io/i,
   /github\/actions\/workflow\/status/i,
   /Working runtime/i,
   /branch=main/i,
 ]);
 
-assertAbsent("public docs", Object.values(docs).join("\n"), [
+assertAbsent("public docs", Object.values(allDocs).join("\n"), [
   /C:\\Users\\Josh/i,
   /\.gemini/i,
   /enabled by default when running `npm start`/i,
@@ -84,6 +91,11 @@ assertAbsent("public docs", Object.values(docs).join("\n"), [
   /production routes are sealed/i,
   /ZDR verified/i,
   /immutable Council verification/i,
+  /cryptographic (verification )?receipts? for every transition/i,
+  /immutable receipts?/i,
+  /offline,? deterministic (verification )?Council/i,
+  /48-Model Catalog/i,
+  /The 48-Model Roster Breakdown/i,
 ]);
 
 for (const relPath of trackedMarkdownFiles()) {

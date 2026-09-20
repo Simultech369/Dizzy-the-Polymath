@@ -64,11 +64,11 @@ Every model candidate moves through explicit deterministic qualification gates b
 
 ---
 
-## 3. The 48-Model Roster Breakdown
+## 3. The 62-Model Catalog Breakdown (50 Active across Tiers 0-4, 12 Quarantined in Tier 5)
 
 | Tier & Category | Count | Primary Role & Route Compliance | Key Model Instances |
 | :--- | :---: | :--- | :--- |
-| **👑 Tier 0: Apex Paid Judges** | 7 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation)<br>• *Includes ChatGPT 5.6 Trinity:* `Sol` (surgical auditor), `Luna` (operational scanner), `Terra` (crossover gate) | `GPT-5.6 Sol`, `GPT-5.6 Luna`, `GPT-5.6 Terra`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
+| **👑 Tier 0: Apex Paid Judges** | 7 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation)<br>• *Includes local reviewer taxonomy (GPT-5.6 models):* `Sol` (surgical auditor), `Luna` (operational scanner), `Terra` (crossover gate) | `GPT-5.6 Sol`, `GPT-5.6 Luna`, `GPT-5.6 Terra`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
 | **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 16 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` (Provider No-Store Policy)<br>• Providers: SiliconFlow, Groq, Google AI Studio, Moonshot, Tencent | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3/abab6.5t`, `moonshotai/kimi-k2.7-code`, `tencent/hy3`, `cohere/north-mini-code`, `stepfun-step-2` |
 | **💻 Tier 2: Local OSS Fast Workers & Reasoners** | 14 | Rapid local audit, zero data leakage<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Provider: Air-gapped Ollama / Localhost | `qwen2.5-coder:7b`, `deepseek-r1:7b`, `deepseek-r1:1.5b`, `glm4:latest`, `mistral:latest`, `gemma3:4b`, `gemma3:12b`, `llama-audit:latest`, `phi-4`, `granite-3.1` |
 | **🎭 Tier 3: Uncensored Adversarial & Non-Transformer Dynamics** | 8 | Hostile fuzzer, pre-dispatch red-team & continuous dynamics<br>• Route: `LOCAL_ONLY_VERIFIED` / Local Isolation<br>• Goal: Invariant attack without RLHF refusal filters & SSM dynamics | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3 (Nous)`, `Tulu 3`, `liquid/lqc-3b / lfm-40b`, `codestral-mamba-7b` |
@@ -79,24 +79,24 @@ Every model candidate moves through explicit deterministic qualification gates b
 
 ---
 
-## 4. Route Boundaries & Data Handling
+## 4. Route Boundaries & Data Handling Specifications
 
-Configured routing policies enforce local SHA-256 receipt digests, TTL boundaries, and provider data-handling controls:
+Target routing specifications define local SHA-256 receipt digests, TTL boundaries, and provider data-handling controls for planned candidate routes (these represent candidate route specifications rather than active runtime routes in the current checkout):
 
 1. **Jiunsong SuperGemma 12B / Local GGUFs**:
-   * `route_id`: `route_jiunsong_supergemma_12b_local`
+   * `route_id`: `route_jiunsong_supergemma_12b_local` (candidate route specification)
    * `compliance_tier`: `LOCAL_ONLY_VERIFIED` (Air-gapped localhost, zero external network egress, cloud fallback blocked)
 2. **GLM-5.3 Cyber & Code (SiliconFlow / Cloud)**:
-   * `route_id`: `route_glm_5_3_siliconflow`
+   * `route_id`: `route_glm_5_3_siliconflow` (candidate route specification)
    * `compliance_tier`: `HOSTED_NO_TRAIN` (Configured provider no-store/no-training API policy, cloud fallback blocked)
 3. **Qwen-3.8 Frontier (SiliconFlow / Groq)**:
-   * `route_id`: `route_qwen_3_8_frontier`
+   * `route_id`: `route_qwen_3_8_frontier` (candidate route specification)
    * `compliance_tier`: `HOSTED_NO_TRAIN` (Configured provider no-store/no-training API policy, cloud fallback blocked)
 4. **DeepSeek-R1 Reasoning (SiliconFlow / Local Ollama)**:
-   * `route_id`: `route_deepseek_r1_reasoning`
+   * `route_id`: `route_deepseek_r1_reasoning` (candidate route specification)
    * `compliance_tier`: `HOSTED_NO_TRAIN` / `LOCAL_ONLY_VERIFIED`
 5. **Gemini-3.6-Flash Public 1M Slicer (Google AI Studio)**:
-   * `route_id`: `route_gemini_3_6_flash`
+   * `route_id`: `route_gemini_3_6_flash` (candidate route specification)
    * `compliance_tier`: `PUBLIC_PROVENANCE_ONLY` (Open-source diff slicing and broad repo index analysis)
 
 ---

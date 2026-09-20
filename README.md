@@ -46,7 +46,7 @@ The repo is transparent without turning every working note into doctrine: the ru
 | Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
 | SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
 | Guided Trust Cockpit Dashboard | Served locally at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`; W-0105 source/API guard verifies neutral startup states, route wiring, and auth/session behavior. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. |
-| 48-Model Catalog & Evidence Ladder | 5 tiers, 4-gate qualification engine, and route compliance in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
+| 62-Model Catalog & Evidence Ladder | 6 tiers (50 active across T0-T4, 12 quarantined/purged in T5), 4-gate qualification engine, and route specifications in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) |
 | Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
 | Cognitive Memory Engine | 5-stage memory lifecycle (`Capture`, `Consolidate`, `Retrieve`, `Reconcile`, `Decay`) that compiles durable preferences and project lessons into transparent wiki state, with consolidation and wiki pages partitioned by trust zone and sensitivity (`lib/cognitive_memory_engine.mjs`, `npm run test:cognitive-memory`; examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
 | LLM-Wiki Storage Adapter | Path-confined Markdown wiki I/O adapter with frontmatter injection protection; kept separate from cognitive policy/math by design (`lib/memory_wiki_adapter.mjs`, `npm run test:memory-wiki`; boundary examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
@@ -162,7 +162,7 @@ Before a model is treated as review-usable, it must prove its reliability:
 As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
 - **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
 - **External Gateway Posture**: Dizzy can integrate model gateways and provider routers as adapter surfaces, but provider reach is not verification authority. See [`docs/external_gateway_posture.md`](docs/external_gateway_posture.md).
-- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 48-model catalog, tier mappings, and route boundaries.
+- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for full 62-model catalog (50 active across Tiers 0-4, 12 quarantined in Tier 5), tier mappings, and route boundaries.
 
 For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
 

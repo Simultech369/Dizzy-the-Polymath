@@ -23,7 +23,7 @@ To maintain focus and avoid industry bingo-card sprawl, the following are strict
    - **Status:** Council checks and anti-slop rules exist. Needs CI regression gates.
 
 3. **Model Router Quality/Cost Deltas**
-   - **Goal:** Move from a static 48-model catalog to live routing policies with logged quality/cost/latency deltas and fail-closed fallbacks.
+   - **Goal:** Move from a static 62-model catalog to live routing policies with logged quality/cost/latency deltas and fail-closed fallbacks.
    - **Status:** Catalog, tiers, and qualification gates exist.
 
 4. **Tool Sandbox & Guardrails Middleware**
