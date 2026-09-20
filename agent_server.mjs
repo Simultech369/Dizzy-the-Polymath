@@ -825,7 +825,7 @@ export async function createRuntime(opts = {}) {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const channel = String(body.channel ?? "").trim();
       const text = String(body.text ?? "").trim();
-      const allowedKeys = new Set(["channel", "text"]);
+      const allowedKeys = new Set(["channel", "text", "selection", "model_selection"]);
       const bodyKeysAllowed = Object.keys(body).every((key) => allowedKeys.has(key));
       if (
         req.path === "/dispatch/incoming"

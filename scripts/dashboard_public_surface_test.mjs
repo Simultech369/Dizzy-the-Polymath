@@ -210,6 +210,26 @@ async function run() {
     const cookieChatBody = await cookieChat.json();
     assert.match(cookieChatBody.error, /Invalid Idempotency-Key/i);
 
+    const cookieSelection = await fetch(`${base}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        origin: base,
+      },
+      body: JSON.stringify({
+        channel: "dashboard_chat",
+        text: "selection metadata validation probe",
+        selection: { seat_id: "unknown", harness_id: "native_chat" },
+      }),
+    });
+    assertStatus(cookieSelection, 200, "dashboard cookie dispatch selection metadata");
+    const cookieSelectionBody = await cookieSelection.json();
+    assert.equal(cookieSelectionBody.ok, true);
+    assert.match(cookieSelectionBody.text, /seat\/harness selection is unavailable/i);
+    assert.equal(cookieSelectionBody.router_receipt?.selection?.requested_seat_id, "unknown");
+    assert.equal(cookieSelectionBody.router_receipt?.selection?.requested_harness_id, "native_chat");
+
     const cookieNoOrigin = await fetch(`${base}/dispatch/incoming`, {
       method: "POST",
       headers: {
