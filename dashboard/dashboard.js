@@ -1106,10 +1106,22 @@ function initChatSurface() {
         window.location.assign("/dashboard/login");
       }
     });
+  const refreshTelemetryBtn = document.getElementById("btn-refresh-telemetry");
+  if (refreshTelemetryBtn && !refreshTelemetryBtn.__bound) {
+    refreshTelemetryBtn.__bound = true;
+    refreshTelemetryBtn.addEventListener("click", () => {
+      loadReceiptsTelemetry();
+    });
   }
 }
 
 async function loadReceiptsTelemetry() {
+  const refreshBtn = document.getElementById("btn-refresh-telemetry");
+  if (refreshBtn) {
+    refreshBtn.setAttribute("aria-busy", "true");
+    refreshBtn.disabled = true;
+    refreshBtn.innerText = "Refreshing...";
+  }
   try {
     const data = await fetchJson("/api/operator/receipts-telemetry");
     const totalElem = document.getElementById("receipts-summary-total");
@@ -1117,6 +1129,9 @@ async function loadReceiptsTelemetry() {
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
     const councilElem = document.getElementById("latest-council-verdict-badge");
     const councilGitElem = document.getElementById("latest-council-git-binding");
+    const freshnessBadge = document.getElementById("latest-council-freshness-badge");
+    const freshnessDetail = document.getElementById("latest-council-freshness-detail");
+    const observedTimeElem = document.getElementById("telemetry-observed-time");
     const modelsElem = document.getElementById("receipts-models-breakdown");
     const trustElem = document.getElementById("receipts-trust-zones");
     const latencyBandsElem = document.getElementById("receipts-latency-bands");
@@ -1155,6 +1170,59 @@ async function loadReceiptsTelemetry() {
         const shortHead = String(binding.head_commit || "unknown").slice(0, 8);
         councilGitElem.innerText = `${escapeHtml(binding.branch || "unknown")} ${shortHead} ${binding.is_dirty ? "dirty" : "clean"}`;
         councilGitElem.style.color = binding.is_dirty ? "var(--amber)" : "var(--emerald)";
+      }
+    }
+
+    if (observedTimeElem) {
+      const genTime = data.telemetry_generated_at || data.observed_at;
+      if (genTime) {
+        const timeObj = new Date(genTime);
+        const hours = String(timeObj.getHours()).padStart(2, "0");
+        const mins = String(timeObj.getMinutes()).padStart(2, "0");
+        const secs = String(timeObj.getSeconds()).padStart(2, "0");
+        observedTimeElem.innerText = `Observed: ${hours}:${mins}:${secs}`;
+      } else {
+        observedTimeElem.innerText = "Observed: Just now";
+      }
+    }
+
+    if (freshnessBadge) {
+      const freshness = data.council_freshness;
+      if (!freshness || freshness.status === "UNAVAILABLE") {
+        freshnessBadge.className = "badge";
+        freshnessBadge.innerText = "UNAVAILABLE";
+        freshnessBadge.style.color = "var(--text-muted)";
+      } else if (freshness.status === "FRESH") {
+        freshnessBadge.className = "badge badge-emerald";
+        freshnessBadge.innerText = "FRESH";
+        freshnessBadge.style.color = "var(--emerald)";
+      } else if (freshness.status === "STALE") {
+        freshnessBadge.className = "badge badge-amber";
+        freshnessBadge.innerText = "STALE (HEAD DRIFT)";
+        freshnessBadge.style.color = "var(--amber)";
+      } else if (freshness.status === "DIRTY_DRIFT") {
+        freshnessBadge.className = "badge badge-amber";
+        freshnessBadge.innerText = "DIRTY DRIFT";
+        freshnessBadge.style.color = "var(--amber)";
+      } else {
+        freshnessBadge.className = "badge";
+        freshnessBadge.innerText = escapeHtml(freshness.status || "UNVERIFIED");
+        freshnessBadge.style.color = "var(--text-muted)";
+      }
+    }
+
+    if (freshnessDetail) {
+      const freshness = data.council_freshness;
+      if (!freshness || freshness.status === "UNAVAILABLE") {
+        freshnessDetail.innerText = "No audit receipt found on disk";
+      } else {
+        let text = freshness.reason || "";
+        if (typeof freshness.receipt_age_seconds === "number") {
+          const s = freshness.receipt_age_seconds;
+          const ageStr = s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`;
+          text = `${text} (${ageStr})`;
+        }
+        freshnessDetail.innerText = escapeHtml(text);
       }
     }
 
@@ -1248,16 +1316,32 @@ async function loadReceiptsTelemetry() {
     const councilElem = document.getElementById("latest-council-verdict-badge");
     const cycleElem = document.getElementById("latest-review-cycle-verdict");
     const councilGitElem = document.getElementById("latest-council-git-binding");
+    const freshnessBadge = document.getElementById("latest-council-freshness-badge");
+    const freshnessDetail = document.getElementById("latest-council-freshness-detail");
+    const observedTimeElem = document.getElementById("telemetry-observed-time");
     const routingStatusElem = document.getElementById("routing-policy-status-summary");
     const routingTierElem = document.getElementById("routing-policy-tier-summary");
     if (councilElem) councilElem.innerText = "UNREACHABLE";
     if (cycleElem) cycleElem.innerText = "UNREACHABLE";
     if (councilGitElem) councilGitElem.innerText = "UNREACHABLE";
+    if (freshnessBadge) {
+      freshnessBadge.className = "badge badge-rose";
+      freshnessBadge.innerText = "UNREACHABLE";
+      freshnessBadge.style.color = "var(--rose)";
+    }
+    if (freshnessDetail) freshnessDetail.innerText = "Failed to load telemetry";
+    if (observedTimeElem) observedTimeElem.innerText = "Observed: Error";
     if (routingStatusElem) routingStatusElem.innerText = "UNREACHABLE";
     if (routingTierElem) routingTierElem.innerText = "UNREACHABLE";
     renderParetoHud([]);
     renderVerificationSummaries({});
     renderCircuitBreakers([]);
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.removeAttribute("aria-busy");
+      refreshBtn.disabled = false;
+      refreshBtn.innerText = "Refresh Receipts";
+    }
   }
 }
 

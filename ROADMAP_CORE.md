@@ -50,6 +50,6 @@ To eliminate the risk of agents operating with unconstrained private keys (naked
 ## The Dizzy/Council Architectural Boundary
 Codex (5.5) formalized the primary architectural separation of concerns:
 * **Dizzy Owns**: Human-Machine Interface (HMI), cognitive memory, network ingress (A2A envelopes, Telegram), and sandbox rehearsal.
-* **Council Owns**: Promotion authority, immutable verification, cryptographic proof auditing, and offline gating.
+* **Council Owns**: Promotion authority, Git-bound verification receipts, test-suite auditing, and offline gating.
 
 This means we explicitly do *not* attempt to merge the Python Council engine into the Node.js Dizzy runtime. They are separate domains. Dizzy proposes and rehearses; Council verifies and promotes.

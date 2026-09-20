@@ -80,6 +80,10 @@ assertAbsent("public docs", Object.values(docs).join("\n"), [
   /116 syntax targets/i,
   /57 test suites/i,
   /F1236DF4DFFC1B15BC9958A50D001BA0C0B9B291C887854B34FBF144D4C69C56/i,
+  /cryptographic route attestations?/i,
+  /production routes are sealed/i,
+  /ZDR verified/i,
+  /immutable Council verification/i,
 ]);
 
 for (const relPath of trackedMarkdownFiles()) {

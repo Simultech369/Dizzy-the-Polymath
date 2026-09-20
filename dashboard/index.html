@@ -1199,6 +1199,18 @@
 
       <!-- TAB: RECEIPTS & OBSERVABILITY -->
       <div id="tab-receipts" class="tab-content" role="tabpanel" aria-label="Receipts and Observability" hidden>
+        <!-- Telemetry & Freshness Control Bar -->
+        <div class="card" style="padding: 0.85rem 1.25rem; background: var(--card-bg); margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-main);">Telemetry &amp; Audit Freshness</span>
+            <span id="latest-council-freshness-badge" class="badge badge-primary" style="font-size: 0.75rem;">Awaiting receipt</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+            <span id="telemetry-observed-time" style="font-size: 0.775rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">Observed: --</span>
+            <button id="btn-refresh-telemetry" class="btn btn-secondary btn-small" type="button" title="Re-fetch operator telemetry and evaluate receipt freshness">Refresh Receipts</button>
+          </div>
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Total Router Receipts</div>
@@ -1227,6 +1239,7 @@
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Receipt Git State</div>
             <div id="latest-council-git-binding" style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted); margin-top: 0.4rem;">No Git binding</div>
+            <div id="latest-council-freshness-detail" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.3rem;">Awaiting verification</div>
           </div>
           <div class="card" style="padding: 1.25rem; background: var(--card-bg);">
             <div style="font-size: 0.8rem; color: var(--text-muted);">Routing Policy Status</div>

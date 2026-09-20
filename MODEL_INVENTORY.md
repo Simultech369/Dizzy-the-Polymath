@@ -3,7 +3,7 @@
 status: active inventory & council specification
 reviewed: 2026-08-17
 
-Purpose: maintain model availability, routing posture, 4-gate qualification ladder, route attestations, and dual-chain multi-agent council verification. This file is an operational catalog and authority boundary specification.
+Purpose: maintain model availability, routing posture, 4-gate qualification ladder, route boundaries, and dual-chain multi-agent council verification. This file is an operational catalog and authority boundary specification.
 
 ---
 
@@ -69,9 +69,9 @@ Every model candidate moves through explicit deterministic qualification gates b
 | Tier & Category | Count | Primary Role & Route Compliance | Key Model Instances |
 | :--- | :---: | :--- | :--- |
 | **👑 Tier 0: Apex Paid Judges** | 7 | Escalation, high-stakes tie-breaking<br>• Route: `APEX_PAID` (SQLite spend ledger reservation)<br>• *Includes ChatGPT 5.6 Trinity:* `Sol` (surgical auditor), `Luna` (operational scanner), `Terra` (crossover gate) | `GPT-5.6 Sol`, `GPT-5.6 Luna`, `GPT-5.6 Terra`, `GPT-5.3 Codex`, `Claude 3.7 Sonnet Thought`, `Gemini 3.1 Pro Preview`, `o3-high` |
-| **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 16 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` / ZDR Verified<br>• Providers: SiliconFlow, Groq, Google AI Studio, Moonshot, Tencent | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3/abab6.5t`, `moonshotai/kimi-k2.7-code`, `tencent/hy3`, `cohere/north-mini-code`, `stepfun-step-2` |
+| **🚀 Tier 1: Frontier Cloud & SOTA Open Models** | 16 | Frontier synthesis & specialist audits<br>• Route: `HOSTED_NO_TRAIN` (Provider No-Store Policy)<br>• Providers: SiliconFlow, Groq, Google AI Studio, Moonshot, Tencent | `Qwen-3.8 Coder`, `GLM-5.3 Cyber`, `qwen/qwen3.6-27b`, `Gemini 3.6 Flash 1M`, `DeepSeek-V3/V4`, `openai/gpt-oss-120b`, `minimax-m3/abab6.5t`, `moonshotai/kimi-k2.7-code`, `tencent/hy3`, `cohere/north-mini-code`, `stepfun-step-2` |
 | **💻 Tier 2: Local OSS Fast Workers & Reasoners** | 14 | Rapid local audit, zero data leakage<br>• Route: `LOCAL_ONLY_VERIFIED`<br>• Provider: Air-gapped Ollama / Localhost | `qwen2.5-coder:7b`, `deepseek-r1:7b`, `deepseek-r1:1.5b`, `glm4:latest`, `mistral:latest`, `gemma3:4b`, `gemma3:12b`, `llama-audit:latest`, `phi-4`, `granite-3.1` |
-| **🎭 Tier 3: Uncensored Adversarial & Non-Transformer Dynamics** | 8 | Hostile fuzzer, pre-dispatch red-team & continuous dynamics<br>• Route: `LOCAL_ONLY_VERIFIED` / ZDR Verified<br>• Goal: Invariant attack without RLHF refusal filters & SSM dynamics | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3 (Nous)`, `Tulu 3`, `liquid/lqc-3b / lfm-40b`, `codestral-mamba-7b` |
+| **🎭 Tier 3: Uncensored Adversarial & Non-Transformer Dynamics** | 8 | Hostile fuzzer, pre-dispatch red-team & continuous dynamics<br>• Route: `LOCAL_ONLY_VERIFIED` / Local Isolation<br>• Goal: Invariant attack without RLHF refusal filters & SSM dynamics | `Jiunsong SuperGemma-12B/26B GGUFs`, `SuperDeepseek-V4`, `SuperQwen-AgentWorld`, `Hermes 3 (Nous)`, `Tulu 3`, `liquid/lqc-3b / lfm-40b`, `codestral-mamba-7b` |
 | **🌀 Tier 4: Emerging Exotic Architectures (Momentum Watch)** | 5 | Exploratory non-standard cognitive architectures<br>• Linear attention, ternary 1-bit, evolutionary merges | `RWKV-v6 Eagle/Finch` (O(1) memory state), `BitNet b1.58` (1-bit ternary airlock filter), `Sakana AI Evo-Merge` (anti-homogenization), `AI21 Jamba 1.5` (SSM-MoE hybrid), `Abacus Smaug-72b` |
 | **🚫 Tier 5: Quarantined / Purged Legacy** | 12 | Blocked from active dispatch<br>• Harnesses mislabeled as models, obsolete weights, or integrity-rejected | `Promptfoo`, `Aider`, `DSPy`, `SWE-agent`, `OpenHands`, `WizardCoder`, `Phind`, `StarCoder2`, `Arctic`, `01.AI Zero`, `DeepGrove`, `Poolside Laguna XS 2.1` (§5b integrity rejected) |
 | **TOTAL REGISTERED** | **62** | **Tracked with typed qualification status & cognitive division mapping** | |
@@ -79,19 +79,19 @@ Every model candidate moves through explicit deterministic qualification gates b
 
 ---
 
-## 4. Route Attestations & Data Boundaries
+## 4. Route Boundaries & Data Handling
 
-Production routes are sealed with cryptographic SHA-256 digests, strict TTL boundaries, and zero-data-retention (ZDR) policy enforcement:
+Configured routing policies enforce local SHA-256 receipt digests, TTL boundaries, and provider data-handling controls:
 
 1. **Jiunsong SuperGemma 12B / Local GGUFs**:
    * `route_id`: `route_jiunsong_supergemma_12b_local`
-   * `compliance_tier`: `LOCAL_ONLY_VERIFIED` (Air-gapped localhost, zero retention, cloud fallback blocked)
+   * `compliance_tier`: `LOCAL_ONLY_VERIFIED` (Air-gapped localhost, zero external network egress, cloud fallback blocked)
 2. **GLM-5.3 Cyber & Code (SiliconFlow / Cloud)**:
    * `route_id`: `route_glm_5_3_siliconflow`
-   * `compliance_tier`: `HOSTED_NO_TRAIN` (ZDR verified, cloud fallback blocked)
+   * `compliance_tier`: `HOSTED_NO_TRAIN` (Configured provider no-store/no-training API policy, cloud fallback blocked)
 3. **Qwen-3.8 Frontier (SiliconFlow / Groq)**:
    * `route_id`: `route_qwen_3_8_frontier`
-   * `compliance_tier`: `HOSTED_NO_TRAIN` (ZDR verified, cloud fallback blocked)
+   * `compliance_tier`: `HOSTED_NO_TRAIN` (Configured provider no-store/no-training API policy, cloud fallback blocked)
 4. **DeepSeek-R1 Reasoning (SiliconFlow / Local Ollama)**:
    * `route_id`: `route_deepseek_r1_reasoning`
    * `compliance_tier`: `HOSTED_NO_TRAIN` / `LOCAL_ONLY_VERIFIED`

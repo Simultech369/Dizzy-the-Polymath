@@ -169,7 +169,13 @@ try {
     assert.equal(receipt.routing_policy.provider_invoked, true);
     assert.equal(receipt.routing_policy.routing_receipt_sha256, routingReceiptHash);
     assert.equal(receipt.routing_policy.attempts[0].sent_model, "gemma3:4b");
-    console.log("  [PASS] Test 6: receipts telemetry exposes routing policy facts");
+    assert.ok(data.telemetry_generated_at, "telemetry_generated_at should be present");
+    assert.ok(data.council_freshness, "council_freshness should be present");
+    assert.ok(typeof data.council_freshness.status === "string", "council_freshness.status should be a string");
+    if (data.current_checkout) {
+      assert.ok(data.current_checkout.head_commit, "current_checkout should expose head_commit");
+    }
+    console.log("  [PASS] Test 6: receipts telemetry exposes routing policy facts and freshness");
   }
 
   // Test 7: GET /api/operator/trajectory-diagnostics returns diagnostics schema

@@ -1759,12 +1759,12 @@ Rationale:
 ### D-0055: Dizzy/Council Architectural Boundary
 
 Decision:
-- Formalize the separation of concerns based on Codex (5.5) review: Dizzy owns the Human-Machine Interface (HMI), memory, ingress, and rehearsal. Council owns promotion authority and immutable verification.
+- Formalize the separation of concerns based on Codex (5.5) review: Dizzy owns the Human-Machine Interface (HMI), memory, ingress, and rehearsal. Council owns promotion authority and tamper-evident Git-bound verification.
 
 Rationale:
 - This establishes a clean, non-overlapping boundary between the Node.js interactive runtime (Dizzy) and the Python offline verification engine (Council). 
 - Dizzy focuses on high-bandwidth operator interaction, cognitive memory consolidation, incoming network events (A2A, telegram), and running safe rehearsals in isolated sandboxes.
-- Council acts as the unyielding promotion gate, maintaining independent, immutable verification of sidecar proofs, ensuring that no empirical rehearsal automatically graduates to production authority without strict cryptographic and rule-based validation.
+- Council acts as the unyielding promotion gate, maintaining independent, Git-bound verification of sidecar proofs, ensuring that no empirical rehearsal automatically graduates to runtime promotion authority without strict test-suite and rule-based validation.
 
 ### D-0056: Capability-First Dispatch Execution Receipts
 

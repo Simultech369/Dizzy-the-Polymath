@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
 
 import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
 import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText } from "./lib/dispatch.mjs";
@@ -1269,10 +1270,118 @@ export async function createRuntime(opts = {}) {
         }
       }
 
+      function getCurrentGitCheckout() {
+        try {
+          const headCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            timeout: 2000,
+            stdio: ["ignore", "pipe", "ignore"],
+          }).trim();
+          const branch = execFileSync("git", ["branch", "--show-current"], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            timeout: 2000,
+            stdio: ["ignore", "pipe", "ignore"],
+          }).trim() || "detached";
+          const status = execFileSync("git", ["status", "--porcelain"], {
+            cwd: process.cwd(),
+            encoding: "utf8",
+            timeout: 2000,
+            stdio: ["ignore", "pipe", "ignore"],
+          }).trim();
+          return {
+            head_commit: headCommit,
+            branch,
+            is_dirty: status.length > 0,
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      function evaluateCouncilFreshness(councilVerdict, currentGit) {
+        const observedAt = new Date().toISOString();
+        if (!councilVerdict || !councilVerdict.git_binding) {
+          return {
+            status: "UNAVAILABLE",
+            label: "No Council Receipt",
+            is_fresh: false,
+            reason: "Council audit receipt or Git binding not found on disk",
+            observed_at: observedAt,
+            receipt_age_seconds: null,
+          };
+        }
+
+        const binding = councilVerdict.git_binding;
+        const receiptTime = councilVerdict.timestamp ? new Date(councilVerdict.timestamp).getTime() : 0;
+        const ageSec = receiptTime > 0 ? Math.max(0, Math.round((Date.now() - receiptTime) / 1000)) : null;
+
+        if (!currentGit || !currentGit.head_commit) {
+          return {
+            status: "UNVERIFIED",
+            label: "Checkout Unverified",
+            is_fresh: false,
+            reason: "Current local Git checkout could not be read",
+            receipt_age_seconds: ageSec,
+            observed_at: observedAt,
+          };
+        }
+
+        const receiptHeadShort = String(binding.head_commit || "").slice(0, 8);
+        const currentHeadShort = String(currentGit.head_commit || "").slice(0, 8);
+
+        if (binding.head_commit !== currentGit.head_commit) {
+          return {
+            status: "STALE",
+            label: "Stale (HEAD Diverged)",
+            is_fresh: false,
+            head_match: false,
+            receipt_commit: receiptHeadShort,
+            current_commit: currentHeadShort,
+            reason: `Receipt commit ${receiptHeadShort} diverges from checkout HEAD ${currentHeadShort}`,
+            receipt_age_seconds: ageSec,
+            observed_at: observedAt,
+          };
+        }
+
+        if (currentGit.is_dirty && !binding.is_dirty) {
+          return {
+            status: "DIRTY_DRIFT",
+            label: "Dirty Worktree Drift",
+            is_fresh: false,
+            head_match: true,
+            receipt_commit: receiptHeadShort,
+            current_commit: currentHeadShort,
+            reason: "Checkout has uncommitted changes since council audit receipt was generated",
+            receipt_age_seconds: ageSec,
+            observed_at: observedAt,
+          };
+        }
+
+        return {
+          status: "FRESH",
+          label: "Fresh (HEAD Aligned)",
+          is_fresh: true,
+          head_match: true,
+          receipt_commit: receiptHeadShort,
+          current_commit: currentHeadShort,
+          reason: "Council audit receipt matches current checkout HEAD",
+          receipt_age_seconds: ageSec,
+          observed_at: observedAt,
+        };
+      }
+
+      const currentCheckout = getCurrentGitCheckout();
+      const councilFreshness = evaluateCouncilFreshness(latestCouncilVerdict, currentCheckout);
+
       res.setHeader("Cache-Control", "no-store");
       res.json({
         ok: true,
         receipt_count: recentReceipts.length,
+        telemetry_generated_at: new Date().toISOString(),
+        current_checkout: currentCheckout,
+        council_freshness: councilFreshness,
         summary: {
           models: modelsSummary,
           trust_zones: trustZonesSummary,

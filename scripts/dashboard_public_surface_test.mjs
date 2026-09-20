@@ -87,6 +87,12 @@ async function run() {
   assert(htmlSource.includes("<title>Dizzy Local Operator Dashboard</title>"), "dashboard title should identify the local operator surface");
   assert(htmlSource.includes("Receipt &amp; Capability Evidence"), "dashboard should label receipts as evidence rather than broad proof");
   assert(htmlSource.includes('id="latest-council-git-binding"'), "dashboard should expose the council receipt Git binding");
+  assert(htmlSource.includes('id="btn-refresh-telemetry"'), "dashboard should provide a refresh affordance for telemetry");
+  assert(htmlSource.includes('id="latest-council-freshness-badge"'), "dashboard should expose a council freshness badge");
+  assert(htmlSource.includes('id="telemetry-observed-time"'), "dashboard should display an observation timestamp");
+  assert(htmlSource.includes('id="latest-council-freshness-detail"'), "dashboard should display freshness detail");
+  assert(jsSource.includes("council_freshness"), "dashboard should process council freshness metadata");
+  assert(jsSource.includes("telemetry_generated_at"), "dashboard should process telemetry generation timestamps");
   assert(htmlSource.includes("Reported Route Circuit Breakers (Demonstration Data)"), "dashboard circuit-breaker heading should be report-scoped");
   assert(htmlSource.includes("Reported Latency-Cost-Trust Map"), "dashboard route map heading should be report-scoped");
   assert(!htmlSource.includes("Receipt &amp; Capability Proof"), "dashboard should not use broad proof language for receipts");
