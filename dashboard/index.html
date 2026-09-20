@@ -883,6 +883,9 @@
       <button class="btn btn-secondary btn-small" id="btn-download-audit-report" type="button">
         Download Audit Report
       </button>
+      <button class="btn btn-secondary btn-small" id="btn-dashboard-logout" type="button">
+        Logout
+      </button>
       <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; cursor: pointer; user-select: none; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
         <input type="checkbox" id="dev-mode-checkbox" style="accent-color: var(--cyan);">
         Dev Mode
@@ -927,6 +930,7 @@
               <span class="badge badge-amber" id="chat-backend-badge">Route unverified</span>
             </div>
             <div class="chat-controls">
+              <span class="badge badge-primary" title="Chat history is kept in browser session storage and cleared on logout.">Session history</span>
               <button class="btn btn-secondary" id="chat-clear-btn" type="button" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Thread</button>
             </div>
           </div>

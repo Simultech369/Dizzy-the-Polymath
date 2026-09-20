@@ -5,12 +5,12 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 import { acknowledgeNotifications, connectRedis, enqueueJob, getJob, makeQueueKeys } from "./lib/queue.mjs";
-import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage } from "./lib/dispatch.mjs";
+import { buildCapabilityReceipt, getTrustZoneCapabilities, handleIncomingMessage, isMutationCommandText } from "./lib/dispatch.mjs";
 import { buildClientConversationKey, conversationPathForKey, deleteClientContinuity, executionHistoryPath, exportClientContinuity, pruneExpiredClientContinuity } from "./lib/client_continuity.mjs";
 import { getCachedChatSystemPrompt } from "./lib/prompt_bundle.mjs";
 import { getMemoryGraph, getRelevantMemoryGraphContext } from "./lib/memory_graph.mjs";
 import { assertRuntimeSafetyConfig, getRuntimeSafetyConfig, isLoopbackHost } from "./lib/runtime_config.mjs";
-import { durableAppendJsonl } from "./lib/durable_write_policy.mjs";
+import { durableAppendJsonl, redactSecretMaterial } from "./lib/durable_write_policy.mjs";
 import { securityHeaders } from "./lib/security_headers.mjs";
 import { a2aBoundaryGuard, validateA2ASecret, Ed25519TrustStore, sanitizePromptInjection } from "./lib/a2a_boundary_guard.mjs";
 import { A2AMailboxQueue, A2A_MESSAGE_SCHEMA, A2A_SIGNED_ENVELOPE_SCHEMA } from "./lib/a2a_mailbox_bridge.mjs";
@@ -258,6 +258,7 @@ function createBrowserOriginGuard({ bindHost, allowedOrigins }) {
 export function redactTextPayload(text) {
   if (!text) return "";
   let t = String(text);
+  t = redactSecretMaterial(t);
   t = t.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]");
   t = t.replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, "[REDACTED_PHONE]");
   t = t.replace(/\bsk-[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_API_KEY]");
@@ -585,6 +586,7 @@ function buildIncomingMessage(body, req, defaults = {}) {
 function shapeJobForResponse(job) {
   const result = job.result_json ? JSON.parse(job.result_json) : null;
   const maxErrorChars = Math.max(200, Number(process.env.DIZZY_HTTP_JOB_ERROR_MAX_CHARS || 1000) || 1000);
+  const lastError = safePublicJobError(job.last_error, maxErrorChars);
   return {
     id: job.id,
     status: job.status,
@@ -602,10 +604,25 @@ function shapeJobForResponse(job) {
     next_retry_at_ms: job.next_retry_at_ms,
     last_retry_reason: job.last_retry_reason,
     // Bound machine-surface payloads without altering assistant reply style.
-    last_error: job.last_error ? String(job.last_error).slice(0, maxErrorChars) : "",
+    last_error: lastError,
     dead_letter_path: job.dead_letter_path,
     result,
   };
+}
+
+function safePublicJobError(value, maxChars = 1000) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const redacted = redactTextPayload(raw).replace(/\s+/g, " ").trim();
+  if (/^JOB_FAILED\b/.test(redacted)) return redacted.slice(0, maxChars);
+  const status = redacted.match(/\b(?:status|HTTP)\s*[:=]?\s*(\d{3})\b/i)?.[1];
+  const code = redacted.match(/\b(?:code|name)\s*[:=]\s*([A-Za-z][A-Za-z0-9_-]{1,80})\b/)?.[1]
+    || redacted.match(/\b([A-Z][A-Z0-9_]{2,80})\b/)?.[1]
+    || "";
+  const parts = ["JOB_FAILED"];
+  if (code) parts.push(`code=${code.slice(0, 80)}`);
+  if (status) parts.push(`status=${status}`);
+  return parts.join(" ").slice(0, maxChars);
 }
 
 export async function createRuntime(opts = {}) {
@@ -754,6 +771,48 @@ export async function createRuntime(opts = {}) {
     if (dashboardEnabled && hasDashboardSession(req)) return next();
     return operatorControlAuthGuard(req, res, next);
   };
+  const isDashboardSameOriginMutation = (req) => {
+    const rawOrigin = String(req.headers?.origin || "").trim();
+    const rawHost = String(req.headers?.host || "").trim().toLowerCase();
+    if (!rawOrigin || !rawHost) return false;
+    try {
+      const origin = new URL(rawOrigin);
+      const originHost = origin.hostname.toLowerCase();
+      const originPort = origin.port || (origin.protocol === "https:" ? "443" : "80");
+      const [requestHostOnly, requestPortRaw = ""] = rawHost.split(":");
+      const requestPort = requestPortRaw || (req.protocol === "https" ? "443" : "80");
+      return origin.host.toLowerCase() === rawHost
+        || (isLoopbackHost(originHost) && isLoopbackHost(requestHostOnly) && originPort === requestPort);
+    } catch {
+      return false;
+    }
+  };
+  const operatorDashboardChatAuthGuard = (req, res, next) => {
+    if (dashboardEnabled && hasDashboardSession(req)) {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const channel = String(body.channel ?? "").trim();
+      const text = String(body.text ?? "").trim();
+      const allowedKeys = new Set(["channel", "text"]);
+      const bodyKeysAllowed = Object.keys(body).every((key) => allowedKeys.has(key));
+      if (
+        req.path === "/dispatch/incoming"
+        && isDashboardSameOriginMutation(req)
+        && channel === "dashboard_chat"
+        && text
+        && !text.toLowerCase().startsWith("tool:")
+        && !isMutationCommandText(text)
+        && bodyKeysAllowed
+      ) {
+        return next();
+      }
+      return res.status(403).json({
+        ok: false,
+        error: "Dashboard session can only dispatch non-tool dashboard chat messages",
+        code: "DASHBOARD_CHAT_SCOPE_REQUIRED",
+      });
+    }
+    return operatorControlAuthGuard(req, res, next);
+  };
 
   const hasAnyToken = Boolean(authToken || executeToken || notifyToken);
   if (hasAnyToken) {
@@ -772,12 +831,9 @@ export async function createRuntime(opts = {}) {
       if (dashboardEnabled && ["/dashboard/login", "/dashboard/session", "/assets/dashboard-login.js"].includes(req.path)) return next();
       if (dashboardEnabled && (isDashboardRoute(req.path) || isDashboardPath(req.path)) && hasDashboardSession(req)) return next();
 
-      const auth = String(req.headers?.authorization ?? "");
-      const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice("bearer ".length).trim() : "";
-      const queryToken = String(req.query?.token ?? "").trim();
-      const headerToken = bearer || String(req.headers?.["x-dizzy-token"] ?? "").trim() || queryToken;
+      const presentedToken = headerToken(req);
 
-      if (!headerToken) {
+      if (!presentedToken) {
         if ((req.path === "/dashboard" || req.path === "/dashboard/") && req.method === "GET" && (String(req.headers?.accept || "").includes("text/html") || req.headers?.["sec-fetch-dest"] === "document")) {
           return res.status(401).type("text/html").send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/dashboard/login"><script>window.location.href='/dashboard/login';</script></head><body style="background:#07090e;color:#45f3ff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><p>Session unauthorized. Redirecting to login...</p><a href="/dashboard/login" style="color:#ffb703;">Click here if not redirected</a></div></body></html>`);
         }
@@ -785,16 +841,16 @@ export async function createRuntime(opts = {}) {
       }
 
       // Check master authToken first (gives full access to everything)
-      if (tokensEqual(headerToken, authToken)) return next();
+      if (tokensEqual(presentedToken, authToken)) return next();
 
       // Check scoped execution token
-      if ((req.path === "/agent/execute" || req.path === "/agent/execute/stream") && tokensEqual(headerToken, executeToken)) {
+      if ((req.path === "/agent/execute" || req.path === "/agent/execute/stream") && tokensEqual(presentedToken, executeToken)) {
         return next();
       }
 
       // Check scoped /notify routes token (accepts /notify/... or /notify/.../ack)
       const isNotifyRoute = req.path === "/notify" || req.path.startsWith("/notify/");
-      if (isNotifyRoute && tokensEqual(headerToken, notifyToken)) {
+      if (isNotifyRoute && tokensEqual(presentedToken, notifyToken)) {
         return next();
       }
 
@@ -1371,7 +1427,7 @@ export async function createRuntime(opts = {}) {
     });
   });
 
-  app.get("/api/operator/trajectory-diagnostics", operatorDashboardReadAuthGuard, (req, res) => {
+  app.get("/api/operator/trajectory-diagnostics", operatorDashboardReadAuthGuard, (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     try {
       const includeAccepted = parseBool(req.query.include_accepted);
@@ -1382,7 +1438,7 @@ export async function createRuntime(opts = {}) {
         diagnostics
       });
     } catch (err) {
-      res.status(500).json({ ok: false, error: String(err.message || err) });
+      next(err);
     }
   });
 
@@ -1424,7 +1480,7 @@ export async function createRuntime(opts = {}) {
   });
 
   // Single dispatch path (Telegram/model wiring can call this later).
-  app.post("/dispatch/incoming", operatorControlAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
+  app.post("/dispatch/incoming", operatorDashboardChatAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
     try {
       const rawIdempotencyKey = req.header("idempotency-key");
       let idempotencyKey = undefined;

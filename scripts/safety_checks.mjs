@@ -208,6 +208,19 @@ function testExternalErrorRedaction() {
   assert.match(rendered, /model=test-model/);
   assert.match(rendered, /request_id=req-safe-123/);
   assert.doesNotMatch(rendered, /supersecretvalue123|sk-testboundarysecret|Authorization/i);
+
+  const providerRendered = formatExternalError({
+    message: "Provider body leaked C:\\Users\\Josh\\secret.txt and TOKEN=supersecretvalue123",
+    status: 500,
+    code: "PROVIDER_HTTP_ERROR",
+    provider_code: "upstream_error",
+    model: "test-model",
+  });
+  assert.match(providerRendered, /^External provider request failed/);
+  assert.match(providerRendered, /status=500/);
+  assert.match(providerRendered, /code=PROVIDER_HTTP_ERROR/);
+  assert.match(providerRendered, /provider_code=upstream_error/);
+  assert.doesNotMatch(providerRendered, /C:\\Users\\Josh|secret\.txt|supersecretvalue123|TOKEN=/i);
 }
 
 testExternalErrorRedaction();
@@ -1641,6 +1654,7 @@ async function testWorkerCycleRetryAndDeath() {
   assert.equal(retryJobMap.get(keys.job("job-retry")).retry_count, "1");
   assert.equal(retryRedis.delayed.length, 1);
   assert.deepEqual(retryRedis.processing, []);
+  assert.match(retryJobMap.get(keys.job("job-retry")).last_error, /^JOB_FAILED code=ETIMEDOUT reason=etimedout$/);
   assert.doesNotMatch(retryJobMap.get(keys.job("job-retry")).last_error, /retrysecret/);
 
   const deadJobMap = new Map([
@@ -1669,6 +1683,7 @@ async function testWorkerCycleRetryAndDeath() {
     assert.equal(deadResult.kind, "dead");
     const deadJob = deadJobMap.get(keys.job("job-dead"));
     assert.equal(deadJob.status, "dead");
+    assert.match(deadJob.last_error, /^JOB_FAILED code=ETIMEDOUT reason=etimedout$/);
     assert.doesNotMatch(deadJob.last_error, /errorsecret/);
     assert.equal(deadRedis.dlq.includes("job-dead"), true);
     assert.equal(deadRedis.notify.length, 1);
@@ -3168,6 +3183,27 @@ async function testClientContinuityExportRequiresAuthWhenConfigured() {
       headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
     });
     assert.equal(authenticated.status, 400);
+  } finally {
+    await started.stop();
+  }
+}
+
+async function testUrlTokensDoNotAuthenticate() {
+  const started = await startServer({
+    port: 0,
+    bindHost: "127.0.0.1",
+    authToken: STRONG_TEST_AUTH_TOKEN,
+    redisUrl: "",
+  });
+  try {
+    const baseUrl = `http://127.0.0.1:${started.boundPort}`;
+    const queryOnly = await fetch(`${baseUrl}/prompt?token=${encodeURIComponent(STRONG_TEST_AUTH_TOKEN)}`);
+    assert.equal(queryOnly.status, 401);
+
+    const headerAuth = await fetch(`${baseUrl}/prompt`, {
+      headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` },
+    });
+    assert.equal(headerAuth.status, 200);
   } finally {
     await started.stop();
   }
@@ -5339,6 +5375,8 @@ async function testConsensusStateTransitions() {
     assert.equal(vetoRes.signing_chain.codex, "VETOED");
     assert.equal(vetoRes.signing_chain.openclaude, "VETOED");
     assert.equal(vetoRes.signing_chain.antigravity, "VETOED");
+    assert.match(vetoRes.message, /Simulated operator veto recorded/);
+    assert.doesNotMatch(vetoRes.message, /Reverting state commit/i);
   }
 
   const persistedVeto = JSON.parse(fs.readFileSync(statePath, "utf8"));
@@ -5357,6 +5395,29 @@ async function testConsensusStateTransitions() {
     assert.equal(newProposal.reported_review_state.antigravity, "AWAITING_OPERATOR_REVIEW");
   } else {
     assert.equal(newProposal.signing_chain.antigravity, "PENDING");
+  }
+
+  const originalWriteFileSync = fs.writeFileSync;
+  const originalConsoleError = console.error;
+  try {
+    console.error = () => {};
+    fs.writeFileSync = (...args) => {
+      if (String(args[0] || "").includes("consensus_state.json.tmp")) {
+        throw new Error("simulated consensus persistence failure");
+      }
+      return originalWriteFileSync(...args);
+    };
+    const failedSignoff = signOffOperator();
+    assert.equal(failedSignoff.ok, false);
+    assert.equal(failedSignoff.error, "CONSENSUS_STATE_SAVE_FAILED");
+    assert.match(failedSignoff.message, /not recorded/i);
+    const failedProposal = initializeNewProposal();
+    assert.equal(failedProposal.ok, false);
+    assert.equal(failedProposal.error, "CONSENSUS_STATE_SAVE_FAILED");
+    assert.match(failedProposal.message, /not initialized/i);
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+    console.error = originalConsoleError;
   }
 
   fs.rmSync(statePath, { force: true });
@@ -5634,6 +5695,8 @@ console.log("[safety] testRateLimiting...");
 await testRateLimiting();
 console.log("[safety] testLocalControlRoutesRequireOperatorAuth...");
 await testLocalControlRoutesRequireOperatorAuth();
+console.log("[safety] testUrlTokensDoNotAuthenticate...");
+await testUrlTokensDoNotAuthenticate();
 console.log("[safety] testLoopbackBrowserOriginGuard...");
 await testLoopbackBrowserOriginGuard();
 console.log("[safety] testAdversarialTrustZoneBypass...");

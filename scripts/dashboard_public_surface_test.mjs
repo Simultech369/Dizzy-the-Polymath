@@ -170,6 +170,51 @@ async function run() {
     const script = await fetchText(`${base}/assets/dashboard.js`, { headers });
     assertStatus(script.response, 200, "dashboard script");
     assert(script.text.includes("chatSurfaceInitialized"), "served dashboard script should include idempotent chat guard");
+    assert(script.text.includes("sessionStorage"), "dashboard chat should use browser session storage, not persistent localStorage history");
+    assert(script.text.includes("clearBrowserSessionState"), "dashboard logout should clear browser-side session state");
+    assert(!script.text.includes('localStorage.setItem("dizzy_chat_history"'), "dashboard must not write legacy persistent chat history");
+    assert(!script.text.includes('localStorage.getItem("dizzy_chat_history"'), "dashboard must not load legacy persistent chat history");
+    assert(dashboard.text.includes('id="btn-dashboard-logout"'), "dashboard should expose a visible logout control");
+    assert(dashboard.text.includes("Session history"), "dashboard should disclose browser session history scope");
+
+    const cookieChat = await fetch(`${base}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        "idempotency-key": "invalid key with spaces",
+        origin: base,
+      },
+      body: JSON.stringify({ channel: "dashboard_chat", text: "cookie-auth validation probe" }),
+    });
+    assertStatus(cookieChat, 400, "dashboard cookie dispatch validation");
+    const cookieChatBody = await cookieChat.json();
+    assert.match(cookieChatBody.error, /Invalid Idempotency-Key/i);
+
+    const cookieNoOrigin = await fetch(`${base}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ channel: "dashboard_chat", text: "missing-origin validation probe" }),
+    });
+    assertStatus(cookieNoOrigin, 403, "dashboard cookie dispatch same-origin guard");
+    const cookieNoOriginBody = await cookieNoOrigin.json();
+    assert.equal(cookieNoOriginBody.code, "DASHBOARD_CHAT_SCOPE_REQUIRED");
+
+    const cookieTool = await fetch(`${base}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        origin: base,
+      },
+      body: JSON.stringify({ channel: "dashboard_chat", text: "tool:http_get https://example.com" }),
+    });
+    assertStatus(cookieTool, 403, "dashboard cookie dispatch tool scope");
+    const cookieToolBody = await cookieTool.json();
+    assert.equal(cookieToolBody.code, "DASHBOARD_CHAT_SCOPE_REQUIRED");
 
     const missingApi = await fetch(`${base}/api/not-a-real-route`, {
       headers: { authorization: `Bearer ${TOKEN}` },

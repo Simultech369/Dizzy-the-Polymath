@@ -890,6 +890,17 @@ if (btnResolveContainment) {
 
 // Interactive Chat Surface Controller
 let chatSurfaceInitialized = false;
+const CHAT_HISTORY_KEY = "dizzy_chat_history_session_v1";
+const LEGACY_CHAT_HISTORY_KEY = "dizzy_chat_history";
+
+function clearBrowserSessionState() {
+  try {
+    sessionStorage.removeItem(CHAT_HISTORY_KEY);
+  } catch {}
+  try {
+    localStorage.removeItem(LEGACY_CHAT_HISTORY_KEY);
+  } catch {}
+}
 
 function initChatSurface() {
   if (chatSurfaceInitialized) return;
@@ -899,6 +910,7 @@ function initChatSurface() {
   const chatInputText = document.getElementById("chat-input-text");
   const chatSendBtn = document.getElementById("chat-send-btn");
   const chatClearBtn = document.getElementById("chat-clear-btn");
+  const dashboardLogoutBtn = document.getElementById("btn-dashboard-logout");
   const suggestionChips = document.querySelectorAll(".suggestion-chip");
 
   if (!chatMessagesList || !chatInputText || !chatSendBtn) return;
@@ -908,13 +920,21 @@ function initChatSurface() {
   }
 
   function saveMessageToHistory(role, text, receipt) {
-    let history = [];
     try {
-      history = JSON.parse(localStorage.getItem("dizzy_chat_history") || "[]");
-    } catch {}
-    history.push({ role, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt });
-    if (history.length > 50) history = history.slice(-50);
-    localStorage.setItem("dizzy_chat_history", JSON.stringify(history));
+      let history = [];
+      try {
+        history = JSON.parse(sessionStorage.getItem(CHAT_HISTORY_KEY) || "[]");
+      } catch {
+        history = [];
+      }
+      history.push({ role, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), receipt });
+      if (history.length > 50) history = history.slice(-50);
+      sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+      return true;
+    } catch (e) {
+      console.warn("Failed to save session chat history:", e);
+      return false;
+    }
   }
 
   function createBubbleHtml(role, text, time = "Just now", receipt = null) {
@@ -955,18 +975,21 @@ function initChatSurface() {
     `;
   }
 
-  // Load chat history from localStorage
-  const savedHistory = localStorage.getItem("dizzy_chat_history");
-  if (savedHistory) {
-    try {
+  try {
+    localStorage.removeItem(LEGACY_CHAT_HISTORY_KEY);
+  } catch {}
+
+  try {
+    const savedHistory = sessionStorage.getItem(CHAT_HISTORY_KEY);
+    if (savedHistory) {
       const messages = JSON.parse(savedHistory);
       if (Array.isArray(messages) && messages.length > 0) {
         chatMessagesList.innerHTML = messages.map(msg => createBubbleHtml(msg.role, msg.text, msg.time, msg.receipt)).join("");
         scrollToBottom();
       }
-    } catch (e) {
-      console.warn("Failed to load chat history:", e);
     }
+  } catch (e) {
+    console.warn("Failed to load session chat history:", e);
   }
 
   async function handleSend() {
@@ -1059,8 +1082,28 @@ function initChatSurface() {
   if (chatClearBtn) {
     chatClearBtn.addEventListener("click", () => {
       if (confirm("Clear live chat history?")) {
-        localStorage.removeItem("dizzy_chat_history");
+        clearBrowserSessionState();
         chatMessagesList.innerHTML = createBubbleHtml("assistant", "Local chat history cleared. Route health remains dependent on the local API response.");
+      }
+    });
+  }
+
+  if (dashboardLogoutBtn) {
+    dashboardLogoutBtn.addEventListener("click", async () => {
+      dashboardLogoutBtn.disabled = true;
+      dashboardLogoutBtn.setAttribute("aria-busy", "true");
+      clearBrowserSessionState();
+      try {
+        await fetch("/dashboard/logout", {
+          method: "POST",
+          redirect: "manual",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "",
+        });
+      } catch (e) {
+        console.warn("Dashboard logout request failed:", e);
+      } finally {
+        window.location.assign("/dashboard/login");
       }
     });
   }
