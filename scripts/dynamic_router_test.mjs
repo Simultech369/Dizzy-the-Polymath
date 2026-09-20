@@ -106,7 +106,7 @@ async function runIntegrationTests() {
       }
     }
 
-    async function withCapturingOpenAICompat(content, fn) {
+    async function withCapturingOpenAICompat(content, fn, { responseDelayMs = 0 } = {}) {
       const requests = [];
       const server = http.createServer((req, res) => {
         let body = "";
@@ -116,8 +116,10 @@ async function runIntegrationTests() {
         });
         req.on("end", () => {
           requests.push({ url: req.url, body: JSON.parse(body || "{}") });
-          res.writeHead(200, { "content-type": "application/json" });
-          res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+          setTimeout(() => {
+            res.writeHead(200, { "content-type": "application/json" });
+            res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+          }, responseDelayMs);
         });
       });
       await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -241,6 +243,32 @@ async function runIntegrationTests() {
         else process.env.GEMINI_MODEL = oldGeminiModel;
       }
     });
+
+    await withCapturingOpenAICompat("slow selected qwen response", async ({ requests }) => {
+      const oldChatTimeout = process.env.DIZZY_CHAT_TIMEOUT_MS;
+      try {
+        process.env.DIZZY_CHAT_TIMEOUT_MS = "25";
+        const res = await handleIncomingMessage({
+          message: {
+            text: "Hello slow explicit local seat",
+            runtime_context: { trust_zone: "paid_public" },
+            channel: "cli",
+            selection: {
+              seat_id: "qwen_local",
+              model_id: "qwen2.5-coder:7b",
+              harness_id: "native_chat",
+            },
+          }
+        });
+        assert.equal(res.kind, "reply");
+        assert.ok(res.text.includes("slow selected qwen response"));
+        assert.equal(requests.length, 1, "Slow explicit local seat selection should use the local timeout floor");
+        assert.equal(res.execution_metadata.routing_policy.status, "SUCCEEDED");
+      } finally {
+        if (oldChatTimeout === undefined) delete process.env.DIZZY_CHAT_TIMEOUT_MS;
+        else process.env.DIZZY_CHAT_TIMEOUT_MS = oldChatTimeout;
+      }
+    }, { responseDelayMs: 6000 });
 
     // Test Case A: Offline Local Backend
     process.env.DIZZY_CHAT_BACKEND = "local";
