@@ -198,6 +198,50 @@ async function runIntegrationTests() {
       assert.equal(policy.attempts[0].selection.selected_seat_id, "qwen_local");
     });
 
+    await withCapturingOpenAICompat("selected qwen over gemini default", async ({ requests }) => {
+      const oldFetch = globalThis.fetch;
+      const oldGeminiKey = process.env.GEMINI_API_KEY;
+      const oldGeminiModel = process.env.GEMINI_MODEL;
+      let geminiFetches = 0;
+      globalThis.fetch = async (input, init) => {
+        const requestUrl = typeof input === "string" ? input : String(input?.url || "");
+        if (requestUrl.includes("generativelanguage.googleapis.com")) {
+          geminiFetches += 1;
+          throw new Error("unexpected_gemini_call");
+        }
+        return oldFetch(input, init);
+      };
+      try {
+        process.env.DIZZY_CHAT_BACKEND = "gemini";
+        process.env.GEMINI_API_KEY = "fake_gemini_key";
+        process.env.GEMINI_MODEL = "gemini-2.5-pro";
+        const res = await handleIncomingMessage({
+          message: {
+            text: "Hello explicit local seat while Gemini is default",
+            runtime_context: { trust_zone: "paid_public" },
+            channel: "cli",
+            selection: {
+              seat_id: "qwen_local",
+              model_id: "qwen2.5-coder:7b",
+              harness_id: "native_chat",
+            },
+          }
+        });
+        assert.equal(res.kind, "reply");
+        assert.ok(res.text.includes("selected qwen over gemini default"));
+        assert.equal(geminiFetches, 0, "Explicit local seat selection must not call Gemini even when Gemini is the env default");
+        assert.equal(requests.length, 1, "Explicit local seat selection must call the selected local endpoint");
+        assert.equal(requests[0].body.model, "qwen2.5-coder:7b");
+        assert.equal(res.execution_metadata.routing_policy.attempts[0].adapter, "ollama");
+      } finally {
+        globalThis.fetch = oldFetch;
+        if (oldGeminiKey === undefined) delete process.env.GEMINI_API_KEY;
+        else process.env.GEMINI_API_KEY = oldGeminiKey;
+        if (oldGeminiModel === undefined) delete process.env.GEMINI_MODEL;
+        else process.env.GEMINI_MODEL = oldGeminiModel;
+      }
+    });
+
     // Test Case A: Offline Local Backend
     process.env.DIZZY_CHAT_BACKEND = "local";
     process.env.OLLAMA_BASE_URL = "http://127.0.0.1:59999/v1"; // Mock offline port
