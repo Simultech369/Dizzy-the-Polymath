@@ -90,6 +90,7 @@ Planning maps coordinate review and promotion work. They are non-authoritative u
 ## Operations And Interfaces
 
 - `QUICKSTART.md`
+- `docs/thesis_in_15_minutes.md`
 - `RUNBOOK.md`
 - `OPERATIONS.md`
 - `OPERATOR.md`

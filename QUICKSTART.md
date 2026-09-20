@@ -4,6 +4,8 @@ Dizzy is a local-first operator console and control-plane prototype for bounded 
 
 It does not claim a hosted production product, public A2A interoperability, or finished commercial application.
 
+For the shortest end-to-end proof of the thesis, see [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md): local/open-weight seat selection, dispatch, receipt inspection, and deterministic verification.
+
 ## Before You Start
 
 - Node.js 20.18.1 or newer is recommended.

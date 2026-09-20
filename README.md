@@ -16,7 +16,7 @@ Public and dashboard wording follows [Public Truth Language](docs/public_truth_l
 
 `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work (see **Hosted Production And Public A2A Horizon** in [`NEXT.md`](NEXT.md)).
 
-Start with [QUICKSTART.md](QUICKSTART.md) to run the local API, opt into the dashboard, inspect the receipt, and understand what is not claimed.
+Start with [QUICKSTART.md](QUICKSTART.md) to run the local API. Use [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md) to prove the core MVP loop: local seat selection, dispatch, receipt inspection, and deterministic verification.
 
 ### Repository Structure and Authority
 
@@ -64,6 +64,8 @@ The repo is transparent without turning every working note into doctrine: the ru
 | OSS Council Audit Suite | 3-layer deterministic verification engine. Exact syntax-target and execution-suite counts are receipt facts from the current `npm run check:council` run, not timeless README claims. |
 
 ## Quick Start
+
+For the shortest proof of the thesis, use [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md). The section below is the basic server setup path.
 
 ### 1. Install Dependencies
 

@@ -19,22 +19,23 @@ The repo has three working layers:
 Read according to your current depth of investigation:
 
 ### 1. New User (First-Run & Orientation)
-1. [QUICKSTART.md](QUICKSTART.md) - 5-minute setup, `/health` + `/prompt` walk-through, trust-zone demo, visual accents.
-2. [README.md](README.md) - high-level overview, runtime shape, and production checklist.
+1. [QUICKSTART.md](QUICKSTART.md) - basic local setup and API/dashboard startup.
+2. [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md) - local/open-weight seat selection, dispatch, receipt inspection, and deterministic verification.
+3. [README.md](README.md) - high-level overview, runtime shape, and production checklist.
 
 ### 2. Intermediate (Operational Mechanics)
-3. [REPO_GUIDE.md](REPO_GUIDE.md) - guided map for readers and maintainers.
-4. [OPERATING_LOOP.md](OPERATING_LOOP.md) - day-to-day operator workflow (friction, trajectories, session close).
-5. [FILE_ROLES.md](FILE_ROLES.md) - root-file authority and role map.
+4. [REPO_GUIDE.md](REPO_GUIDE.md) - guided map for readers and maintainers.
+5. [OPERATING_LOOP.md](OPERATING_LOOP.md) - day-to-day operator workflow (friction, trajectories, session close).
+6. [FILE_ROLES.md](FILE_ROLES.md) - root-file authority and role map.
 
 ### 3. Advanced Architect (Doctrine & Governance)
-6. [DESIGN.md](DESIGN.md) - canonical human source of truth and decision record.
-7. [INTERACTION_NORMS.md](INTERACTION_NORMS.md) - plain-language interaction and governance summary.
-8. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
-9. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - converting anti-extractive values into mechanisms.
-10. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms.
-11. [CHOKEPOINTS.md](CHOKEPOINTS.md) - self-inspection map for dependency, capture, and exit risks.
-12. [RUNBOOK.md](RUNBOOK.md) - practical operational deployment.
+7. [DESIGN.md](DESIGN.md) - canonical human source of truth and decision record.
+8. [INTERACTION_NORMS.md](INTERACTION_NORMS.md) - plain-language interaction and governance summary.
+9. [PROMPT_CORE.md](PROMPT_CORE.md) - compact live behavioral core.
+10. [MECHANISM_SIEVE.md](MECHANISM_SIEVE.md) - converting anti-extractive values into mechanisms.
+11. [MECHANISMS.md](MECHANISMS.md) - reusable design mechanisms.
+12. [CHOKEPOINTS.md](CHOKEPOINTS.md) - self-inspection map for dependency, capture, and exit risks.
+13. [RUNBOOK.md](RUNBOOK.md) - practical operational deployment.
 
 That path is enough to understand the current system. The rest is detail.
 
