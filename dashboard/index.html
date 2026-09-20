@@ -874,7 +874,7 @@
       <div>
         <div class="logo-title">
           Dizzy Operational Surface
-          <span class="badge badge-primary" title="Static Demonstration Data"><span class="status-dot"></span>W-0066 ISOLATED (DEMO)</span>
+          <span class="badge badge-primary" title="Dynamic Router Isolated in Local Trust Zone"><span class="status-dot"></span>DYNAMIC ROUTER</span>
         </div>
         <div class="title-sub">Local Trust Zone &bull; Epistemic Memory &bull; Subprocess Verification</div>
       </div>
@@ -949,9 +949,9 @@
           </div>
 
           <div class="chat-suggestions">
-            <button class="suggestion-chip" type="button" data-prompt="Summarize recent work and active queue in NEXT.md">Summarize NEXT.md</button>
+            <button class="suggestion-chip" type="button" data-prompt="Summarize Dizzy's core mission, continuity principles, and forward horizon">Horizon &amp; Mission</button>
             <button class="suggestion-chip" type="button" data-prompt="Audit trust zone boundaries and memory decay rules">Audit Memory Rules</button>
-            <button class="suggestion-chip" type="button" data-prompt="Explain W-0066 fail-closed dynamic router isolation">Explain W-0066 Router</button>
+            <button class="suggestion-chip" type="button" data-prompt="Explain current router status, fail-closed boundaries, and local process isolation">Router Current Status</button>
             <button class="suggestion-chip" type="button" data-prompt="Check system health and hardware status">Check Status</button>
           </div>
 
@@ -1020,7 +1020,10 @@
               <label>Brief Input
                 <textarea id="console-brief" class="console-textarea">Summarize trust zone boundaries and memory lifecycle for this session.</textarea>
               </label>
-              <button class="btn" id="console-execute-button" type="button">Execute Brief</button>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn" id="console-execute-button" type="button">Execute Brief</button>
+                <button class="btn btn-secondary btn-small" id="console-load-next-btn" type="button" title="Load NEXT.md engineering backlog into brief input">Load NEXT.md Backlog</button>
+              </div>
             </div>
           </div>
 

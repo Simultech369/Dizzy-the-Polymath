@@ -758,6 +758,16 @@ document.getElementById("search-query").addEventListener("keydown", (event) => {
   if (event.key === "Enter") runSearch();
 });
 document.getElementById("console-execute-button").addEventListener("click", runOperatorExecute);
+const consoleLoadNextBtn = document.getElementById("console-load-next-btn");
+if (consoleLoadNextBtn) {
+  consoleLoadNextBtn.addEventListener("click", () => {
+    const briefInput = document.getElementById("console-brief");
+    if (briefInput) {
+      briefInput.value = "Summarize recent work and active queue in NEXT.md";
+      briefInput.focus();
+    }
+  });
+}
 document.getElementById("console-refresh-records").addEventListener("click", loadContinuityRecords);
 document.getElementById("console-records-body").addEventListener("click", (event) => {
   const auditButton = event.target.closest("[data-continuity-audit]");
@@ -1106,6 +1116,8 @@ function initChatSurface() {
         window.location.assign("/dashboard/login");
       }
     });
+  }
+
   const refreshTelemetryBtn = document.getElementById("btn-refresh-telemetry");
   if (refreshTelemetryBtn && !refreshTelemetryBtn.__bound) {
     refreshTelemetryBtn.__bound = true;
