@@ -90,6 +90,7 @@ async function run() {
   assert(htmlSource.includes("Latest persisted receipts, not live call count"), "dashboard should explain that receipt totals are not live call counts");
   assert(htmlSource.includes("Local/open-weight council seat"), "dashboard should expose local/open-weight seat selection language");
   assert(htmlSource.includes('id="chat-seat-select"'), "dashboard should expose a council seat selector");
+  assert(htmlSource.includes('id="chat-seat-smoke"'), "dashboard should expose local seat smoke evidence");
   assert(htmlSource.includes('id="chat-harness-select"'), "dashboard should expose a harness selector");
   assert(htmlSource.includes("Configured default - execution unverified"), "dashboard selector should not claim availability before receipt evidence");
   assert(htmlSource.includes('id="latest-council-git-binding"'), "dashboard should expose the council receipt Git binding");
@@ -102,6 +103,8 @@ async function run() {
   assert(jsSource.includes("receipt_log_total_count"), "dashboard should distinguish sampled receipt windows from total log rows");
   assert(jsSource.includes("executable_combinations"), "dashboard should populate selectable combinations from operator API evidence");
   assert(jsSource.includes("currentCouncilSelection"), "dashboard should send explicit model/harness selections when chosen");
+  assert(jsSource.includes("renderSeatSmokeMatrix"), "dashboard should render recent local seat smoke evidence");
+  assert(jsSource.includes("No recent local seat receipts observed"), "dashboard should avoid claiming unobserved seats are available");
   assert(jsSource.includes("Requested Seat:"), "chat receipt drawer should show requested seat");
   assert(jsSource.includes("transport started"), "chat receipt drawer should distinguish attempted transport from no-call failures");
   assert(jsSource.includes("Model Result:"), "chat receipt drawer should show model result rather than implying a local route");

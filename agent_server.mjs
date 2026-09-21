@@ -1208,6 +1208,55 @@ export async function createRuntime(opts = {}) {
         };
       }
 
+      function buildSeatSmokeMatrix({ receipts = [], options = [] } = {}) {
+        const bySeat = new Map();
+        for (const option of options) {
+          if (!option?.seat_id) continue;
+          bySeat.set(option.seat_id, {
+            seat_id: option.seat_id,
+            label: option.label || option.seat_id,
+            model_id: option.model_id || "",
+            harness_id: option.harness_id || "native_chat",
+            adapter: option.adapter || "",
+            provider_boundary: option.provider_boundary || "",
+            last_status: "not_observed",
+            last_observed_at: "",
+            last_model_result: "",
+            last_route: "",
+            last_attempt_status: "",
+            last_error: "",
+            last_latency_ms: 0,
+            evidence_source: "recent_router_receipts",
+          });
+        }
+
+        for (const receipt of receipts) {
+          const policy = receipt?.routing_policy;
+          const selection = policy?.selection || receipt?.selection || null;
+          const seatId = String(selection?.requested_seat_id || selection?.selected_seat_id || "").trim();
+          if (!seatId || !bySeat.has(seatId)) continue;
+          const existing = bySeat.get(seatId);
+          const attempts = Array.isArray(policy?.attempts) ? policy.attempts : [];
+          const lastAttempt = attempts.length ? attempts[attempts.length - 1] : null;
+          const policyStatus = String(policy?.status || "").trim().toLowerCase();
+          const attemptStatus = String(lastAttempt?.status || "").trim().toLowerCase();
+          const succeeded = policyStatus === "succeeded" || attemptStatus === "succeeded";
+          const failed = policyStatus === "blocked" || policyStatus === "failed" || attemptStatus === "failed" || attemptStatus === "blocked";
+          bySeat.set(seatId, {
+            ...existing,
+            last_status: succeeded ? "succeeded" : failed ? "failed" : "observed",
+            last_observed_at: receipt.timestamp || "",
+            last_model_result: receipt.chosen_model || "",
+            last_route: policy?.selected_model_or_route || lastAttempt?.route_id || "",
+            last_attempt_status: lastAttempt?.status || policy?.status || "",
+            last_error: lastAttempt?.error || policy?.fail_closed_reason || "",
+            last_latency_ms: Number.isFinite(Number(receipt.latency_ms)) ? Math.max(0, Math.round(Number(receipt.latency_ms))) : 0,
+          });
+        }
+
+        return Array.from(bySeat.values());
+      }
+
       function summarizeReviewCycle(receipt) {
         if (!receipt || typeof receipt !== "object") return null;
         return {
@@ -1417,6 +1466,10 @@ export async function createRuntime(opts = {}) {
 
       const currentCheckout = getCurrentGitCheckout();
       const councilFreshness = evaluateCouncilFreshness(latestCouncilVerdict, currentCheckout);
+      const seatSmokeMatrix = buildSeatSmokeMatrix({
+        receipts: recentReceipts,
+        options: getCouncilSelectionOptions(),
+      });
 
       res.setHeader("Cache-Control", "no-store");
       res.json({
@@ -1438,6 +1491,7 @@ export async function createRuntime(opts = {}) {
         },
         pareto_frontier: paretoFrontier,
         circuit_breakers: circuitBreakers,
+        seat_smoke_matrix: seatSmokeMatrix,
         latest_adversarial_verification: latestAdversarial,
         latest_negative_capability: latestNegativeCap,
         recent_receipts: recentReceipts.slice(-10).reverse(),

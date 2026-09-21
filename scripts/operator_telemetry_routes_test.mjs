@@ -199,6 +199,16 @@ try {
     assert.equal(receipt.routing_policy.attempts[0].adapter_invoked, true);
     assert.equal(receipt.routing_policy.attempts[0].transport_started, true);
     assert.equal(receipt.routing_policy.attempts[0].sent_model, "gemma3:4b");
+    assert.ok(Array.isArray(data.seat_smoke_matrix), "seat_smoke_matrix should be present");
+    const gemmaSmoke = data.seat_smoke_matrix.find((seat) => seat.seat_id === "gemma3_local");
+    assert.ok(gemmaSmoke, "gemma3_local smoke row should be present");
+    assert.equal(gemmaSmoke.last_status, "succeeded");
+    assert.equal(gemmaSmoke.last_model_result, "openai_compat:gemma3:4b");
+    assert.equal(gemmaSmoke.last_route, "openai_compat:gemma3:4b");
+    assert.equal(gemmaSmoke.evidence_source, "recent_router_receipts");
+    const qwenSmoke = data.seat_smoke_matrix.find((seat) => seat.seat_id === "qwen_local");
+    assert.ok(qwenSmoke, "configured qwen_local smoke row should be present");
+    assert.equal(qwenSmoke.last_status, "not_observed");
     assert.ok(data.telemetry_generated_at, "telemetry_generated_at should be present");
     assert.ok(data.council_freshness, "council_freshness should be present");
     assert.ok(typeof data.council_freshness.status === "string", "council_freshness.status should be a string");

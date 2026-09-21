@@ -1232,6 +1232,7 @@ async function loadReceiptsTelemetry() {
     const historyElem = document.getElementById("receipts-history-list");
     const routingStatusElem = document.getElementById("routing-policy-status-summary");
     const routingTierElem = document.getElementById("routing-policy-tier-summary");
+    const seatSmokeElem = document.getElementById("chat-seat-smoke");
 
     if (totalElem) {
       const windowCount = Number(data.receipt_count || 0);
@@ -1247,6 +1248,9 @@ async function loadReceiptsTelemetry() {
     if (routingTierElem) {
       routingTierElem.innerText = firstCountLabel(data.summary?.selected_tiers || {}, "No selected tier recorded");
       routingTierElem.style.color = Object.keys(data.summary?.selected_tiers || {}).length ? "var(--cyan)" : "var(--text-muted)";
+    }
+    if (seatSmokeElem) {
+      seatSmokeElem.innerHTML = renderSeatSmokeMatrix(data.seat_smoke_matrix || []);
     }
 
     if (cycleElem) {
@@ -1664,6 +1668,32 @@ function firstCountLabel(counts = {}, fallback = "No receipts") {
   if (!entries.length) return fallback;
   const [label, count] = entries[0];
   return `${label}: ${count}`;
+}
+
+function renderSeatSmokeMatrix(matrix = []) {
+  if (!Array.isArray(matrix) || !matrix.length) {
+    return `<div class="seat-smoke-pill" data-status="not_observed"><strong>Seat smoke</strong>No recent local seat receipts observed.</div>`;
+  }
+  return matrix.map((seat) => {
+    const status = String(seat.last_status || "not_observed").toLowerCase();
+    const label = seat.label || seat.seat_id || "Unknown seat";
+    const model = seat.model_id || "model unknown";
+    const route = seat.last_route || "no route observed";
+    const latency = Number(seat.last_latency_ms || 0) > 0 ? `${Math.round(Number(seat.last_latency_ms))} ms` : "latency unknown";
+    const detail = status === "succeeded"
+      ? `Last response: ${latency}`
+      : status === "failed"
+        ? `Last failure: ${seat.last_error || seat.last_attempt_status || "unknown"}`
+        : "No recent receipt";
+    const timestamp = seat.last_observed_at ? `Observed ${seat.last_observed_at}` : "Not observed in recent receipts";
+    return `
+      <div class="seat-smoke-pill" data-status="${escapeHtml(status)}" title="${escapeHtml(`${timestamp}; ${route}`)}">
+        <strong>${escapeHtml(label)}</strong>
+        <span>${escapeHtml(model)}</span><br>
+        <span>${escapeHtml(detail)}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 function routingPolicySummaryHtml(policy) {

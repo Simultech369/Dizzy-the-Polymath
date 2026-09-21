@@ -720,6 +720,38 @@
       line-height: 1.4;
     }
 
+    .chat-seat-smoke {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.45rem;
+    }
+
+    .seat-smoke-pill {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.45rem 0.55rem;
+      background: rgba(5, 7, 12, 0.55);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+
+    .seat-smoke-pill strong {
+      display: block;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .seat-smoke-pill[data-status="succeeded"] {
+      border-color: rgba(52, 211, 153, 0.38);
+    }
+
+    .seat-smoke-pill[data-status="failed"] {
+      border-color: rgba(251, 113, 133, 0.38);
+    }
+
     .chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -1004,6 +1036,7 @@
               </select>
             </div>
             <div class="chat-seat-note" id="chat-seat-note">Seat options are configured choices, not availability proof. Receipts record the requested seat, selected route, and execution result.</div>
+            <div class="chat-seat-smoke" id="chat-seat-smoke" aria-label="Local seat smoke evidence"></div>
           </div>
 
           <div class="chat-input-row">
