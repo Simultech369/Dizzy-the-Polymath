@@ -139,13 +139,18 @@ assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "http://127.0.0.1:114
 assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "http://127.0.0.1:11434/v1", timeoutMs: 5000 }), 10000);
 
 const selectionOptions = getCouncilSelectionOptions();
-assert.ok(selectionOptions.length >= 4, "dashboard selector should expose implemented local/open-weight chat seats");
+assert.ok(selectionOptions.length >= 4, "dashboard selector API should report configured local/open-weight seats");
+assert.ok(selectionOptions.filter((option) => option.enabled !== false).length >= 3, "dashboard selector should expose implemented native-chat local seats");
 const qwenOption = selectionOptions.find((option) => option.seat_id === "qwen_local");
 assert.ok(qwenOption, "qwen local seat should be selectable");
 assert.strictEqual(qwenOption.model_id, "qwen2.5-coder:7b");
 assert.strictEqual(qwenOption.harness_id, "native_chat");
 assert.strictEqual(qwenOption.evidence_state, "configured_unverified");
 assert.strictEqual(qwenOption.authority, "operator_requested_not_availability_proof");
+const r1Option = selectionOptions.find((option) => option.seat_id === "r1_local");
+assert.ok(r1Option, "r1 local seat should remain visible in the configured option evidence");
+assert.strictEqual(r1Option.enabled, false);
+assert.strictEqual(r1Option.blocked_reason, "reasoning_adapter_required");
 
 assert.deepStrictEqual(
   normalizeCouncilSelection({ seat: " QWEN_Local ", harness: "" }),
@@ -165,6 +170,7 @@ assert.strictEqual(resolveCouncilSelection({}).empty, true);
 assert.strictEqual(resolveCouncilSelection({ seat_id: "unknown", harness_id: "native_chat" }).reason, "unknown_seat");
 assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", model_id: "mistral:latest" }).reason, "seat_model_mismatch");
 assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", harness_id: "dizzy_json_review" }).reason, "review_harness_not_wired_to_chat_selection");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "r1_local", harness_id: "native_chat" }).reason, "reasoning_adapter_required");
 
 withEnv({ OLLAMA_BASE_URL: "https://compat.example.test/v1" }, () => {
   const resolved = resolveCouncilSelection({ seat_id: "qwen_local" });
