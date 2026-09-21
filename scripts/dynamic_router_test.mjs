@@ -189,6 +189,9 @@ async function runIntegrationTests() {
       assert.ok(res.text.includes("selected qwen response"));
       assert.equal(requests.length, 1, "Explicit seat selection must issue one request to the selected local endpoint");
       assert.equal(requests[0].body.model, "qwen2.5-coder:7b", "Explicit qwen_local selection must not be rewritten to the env default");
+      const explicitSystemPrompt = requests[0].body.messages.find((m) => m.role === "system")?.content || "";
+      assert.match(explicitSystemPrompt, /explicitly selected local\/open-weight council seat/, "Explicit local seats should receive the lean local-seat prompt");
+      assert.ok(explicitSystemPrompt.length < 2000, "Explicit local seat prompt should stay small enough for local models");
       const policy = res.execution_metadata.routing_policy;
       assert.equal(policy.selected_model_or_route, "ollama:qwen2.5-coder:7b");
       assert.equal(policy.selection.requested_seat_id, "qwen_local");
