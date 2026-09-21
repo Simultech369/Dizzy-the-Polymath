@@ -140,7 +140,7 @@ assert.strictEqual(resolveOpenAICompatTimeoutMs({ baseUrl: "http://127.0.0.1:114
 
 const selectionOptions = getCouncilSelectionOptions();
 assert.ok(selectionOptions.length >= 4, "dashboard selector API should report configured local/open-weight seats");
-assert.ok(selectionOptions.filter((option) => option.enabled !== false).length >= 3, "dashboard selector should expose implemented native-chat local seats");
+assert.ok(selectionOptions.filter((option) => option.enabled !== false).length >= 4, "dashboard selector should expose implemented native-chat local seats");
 const qwenOption = selectionOptions.find((option) => option.seat_id === "qwen_local");
 assert.ok(qwenOption, "qwen local seat should be selectable");
 assert.strictEqual(qwenOption.model_id, "qwen2.5-coder:7b");
@@ -151,6 +151,10 @@ const r1Option = selectionOptions.find((option) => option.seat_id === "r1_local"
 assert.ok(r1Option, "r1 local seat should remain visible in the configured option evidence");
 assert.strictEqual(r1Option.enabled, false);
 assert.strictEqual(r1Option.blocked_reason, "reasoning_adapter_required");
+const llamaAuditOption = selectionOptions.find((option) => option.seat_id === "llama_audit_local");
+assert.ok(llamaAuditOption, "llama audit local seat should be selectable");
+assert.strictEqual(llamaAuditOption.model_id, "llama-audit:latest");
+assert.strictEqual(llamaAuditOption.enabled, true);
 
 assert.deepStrictEqual(
   normalizeCouncilSelection({ seat: " QWEN_Local ", harness: "" }),
@@ -164,6 +168,9 @@ withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
   assert.strictEqual(resolved.adapter, "ollama");
   assert.strictEqual(resolved.route_id, "ollama:qwen2.5-coder:7b");
   assert.strictEqual(resolved.provider_boundary, "local_machine");
+});
+withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
+  assert.strictEqual(resolveCouncilSelection({ seat_id: "llama_audit_local" }).route_id, "ollama:llama-audit:latest");
 });
 
 assert.strictEqual(resolveCouncilSelection({}).empty, true);
