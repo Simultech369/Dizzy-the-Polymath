@@ -464,7 +464,7 @@
       color: var(--cyan);
     }
 
-    /* Operator Console Grid */
+    /* Console Grid */
     .console-grid {
       display: grid;
       grid-template-columns: minmax(240px, 300px) minmax(320px, 1fr);
@@ -562,7 +562,7 @@
       overflow-x: auto;
     }
 
-    /* Governance & Routing Grid */
+    /* Council Grid */
     .governance-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -962,29 +962,41 @@
   </header>
 
   <main class="grid" aria-label="Dizzy dashboard workspace">
-    <!-- Sidebar: Prompt Pack Details -->
+    <!-- Sidebar: Configured Instruction Sources -->
     <div class="card">
       <div class="card-title">
-        <span>Prompt Pack Config</span>
+        <span>Configured Instruction Sources</span>
         <span class="badge badge-primary" id="active-pack">Awaiting data</span>
       </div>
       <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
-        Active constitutional boundaries and runtime prompt packs loaded from workspace:
+        Prompt and policy sources reported by the local API. Per-request routing and capability evidence appears in response receipts. A complete Current Run Contract is not yet implemented.
       </div>
       <ul class="prompt-list" id="prompt-sources-list">
         <!-- Rendered dynamically -->
       </ul>
+      <details class="raw-json" style="margin-top: 1rem;">
+        <summary>Privacy Note</summary>
+        <div style="color: var(--text-muted); font-size: 0.84rem; line-height: 1.45; margin-top: 0.55rem;">
+          This browser view and the local server have separate histories. The server retains chat history and routing receipts; clearing this view or logging out does not delete them. Requests go to the configured model endpoint. Context permissions depend on the effective trust zone.
+        </div>
+      </details>
+      <details class="raw-json" style="margin-top: 0.65rem;">
+        <summary>Operator Notice</summary>
+        <div style="color: var(--text-muted); font-size: 0.84rem; line-height: 1.45; margin-top: 0.55rem;">
+          Model replies are advice. Claims about reading files, changing files, or running tests require matching execution receipts. Simulation controls do not authorize promotion, and worker output requires review before application or publication.
+        </div>
+      </details>
     </div>
 
     <!-- Main Content Area -->
     <div class="card">
       <div class="tab-container" role="tablist" aria-label="Dashboard sections">
         <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-chat" data-tab-target="tab-chat">Interactive Chat</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-memory" data-tab-target="tab-memory">Memory Database</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-search" data-tab-target="tab-search">Sieve Retrieval Tester</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-console" data-tab-target="tab-console">Operator Console</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-governance" data-tab-target="tab-governance">Governance &amp; Routing</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-receipts" data-tab-target="tab-receipts">Receipts &amp; Observability</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-memory" data-tab-target="tab-memory">Memory Index</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-search" data-tab-target="tab-search">Retrieval Check</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-console" data-tab-target="tab-console">Console</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-governance" data-tab-target="tab-governance">Council</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-receipts" data-tab-target="tab-receipts">Receipt Trail</button>
       </div>
 
       <!-- Tab 0: Interactive Chat Surface -->
@@ -997,8 +1009,9 @@
               <span class="badge badge-amber" id="chat-backend-badge">Route unverified</span>
             </div>
             <div class="chat-controls">
-              <span class="badge badge-primary" title="Chat history is kept in browser session storage and cleared on logout.">Session history</span>
-              <button class="btn btn-secondary" id="chat-clear-btn" type="button" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Thread</button>
+              <span class="badge badge-primary" title="Browser view only. Clearing this view does not delete local server conversation history or receipts.">Browser View</span>
+              <button class="btn btn-secondary" id="chat-clear-btn" type="button" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear View</button>
+              <button class="btn btn-secondary" id="chat-reset-btn" type="button" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" title="Start a new dashboard conversation key. Existing server logs are retained.">Reset Conversation</button>
             </div>
           </div>
 
@@ -1015,11 +1028,11 @@
             </div>
           </div>
 
-          <div class="chat-suggestions">
-            <button class="suggestion-chip" type="button" data-prompt="Summarize Dizzy's core mission, continuity principles, and forward horizon">Horizon &amp; Mission</button>
-            <button class="suggestion-chip" type="button" data-prompt="Audit trust zone boundaries and memory decay rules">Audit Memory Rules</button>
-            <button class="suggestion-chip" type="button" data-prompt="Explain current router status, fail-closed boundaries, and local process isolation">Router Current Status</button>
-            <button class="suggestion-chip" type="button" data-prompt="Check system health and hardware status">Check Status</button>
+          <div class="chat-suggestions" aria-label="Slash command presets">
+            <button class="suggestion-chip" type="button" data-prompt="/mission">/mission</button>
+            <button class="suggestion-chip" type="button" data-prompt="/memory-rules">/memory-rules</button>
+            <button class="suggestion-chip" type="button" data-prompt="/router-status">/router-status</button>
+            <button class="suggestion-chip" type="button" data-prompt="/status">/status</button>
           </div>
 
           <div class="chat-seat-controls" aria-label="Council seat and harness selection">
@@ -1049,15 +1062,21 @@
         </div>
       </div>
 
-      <!-- Tab 1: Memory Database -->
-      <div id="tab-memory" class="tab-content" role="tabpanel" aria-label="Memory Database" hidden>
+      <!-- Tab 1: Memory Index -->
+      <div id="tab-memory" class="tab-content" role="tabpanel" aria-label="Memory Index" hidden>
+        <div class="warning-banner">
+          Memory Index is a reported local index view. It does not mean private memory was used in the current chat unless the capability receipt says so.
+        </div>
         <div class="card-list" id="memory-docs-list">
           <!-- Rendered dynamically -->
         </div>
       </div>
 
-      <!-- Tab 2: Sieve Retrieval Tester -->
-      <div id="tab-search" class="tab-content" role="tabpanel" aria-label="Sieve Retrieval Tester" hidden>
+      <!-- Tab 2: Retrieval Check -->
+      <div id="tab-search" class="tab-content" role="tabpanel" aria-label="Retrieval Check" hidden>
+        <div class="warning-banner">
+          Retrieval queries require the dashboard token and trust-zone permission. A blocked query is a boundary result, not a model failure.
+        </div>
         <div class="search-container">
           <label class="sr-only" for="search-query">Retrieval sieve query</label>
           <input type="text" id="search-query" class="search-input" placeholder="Query retrieval sieve (e.g. anti-extraction, trust zone, or preventative economics)...">
@@ -1083,11 +1102,14 @@
         </div>
       </div>
 
-      <!-- Tab 3: Operator Console -->
-      <div id="tab-console" class="tab-content" role="tabpanel" aria-label="Operator Console" hidden>
+      <!-- Tab 3: Console -->
+      <div id="tab-console" class="tab-content" role="tabpanel" aria-label="Console" hidden>
+        <div class="warning-banner">
+          This console exercises continuity and subprocess boundaries. It is not a general shell, patch worker, or autonomous commit path.
+        </div>
         <div class="console-grid">
           <div class="console-panel">
-            <h3>Execute Subprocess</h3>
+            <h3>Run Continuity Brief</h3>
             <div class="field-stack">
               <label>Client ID
                 <input id="console-client-id" class="console-input" value="demo-client" autocomplete="off">
@@ -1163,8 +1185,8 @@
         </div>
       </div>
 
-      <!-- Tab 4: Governance & Routing -->
-      <div id="tab-governance" class="tab-content" role="tabpanel" aria-label="Governance and Routing" hidden>
+      <!-- Tab 4: Council -->
+      <div id="tab-governance" class="tab-content" role="tabpanel" aria-label="Council" hidden>
         <div class="governance-grid">
           <!-- Bounded Inference & Routing Monitor -->
           <div class="console-panel">
@@ -1205,9 +1227,9 @@
 
           <!-- Pluralistic Consensus & Operator Veto -->
           <div class="console-panel">
-            <h3>Pluralistic Governance &amp; Council State</h3>
+            <h3>Simulated Governance Fixture</h3>
             <div class="warning-banner" style="font-size: 0.825rem; padding: 0.75rem 1rem; justify-content: center;">
-              <strong>Simulation mode:</strong> Pluralistic council &amp; operator sign-off matrix.
+              <strong>Simulation only:</strong> This panel is a visual fixture. It is not a promotion receipt or live multi-agent signature chain.
             </div>
             <div class="field-stack" style="margin-top: 1rem;">
               <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
@@ -1270,7 +1292,7 @@
             <div class="card-title" style="margin-bottom: 0.75rem;">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span class="status-dot" style="color: var(--emerald);"></span>
-                <span>Reported Route Circuit Breakers (Demonstration Data)</span>
+                <span>Reported Route Circuit Breakers (Fixture Data)</span>
               </div>
               <span class="badge badge-amber" id="circuit-breaker-aggregate-badge">Awaiting telemetry</span>
             </div>
@@ -1285,11 +1307,11 @@
       </div>
 
       <!-- TAB: RECEIPTS & OBSERVABILITY -->
-      <div id="tab-receipts" class="tab-content" role="tabpanel" aria-label="Receipts and Observability" hidden>
-        <!-- Telemetry & Freshness Control Bar -->
+      <div id="tab-receipts" class="tab-content" role="tabpanel" aria-label="Receipt Trail" hidden>
+        <!-- Receipt Trail Freshness Control Bar -->
         <div class="card" style="padding: 0.85rem 1.25rem; background: var(--card-bg); margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.65rem;">
-            <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-main);">Telemetry &amp; Audit Freshness</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-main);">Receipt Trail Freshness</span>
             <span id="latest-council-freshness-badge" class="badge badge-primary" style="font-size: 0.75rem;">Awaiting receipt</span>
           </div>
           <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">

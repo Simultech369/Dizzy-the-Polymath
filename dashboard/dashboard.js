@@ -15,6 +15,25 @@ function formatFetchError(error) {
   return `${status}${code}: ${message}`;
 }
 
+const DASHBOARD_SLASH_COMMANDS = Object.freeze({
+  "/mission": "Summarize Dizzy's core mission, continuity principles, and forward horizon.",
+  "/memory-rules": "Audit trust zone boundaries, memory access rules, and memory decay rules using only context available to this dispatch.",
+  "/router-status": "Explain current router status, fail-closed boundaries, selected seat behavior, and local process isolation. Do not claim live availability unless the receipt shows it.",
+  "/status": "Check current dashboard-visible system status. Distinguish live runtime evidence, stale receipts, simulated fixtures, and unavailable data.",
+});
+
+function expandDashboardSlashCommand(text) {
+  const raw = String(text || "").trim();
+  const [command, ...rest] = raw.split(/\s+/);
+  const expanded = Object.prototype.hasOwnProperty.call(DASHBOARD_SLASH_COMMANDS, command.toLowerCase())
+    ? DASHBOARD_SLASH_COMMANDS[command.toLowerCase()]
+    : "";
+  if (typeof expanded !== "string") return raw;
+  if (!expanded) return raw;
+  const suffix = rest.join(" ").trim();
+  return suffix ? `${expanded}\n\nOperator note: ${suffix}` : expanded;
+}
+
 async function loadData() {
   try {
     const data = await fetchJson("/api/dashboard-data");
@@ -150,7 +169,11 @@ async function runSearch() {
       `;
     }).join("");
   } catch (error) {
-    body.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--rose);">Query blocked or unavailable: ${escapeHtml(formatFetchError(error))}</td></tr>`;
+    const isUnauthorized = error.status === 401 || error.code === "LOCAL_CONTROL_UNAUTHORIZED";
+    const message = isUnauthorized
+      ? "Retrieval blocked: dashboard token is missing or expired. Log in again with the operator token."
+      : `Query blocked or unavailable: ${formatFetchError(error)}`;
+    body.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--rose);">${escapeHtml(message)}</td></tr>`;
   }
 }
 
@@ -901,7 +924,51 @@ if (btnResolveContainment) {
 // Interactive Chat Surface Controller
 let chatSurfaceInitialized = false;
 const CHAT_HISTORY_KEY = "dizzy_chat_history_session_v1";
+const CHAT_CONVERSATION_KEY = "dizzy_chat_conversation_key_v1";
 const LEGACY_CHAT_HISTORY_KEY = "dizzy_chat_history";
+let volatileDashboardConversationKey = "";
+let volatileDashboardConversationKeyAuthoritative = false;
+let chatViewGeneration = 0;
+
+function isDashboardConversationKey(value) {
+  return /^dashboard_chat_[0-9]{8,20}_[a-z0-9_-]{4,32}$/i.test(String(value || "").trim());
+}
+
+function newDashboardConversationKey() {
+  const rand = Math.random().toString(36).slice(2, 10);
+  return `dashboard_chat_${Date.now()}_${rand}`;
+}
+
+function rememberDashboardConversationKey(key, options = {}) {
+  volatileDashboardConversationKey = key;
+  volatileDashboardConversationKeyAuthoritative = options.authoritative === true;
+  try {
+    sessionStorage.setItem(CHAT_CONVERSATION_KEY, key);
+  } catch {}
+  return key;
+}
+
+function getDashboardConversationKey() {
+  if (volatileDashboardConversationKeyAuthoritative && isDashboardConversationKey(volatileDashboardConversationKey)) {
+    return volatileDashboardConversationKey;
+  }
+  try {
+    const existing = String(sessionStorage.getItem(CHAT_CONVERSATION_KEY) || "").trim();
+    if (isDashboardConversationKey(existing)) {
+      volatileDashboardConversationKey = existing;
+      volatileDashboardConversationKeyAuthoritative = false;
+      return existing;
+    }
+  } catch {
+    // sessionStorage can be unavailable in hardened browser modes.
+  }
+  if (isDashboardConversationKey(volatileDashboardConversationKey)) return volatileDashboardConversationKey;
+  return rememberDashboardConversationKey(newDashboardConversationKey());
+}
+
+function resetDashboardConversationKey() {
+  return rememberDashboardConversationKey(newDashboardConversationKey(), { authoritative: true });
+}
 
 function clearBrowserSessionState() {
   try {
@@ -920,6 +987,7 @@ function initChatSurface() {
   const chatInputText = document.getElementById("chat-input-text");
   const chatSendBtn = document.getElementById("chat-send-btn");
   const chatClearBtn = document.getElementById("chat-clear-btn");
+  const chatResetBtn = document.getElementById("chat-reset-btn");
   const chatSeatSelect = document.getElementById("chat-seat-select");
   const chatHarnessSelect = document.getElementById("chat-harness-select");
   const chatSeatNote = document.getElementById("chat-seat-note");
@@ -1077,7 +1145,10 @@ function initChatSurface() {
   async function handleSend() {
     const text = chatInputText.value.trim();
     if (!text) return;
+    const outboundText = expandDashboardSlashCommand(text);
     const selection = currentCouncilSelection();
+    const conversationKey = getDashboardConversationKey();
+    const sendGeneration = chatViewGeneration;
 
     chatInputText.value = "";
     chatInputText.style.height = "auto";
@@ -1099,7 +1170,7 @@ function initChatSurface() {
           <span class="bubble-timestamp">Thinking...</span>
         </div>
         <div class="chat-bubble-body">
-          <span class="status-dot" style="color: var(--cyan); display: inline-block;"></span> Reasoning over prompt pack &amp; memory graph...
+          <span class="status-dot" style="color: var(--cyan); display: inline-block;"></span> Waiting for selected route and receipt...
         </div>
       </div>
     `);
@@ -1111,13 +1182,20 @@ function initChatSurface() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           channel: "dashboard_chat",
-          text,
+          text: outboundText,
+          runtime_context: {
+            conversation_key: conversationKey,
+          },
           ...(selection ? { selection } : {}),
         })
       });
 
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
+
+      if (sendGeneration !== chatViewGeneration || conversationKey !== getDashboardConversationKey()) {
+        return;
+      }
 
       const assistantText = response.text || (response.ok ? "Dispatch accepted; no response text was returned." : ("Dispatch issue: " + (response.error || "Unknown error")));
       const receipt = response.capability_receipt
@@ -1131,6 +1209,10 @@ function initChatSurface() {
     } catch (err) {
       const typingElem = document.getElementById(typingId);
       if (typingElem) typingElem.remove();
+
+      if (sendGeneration !== chatViewGeneration || conversationKey !== getDashboardConversationKey()) {
+        return;
+      }
 
       const isUnauthorized = err.status === 401 || err.code === "LOCAL_CONTROL_UNAUTHORIZED";
       const errorMsg = isUnauthorized
@@ -1172,9 +1254,20 @@ function initChatSurface() {
 
   if (chatClearBtn) {
     chatClearBtn.addEventListener("click", () => {
-      if (confirm("Clear live chat history?")) {
+      if (confirm("Clear browser chat view? Server conversation history and receipts are retained.")) {
         clearBrowserSessionState();
-        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Local chat history cleared. Route health remains dependent on the local API response.");
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "Browser view cleared. Server conversation history and receipts are retained; use Reset Conversation to start a new server conversation key.");
+      }
+    });
+  }
+
+  if (chatResetBtn) {
+    chatResetBtn.addEventListener("click", () => {
+      if (confirm("Start a new dashboard conversation? Existing local server logs are retained but no longer used by this browser view.")) {
+        chatViewGeneration += 1;
+        resetDashboardConversationKey();
+        clearBrowserSessionState();
+        chatMessagesList.innerHTML = createBubbleHtml("assistant", "New dashboard conversation started. Existing local server logs remain on disk, but this browser view now sends a new conversation key.");
       }
     });
   }
@@ -1184,6 +1277,11 @@ function initChatSurface() {
       dashboardLogoutBtn.disabled = true;
       dashboardLogoutBtn.setAttribute("aria-busy", "true");
       clearBrowserSessionState();
+      volatileDashboardConversationKey = "";
+      volatileDashboardConversationKeyAuthoritative = false;
+      try {
+        sessionStorage.removeItem(CHAT_CONVERSATION_KEY);
+      } catch {}
       try {
         await fetch("/dashboard/logout", {
           method: "POST",

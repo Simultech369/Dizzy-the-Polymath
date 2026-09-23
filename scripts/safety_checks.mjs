@@ -4154,7 +4154,7 @@ async function testDashboardOperatorConsoleApis() {
   try {
     const baseUrl = `http://127.0.0.1:${started.boundPort}`;
     const html = await fetch(`${baseUrl}/dashboard`, { headers: { authorization: `Bearer ${STRONG_TEST_AUTH_TOKEN}` } }).then((r) => r.text());
-    assert.match(html, /Operator Console/);
+    assert.match(html, /Console/);
     assert.match(html, /summary-card/);
     assert.match(html, /trace-stack/);
     assert.match(html, /System Memory:/);

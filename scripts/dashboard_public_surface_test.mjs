@@ -1,5 +1,6 @@
 import assert from "assert";
 import fs from "fs";
+import vm from "node:vm";
 
 import { startServer } from "../agent_server.mjs";
 
@@ -71,6 +72,37 @@ function assertInitialDashboardTruthfulness(html) {
   }
 }
 
+function assertDashboardResetStorageFailureBehavior(jsSource) {
+  const start = jsSource.indexOf("let chatSurfaceInitialized = false;");
+  const end = jsSource.indexOf("function clearBrowserSessionState()", start);
+  assert(start >= 0 && end > start, "dashboard conversation-key helpers should remain discoverable for behavior tests");
+  const helperSource = jsSource.slice(start, end);
+  const oldKey = "dashboard_chat_1727000000000_oldkey";
+  const context = {
+    Date: { now: () => 1727000000001 },
+    Math,
+    sessionStorage: {
+      getItem: () => oldKey,
+      setItem: () => {
+        throw new Error("synthetic storage write failure");
+      },
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${helperSource}
+globalThis.beforeResetKey = getDashboardConversationKey();
+globalThis.resetKey = resetDashboardConversationKey();
+globalThis.afterResetKey = getDashboardConversationKey();
+`, context);
+  assert.equal(context.beforeResetKey, oldKey, "pre-reset reads may use the stored dashboard conversation key");
+  assert.notEqual(context.resetKey, oldKey, "reset must choose a new dashboard conversation key");
+  assert.equal(
+    context.afterResetKey,
+    context.resetKey,
+    "a storage write failure must not let the old stored key override the reset in-memory key",
+  );
+}
+
 async function run() {
   console.log("=== W-0105 Dashboard Public Surface Test Suite ===");
 
@@ -83,6 +115,7 @@ async function run() {
   assertAscii(jsSource, DASHBOARD_JS);
   assertAscii(loginJsSource, DASHBOARD_LOGIN_JS);
   assertInitialDashboardTruthfulness(htmlSource);
+  assertDashboardResetStorageFailureBehavior(jsSource);
   assert(htmlSource.includes('<meta name="description"'), "dashboard should include a factual meta description");
   assert(htmlSource.includes("<title>Dizzy Local Operator Dashboard</title>"), "dashboard title should identify the local operator surface");
   assert(htmlSource.includes("Receipt &amp; Capability Evidence"), "dashboard should label receipts as evidence rather than broad proof");
@@ -109,8 +142,31 @@ async function run() {
   assert(jsSource.includes("transport started"), "chat receipt drawer should distinguish attempted transport from no-call failures");
   assert(jsSource.includes("Model Result:"), "chat receipt drawer should show model result rather than implying a local route");
   assert(jsSource.includes("Planned Route:"), "chat receipt drawer should expose the actual planned route when available");
-  assert(htmlSource.includes("Reported Route Circuit Breakers (Demonstration Data)"), "dashboard circuit-breaker heading should be report-scoped");
+  assert(htmlSource.includes("Reported Route Circuit Breakers (Fixture Data)"), "dashboard circuit-breaker heading should be fixture-scoped");
   assert(htmlSource.includes("Reported Latency-Cost-Trust Map"), "dashboard route map heading should be report-scoped");
+  assert(htmlSource.includes("Configured Instruction Sources"), "dashboard should not label static prompt inventory as a resolved run contract");
+  assert(htmlSource.includes("A complete Current Run Contract is not yet implemented"), "dashboard should not overclaim a complete resolved run contract");
+  assert(htmlSource.includes("Privacy Note"), "dashboard should include a concise privacy note");
+  assert(htmlSource.includes("Operator Notice"), "dashboard should include a concise operator notice");
+  assert(htmlSource.includes("clearing this view or logging out does not delete them"), "privacy note should disclose server retention separately from browser view");
+  assert(htmlSource.includes("Claims about reading files, changing files, or running tests require matching execution receipts"), "operator notice should bind action claims to receipts");
+  assert(htmlSource.includes("Memory Index"), "dashboard should label memory as an index, not a database claim");
+  assert(htmlSource.includes("Retrieval Check"), "dashboard should label retrieval as an operator check");
+  assert(htmlSource.includes("data-tab-target=\"tab-console\">Console</button>"), "dashboard should expose a plain Console tab");
+  assert(htmlSource.includes("data-tab-target=\"tab-governance\">Council</button>"), "dashboard should expose the council surface without over-promoting it");
+  assert(htmlSource.includes("Receipt Trail"), "dashboard should use receipt trail language for observability");
+  assert(htmlSource.includes("Browser View"), "dashboard should clarify the non-clickable browser transcript scope");
+  assert(htmlSource.includes("Clear View"), "dashboard should distinguish clearing the browser view from server retention");
+  assert(htmlSource.includes("Reset Conversation"), "dashboard should expose a separate conversation-reset action");
+  assert(htmlSource.includes("Retrieval queries require the dashboard token"), "retrieval sieve should explain authorization boundaries");
+  assert(htmlSource.includes("Simulation only:"), "governance fixture should be visibly simulation-scoped");
+  assert(jsSource.includes("DASHBOARD_SLASH_COMMANDS"), "dashboard slash command presets should be explicit, not decorative chips");
+  assert(jsSource.includes("hasOwnProperty.call(DASHBOARD_SLASH_COMMANDS"), "dashboard slash command lookup must reject inherited properties");
+  assert(jsSource.includes("getDashboardConversationKey"), "dashboard dispatch should carry a scoped server conversation key");
+  assert(jsSource.includes("chatViewGeneration"), "dashboard reset should fence off stale pending responses");
+  assert(jsSource.includes("volatileDashboardConversationKeyAuthoritative"), "dashboard reset key should remain authoritative after partial storage failure");
+  assert(!jsSource.includes('return "dashboard_chat";'), "dashboard storage fallback must not collapse into the shared server conversation key");
+  assert(jsSource.includes("Waiting for selected route and receipt"), "chat loading text should not claim memory graph access before receipt evidence");
   assert(!htmlSource.includes("Receipt &amp; Capability Proof"), "dashboard should not use broad proof language for receipts");
   assert(!jsSource.includes("Capability Proof"), "dashboard chat receipts should use evidence language");
   assert(!htmlSource.includes("Live Route Circuit Breakers"), "dashboard should not label demonstration circuit-breaker data as live");
@@ -197,7 +253,7 @@ async function run() {
     assert(!script.text.includes('localStorage.setItem("dizzy_chat_history"'), "dashboard must not write legacy persistent chat history");
     assert(!script.text.includes('localStorage.getItem("dizzy_chat_history"'), "dashboard must not load legacy persistent chat history");
     assert(dashboard.text.includes('id="btn-dashboard-logout"'), "dashboard should expose a visible logout control");
-    assert(dashboard.text.includes("Session history"), "dashboard should disclose browser session history scope");
+    assert(dashboard.text.includes("Browser View"), "dashboard should disclose browser view scope");
 
     const cookieChat = await fetch(`${base}/dispatch/incoming`, {
       method: "POST",
@@ -232,6 +288,23 @@ async function run() {
     assert.match(cookieSelectionBody.text, /seat\/harness selection is unavailable/i);
     assert.equal(cookieSelectionBody.router_receipt?.selection?.requested_seat_id, "unknown");
     assert.equal(cookieSelectionBody.router_receipt?.selection?.requested_harness_id, "native_chat");
+
+    const cookieForeignConversation = await fetch(`${base}/dispatch/incoming`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        origin: base,
+      },
+      body: JSON.stringify({
+        channel: "dashboard_chat",
+        text: "foreign conversation validation probe",
+        runtime_context: { conversation_key: "local" },
+      }),
+    });
+    assertStatus(cookieForeignConversation, 403, "dashboard cookie dispatch foreign conversation key");
+    const cookieForeignConversationBody = await cookieForeignConversation.json();
+    assert.equal(cookieForeignConversationBody.code, "DASHBOARD_CHAT_SCOPE_REQUIRED");
 
     const cookieNoOrigin = await fetch(`${base}/dispatch/incoming`, {
       method: "POST",

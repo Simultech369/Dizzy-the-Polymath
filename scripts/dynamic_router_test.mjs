@@ -190,7 +190,9 @@ async function runIntegrationTests() {
       assert.equal(requests.length, 1, "Explicit seat selection must issue one request to the selected local endpoint");
       assert.equal(requests[0].body.model, "qwen2.5-coder:7b", "Explicit qwen_local selection must not be rewritten to the env default");
       const explicitSystemPrompt = requests[0].body.messages.find((m) => m.role === "system")?.content || "";
-      assert.match(explicitSystemPrompt, /explicitly selected local\/open-weight council seat/, "Explicit local seats should receive the lean local-seat prompt");
+      assert.match(explicitSystemPrompt, /selected local\/open-weight council seat/, "Explicit local seats should receive the lean local-seat prompt");
+      assert.match(explicitSystemPrompt, /advisory chat response/, "Explicit local seats must be framed as advisory chat, not autonomous workers");
+      assert.match(explicitSystemPrompt, /do not claim that you performed the action/i, "Explicit local seats must not claim file edits, commits, or test execution");
       assert.ok(explicitSystemPrompt.length < 2000, "Explicit local seat prompt should stay small enough for local models");
       const policy = res.execution_metadata.routing_policy;
       assert.equal(policy.selected_model_or_route, "ollama:qwen2.5-coder:7b");
@@ -272,6 +274,121 @@ async function runIntegrationTests() {
         else process.env.DIZZY_CHAT_TIMEOUT_MS = oldChatTimeout;
       }
     }, { responseDelayMs: 6000 });
+
+    {
+      let enqueueCalls = 0;
+      const selectedToolRes = await handleIncomingMessage({
+        message: {
+          text: "tool:http_get https://example.com",
+          runtime_context: { trust_zone: "paid_public" },
+          channel: "cli",
+          selection: {
+            seat_id: "qwen_local",
+            model_id: "qwen2.5-coder:7b",
+            harness_id: "native_chat",
+          },
+        },
+        enqueue: async () => {
+          enqueueCalls += 1;
+          return "unexpected";
+        },
+      });
+      assert.equal(selectedToolRes.kind, "reply");
+      assert.equal(enqueueCalls, 0, "Selected council seats must not be attributed to operator tool dispatch");
+      assert.match(selectedToolRes.text, /cannot execute operator commands/i);
+      assert.equal(selectedToolRes.execution_metadata.reason, "no_model_execution:seat_selection_operator_command_blocked");
+
+      const metaSelectedToolRes = await handleIncomingMessage({
+        message: {
+          text: "tool:http_get https://example.com",
+          runtime_context: { trust_zone: "paid_public" },
+          channel: "cli",
+          meta: {
+            selection: {
+              seat_id: "qwen_local",
+              model_id: "qwen2.5-coder:7b",
+              harness_id: "native_chat",
+            },
+          },
+        },
+        enqueue: async () => {
+          enqueueCalls += 1;
+          return "unexpected";
+        },
+      });
+      assert.equal(metaSelectedToolRes.kind, "reply");
+      assert.equal(enqueueCalls, 0, "Metadata selections must not bypass selected-seat command attribution");
+      assert.equal(metaSelectedToolRes.execution_metadata.selection.requested_seat_id, "qwen_local");
+      assert.equal(metaSelectedToolRes.execution_metadata.reason, "no_model_execution:seat_selection_operator_command_blocked");
+
+      const selectedResetRes = await handleIncomingMessage({
+        message: {
+          text: "/reset",
+          runtime_context: { trust_zone: "paid_public", conversation_key: "selected_reset_probe" },
+          channel: "cli",
+          selection: {
+            seat_id: "qwen_local",
+            model_id: "qwen2.5-coder:7b",
+            harness_id: "native_chat",
+          },
+        },
+      });
+      assert.equal(selectedResetRes.kind, "reply");
+      assert.match(selectedResetRes.text, /cannot execute operator commands/i);
+      assert.equal(selectedResetRes.execution_metadata.reason, "no_model_execution:seat_selection_operator_command_blocked");
+    }
+
+    {
+      const oldFetch = globalThis.fetch;
+      const oldOllamaBaseUrl = process.env.OLLAMA_BASE_URL;
+      const oldAllowLan = process.env.DIZZY_ALLOW_LAN_LOCAL_BACKEND;
+      const oldBackend = process.env.DIZZY_CHAT_BACKEND;
+      const oldCompatBaseUrl = process.env.OPENAI_COMPAT_BASE_URL;
+      const oldCompatModel = process.env.OPENAI_COMPAT_MODEL;
+      const oldCompatApiKey = process.env.OPENAI_COMPAT_API_KEY;
+      try {
+        globalThis.fetch = async () => {
+          throw new Error("fetch failed");
+        };
+        process.env.OLLAMA_BASE_URL = "http://192.168.1.20:11434/v1";
+        process.env.DIZZY_ALLOW_LAN_LOCAL_BACKEND = "1";
+        delete process.env.DIZZY_CHAT_BACKEND;
+        delete process.env.OPENAI_COMPAT_BASE_URL;
+        delete process.env.OPENAI_COMPAT_MODEL;
+        delete process.env.OPENAI_COMPAT_API_KEY;
+
+        const lanFailureRes = await handleIncomingMessage({
+          message: {
+            text: "Hello selected LAN failure receipt test",
+            runtime_context: { trust_zone: "paid_public" },
+            channel: "cli",
+            selection: {
+              seat_id: "qwen_local",
+              model_id: "qwen2.5-coder:7b",
+              harness_id: "native_chat",
+            },
+          },
+        });
+        assert.equal(lanFailureRes.kind, "reply");
+        assert.equal(lanFailureRes.execution_metadata.chosen_model, "none:local_backend_unavailable");
+        assert.equal(lanFailureRes.execution_metadata.data_boundary, "private_lan", "Failed selected LAN calls must not be reported as this-machine execution");
+        assert.equal(lanFailureRes.execution_metadata.routing_policy?.attempts?.[0]?.provider_boundary, "private_lan");
+      } finally {
+        globalThis.fetch = oldFetch;
+        if (oldOllamaBaseUrl === undefined) delete process.env.OLLAMA_BASE_URL;
+        else process.env.OLLAMA_BASE_URL = oldOllamaBaseUrl;
+        if (oldAllowLan === undefined) delete process.env.DIZZY_ALLOW_LAN_LOCAL_BACKEND;
+        else process.env.DIZZY_ALLOW_LAN_LOCAL_BACKEND = oldAllowLan;
+        if (oldBackend === undefined) delete process.env.DIZZY_CHAT_BACKEND;
+        else process.env.DIZZY_CHAT_BACKEND = oldBackend;
+        if (oldCompatBaseUrl === undefined) delete process.env.OPENAI_COMPAT_BASE_URL;
+        else process.env.OPENAI_COMPAT_BASE_URL = oldCompatBaseUrl;
+        if (oldCompatModel === undefined) delete process.env.OPENAI_COMPAT_MODEL;
+        else process.env.OPENAI_COMPAT_MODEL = oldCompatModel;
+        if (oldCompatApiKey === undefined) delete process.env.OPENAI_COMPAT_API_KEY;
+        else process.env.OPENAI_COMPAT_API_KEY = oldCompatApiKey;
+      }
+    }
 
     // Test Case A: Offline Local Backend
     process.env.DIZZY_CHAT_BACKEND = "local";

@@ -95,7 +95,15 @@ withEnv({
 
 assert.deepStrictEqual(
   classifyOpenAICompatBaseUrl("https://openrouter.ai/api/v1"),
-  { provider: "openrouter", host: "openrouter.ai", isLocalHost: false },
+  { provider: "openrouter", host: "openrouter.ai", isLoopback: false, isPrivateLan: false, isLocalHost: false },
+);
+assert.deepStrictEqual(
+  classifyOpenAICompatBaseUrl("http://127.0.0.1:11434/v1"),
+  { provider: "ollama", host: "127.0.0.1", isLoopback: true, isPrivateLan: false, isLocalHost: true },
+);
+assert.deepStrictEqual(
+  classifyOpenAICompatBaseUrl("http://192.168.1.20:11434/v1"),
+  { provider: "ollama", host: "192.168.1.20", isLoopback: false, isPrivateLan: true, isLocalHost: true },
 );
 assert.strictEqual(
   normalizeOpenAICompatModelForBaseUrl({
@@ -171,6 +179,18 @@ withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
 });
 withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
   assert.strictEqual(resolveCouncilSelection({ seat_id: "llama_audit_local" }).route_id, "ollama:llama-audit:latest");
+});
+
+withEnv({ OLLAMA_BASE_URL: "http://192.168.1.20:11434/v1", DIZZY_ALLOW_LAN_LOCAL_BACKEND: undefined }, () => {
+  const resolved = resolveCouncilSelection({ seat_id: "qwen_local" });
+  assert.strictEqual(resolved.ok, false);
+  assert.strictEqual(resolved.reason, "local_seat_private_lan_requires_opt_in");
+});
+
+withEnv({ OLLAMA_BASE_URL: "http://192.168.1.20:11434/v1", DIZZY_ALLOW_LAN_LOCAL_BACKEND: "1" }, () => {
+  const resolved = resolveCouncilSelection({ seat_id: "qwen_local" });
+  assert.strictEqual(resolved.ok, true);
+  assert.strictEqual(resolved.provider_boundary, "private_lan");
 });
 
 assert.strictEqual(resolveCouncilSelection({}).empty, true);

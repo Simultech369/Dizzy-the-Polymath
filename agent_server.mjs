@@ -433,6 +433,20 @@ function buildRuntimeContext(req) {
   };
 }
 
+function normalizeRuntimeContextFromBody(value, options = {}) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const rawKey = String(source.conversation_key ?? "").trim();
+  if (!rawKey) return {};
+  if (options.requireDashboardConversationKey && !isDashboardConversationKey(rawKey)) return {};
+  const conversationKey = normalizeIdentifier(source.conversation_key, "");
+  return conversationKey ? { conversation_key: conversationKey } : {};
+}
+
+function isDashboardConversationKey(value) {
+  const raw = String(value ?? "").trim();
+  return /^dashboard_chat_[0-9]{8,20}_[a-z0-9_-]{4,32}$/i.test(raw);
+}
+
 function normalizeIdentifier(value, fallback) {
   const normalized = String(value ?? "")
     .trim()
@@ -598,10 +612,11 @@ function buildExecuteConversationKey(body = {}) {
 function buildIncomingMessage(body, req, defaults = {}) {
   const selection = normalizeCouncilSelection(body?.selection ?? body?.model_selection ?? defaults.selection ?? {});
   const hasSelection = Boolean(selection.seat_id || selection.model_id || selection.harness_id !== "native_chat");
+  const channel = normalizeIdentifier(body?.channel ?? defaults.channel ?? "local", defaults.channel ?? "local");
   // HTTP normalization is an operator-safety boundary for machine-facing surfaces.
   // It exists to keep queue keys, logs, and transport payloads sane, not to shape voice.
   return {
-    channel: normalizeIdentifier(body?.channel ?? defaults.channel ?? "local", defaults.channel ?? "local"),
+    channel,
     from: body?.from == null ? (defaults.from ?? null) : normalizeIdentifier(body?.from, "anon"),
     text: normalizeFreeText(
       body?.text ?? defaults.text ?? "",
@@ -611,6 +626,9 @@ function buildIncomingMessage(body, req, defaults = {}) {
     ...(hasSelection ? { selection } : {}),
     runtime_context: {
       ...buildRuntimeContext(req),
+      ...normalizeRuntimeContextFromBody(body?.runtime_context, {
+        requireDashboardConversationKey: channel === "dashboard_chat",
+      }),
       ...(defaults.runtime_context && typeof defaults.runtime_context === "object" ? defaults.runtime_context : {}),
     },
   };
@@ -825,8 +843,14 @@ export async function createRuntime(opts = {}) {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const channel = String(body.channel ?? "").trim();
       const text = String(body.text ?? "").trim();
-      const allowedKeys = new Set(["channel", "text", "selection", "model_selection"]);
+      const allowedKeys = new Set(["channel", "text", "selection", "model_selection", "runtime_context"]);
       const bodyKeysAllowed = Object.keys(body).every((key) => allowedKeys.has(key));
+      const runtimeContext = body.runtime_context && typeof body.runtime_context === "object" && !Array.isArray(body.runtime_context)
+        ? body.runtime_context
+        : {};
+      const runtimeContextKeysAllowed = Object.keys(runtimeContext).every((key) => key === "conversation_key");
+      const runtimeContextConversationAllowed = !Object.prototype.hasOwnProperty.call(runtimeContext, "conversation_key")
+        || isDashboardConversationKey(runtimeContext.conversation_key);
       if (
         req.path === "/dispatch/incoming"
         && isDashboardSameOriginMutation(req)
@@ -835,6 +859,8 @@ export async function createRuntime(opts = {}) {
         && !text.toLowerCase().startsWith("tool:")
         && !isMutationCommandText(text)
         && bodyKeysAllowed
+        && runtimeContextKeysAllowed
+        && runtimeContextConversationAllowed
       ) {
         return next();
       }

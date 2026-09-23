@@ -153,10 +153,17 @@ assertAbsent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
 
 assertPresent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
   /Receipt &(amp;)? Capability Evidence/i,
-  /Reported Route Circuit Breakers \(Demonstration Data\)/i,
+  /Reported Route Circuit Breakers \(Fixture Data\)/i,
   /Reported Latency-Cost-Trust Map/i,
   /receipt-scoped verification scores/i,
   /Receipt Git State/i,
+  /Configured Instruction Sources/i,
+  /A complete Current Run Contract is not yet implemented/i,
+  /Privacy Note/i,
+  /Operator Notice/i,
+  /Memory Index/i,
+  /Receipt Trail/i,
+  /Simulation only:/i,
 ]);
 
 for (const relPath of [
