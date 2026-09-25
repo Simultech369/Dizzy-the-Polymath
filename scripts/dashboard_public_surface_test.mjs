@@ -103,6 +103,71 @@ globalThis.afterResetKey = getDashboardConversationKey();
   );
 }
 
+async function assertLocalReviewFailureRendersReceipt(source) {
+  const elements = {
+    "local-review-seat-select": {
+      value: "qwen_local",
+      options: [{ dataset: { model: "qwen2.5-coder:7b" } }],
+      selectedIndex: 0,
+    },
+    "local-review-subject": { value: "test_subject" },
+    "local-review-goal": { value: "test_goal" },
+    "local-review-text": { value: "token=abc" },
+    "local-review-status": { textContent: "" },
+    "local-review-summary": { textContent: "" },
+    "local-review-findings": { innerHTML: "" },
+    "local-review-receipt": { style: { display: "none" }, innerHTML: "" },
+    "btn-run-local-review": { disabled: false, setAttribute: () => {}, removeAttribute: () => {} },
+  };
+
+  const fakeError = new Error("HTTP 502: Model parse failure");
+  fakeError.status = 502;
+  fakeError.code = "LOCAL_REVIEW_MODEL_ERROR";
+  fakeError.body = {
+    ok: false,
+    status: "failed",
+    error: "Model output failed parse",
+    receipt: {
+      seat_id: "qwen_local",
+      model_id: "qwen2.5-coder:7b",
+      authority: "ADVISORY_SUPPLIED_EVIDENCE_REVIEW_ONLY",
+      input_sha256: "abc123hash",
+      output_sha256: "def456hash",
+      file_reads_observed: false,
+      edits_observed: false,
+      tests_observed: false,
+      promotion_authority: false,
+    },
+  };
+
+  const context = {
+    document: {
+      getElementById: (id) => elements[id] || null,
+      querySelectorAll: () => [],
+    },
+    fetchJson: async () => {
+      throw fakeError;
+    },
+    console,
+  };
+
+  vm.createContext(context);
+  const testScript = `
+${source.slice(source.indexOf("function escapeHtml"), source.indexOf("const DASHBOARD_SLASH_COMMANDS"))}
+${source.slice(source.indexOf("function renderLocalReviewFindings"), source.indexOf("document.querySelectorAll(\"[data-tab-target]\")"))}
+globalThis.runTest = runLocalReview;
+`;
+  vm.runInContext(testScript, context);
+  await context.runTest();
+  const receiptElem = elements["local-review-receipt"];
+  const statusElem = elements["local-review-status"];
+  assert.equal(receiptElem.style.display, "block", "Failed review must show receipt element");
+  assert(receiptElem.innerHTML.includes("qwen_local"), "Receipt must contain seat_id");
+  assert(receiptElem.innerHTML.includes("ADVISORY_SUPPLIED_EVIDENCE_REVIEW_ONLY"), "Receipt must contain authority");
+  assert(statusElem.textContent.includes("Review blocked or unavailable"), "Status must retain failure message");
+  assert(statusElem.textContent.includes("HTTP 502"), "Status must retain HTTP status");
+}
+
 async function run() {
   console.log("=== W-0105 Dashboard Public Surface Test Suite ===");
 
@@ -116,6 +181,7 @@ async function run() {
   assertAscii(loginJsSource, DASHBOARD_LOGIN_JS);
   assertInitialDashboardTruthfulness(htmlSource);
   assertDashboardResetStorageFailureBehavior(jsSource);
+  await assertLocalReviewFailureRendersReceipt(jsSource);
   assert(htmlSource.includes('<meta name="description"'), "dashboard should include a factual meta description");
   assert(htmlSource.includes("<title>Dizzy Local Operator Dashboard</title>"), "dashboard title should identify the local operator surface");
   assert(htmlSource.includes("Receipt &amp; Capability Evidence"), "dashboard should label receipts as evidence rather than broad proof");
@@ -160,11 +226,18 @@ async function run() {
   assert(htmlSource.includes("Reset Conversation"), "dashboard should expose a separate conversation-reset action");
   assert(htmlSource.includes("Retrieval queries require the dashboard token"), "retrieval sieve should explain authorization boundaries");
   assert(htmlSource.includes("Simulation only:"), "governance fixture should be visibly simulation-scoped");
+  assert(htmlSource.includes("Review Supplied Evidence"), "council tab should expose bounded local review as a real operator action");
+  assert(htmlSource.includes('id="local-review-seat-select"'), "local review surface should expose an explicit review seat selector");
+  assert(htmlSource.includes("Advisory local review only"), "local review surface should state advisory-only authority");
+  assert(htmlSource.includes("no file reads, edits, tests, commits, or promotion authority"), "local review surface should disclose negative guarantees");
   assert(jsSource.includes("DASHBOARD_SLASH_COMMANDS"), "dashboard slash command presets should be explicit, not decorative chips");
   assert(jsSource.includes("hasOwnProperty.call(DASHBOARD_SLASH_COMMANDS"), "dashboard slash command lookup must reject inherited properties");
   assert(jsSource.includes("getDashboardConversationKey"), "dashboard dispatch should carry a scoped server conversation key");
   assert(jsSource.includes("chatViewGeneration"), "dashboard reset should fence off stale pending responses");
   assert(jsSource.includes("volatileDashboardConversationKeyAuthoritative"), "dashboard reset key should remain authoritative after partial storage failure");
+  assert(jsSource.includes("runLocalReview"), "dashboard should wire the local review action separately from chat");
+  assert(jsSource.includes("/api/operator/local-review"), "dashboard local review action should call the bounded review endpoint");
+  assert(jsSource.includes("No file reads observed") === false, "dashboard should render negative guarantees from receipts rather than hard-coded success prose");
   assert(!jsSource.includes('return "dashboard_chat";'), "dashboard storage fallback must not collapse into the shared server conversation key");
   assert(jsSource.includes("Waiting for selected route and receipt"), "chat loading text should not claim memory graph access before receipt evidence");
   assert(!htmlSource.includes("Receipt &amp; Capability Proof"), "dashboard should not use broad proof language for receipts");
@@ -330,6 +403,36 @@ async function run() {
     assertStatus(cookieTool, 403, "dashboard cookie dispatch tool scope");
     const cookieToolBody = await cookieTool.json();
     assert.equal(cookieToolBody.code, "DASHBOARD_CHAT_SCOPE_REQUIRED");
+
+    const cookieLocalReviewNoOrigin = await fetch(`${base}/api/operator/local-review`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        selection: { seat_id: "qwen_local", harness_id: "dizzy_json_review" },
+        supplied_text: "same-origin required",
+      }),
+    });
+    assertStatus(cookieLocalReviewNoOrigin, 403, "dashboard local review same-origin guard");
+    const cookieLocalReviewNoOriginBody = await cookieLocalReviewNoOrigin.json();
+    assert.equal(cookieLocalReviewNoOriginBody.code, "DASHBOARD_MUTATION_SCOPE_REQUIRED");
+
+    const cookieLocalReviewMissingText = await fetch(`${base}/api/operator/local-review`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "content-type": "application/json",
+        origin: base,
+      },
+      body: JSON.stringify({
+        selection: { seat_id: "qwen_local", harness_id: "dizzy_json_review" },
+      }),
+    });
+    assertStatus(cookieLocalReviewMissingText, 400, "dashboard local review payload validation");
+    const cookieLocalReviewMissingTextBody = await cookieLocalReviewMissingText.json();
+    assert.equal(cookieLocalReviewMissingTextBody.code, "LOCAL_REVIEW_TEXT_REQUIRED");
 
     const missingApi = await fetch(`${base}/api/not-a-real-route`, {
       headers: { authorization: `Bearer ${TOKEN}` },

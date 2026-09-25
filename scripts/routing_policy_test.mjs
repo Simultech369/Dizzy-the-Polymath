@@ -394,6 +394,60 @@ assert.equal(attempts, 2);
 assert.equal(execution.attempts[0].status, "FAILED");
 assert.equal(execution.attempts[1].status, "SUCCEEDED");
 
+for (const usage of [
+  {},
+  { total_tokens: 100 },
+  { input_tokens: 12 },
+  { input_tokens: 12, output_tokens: 4, cached_tokens: 13 },
+  { input_tokens: "", output_tokens: 4 },
+  { input_tokens: false, output_tokens: 4 },
+  { input_tokens: 1.5, output_tokens: 4 },
+  // Malformed authoritative aliases fail closed instead of falling back.
+  { input_tokens: false, prompt_tokens: 1000, output_tokens: 4 },
+  { input_tokens: "", prompt_tokens: 1000, output_tokens: 4 },
+  // Cached token null fallthrough: explicit null in one alias must not fall through to another
+  { input_tokens: 10, output_tokens: 5, prompt_tokens_details: { cached_tokens: null }, cached_tokens: 0 },
+  { input_tokens: 10, output_tokens: 5, cached_tokens: null, prompt_cache_hit_tokens: 0 },
+]) {
+  const incompleteUsageExecution = await executeRoutingPlan(twoAttemptPlan, {
+    now: () => now.getTime(),
+    invokeRoute: async ({ route }) => ({
+      text: "ok",
+      sent_model: route.model_id,
+      reported_model: route.model_id,
+      usage,
+    }),
+  });
+  assert.equal(incompleteUsageExecution.status, "SUCCEEDED");
+  assert.equal(incompleteUsageExecution.attempts[0].usage_known, false, `Usage ${JSON.stringify(usage)} must remain unknown`);
+  assert.equal(incompleteUsageExecution.routing_deltas.actual_cost_usd, null, `Usage ${JSON.stringify(usage)} must not fabricate a cost`);
+}
+
+// Authoritative aliases: input_tokens/output_tokens win when present.
+const authoritativeAliasExecution = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({
+    text: "ok",
+    usage: { input_tokens: 0, prompt_tokens: 1000, output_tokens: 4, completion_tokens: 8 },
+  }),
+});
+assert.equal(authoritativeAliasExecution.attempts[0].usage_known, true, "Authoritative aliases must yield known usage");
+assert.equal(authoritativeAliasExecution.attempts[0].usage.input_tokens, 0);
+assert.equal(authoritativeAliasExecution.attempts[0].usage.output_tokens, 4);
+assert.equal(authoritativeAliasExecution.routing_deltas.actual_cost_usd, 0.000032);
+
+const exhaustedNoUsageExecution = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => {
+    throw new Error("provider failed before usage metadata");
+  },
+  permitFallback: () => true,
+});
+assert.equal(exhaustedNoUsageExecution.status, "BLOCKED");
+assert.equal(exhaustedNoUsageExecution.provider_invoked, true);
+assert.equal(exhaustedNoUsageExecution.routing_deltas.actual_cost_usd, null, "Exhausted invoked attempts without usage must not fabricate zero cost");
+assert.equal(exhaustedNoUsageExecution.routing_deltas.cost_delta_usd, null);
+
 const t0Execution = await executeRoutingPlan(deterministicPlan, {
   now: () => now.getTime(),
   deterministicHandlers: {
@@ -589,6 +643,72 @@ const nestedMeaningfulPayload = await executeRoutingPlan(twoAttemptPlan, {
   invokeRoute: async () => ({ payload: { choices: [{ text: "review complete" }] } }),
 });
 assert.equal(nestedMeaningfulPayload.status, "SUCCEEDED", "Structured payloads with meaningful nested text remain valid");
+
+const malformedTotalUsageCases = [null, false, "", 1.5, [], {}, 10];
+for (const badTotal of malformedTotalUsageCases) {
+  const res = await executeRoutingPlan(twoAttemptPlan, {
+    now: () => now.getTime(),
+    invokeRoute: async () => ({
+      text: "ok",
+      usage: { input_tokens: 12, output_tokens: 4, total_tokens: badTotal },
+    }),
+  });
+  assert.equal(res.status, "SUCCEEDED");
+  assert.equal(res.attempts[0].usage_known, false, `Total ${JSON.stringify(badTotal)} must not yield known usage`);
+  assert.equal(res.routing_deltas.actual_cost_usd, null, `Total ${JSON.stringify(badTotal)} must not yield calculated cost`);
+
+  const resGemini = await executeRoutingPlan(twoAttemptPlan, {
+    now: () => now.getTime(),
+    invokeRoute: async () => ({
+      text: "ok",
+      usage: { input_tokens: 12, output_tokens: 4, totalTokenCount: badTotal },
+    }),
+  });
+  assert.equal(resGemini.status, "SUCCEEDED");
+  assert.equal(resGemini.attempts[0].usage_known, false, `TotalTokenCount ${JSON.stringify(badTotal)} must not yield known usage`);
+  assert.equal(resGemini.routing_deltas.actual_cost_usd, null, `TotalTokenCount ${JSON.stringify(badTotal)} must not yield calculated cost`);
+}
+
+const safeIntegerSumOverflow = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({
+    text: "ok",
+    usage: { input_tokens: Number.MAX_SAFE_INTEGER, output_tokens: 2 },
+  }),
+});
+assert.equal(safeIntegerSumOverflow.attempts[0].usage_known, false, "MAX_SAFE_INTEGER + 2 sum overflow must not yield known usage");
+assert.equal(safeIntegerSumOverflow.routing_deltas.actual_cost_usd, null);
+
+const authoritativeInputAlias = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({
+    text: "ok",
+    usage: { input_tokens: 0, prompt_tokens: "1e308", output_tokens: 4 },
+  }),
+});
+assert.equal(authoritativeInputAlias.attempts[0].usage_known, true, "input_tokens remains authoritative over malformed prompt_tokens");
+assert.equal(authoritativeInputAlias.attempts[0].usage.input_tokens, 0);
+assert.equal(authoritativeInputAlias.routing_deltas.actual_cost_usd, 0.000032);
+
+const overflowUsage = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({
+    text: "ok",
+    usage: { input_tokens: "1e308", output_tokens: "4" },
+  }),
+});
+assert.equal(overflowUsage.attempts[0].usage_known, false, "Overflowing usage string must not yield known usage");
+assert.equal(overflowUsage.routing_deltas.actual_cost_usd, null, "Overflowing usage string must not yield calculated cost");
+
+const validTotalUsage = await executeRoutingPlan(twoAttemptPlan, {
+  now: () => now.getTime(),
+  invokeRoute: async () => ({
+    text: "ok",
+    usage: { input_tokens: 12, output_tokens: 4, total_tokens: 16 },
+  }),
+});
+assert.equal(validTotalUsage.attempts[0].usage_known, true);
+assert.notEqual(validTotalUsage.routing_deltas.actual_cost_usd, null);
 
 console.log("[PASS] Capability-first routing policy tests passed.");
 console.log("ROUTING_POLICY_TESTS_OK");

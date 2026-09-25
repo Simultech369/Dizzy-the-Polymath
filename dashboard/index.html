@@ -1188,6 +1188,43 @@
       <!-- Tab 4: Council -->
       <div id="tab-governance" class="tab-content" role="tabpanel" aria-label="Council" hidden>
         <div class="governance-grid">
+          <div class="console-panel">
+            <h3>Review Supplied Evidence</h3>
+            <div class="warning-banner" style="font-size: 0.825rem; padding: 0.75rem 1rem;">
+              Advisory local review only. The selected seat receives supplied text; no file reads, edits, tests, commits, or promotion authority are implied.
+            </div>
+            <div class="field-stack" style="margin-top: 1rem;">
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.4rem;">
+                <label class="metric-label" for="local-review-seat-select">Review seat</label>
+                <select id="local-review-seat-select" class="console-input">
+                  <option value="">Select a local review seat</option>
+                </select>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Harness:</span>
+                <span class="badge badge-primary">dizzy_json_review</span>
+              </div>
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.4rem;">
+                <label class="metric-label" for="local-review-subject">Subject</label>
+                <input id="local-review-subject" class="console-input" value="supplied evidence review" autocomplete="off">
+              </div>
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.4rem;">
+                <label class="metric-label" for="local-review-goal">Review goal</label>
+                <input id="local-review-goal" class="console-input" value="Find correctness bugs, missing tests, and overclaims in this supplied evidence." autocomplete="off">
+              </div>
+              <div class="metric-row" style="flex-direction: column; align-items: stretch; gap: 0.4rem;">
+                <label class="metric-label" for="local-review-text">Supplied evidence</label>
+                <textarea id="local-review-text" class="console-textarea" maxlength="64000" placeholder="Paste a small diff, code excerpt, or handoff excerpt for advisory review."></textarea>
+                <span id="local-review-char-count" style="color: var(--text-muted); font-size: 0.78rem;">0 / 64000 characters</span>
+              </div>
+              <button class="btn" id="btn-run-local-review" type="button">Run Advisory Review</button>
+              <div id="local-review-status" style="color: var(--text-muted); font-size: 0.85rem;">No review run yet.</div>
+              <div id="local-review-summary" style="color: var(--text-muted); font-size: 0.9rem;"></div>
+              <div id="local-review-findings" class="card-list"></div>
+              <div id="local-review-receipt" class="raw-json" style="display: none;"></div>
+            </div>
+          </div>
+
           <!-- Bounded Inference & Routing Monitor -->
           <div class="console-panel">
             <h3>Bounded Inference &amp; Routing Monitor</h3>

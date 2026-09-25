@@ -5,11 +5,13 @@ import {
   getAllDivisions,
   getAllRoles,
   getChosenModelString,
+  getCouncilReviewSelectionOptions,
   getCouncilSelectionOptions,
   getDivisionForRole,
   getModelRoute,
   normalizeOpenAICompatModelForBaseUrl,
   normalizeCouncilSelection,
+  resolveCouncilReviewSelection,
   resolveCouncilSelection,
   resolveDivisionModelRoute,
   resolveOpenAICompatTimeoutMs,
@@ -164,6 +166,16 @@ assert.ok(llamaAuditOption, "llama audit local seat should be selectable");
 assert.strictEqual(llamaAuditOption.model_id, "llama-audit:latest");
 assert.strictEqual(llamaAuditOption.enabled, true);
 
+const reviewOptions = getCouncilReviewSelectionOptions();
+assert.ok(reviewOptions.length >= 4, "local review harness should expose configured local review seats");
+const qwenReviewOption = reviewOptions.find((option) => option.seat_id === "qwen_local");
+assert.ok(qwenReviewOption, "qwen local seat should be selectable for bounded JSON review");
+assert.strictEqual(qwenReviewOption.harness_id, "dizzy_json_review");
+assert.strictEqual(qwenReviewOption.authority, "advisory_supplied_evidence_review_only");
+assert.ok(reviewOptions.some((option) => option.seat_id === "mistral_local"), "mistral should be available as a review comparison seat");
+assert.ok(reviewOptions.some((option) => option.seat_id === "gemma3_local"), "gemma should be available as a review sanity seat");
+assert.ok(reviewOptions.some((option) => option.seat_id === "llama_audit_local"), "llama audit should be available as a risk review seat");
+
 assert.deepStrictEqual(
   normalizeCouncilSelection({ seat: " QWEN_Local ", harness: "" }),
   { seat_id: "qwen_local", model_id: "", harness_id: "native_chat" },
@@ -195,14 +207,43 @@ withEnv({ OLLAMA_BASE_URL: "http://192.168.1.20:11434/v1", DIZZY_ALLOW_LAN_LOCAL
 
 assert.strictEqual(resolveCouncilSelection({}).empty, true);
 assert.strictEqual(resolveCouncilSelection({ seat_id: "unknown", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "constructor", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "unknown", model_id: "qwen2.5-coder:7b", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "!!!", model_id: "qwen2.5-coder:7b", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "___", model_id: "qwen2.5-coder:7b", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "!!!", harness_id: "native_chat" }).reason, "unknown_seat");
+assert.strictEqual(resolveCouncilSelection({ seat_id: "___", harness_id: "native_chat" }).reason, "unknown_seat");
 assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", model_id: "mistral:latest" }).reason, "seat_model_mismatch");
 assert.strictEqual(resolveCouncilSelection({ seat_id: "qwen_local", harness_id: "dizzy_json_review" }).reason, "review_harness_not_wired_to_chat_selection");
 assert.strictEqual(resolveCouncilSelection({ seat_id: "r1_local", harness_id: "native_chat" }).reason, "reasoning_adapter_required");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "qwen_local", harness_id: "native_chat" }).reason, "harness_not_supported_for_local_review");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "unknown", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "constructor", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "!!!", model_id: "qwen2.5-coder:7b", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "___", model_id: "qwen2.5-coder:7b", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "!!!", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "___", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "mistral_local", model_id: "qwen2.5-coder:7b", harness_id: "dizzy_json_review" }).reason, "seat_model_mismatch");
+assert.strictEqual(resolveCouncilReviewSelection({ seat_id: "r1_local", model_id: "qwen2.5-coder:7b", harness_id: "dizzy_json_review" }).reason, "unknown_review_seat");
 
 withEnv({ OLLAMA_BASE_URL: "https://compat.example.test/v1" }, () => {
   const resolved = resolveCouncilSelection({ seat_id: "qwen_local" });
   assert.strictEqual(resolved.ok, false);
   assert.strictEqual(resolved.reason, "local_seat_requires_loopback_or_private_lan_ollama");
+});
+
+withEnv({ OLLAMA_BASE_URL: "http://127.0.0.1:11434/v1" }, () => {
+  const resolved = resolveCouncilReviewSelection({ seat_id: "qwen_local", harness_id: "dizzy_json_review" });
+  assert.strictEqual(resolved.ok, true);
+  assert.strictEqual(resolved.route_id, "ollama:qwen2.5-coder:7b");
+  assert.strictEqual(resolved.provider_boundary, "local_machine");
+  assert.strictEqual(resolved.authority, "advisory_supplied_evidence_review_only");
+});
+
+withEnv({ OLLAMA_BASE_URL: "http://192.168.1.20:11434/v1", DIZZY_ALLOW_LAN_LOCAL_BACKEND: undefined }, () => {
+  const resolved = resolveCouncilReviewSelection({ seat_id: "qwen_local", harness_id: "dizzy_json_review" });
+  assert.strictEqual(resolved.ok, false);
+  assert.strictEqual(resolved.reason, "local_review_private_lan_requires_opt_in");
 });
 
 console.log("MODEL_ROUTER_TESTS_OK");

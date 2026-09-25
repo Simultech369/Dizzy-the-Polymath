@@ -163,6 +163,9 @@ assertPresent("dashboard assets", Object.values(dashboardAssets).join("\n"), [
   /Operator Notice/i,
   /Memory Index/i,
   /Receipt Trail/i,
+  /Review Supplied Evidence/i,
+  /Advisory local review only/i,
+  /no file reads, edits, tests, commits, or promotion authority/i,
   /Simulation only:/i,
 ]);
 

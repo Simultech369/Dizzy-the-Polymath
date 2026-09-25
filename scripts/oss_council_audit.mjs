@@ -229,6 +229,7 @@ async function runAudit() {
     "scripts/review_loop_supervisor_test.mjs",
     "scripts/review_model_batch.mjs",
     "scripts/review_model_runner_test.mjs",
+    "scripts/operator_local_review_test.mjs",
     "scripts/review_synthesis.mjs",
     "scripts/review_synthesis_test.mjs",
     "scripts/structural_query_cache_test.mjs",
@@ -242,6 +243,7 @@ async function runAudit() {
     "scripts/trajectory_eval_test.mjs",
     "scripts/trajectory_regression_gate_test.mjs",
     "scripts/routing_delta_guard_test.mjs",
+    "scripts/token_efficiency_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -322,6 +324,7 @@ async function runAudit() {
     { name: "Review Cycle Run Suite", script: "scripts/review_cycle_run_test.mjs" },
     { name: "Review Loop Supervisor Suite", script: "scripts/review_loop_supervisor_test.mjs" },
     { name: "Model Review Runner Suite", script: "scripts/review_model_runner_test.mjs" },
+    { name: "Operator Local Review Suite", script: "scripts/operator_local_review_test.mjs" },
     { name: "Review Synthesis Suite", script: "scripts/review_synthesis_test.mjs" },
     { name: "AI SRE Diagnose Suite", script: "scripts/ai_sre_diagnose_test.mjs" },
     { name: "Rehearsal Gate Suite", script: "scripts/rehearsal_gate_test.mjs" },
@@ -380,6 +383,7 @@ async function runAudit() {
     { name: "Unified Context Pipeline Suite", script: "scripts/unified_context_pipeline_test.mjs" },
     { name: "Trajectory Regression Gate Suite", script: "scripts/trajectory_regression_gate_test.mjs" },
     { name: "Routing Delta Guard Suite", script: "scripts/routing_delta_guard_test.mjs" },
+    { name: "Token Efficiency Harness Suite", script: "scripts/token_efficiency_test.mjs" },
   ];
 
   let execFailed = false;

@@ -25,7 +25,17 @@ import {
   writeSseFrame,
   StreamingLatencyTracker,
 } from "./lib/sse_stream.mjs";
-import { getAllDivisions, getAllRoles, getChosenModelString, getCouncilSelectionOptions, normalizeCouncilSelection } from "./lib/model_router.mjs";
+import {
+  getAllDivisions,
+  getAllRoles,
+  getChosenModelString,
+  getCouncilReviewSelectionOptions,
+  getCouncilSelectionOptions,
+  normalizeCouncilSelection,
+  resolveCouncilReviewSelection,
+} from "./lib/model_router.mjs";
+import { executeReviewerModelReview } from "./lib/review_model_runner.mjs";
+import { redactReviewLoopText } from "./lib/review_cycle_runner.mjs";
 import { buildTensionMap, renderTensionMapSvg } from "./lib/tension_map_engine.mjs";
 import { normalizeJobListing, convertOpportunityToBountyTask } from "./lib/job_board_ingress.mjs";
 import {
@@ -146,6 +156,7 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/job-opportunities"
     || pathname === "/api/operator/council-bridge-status"
     || pathname === "/api/operator/trajectory-diagnostics"
+    || pathname === "/api/operator/local-review"
     || pathname === "/api/a2a/mailbox/stats"
     || pathname === "/api/a2a/mailbox/dequeue"
     || pathname === "/api/a2a/mailbox/ack";
@@ -186,7 +197,7 @@ function registerDashboardFallbackRoutes(app, { enabled } = {}) {
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
     });
   }
-  for (const route of ["/api/operator-execute", "/api/operator-continuity/delete", "/api/operator/signoff", "/api/operator/veto", "/api/operator/run-simulation"]) {
+  for (const route of ["/api/operator-execute", "/api/operator-continuity/delete", "/api/operator/signoff", "/api/operator/veto", "/api/operator/run-simulation", "/api/operator/local-review"]) {
     app.post(route, (req, res) => {
       if (!enabled) return res.status(404).json({ ok: false, error: "Dashboard disabled" });
       return res.status(503).json({ ok: false, error: "Dashboard unavailable" });
@@ -459,6 +470,80 @@ function normalizeIdentifier(value, fallback) {
 
 function normalizeFreeText(value, maxChars = 20_000) {
   return String(value ?? "").trim().slice(0, Math.max(1, Number(maxChars) || 20_000));
+}
+
+const LOCAL_REVIEW_SCHEMA = "dizzy.local_review_receipt.v1";
+const LOCAL_REVIEW_AUTHORITY = "ADVISORY_SUPPLIED_EVIDENCE_REVIEW_ONLY";
+const LOCAL_REVIEW_MAX_CHARS = 64_000;
+const LOCAL_REVIEW_FORBIDDEN_INPUT_KEYS = new Set(["file", "filepath", "file_path", "path", "absolute_path", "relative_path"]);
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(String(value ?? ""), "utf8").digest("hex");
+}
+
+function shortHash(value) {
+  return sha256Hex(value).slice(0, 12);
+}
+
+function hasForbiddenLocalReviewInputKey(value) {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some((item) => hasForbiddenLocalReviewInputKey(item));
+  for (const key of Object.keys(value)) {
+    if (LOCAL_REVIEW_FORBIDDEN_INPUT_KEYS.has(key.toLowerCase())) return true;
+    if (hasForbiddenLocalReviewInputKey(value[key])) return true;
+  }
+  return false;
+}
+
+function makeLocalReviewReceipt({
+  status,
+  selection,
+  subject,
+  reviewGoal,
+  inputSha256,
+  inputChars = 0,
+  redactedChars = 0,
+  reviewedChars = 0,
+  omittedChars = 0,
+  inputTruncated = false,
+  omittedReason = "",
+  outputSha256 = "",
+  result = {},
+  reason = "",
+} = {}) {
+  return {
+    schema_version: LOCAL_REVIEW_SCHEMA,
+    created_at: new Date().toISOString(),
+    authority: LOCAL_REVIEW_AUTHORITY,
+    status: String(status || "unknown"),
+    reason: String(reason || result?.skipped_reason || result?.failure_stage || result?.error || "").slice(0, 200),
+    seat_id: selection?.seat_id || "",
+    model_id: selection?.model_id || "",
+    harness_id: selection?.harness_id || "dizzy_json_review",
+    route_id: selection?.route_id || "",
+    adapter: selection?.adapter || "",
+    provider_boundary: selection?.provider_boundary || "",
+    subject: normalizeFreeText(subject, 200) || "advisory_review",
+    review_goal: normalizeFreeText(reviewGoal, 600) || "Advisory review of supplied evidence",
+    input_sha256: inputSha256 || "",
+    input_chars: Math.max(0, Number(inputChars) || 0),
+    submitted_chars: Math.max(0, Number(inputChars) || 0),
+    redacted_chars: Math.max(0, Number(redactedChars || (reviewedChars + omittedChars)) || 0),
+    reviewed_chars: Math.max(0, Number(reviewedChars) || 0),
+    omitted_chars: Math.max(0, Number(omittedChars) || 0),
+    char_basis: "reviewed_and_omitted_measure_safety_redacted_text",
+    input_truncated: inputTruncated === true,
+    omitted_reason: normalizeFreeText(omittedReason, 200),
+    output_sha256: outputSha256 || "",
+    evidence_scope: "operator_supplied_text_only",
+    file_reads_observed: false,
+    edits_observed: false,
+    tests_observed: false,
+    commits_observed: false,
+    promotion_authority: false,
+    cloud_fallback_allowed: false,
+    model_output_authority: "claims_only",
+  };
 }
 
 function routeNotFoundKind(pathname) {
@@ -872,6 +957,20 @@ export async function createRuntime(opts = {}) {
     }
     return operatorControlAuthGuard(req, res, next);
   };
+  const operatorDashboardMutationAuthGuard = (req, res, next) => {
+    if (dashboardEnabled && hasDashboardSession(req)) {
+      if (isDashboardSameOriginMutation(req)) return next();
+      return res.status(403).json({
+        ok: false,
+        error: "Dashboard mutation requires same-origin request",
+        code: "DASHBOARD_MUTATION_SCOPE_REQUIRED",
+      });
+    }
+    return operatorControlAuthGuard(req, res, next);
+  };
+  const localReviewExecutor = typeof opts.localReviewExecutor === "function"
+    ? opts.localReviewExecutor
+    : executeReviewerModelReview;
 
   const hasAnyToken = Boolean(authToken || executeToken || notifyToken);
   if (hasAnyToken) {
@@ -1190,11 +1289,157 @@ export async function createRuntime(opts = {}) {
       divisions: getAllDivisions(),
       selection_contract: {
         schema_version: "dizzy.operator_model_harness_selection.v1",
-        supported_harnesses: ["native_chat"],
+        supported_harnesses: ["native_chat", "dizzy_json_review"],
         authority: "configured_options_not_availability_proof",
       },
       executable_combinations: getCouncilSelectionOptions(),
+      review_combinations: getCouncilReviewSelectionOptions(),
     });
+  });
+
+  app.post("/api/operator/local-review", operatorDashboardMutationAuthGuard, requestBoundaryAuditGuard, async (req, res, next) => {
+    try {
+      const body = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+      if (hasForbiddenLocalReviewInputKey(body)) {
+        return res.status(400).json({
+          ok: false,
+          error: "Local review accepts supplied text only, not file path parameters.",
+          code: "LOCAL_REVIEW_FILE_PATH_INPUT_REJECTED",
+        });
+      }
+
+      const suppliedText = String(body.supplied_text ?? body.diff_text ?? "").trim();
+      if (!suppliedText) {
+        return res.status(400).json({
+          ok: false,
+          error: "supplied_text is required for local review.",
+          code: "LOCAL_REVIEW_TEXT_REQUIRED",
+        });
+      }
+      if (suppliedText.length > LOCAL_REVIEW_MAX_CHARS) {
+        return res.status(413).json({
+          ok: false,
+          error: `supplied_text exceeds ${LOCAL_REVIEW_MAX_CHARS} characters.`,
+          code: "LOCAL_REVIEW_TEXT_TOO_LARGE",
+          max_chars: LOCAL_REVIEW_MAX_CHARS,
+        });
+      }
+      const reviewedText = redactReviewLoopText(suppliedText);
+      if (reviewedText.length > LOCAL_REVIEW_MAX_CHARS) {
+        return res.status(413).json({
+          ok: false,
+          error: `supplied_text expands beyond ${LOCAL_REVIEW_MAX_CHARS} characters after safety redaction.`,
+          code: "LOCAL_REVIEW_REDACTED_TEXT_TOO_LARGE",
+          max_chars: LOCAL_REVIEW_MAX_CHARS,
+          submitted_chars: suppliedText.length,
+          redacted_chars: reviewedText.length,
+        });
+      }
+
+      const selection = resolveCouncilReviewSelection(body.selection || {});
+      if (!selection.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: `Local review selection rejected: ${selection.reason || "invalid_selection"}`,
+          code: "LOCAL_REVIEW_SELECTION_REJECTED",
+          reason: selection.reason || "invalid_selection",
+          selection: selection.selection || null,
+        });
+      }
+
+      const subject = normalizeFreeText(body.subject, 200) || "advisory_review";
+      const reviewGoal = normalizeFreeText(body.review_goal, 600) || "Advisory review of supplied evidence";
+      const inputSha256 = sha256Hex(suppliedText);
+      const plan = {
+        candidate_id: `local_review_${shortHash(`${selection.seat_id}:${inputSha256}:${subject}`)}`,
+        domains: ["local_review_harness_v0", "supplied_evidence"],
+        blast_radius: "operator_supplied_text_only",
+        changed_files: [`supplied:${subject}`],
+        allowed_state_transitions: ["ready-for-review", "fixture-required", "quarantine", "split", "reject"],
+        autonomy_boundary: {
+          authority: LOCAL_REVIEW_AUTHORITY,
+          file_reads_observed: false,
+          edits_observed: false,
+          tests_observed: false,
+          promotion_authority: false,
+        },
+      };
+      const reviewer = {
+        role_key: selection.seat_id,
+        division_key: selection.division_key || "DIV_VII",
+        primary_model: selection.model_id,
+        lens: reviewGoal,
+        execution_target: {
+          executable: true,
+          backend: "openai_compat",
+          baseUrl: selection.base_url,
+          apiKey: selection.api_key || "local_nop",
+          model: selection.model_id,
+          selected_reason: "operator_resolved_review_selection",
+          isLocalIsolationRequired: true,
+          base_url_host: (() => {
+            try {
+              return new URL(selection.base_url).host;
+            } catch {
+              return "";
+            }
+          })(),
+        },
+      };
+
+      const review = await localReviewExecutor({
+        plan,
+        reviewer,
+        diffText: reviewedText,
+        allowCloud: false,
+        trustZone: "private_self",
+        timeoutMs: Math.max(10000, Number(process.env.DIZZY_LOCAL_REVIEW_TIMEOUT_MS || 120000) || 120000),
+        maxTokens: Math.max(200, Number(process.env.DIZZY_LOCAL_REVIEW_MAX_TOKENS || 900) || 900),
+        temperature: 0.1,
+        reviewProfile: "local_fast",
+        maxFindings: 4,
+        maxDiffChars: reviewedText.length,
+      });
+
+      const outputSha256 = sha256Hex(JSON.stringify(review || {}));
+      const reviewExecuted = review?.status === "submitted";
+      const reviewedChars = reviewExecuted ? reviewedText.length : 0;
+      const omittedChars = reviewExecuted ? 0 : reviewedText.length;
+      const receipt = makeLocalReviewReceipt({
+        status: review?.status || "unknown",
+        selection,
+        subject,
+        reviewGoal,
+        inputSha256,
+        inputChars: suppliedText.length,
+        redactedChars: reviewedText.length,
+        reviewedChars,
+        omittedChars,
+        inputTruncated: false,
+        omittedReason: reviewExecuted ? "none" : (review?.status === "skipped" ? "not_reviewed_backend_skipped" : "not_reviewed_backend_failed"),
+        outputSha256,
+        result: review,
+      });
+      const status = review?.status === "submitted"
+        ? 200
+        : review?.status === "skipped"
+          ? 200
+          : 502;
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(status).json({
+        ok: review?.status === "submitted",
+        status: review?.status || "unknown",
+        authority: LOCAL_REVIEW_AUTHORITY,
+        summary: review?.summary || "",
+        findings: Array.isArray(review?.findings) ? review.findings : [],
+        skipped_reason: review?.skipped_reason || "",
+        error: review?.error || "",
+        target: review?.target || null,
+        receipt,
+      });
+    } catch (error) {
+      return next(error);
+    }
   });
 
   app.get("/api/operator/receipts-telemetry", (req, res) => {

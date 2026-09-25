@@ -767,12 +767,154 @@ function updateSvgLine(lineId, leftStatus, rightStatus) {
   }
 }
 
+async function loadLocalReviewSeatOptions() {
+  const select = document.getElementById("local-review-seat-select");
+  if (!select) return;
+  try {
+    const data = await fetchJson("/api/operator/router-divisions");
+    const options = Array.isArray(data.review_combinations) ? data.review_combinations : [];
+    const enabled = options.filter((option) => option && option.enabled !== false);
+    select.innerHTML = '<option value="">Select a local review seat</option>' + enabled.map((option) => {
+      const label = `${option.label || option.seat_id} - ${option.model_id || "model unknown"}`;
+      return `<option value="${escapeHtml(option.seat_id)}" data-model="${escapeHtml(option.model_id || "")}">${escapeHtml(label)}</option>`;
+    }).join("");
+    select.disabled = false;
+  } catch (error) {
+    select.disabled = true;
+    select.innerHTML = '<option value="">Review seats unavailable</option>';
+    const status = document.getElementById("local-review-status");
+    if (status) status.textContent = `Review seats unavailable: ${formatFetchError(error)}`;
+  }
+}
+
+function renderLocalReviewFindings(findings = []) {
+  if (!Array.isArray(findings) || !findings.length) {
+    return '<div style="color: var(--text-muted);">No concrete findings returned.</div>';
+  }
+  return findings.map((finding) => {
+    const severity = String(finding.severity || "medium").toLowerCase();
+    const badge = severity === "critical" || severity === "high"
+      ? "badge-rose"
+      : severity === "medium"
+        ? "badge-amber"
+        : "badge-primary";
+    const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
+    return `
+      <div class="doc-item">
+        <div class="doc-header">
+          <span class="doc-path">${escapeHtml(finding.category || finding.kind || "finding")}</span>
+          <span class="badge ${badge}">${escapeHtml(severity)}</span>
+        </div>
+        <div style="color: var(--text-main); line-height: 1.45;">${escapeHtml(finding.claim || "No claim supplied.")}</div>
+        ${evidence.length ? `<div style="margin-top: 0.45rem; color: var(--text-muted); font-size: 0.82rem;">${evidence.map((item) => escapeHtml(item)).join("<br>")}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+function renderLocalReviewReceipt(receipt = {}) {
+  const rows = [
+    ["Authority", receipt.authority || "ADVISORY_SUPPLIED_EVIDENCE_REVIEW_ONLY"],
+    ["Seat", receipt.seat_id || "unknown"],
+    ["Model", receipt.model_id || "unknown"],
+    ["Harness", receipt.harness_id || "dizzy_json_review"],
+    ["Input hash", receipt.input_sha256 || "not recorded"],
+    ["Output hash", receipt.output_sha256 || "not recorded"],
+    ["File reads", receipt.file_reads_observed ? "observed" : "not observed"],
+    ["Edits", receipt.edits_observed ? "observed" : "not observed"],
+    ["Tests", receipt.tests_observed ? "observed" : "not observed"],
+    ["Promotion", receipt.promotion_authority ? "authorized" : "not authorized"],
+  ];
+  return rows.map(([label, value]) => `
+    <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <span style="color: var(--text-muted);">${escapeHtml(label)}</span>
+      <code style="text-align: right;">${escapeHtml(value)}</code>
+    </div>
+  `).join("");
+}
+
+async function runLocalReview() {
+  const seatSelect = document.getElementById("local-review-seat-select");
+  const subjectInput = document.getElementById("local-review-subject");
+  const goalInput = document.getElementById("local-review-goal");
+  const textInput = document.getElementById("local-review-text");
+  const status = document.getElementById("local-review-status");
+  const summary = document.getElementById("local-review-summary");
+  const findings = document.getElementById("local-review-findings");
+  const receiptElem = document.getElementById("local-review-receipt");
+  const button = document.getElementById("btn-run-local-review");
+  if (!seatSelect || !textInput || !status) return;
+
+  const seatId = String(seatSelect.value || "").trim();
+  const suppliedText = String(textInput.value || "").trim();
+  if (!seatId) {
+    status.textContent = "Select a local review seat first.";
+    return;
+  }
+  if (!suppliedText) {
+    status.textContent = "Paste supplied evidence before running review.";
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  }
+  status.textContent = "Running advisory review against supplied evidence...";
+  if (summary) summary.textContent = "";
+  if (findings) findings.innerHTML = "";
+  if (receiptElem) {
+    receiptElem.style.display = "none";
+    receiptElem.innerHTML = "";
+  }
+
+  try {
+    const selectedOption = seatSelect.options[seatSelect.selectedIndex];
+    const response = await fetchJson("/api/operator/local-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selection: {
+          seat_id: seatId,
+          model_id: selectedOption?.dataset?.model || "",
+          harness_id: "dizzy_json_review",
+        },
+        subject: subjectInput?.value || "advisory_review",
+        review_goal: goalInput?.value || "Advisory review of supplied evidence",
+        supplied_text: suppliedText,
+      }),
+    });
+    status.textContent = response.status === "submitted"
+      ? "Advisory review returned model findings."
+      : `Review ${response.status || "completed"}: ${response.skipped_reason || response.error || "see receipt"}`;
+    if (summary) summary.textContent = response.summary || "No summary returned.";
+    if (findings) findings.innerHTML = renderLocalReviewFindings(response.findings || []);
+    if (receiptElem) {
+      receiptElem.style.display = "block";
+      receiptElem.innerHTML = renderLocalReviewReceipt(response.receipt || {});
+    }
+  } catch (error) {
+    status.textContent = `Review blocked or unavailable: ${formatFetchError(error)}`;
+    const failureReceipt = error?.body?.receipt;
+    if (receiptElem && failureReceipt && typeof failureReceipt === "object") {
+      receiptElem.style.display = "block";
+      receiptElem.innerHTML = renderLocalReviewReceipt(failureReceipt);
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
+  }
+}
+
 document.querySelectorAll("[data-tab-target]").forEach((tab) => {
   tab.addEventListener("click", () => {
     const target = tab.dataset.tabTarget;
     switchTab(target);
     if (target === "tab-governance") {
       loadGovernanceData();
+      loadLocalReviewSeatOptions();
     }
   });
 });
@@ -792,6 +934,15 @@ if (consoleLoadNextBtn) {
   });
 }
 document.getElementById("console-refresh-records").addEventListener("click", loadContinuityRecords);
+const localReviewText = document.getElementById("local-review-text");
+const localReviewCharCount = document.getElementById("local-review-char-count");
+if (localReviewText && localReviewCharCount) {
+  localReviewText.addEventListener("input", () => {
+    localReviewCharCount.textContent = `${localReviewText.value.length} / 64000 characters`;
+  });
+}
+const localReviewButton = document.getElementById("btn-run-local-review");
+if (localReviewButton) localReviewButton.addEventListener("click", runLocalReview);
 document.getElementById("console-records-body").addEventListener("click", (event) => {
   const auditButton = event.target.closest("[data-continuity-audit]");
   if (auditButton) {

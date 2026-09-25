@@ -73,14 +73,16 @@ try {
   globalThis.fetch = async () => new Response(JSON.stringify({
     choices: [{ message: { content: "", reasoning_content: "{\"summary\":\"Reasoning content fallback\",\"findings\":[]}" } }],
   }), { status: 200, headers: { "content-type": "application/json" } });
-  const reasoningFallbackText = await openaiCompatGenerateText({
-    baseUrl: "http://127.0.0.1:11434/v1",
-    model: "deepseek-r1:7b",
-    messages: [{ role: "user", content: "return final json" }],
-    timeoutMs: 1000,
-    maxTokens: 80,
-  });
-  assert.equal(reasoningFallbackText, "{\"summary\":\"Reasoning content fallback\",\"findings\":[]}");
+  await assert.rejects(
+    () => openaiCompatGenerateText({
+      baseUrl: "http://127.0.0.1:11434/v1",
+      model: "deepseek-r1:7b",
+      messages: [{ role: "user", content: "return final json" }],
+      timeoutMs: 1000,
+      maxTokens: 80,
+    }),
+    (err) => err?.code === "EMPTY_RESPONSE",
+  );
 
   globalThis.fetch = async () => new Response(JSON.stringify({
     choices: [{ message: { content: [{ text: "Array " }, { text: "content" }], reasoning_content: "ignored" } }],
