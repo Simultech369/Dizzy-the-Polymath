@@ -1084,7 +1084,14 @@ export async function createRuntime(opts = {}) {
         request_cost: ingressGateway.budget.requestCost,
         health_exempted: true,
       },
-      daemon_hygiene: sampleDaemonTelemetry(),
+      daemon_hygiene: (() => {
+        const telemetry = sampleDaemonTelemetry();
+        return {
+          status: (telemetry.status || "healthy").toLowerCase(),
+          pressure_level: telemetry.memory?.pressure_level || "normal",
+          event_loop: (telemetry.event_loop?.status || "healthy").toLowerCase(),
+        };
+      })(),
       consistency_class: CONSISTENCY_CLASSES.LOCAL_RECEIPT_VERIFIED,
       consistency_badge: CONSISTENCY_BADGES[CONSISTENCY_CLASSES.LOCAL_RECEIPT_VERIFIED],
     };

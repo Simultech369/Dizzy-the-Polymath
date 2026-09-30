@@ -85,6 +85,14 @@ const validSettlement = validateConsistencyTransition(
   { algorand_round: 65458070, tx_hash: "0xabc", dual_control_approved: true }
 );
 assert.equal(validSettlement.allowed, true);
+
+// F. Autonomous inbound on-chain settlement passes without dual-control block
+const validInboundSettlement = validateConsistencyTransition(
+  CONSISTENCY_CLASSES.LOCAL_RECEIPT_VERIFIED,
+  CONSISTENCY_CLASSES.GLOBAL_CONSENSUS_FINALIZED,
+  { algorand_round: 65458070, tx_hash: "VRHCPC467JZ5NXTWQIERMGVF6U6KRXMGJIOFUXPYJG73OF4MGKBQ", inbound_settlement: true }
+);
+assert.equal(validInboundSettlement.allowed, true);
 console.log("✓ Transition barriers prevent leapfrogging and require cryptographic custody + dual-control.");
 
 // 3. Fail-Closed Circuit Breaker

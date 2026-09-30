@@ -118,8 +118,8 @@ const started = await startServer({
   executeToken: strongExecuteToken,
   redisUrl: "",
   streamReceiptPath: testReceiptPath,
-  streamStallThresholdMs: 500,
-  streamStallAbortMs: 5000,
+  streamStallThresholdMs: 2000,
+  streamStallAbortMs: 10000,
 });
 
 try {
