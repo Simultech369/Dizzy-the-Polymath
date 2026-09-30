@@ -157,6 +157,10 @@ async function runAudit() {
     "lib/trajectory_snapshot_store.mjs",
     "lib/trajectory_evaluator.mjs",
     "lib/trajectory_regression_gate.mjs",
+    "lib/trajectory_contract.mjs",
+    "lib/daemon_hygiene.mjs",
+    "lib/consistency_boundary.mjs",
+    "lib/tool_guardrails_middleware.mjs",
     "lib/visual_slop_scanner.mjs",
     "scripts/a2a_boundary_test.mjs",
     "scripts/a2a_mailbox_bridge_test.mjs",
@@ -244,6 +248,11 @@ async function runAudit() {
     "scripts/trajectory_regression_gate_test.mjs",
     "scripts/routing_delta_guard_test.mjs",
     "scripts/token_efficiency_test.mjs",
+    "scripts/trajectory_contract_test.mjs",
+    "scripts/physical_budget_routing_test.mjs",
+    "scripts/daemon_lifecycle_hygiene_test.mjs",
+    "scripts/consistency_boundary_test.mjs",
+    "scripts/tool_sandbox_guardrails_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -384,6 +393,11 @@ async function runAudit() {
     { name: "Trajectory Regression Gate Suite", script: "scripts/trajectory_regression_gate_test.mjs" },
     { name: "Routing Delta Guard Suite", script: "scripts/routing_delta_guard_test.mjs" },
     { name: "Token Efficiency Harness Suite", script: "scripts/token_efficiency_test.mjs" },
+    { name: "Trajectory Invariant Contract Suite", script: "scripts/trajectory_contract_test.mjs" },
+    { name: "Physical Budget Routing Suite", script: "scripts/physical_budget_routing_test.mjs" },
+    { name: "Daemon Lifecycle Hygiene Suite", script: "scripts/daemon_lifecycle_hygiene_test.mjs" },
+    { name: "Consistency Boundary Bridge Suite", script: "scripts/consistency_boundary_test.mjs" },
+    { name: "Tool Sandbox & Guardrails Suite", script: "scripts/tool_sandbox_guardrails_test.mjs" },
   ];
 
   let execFailed = false;
@@ -426,6 +440,13 @@ async function runAudit() {
 
 function saveReceipt(results) {
   results.git_binding = results.git_binding || collectGitBinding();
+  results.consistency_class = results.verdict === "VERIFIED_PASSED"
+    ? "LOCAL_RECEIPT_VERIFIED"
+    : "SYNTHETIC_REHEARSAL";
+  results.consistency_badge = results.verdict === "VERIFIED_PASSED"
+    ? "[LOCAL_RECEIPT_VERIFIED]"
+    : "[SYNTHETIC_REHEARSAL]";
+
   const reviewsDir = path.join(ROOT_DIR, "reviews");
   if (!fs.existsSync(reviewsDir)) {
     fs.mkdirSync(reviewsDir, { recursive: true });

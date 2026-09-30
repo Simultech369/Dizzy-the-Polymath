@@ -45,6 +45,14 @@ import {
   normalizeTrustedProxies,
   pruneExpiredRateLimitBuckets,
 } from "./lib/ingress_gateway.mjs";
+import {
+  sampleDaemonTelemetry,
+  pruneOperationalResidue,
+} from "./lib/daemon_hygiene.mjs";
+import {
+  CONSISTENCY_CLASSES,
+  CONSISTENCY_BADGES,
+} from "./lib/consistency_boundary.mjs";
 
 export { pruneExpiredRateLimitBuckets };
 
@@ -1076,6 +1084,9 @@ export async function createRuntime(opts = {}) {
         request_cost: ingressGateway.budget.requestCost,
         health_exempted: true,
       },
+      daemon_hygiene: sampleDaemonTelemetry(),
+      consistency_class: CONSISTENCY_CLASSES.LOCAL_RECEIPT_VERIFIED,
+      consistency_badge: CONSISTENCY_BADGES[CONSISTENCY_CLASSES.LOCAL_RECEIPT_VERIFIED],
     };
 
     if (redisReady) {
@@ -1915,6 +1926,27 @@ export async function createRuntime(opts = {}) {
       res.json({
         ok: true,
         diagnostics
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/operator/daemon-hygiene", operatorDashboardReadAuthGuard, (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      ok: true,
+      telemetry: sampleDaemonTelemetry(),
+    });
+  });
+
+  app.post("/api/operator/daemon-hygiene/prune", operatorDashboardMutationAuthGuard, async (req, res, next) => {
+    try {
+      const force = Boolean(req.body?.force);
+      const receipt = await pruneOperationalResidue({ force });
+      res.json({
+        ok: true,
+        receipt,
       });
     } catch (err) {
       next(err);

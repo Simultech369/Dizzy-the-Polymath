@@ -16,19 +16,19 @@ To maintain focus and avoid industry bingo-card sprawl, the following are strict
 
 1. **Context Assembler (Core Module)**
    - **Goal:** Explicit, receipted context packing: `zone → sources → budget → packed context → provenance`.
-   - **Status:** Foundations exist (prompt bundles, byte budgets, zone-scoped retrieval). Needs mechanical assembly.
+   - **Status:** Done (`lib/context_assembler.mjs`, `lib/context_packer.mjs`, `scripts/unified_context_pipeline_test.mjs`, W-0151 / D-0073). Implemented unified pure context assembly pipeline with 3-slot packing, zone-aware byte budgets, and cryptographic provenance receipts (`dizzy.context_assembler.v2`).
 
 2. **Trajectory Eval Gates & Harness**
    - **Goal:** Formalize trajectory grades (not just answer-only evals) that block promotion to higher environments.
-   - **Status:** Council checks and anti-slop rules exist. Needs CI regression gates.
+   - **Status:** Done (`lib/trajectory_regression_gate.mjs`, `scripts/trajectory_regression_gate_test.mjs`, W-0152 / D-0074). Implemented multi-step trajectory evaluation CI gate with golden trajectory fixtures and zero-violation promotion policy (`dizzy.eval_gate_policy.v1`).
 
 3. **Model Router Quality/Cost Deltas**
    - **Goal:** Move from a static 62-model catalog to live routing policies with logged quality/cost/latency deltas and fail-closed fallbacks.
-   - **Status:** Catalog, tiers, and qualification gates exist.
+   - **Status:** Done (`lib/routing_policy.mjs`, `scripts/routing_delta_guard_test.mjs`, W-0153 / D-0075, W-0155 / D-0077). Implemented asymmetric frontier token cost modeling, interactive latency SLAs, memory pressure tracking, and cryptographically bound Route Delta Receipts (`dizzy.routing_delta_receipt.v1`).
 
 4. **Tool Sandbox & Guardrails Middleware**
    - **Goal:** Mechanical, receipt-visible isolation, resource limits, and dispatch path middleware (injection, PII/redaction).
-   - **Status:** A2A boundary guard, anti-slop, and zone disclosure rules exist.
+   - **Status:** Done (`lib/tool_guardrails_middleware.mjs`, `lib/tools.mjs`, `scripts/tool_sandbox_guardrails_test.mjs`, W-0158 / D-0080). Implemented trust-zone tool allowlists/denylists, recursive path traversal and prompt injection defense, PII masking across 6 sensitive patterns, execution timeout clamping, output buffer truncating, and SHA-256 bound cryptographic receipts under `dizzy.tool_guardrail_receipt.v1`.
 
 5. **Orchestrator/StateM Checkpoints**
    - **Goal:** Small, receipt-backed checkpoints for long jobs (`StateM plan -> execute -> verify -> handoff`).

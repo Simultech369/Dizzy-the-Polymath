@@ -2005,8 +2005,94 @@ Decision:
   - Extended `executeRoutingPlan()` to calculate and emit `routing_deltas` across all execution paths (T0 deterministic, invoked provider routes, and exhausted fallbacks), logging `actual_cost_usd`, `cost_delta_usd`, `baseline_latency_ms`, `latency_delta_ms`, `fallback_occurred`, `fallback_attempts_count`, and `quality_delta` (`nominal` vs. `fallback_degraded` vs. `exhausted_blocked`).
   - Added `buildRouteDeltaReceipt()` (schema `dizzy.routing_delta_receipt.v1`) to emit verifiable cryptographic delta receipts binding plan, execution, and delta metrics.
 
+### D-0076: Trajectory Invariant Contracts, Diagnostic Fault Taxonomy, and Jev-Style Sentinels
+
+Decision:
+- Implemented `lib/trajectory_contract.mjs` and verification harness `scripts/trajectory_contract_test.mjs`:
+  - Established explicit step-level barrier sequencing: Precondition assertion barrier -> Timed execution with abort timeout -> Error classification -> Postcondition assertion barrier.
+  - Decoupled orchestration and protocol faults (`FAULT_CLASS_ORCHESTRATION`: environment IO path issues, missing mention handles, invalid API event enums, timeouts, lock contention, precondition failures) from model reasoning errors (`FAULT_CLASS_MODEL_LOGIC`: syntax errors, unit test assertion failures, linter violations, type errors, spec omissions) using `classifyTrajectoryFault()`.
+  - Introduced Jev-style TypeSafe System One decision primitives (`Choice`, `Score`, `Noul`) with confidence gating.
+  - Built an anti-spinning progress watchdog (`evaluateProgressSentinel`) that samples consecutive steps and issues early `kill` choices when state progress delta is zero across a threshold window or escalates high-stakes decisions to HITL review.
+  - Authored cryptographic trajectory contract receipts (`createTrajectoryContractReceipt` under schema `dizzy.trajectory_contract_receipt.v1`) with SHA-256 evidence digests and verifiable integrity checking (`verifyTrajectoryContractReceipt`).
+  - Added workspace snapshotting (`captureStepSnapshot` under schema `dizzy.trajectory_step_snapshot.v1`) and time-travel rehydration (`rehydrateStepSnapshot`) to allow offline debugging and state forking without re-running prior execution steps.
+  - Integrated `scripts/trajectory_contract_test.mjs` into Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
+### D-0077: Physical Budget Routing (BOAR Cascade), Jev System One Decisions, and Dual-Control HITL Gate
+
+Decision:
+- Augmented `lib/routing_policy.mjs` and verification harness `scripts/physical_budget_routing_test.mjs`:
+  - Incorporated physical resource budgets into `resolveRequirements()` and `planRouting()`:
+    - Process RSS memory pressure tracking (`DEFAULT_MEMORY_BUDGET_MB = 1400`), automatically clamping requested tiers (T2/T3) down to on-device lightweight models (T1 or task minimum tier) when RSS exceeds 90% of memory budget (`lowered_due_to_memory_pressure`).
+    - Interactive latency SLA enforcement (`DEFAULT_INTERACTIVE_LATENCY_BUDGET_MS = 350`), clamping high-latency tiers to meet human perceptible responsiveness (< 350ms) on interactive tasks (`lowered_due_to_latency_budget`).
+    - Zero-cost floor enforcement ($0.00) locking deterministic tasks and $0 budget requests to T0.
+  - Projected Jev-style TypeSafe System One decision primitives into routing plans, execution objects, and delta receipts:
+    - `tier_choice`: `Choice` selecting between allowlisted tiers or `human_triage`.
+    - `memory_pressure_score`: `Score` evaluating continuous RSS memory pressure against threshold.
+    - `latency_sla_noul` & `within_budget_noul`: `Noul` typed boolean predicates with confidence metrics.
+  - Implemented dual-control high-stakes HITL gates: requests marked `is_high_stakes` with confidence below `DEFAULT_HITL_CONFIDENCE_THRESHOLD` (0.85) fail closed (`status: "BLOCKED"`, `fail_closed_reason: "hitl_approval_required"`) unless operator approval (`hitl_approved: true`) is provided.
+  - Bound physical budgets and System 1 decisions cryptographically into Route Delta Receipts (`buildRouteDeltaReceipt`).
+  - Integrated `scripts/physical_budget_routing_test.mjs` into Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
 Rationale:
-- Resolves W-0153 and Priority 3 of `ROADMAP_CORE.md`. Flat per-1k pricing underestimates frontier thinking token costs and fails to provide operators with live visibility into route quality, cost savings, or latency regressions across fallback chains.
+- Resolves W-0155. Synthesizes BOAR's measured adaptive routing under physical RAM/latency budgets with Jev's TypeSafe System One decision architecture. Rather than relying on static or purely prompt-based tier selection, Dizzy adapts dynamically to host memory pressure and operator interactive latency SLAs, protecting resource-constrained edge machines against out-of-memory crashes and enforcing dual-control operator safety on high-stakes operations.
+
+### D-0078: Operational Residue Lifecycle & Heap Protection
+
+Decision:
+- Implemented `lib/daemon_hygiene.mjs`, upgraded `lib/structural_query_cache.mjs`, and added verification harness `scripts/daemon_lifecycle_hygiene_test.mjs`:
+  - Added daemon telemetry sampling (`sampleDaemonTelemetry` under schema `dizzy.daemon_telemetry.v1`) tracking process RSS, heap segments, array buffers, event loop delay metrics via Node's `monitorEventLoopDelay` (mean, max, p90, p99 ms), and memory pressure levels (`normal`, `elevated`, `high`, `critical`).
+  - Added LRU indexing (`idx_structural_query_cache_lru`), `evictLru(limit)`, and memory pressure-triggered pruning (`pruneUnderMemoryPressure`) to `lib/structural_query_cache.mjs`, evicting expired entries and LRU query rows when RSS exceeds the high watermark (80% of `DEFAULT_MEMORY_BUDGET_MB = 1400MB`).
+  - Added explicit operational residue pruning (`pruneOperationalResidue` emitting `dizzy.daemon_hygiene_receipt.v1`): disposes of ephemeral streaming frame buffers, drains completed WebSocket / SSE latency tracking closures, cleans query cache entries, triggers V8 garbage collection when available, and cryptographically binds the before/after telemetry into evidence receipts.
+  - Implemented an unref'd periodic residue watchdog (`createResidueWatchdog`) that runs non-blocking memory pressure inspections in long-running daemons.
+  - Integrated daemon hygiene routes into `agent_server.mjs`: exposed `daemon_hygiene` telemetry and consistency status on `/health`, added GET `/api/operator/daemon-hygiene`, and added POST `/api/operator/daemon-hygiene/prune`.
+  - Registered `scripts/daemon_lifecycle_hygiene_test.mjs` into Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
+Rationale:
+- Resolves W-0156. Prevents heap bloat, memory leaks, and unbounded stream chunk accumulation in long-running operator daemons (`agent_server.mjs`, `worker.mjs`), ensuring that streaming closures and query cache items are systematically reclaimed under physical memory constraints.
+
+### D-0079: Three Consistency Classes & Fiduciary Boundary Enforcement Bridge
+
+Decision:
+- Implemented `lib/consistency_boundary.mjs` and verification harness `scripts/consistency_boundary_test.mjs`:
+  - Formalized the 3 Consistency Classes across Dizzy, Council, and PBM:
+    1. `[SYNTHETIC_REHEARSAL]`: Local generation / dry-run simulation / unverified model proposal. Promotion authority: strictly false (0 external authority).
+    2. `[LOCAL_RECEIPT_VERIFIED]`: Deterministically validated by offline 5-surface guardrails, tests, and SHA-256 evidence receipt. Promotion authority: bounded local authority (pre-commit, staging, review).
+    3. `[GLOBAL_CONSENSUS_FINALIZED]`: Settled on-chain transaction or decentralized consensus (Algorand round `65458070`, EVM epoch timelock, signed clearinghouse receipt). Promotion authority: full fiduciary settlement authority.
+  - Enforced transition invariant barriers (`validateConsistencyTransition`): forbids illegal leapfrogging directly from `SYNTHETIC_REHEARSAL` to `GLOBAL_CONSENSUS_FINALIZED`, requiring step-by-step cryptographic evidence custody and dual-control operator authorization.
+  - Built a fail-closed circuit breaker (`evaluateCircuitBreaker` under schema `dizzy.consistency_circuit_breaker.v1`): evaluates balance divergence and state root mismatches between local projections and global RPC state, immediately demoting consistency to `SYNTHETIC_REHEARSAL`, revoking all promotion and fiduciary authorities, and requiring dual-control sign-off when divergence exceeds tolerance.
+  - Bound consistency classes into `lib/trajectory_contract.mjs` (`createTrajectoryContractReceipt` emits `consistency_class` and `consistency_badge`) and `scripts/oss_council_audit.mjs` (`saveReceipt` binds `[LOCAL_RECEIPT_VERIFIED]` to passing council verdicts).
+  - Integrated `scripts/consistency_boundary_test.mjs` into Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
+Rationale:
+- Resolves W-0157. Eliminates ambiguity between simulated model thoughts and immutable real-world execution. Prevents unverified proposals from triggering side effects or touching fiduciary funds without transitioning through deterministic offline guardrails and cryptographic settlement proofs.
+
+### D-0080: Tool Sandbox & Guardrails Middleware
+
+Decision:
+- Implemented `lib/tool_guardrails_middleware.mjs`, upgraded `lib/tools.mjs`, and added verification harness `scripts/tool_sandbox_guardrails_test.mjs`:
+  - Formalized Tool Zone Policies across 5 trust zones (`paid_public`, `normal`, `operator`, `private_self`, `offline_test`) with explicit allowlists, denylists, timeout budgets, and output character limits:
+    - `paid_public`: strictly read-only web extraction (`http_get`, `cheerio_extract`), blocking contract/shell/exec/file mutations, enforcing 8,000ms max timeout, 10,000 char output clamp, and strict prompt injection fail-closed defense.
+    - `normal`: standard tool capabilities (`http_get`, `cheerio_extract`, `read_contract`), blocking shell/exec, enforcing 15,000ms max timeout, 50,000 char output clamp, and automatic injection neutralization.
+    - `operator` & `private_self`: full tool access (`*`), 30,000ms max timeout, 200,000 char output limit, preserving raw telemetry for operator debugging.
+  - Implemented recursive input inspection (`inspectAndSanitizeInput`):
+    - Path traversal blocking (`../`, `..\`) on file and path arguments.
+    - Prompt injection detection and neutralization via `lib/janitor.mjs`.
+    - PII scrubbing on inputs across 6 sensitive patterns (emails, SSNs, credit cards, bearer tokens, PEM/hex private keys).
+    - Resource clamping on requested timeouts.
+  - Implemented output guardrails (`inspectAndSanitizeOutput`):
+    - Untrusted content neutralization on scraped web bodies.
+    - PII scrubbing on output structures.
+    - Mechanical buffer clamping for oversized outputs appending `[TRUNCATED BY TOOL GUARDRAILS BUFFER CLAMP]`.
+  - Authored deterministic cryptographic tool execution receipts (`createToolGuardrailReceipt` under schema `dizzy.tool_guardrail_receipt.v1`) with input SHA-256, output SHA-256, consistency class `[LOCAL_RECEIPT_VERIFIED]`, and verification function `verifyToolGuardrailReceipt`.
+  - Wrapped `runToolJob` with `executeGuardedToolJob` and exported `runGuardedToolJob` in `lib/tools.mjs`.
+  - Registered `scripts/tool_sandbox_guardrails_test.mjs` into Layer 1 syntax targets and Layer 3 execution suites of `scripts/oss_council_audit.mjs`.
+
+Rationale:
+- Resolves W-0158 (Roadmap Core Priority #4). Establishes mechanical, receipt-visible isolation, resource limits, and dispatch path middleware for all tool calls in the Dizzy runtime. Guarantees that untrusted web inputs, sensitive PII, and unauthorized execution paths are intercepted and neutralized before touching agent memory or external networks.
+
+
+
+
 
 
 

@@ -154,6 +154,42 @@ try {
   const removed = cache.pruneExpired(120_000);
   assert.equal(Number.isInteger(removed), true);
 
+  // Seed multiple items for LRU and stats verification
+  for (let i = 1; i <= 3; i++) {
+    cache.store({
+      ...baseInput,
+      query: `lru test query ${i}`,
+      sourceSignature: { digest: `${i}`.repeat(64), source_count: 1 },
+      sourceCount: 1,
+      nowMs: 200_000 + (i * 10),
+      ttlMs: 600_000,
+      payload: { value: i },
+    });
+  }
+
+  // Test stats()
+  const initialStats = cache.stats();
+  assert.equal(typeof initialStats.total_entries, "number");
+  assert.equal(initialStats.total_entries, 3);
+
+  // Test evictLru: evicts oldest 1 item
+  const evictedCount = cache.evictLru(1);
+  assert.equal(evictedCount, 1);
+  const afterLruStats = cache.stats();
+  assert.equal(afterLruStats.total_entries, 2);
+
+  // Test pruneUnderMemoryPressure
+  // Below watermark: should not prune unless forced
+  const normalPressure = cache.pruneUnderMemoryPressure({ currentRssMb: 500, maxRssMb: 1400, highWatermarkRatio: 0.80, nowMs: 200_000 });
+  assert.equal(normalPressure.under_pressure, false);
+  assert.equal(normalPressure.evicted_lru, 0);
+
+  // Above watermark (pressure >= 80% of 1400 = 1120MB): should trigger pruning
+  const highPressure = cache.pruneUnderMemoryPressure({ currentRssMb: 1200, maxRssMb: 1400, highWatermarkRatio: 0.80, batchSize: 5, nowMs: 200_000 });
+  assert.equal(highPressure.under_pressure, true);
+  assert.equal(highPressure.evicted_lru, 2);
+  assert.equal(cache.stats().total_entries, 0);
+
   console.log(`STRUCTURAL_QUERY_CACHE_TESTS_OK cache_key=${keyA.cacheKey}`);
 } finally {
   try { cache.close(); } catch {}
