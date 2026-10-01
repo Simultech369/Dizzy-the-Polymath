@@ -119,6 +119,8 @@ async function runAudit() {
     "lib/cognitive_memory_engine.mjs",
     "lib/hitl_approval_gateway.mjs",
     "lib/trajectory_replay_debugger.mjs",
+    "lib/cost_kill_switch.mjs",
+    "lib/inter_agent_sanitization_proxy.mjs",
     "lib/memory_wiki_adapter.mjs",
     "lib/node_python_council_bridge_contract.mjs",
     "lib/prompt_bundle.mjs",
@@ -259,6 +261,8 @@ async function runAudit() {
     "scripts/agent_chaos_suite.mjs",
     "scripts/hitl_approval_gateway_test.mjs",
     "scripts/trajectory_replay_debugger_test.mjs",
+    "scripts/cost_kill_switch_test.mjs",
+    "scripts/inter_agent_sanitization_proxy_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -408,6 +412,8 @@ async function runAudit() {
     { name: "Formal Agent Chaos Suite", script: "scripts/agent_chaos_suite.mjs" },
     { name: "HITL Approval Gateway Suite", script: "scripts/hitl_approval_gateway_test.mjs" },
     { name: "Trajectory Replay Debugger Suite", script: "scripts/trajectory_replay_debugger_test.mjs" },
+    { name: "Cost Kill-Switch Suite", script: "scripts/cost_kill_switch_test.mjs" },
+    { name: "Inter-Agent Sanitization Proxy Suite", script: "scripts/inter_agent_sanitization_proxy_test.mjs" },
   ];
 
   let execFailed = false;

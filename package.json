@@ -81,6 +81,8 @@
         "test:chaos": "node ./scripts/agent_chaos_suite.mjs",
         "test:hitl-gateway": "node ./scripts/hitl_approval_gateway_test.mjs",
         "test:trajectory-debugger": "node ./scripts/trajectory_replay_debugger_test.mjs",
+        "test:cost-kill-switch": "node ./scripts/cost_kill_switch_test.mjs",
+        "test:inter-agent-proxy": "node ./scripts/inter_agent_sanitization_proxy_test.mjs",
         "test:memory-wiki": "node ./scripts/memory_wiki_adapter_test.mjs",
         "test:job-board-tension": "node ./scripts/job_board_and_tension_map_test.mjs",
         "test:job-board-scanner": "node ./scripts/job_board_scanner_test.mjs",
