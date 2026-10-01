@@ -253,6 +253,8 @@ async function runAudit() {
     "scripts/daemon_lifecycle_hygiene_test.mjs",
     "scripts/consistency_boundary_test.mjs",
     "scripts/tool_sandbox_guardrails_test.mjs",
+    "scripts/cognitive_memory_eval.mjs",
+    "scripts/agent_chaos_suite.mjs",
   ];
 
   let syntaxFailed = false;
@@ -398,6 +400,8 @@ async function runAudit() {
     { name: "Daemon Lifecycle Hygiene Suite", script: "scripts/daemon_lifecycle_hygiene_test.mjs" },
     { name: "Consistency Boundary Bridge Suite", script: "scripts/consistency_boundary_test.mjs" },
     { name: "Tool Sandbox & Guardrails Suite", script: "scripts/tool_sandbox_guardrails_test.mjs" },
+    { name: "Cognitive Memory Eval Suite", script: "scripts/cognitive_memory_eval.mjs" },
+    { name: "Formal Agent Chaos Suite", script: "scripts/agent_chaos_suite.mjs" },
   ];
 
   let execFailed = false;
