@@ -117,6 +117,8 @@ async function runAudit() {
     "lib/council_subcommittee_router.mjs",
     "lib/council_bridge_status.mjs",
     "lib/cognitive_memory_engine.mjs",
+    "lib/hitl_approval_gateway.mjs",
+    "lib/trajectory_replay_debugger.mjs",
     "lib/memory_wiki_adapter.mjs",
     "lib/node_python_council_bridge_contract.mjs",
     "lib/prompt_bundle.mjs",
@@ -255,6 +257,8 @@ async function runAudit() {
     "scripts/tool_sandbox_guardrails_test.mjs",
     "scripts/cognitive_memory_eval.mjs",
     "scripts/agent_chaos_suite.mjs",
+    "scripts/hitl_approval_gateway_test.mjs",
+    "scripts/trajectory_replay_debugger_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -402,6 +406,8 @@ async function runAudit() {
     { name: "Tool Sandbox & Guardrails Suite", script: "scripts/tool_sandbox_guardrails_test.mjs" },
     { name: "Cognitive Memory Eval Suite", script: "scripts/cognitive_memory_eval.mjs" },
     { name: "Formal Agent Chaos Suite", script: "scripts/agent_chaos_suite.mjs" },
+    { name: "HITL Approval Gateway Suite", script: "scripts/hitl_approval_gateway_test.mjs" },
+    { name: "Trajectory Replay Debugger Suite", script: "scripts/trajectory_replay_debugger_test.mjs" },
   ];
 
   let execFailed = false;
