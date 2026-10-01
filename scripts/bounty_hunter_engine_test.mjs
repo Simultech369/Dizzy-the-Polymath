@@ -302,13 +302,14 @@ console.log("[test:bounty-hunter-engine] Starting Bounty Hunter Engine test suit
   assert.throws(() => sanitizeSourceUrl("http://github.com/org/repo/issues/1"), /only https/);
   assert.throws(() => sanitizeSourceUrl("https://169.254.169.254/latest/meta-data"), /not allowlisted/);
   assert.throws(() => sanitizeSourceUrl("https://github.com:444/org/repo/issues/1"), /explicit ports/);
+  assert.equal(sanitizeSourceUrl("https://polar.sh/polarsource/polar/issues/100"), "https://polar.sh/polarsource/polar/issues/100");
   assert.throws(() => parseBountyTask({
     id: "unsafe_source",
     title: "Unsafe source",
     repository: "org/repo",
     sourceUrl: "https://localhost/admin",
   }), /sourceUrl/);
-  console.log("  [PASS] Test 11: Reject unsafe bounty source URLs");
+  console.log("  [PASS] Test 11: Reject unsafe bounty source URLs and accept allowlisted polar.sh");
 }
 
 // Test 12: Reject unallowlisted repositories and shell-shaped repo strings
