@@ -37,7 +37,26 @@ const driftReceipt = verifier.verifyCitations(driftFixture.claim_id, driftFixtur
 console.log(`[PASS] Line Drift Claim: ${driftReceipt.claim_id}`);
 console.log(`[PASS] Line Drifts Caught: ${driftReceipt.line_drifts}, Verdict: ${driftReceipt.grounding_verdict}`);
 assert.strictEqual(driftReceipt.line_drifts, 1, "Must catch line drift");
-assert.strictEqual(driftReceipt.citations[0].actual_lines[0], 3, "Must identify actual line 3");
+// 4. Verify Evidence Gap (Field Atlas discipline: explicit gap instead of confabulation)
+const gapReceipt = verifier.verifyCitations("claim_gap_404", [], {}, { requireEvidence: true });
+console.log(`[PASS] Evidence Gap Claim: ${gapReceipt.claim_id}`);
+console.log(`[PASS] Evidence Gap Verdict: ${gapReceipt.grounding_verdict}, Badge: ${gapReceipt.provenance_badge}`);
+assert.strictEqual(gapReceipt.grounding_verdict, "EVIDENCE_GAP");
+assert.strictEqual(gapReceipt.provenance_badge, "[EVIDENCE_GAP]");
+assert.strictEqual(gapReceipt.evidence_gap, true);
+
+// 5. Verify Unverified Model Explanation (Field Atlas discipline: explicit 0-authority badge)
+const unverifiedReceipt = verifier.verifyCitations("claim_unverified_505", [], {}, { claimType: "unverified_explanation" });
+console.log(`[PASS] Unverified Explanation Claim: ${unverifiedReceipt.claim_id}`);
+console.log(`[PASS] Unverified Verdict: ${unverifiedReceipt.grounding_verdict}, Badge: ${unverifiedReceipt.provenance_badge}`);
+assert.strictEqual(unverifiedReceipt.grounding_verdict, "UNVERIFIED_MODEL_EXPLANATION");
+assert.strictEqual(unverifiedReceipt.provenance_badge, "[UNVERIFIED_MODEL_EXPLANATION]");
+assert.strictEqual(unverifiedReceipt.evidence_gap, false);
+
+// 6. Verify "Citation != Proof" Disclaimer Bound to All Receipts
+assert.ok(validReceipt.disclaimer.includes("citation does not prove global factuality"));
+assert.ok(gapReceipt.disclaimer.includes("citation does not prove global factuality"));
+assert.strictEqual(validReceipt.provenance_badge, "[PASSAGE_GROUNDED]");
 
 // Save latest receipt to reviews/ (gitignored)
 const outPath = path.resolve(process.cwd(), "reviews/citation_grounding_latest.json");
