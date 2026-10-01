@@ -37,7 +37,7 @@ const driftReceipt = verifier.verifyCitations(driftFixture.claim_id, driftFixtur
 console.log(`[PASS] Line Drift Claim: ${driftReceipt.claim_id}`);
 console.log(`[PASS] Line Drifts Caught: ${driftReceipt.line_drifts}, Verdict: ${driftReceipt.grounding_verdict}`);
 assert.strictEqual(driftReceipt.line_drifts, 1, "Must catch line drift");
-// 4. Verify Evidence Gap (Field Atlas discipline: explicit gap instead of confabulation)
+// 4. Verify Evidence Gap (Strict evidence discipline: explicit gap instead of confabulation)
 const gapReceipt = verifier.verifyCitations("claim_gap_404", [], {}, { requireEvidence: true });
 console.log(`[PASS] Evidence Gap Claim: ${gapReceipt.claim_id}`);
 console.log(`[PASS] Evidence Gap Verdict: ${gapReceipt.grounding_verdict}, Badge: ${gapReceipt.provenance_badge}`);
@@ -45,7 +45,7 @@ assert.strictEqual(gapReceipt.grounding_verdict, "EVIDENCE_GAP");
 assert.strictEqual(gapReceipt.provenance_badge, "[EVIDENCE_GAP]");
 assert.strictEqual(gapReceipt.evidence_gap, true);
 
-// 5. Verify Unverified Model Explanation (Field Atlas discipline: explicit 0-authority badge)
+// 5. Verify Unverified Model Explanation (Strict evidence discipline: explicit 0-authority badge)
 const unverifiedReceipt = verifier.verifyCitations("claim_unverified_505", [], {}, { claimType: "unverified_explanation" });
 console.log(`[PASS] Unverified Explanation Claim: ${unverifiedReceipt.claim_id}`);
 console.log(`[PASS] Unverified Verdict: ${unverifiedReceipt.grounding_verdict}, Badge: ${unverifiedReceipt.provenance_badge}`);

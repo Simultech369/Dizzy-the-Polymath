@@ -161,7 +161,7 @@ try {
     console.log("  [PASS] Test 3: Eviction under pressure evicts lowest-scored memories and preserves immune invariants");
   }
 
-  // TEST 4: Verified pack export and Field Atlas integrity verification
+  // TEST 4: Verified pack export and tamper-resistant integrity verification
   let exportedPack;
   {
     exportedPack = engine.exportVerifiedPack({

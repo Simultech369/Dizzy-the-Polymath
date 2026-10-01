@@ -1204,6 +1204,10 @@ function initChatSurface() {
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
 
+    const provenanceBadge = receipt?.provenance_badge || (receipt?.support_class ? `[${receipt.support_class}]` : "");
+    const badgeClass = provenanceBadge.includes("GROUNDED") ? "badge-emerald" : provenanceBadge.includes("GAP") ? "badge-rose" : "badge-amber";
+    const provenanceBadgeHtml = provenanceBadge ? ` <span class="badge ${badgeClass}" style="font-size: 0.7rem; margin-left: 0.4rem;">${escapeHtml(provenanceBadge)}</span>` : "";
+
     let receiptHtml = "";
     if (receipt) {
       const routeEvidence = routeEvidenceFromReceipt(receipt);
@@ -1218,6 +1222,10 @@ function initChatSurface() {
             ${routeEvidence.selectedRoute ? `<div>Planned Route: <code>${escapeHtml(routeEvidence.selectedRoute)}</code></div>` : ""}
             ${routeEvidence.adapter ? `<div>Adapter: <code>${escapeHtml(routeEvidence.adapter)}${routeEvidence.providerBoundary ? ` / ${escapeHtml(routeEvidence.providerBoundary)}` : ""}</code></div>` : ""}
             ${routeEvidence.attemptStatus ? `<div>Last Attempt: <code>${escapeHtml(routeEvidence.attemptStatus)}${routeEvidence.transportStarted ? " / transport started" : ""}${routeEvidence.attemptError ? ` / ${escapeHtml(routeEvidence.attemptError)}` : ""}${routeEvidence.statusCode ? ` / HTTP ${escapeHtml(routeEvidence.statusCode)}` : ""}</code></div>` : ""}
+            ${receipt.provenance_badge ? `<div>Grounding: <code>${escapeHtml(receipt.provenance_badge)}</code></div>` : ""}
+            ${receipt.disclaimer ? `<div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.25rem;"><em>${escapeHtml(receipt.disclaimer)}</em></div>` : ""}
+            ${receipt.cost_usd !== undefined ? `<div>Execution Cost: <code>$${escapeHtml(String(receipt.cost_usd))}</code></div>` : ""}
+            ${receipt.zero_raw_pii_egress ? `<div>PII Safe Proxy: <code>Guarded (zero raw PII egress)</code></div>` : ""}
           </div>
         </details>
       `;
@@ -1228,6 +1236,7 @@ function initChatSurface() {
         <div class="chat-bubble-header">
           <span class="avatar-badge">${avatar}</span>
           <span class="speaker-name">${speaker}</span>
+          ${provenanceBadgeHtml}
           <span class="bubble-timestamp">${escapeHtml(time)}</span>
         </div>
         <div class="chat-bubble-body">${formattedText}</div>
@@ -1328,14 +1337,19 @@ function initChatSurface() {
     scrollToBottom();
 
     try {
+      const provenanceToggle = document.getElementById("chat-provenance-toggle");
+      const provenanceRequested = provenanceToggle?.checked === true;
+
       const response = await fetchJson("/dispatch/incoming", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           channel: "dashboard_chat",
           text: outboundText,
+          provenance_requested: provenanceRequested,
           runtime_context: {
             conversation_key: conversationKey,
+            provenance_enabled: provenanceRequested,
           },
           ...(selection ? { selection } : {}),
         })

@@ -1052,6 +1052,16 @@
             <div class="chat-seat-smoke" id="chat-seat-smoke" aria-label="Local seat smoke evidence"></div>
           </div>
 
+          <div class="chat-control-plane-row" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-muted);" aria-label="Control-plane switches">
+            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+              <input type="checkbox" id="chat-provenance-toggle">
+              <span>Grounding Provenance (off by default)</span>
+            </label>
+            <span class="badge badge-primary" id="chat-watchdog-indicator" style="font-size: 0.75rem;">Watchdog: Active</span>
+            <span class="badge badge-emerald" id="chat-pii-indicator" style="font-size: 0.75rem;">PII Proxy: Armed</span>
+            <span class="badge badge-purple" id="chat-cost-indicator" style="font-size: 0.75rem;">Cost Guard: Armed</span>
+          </div>
+
           <div class="chat-input-row">
             <label class="sr-only" for="chat-input-text">Message Dizzy</label>
             <textarea id="chat-input-text" class="chat-textarea" placeholder="Message Dizzy... (Press Enter to send, Shift+Enter for newline)" rows="1"></textarea>
@@ -1338,6 +1348,42 @@
             </div>
             <div id="circuit-breakers-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
               <div style="color: var(--text-muted); text-align: center; padding: 1rem;">Awaiting circuit breaker telemetry...</div>
+            </div>
+          </div>
+
+          <!-- Control-Plane Invariant & Safety Gates -->
+          <div class="console-panel" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+            <div class="card-title" style="margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="status-dot" style="color: var(--cyan);"></span>
+                <span>Control-Plane Invariant &amp; Safety Gates</span>
+              </div>
+              <span class="badge badge-emerald" id="control-plane-aggregate-badge">Guards Armed</span>
+            </div>
+            <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Fail-closed runtime sentinels mediating execution budgets, agent boundaries, and cryptographic verification.
+            </div>
+            <div id="control-plane-gates-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+              <div class="card" style="padding: 0.85rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.825rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Runaway Watchdog</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Spin &amp; cycle limit: 25 steps max</div>
+                <div style="margin-top: 0.5rem;"><span class="badge badge-primary" style="font-size: 0.7rem;">Active (0 spins)</span></div>
+              </div>
+              <div class="card" style="padding: 0.85rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.825rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Cost Kill-Switch</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Cap: $0.10 req / $0.50 session</div>
+                <div style="margin-top: 0.5rem;"><span class="badge badge-emerald" style="font-size: 0.7rem;">Within Budget</span></div>
+              </div>
+              <div class="card" style="padding: 0.85rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.825rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">PII Safe Proxy</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Reversible surrogate masking</div>
+                <div style="margin-top: 0.5rem;"><span class="badge badge-emerald" style="font-size: 0.7rem;">Zero Outbound Egress</span></div>
+              </div>
+              <div class="card" style="padding: 0.85rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.825rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Shadow Comparator</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Offline route qualification</div>
+                <div style="margin-top: 0.5rem;"><span class="badge badge-primary" style="font-size: 0.7rem;">0 Regressions</span></div>
+              </div>
             </div>
           </div>
         </div>
