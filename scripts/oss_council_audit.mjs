@@ -124,6 +124,7 @@ async function runAudit() {
     "lib/pii_safe_inference_proxy.mjs",
     "lib/runaway_execution_watchdog.mjs",
     "lib/support_class_engine.mjs",
+    "lib/shadow_routing_comparator.mjs",
     "lib/memory_wiki_adapter.mjs",
     "lib/node_python_council_bridge_contract.mjs",
     "lib/prompt_bundle.mjs",
@@ -269,6 +270,7 @@ async function runAudit() {
     "scripts/pii_safe_inference_proxy_test.mjs",
     "scripts/runaway_execution_watchdog_test.mjs",
     "scripts/support_class_engine_test.mjs",
+    "scripts/shadow_routing_comparator_test.mjs",
   ];
 
   let syntaxFailed = false;
@@ -423,6 +425,7 @@ async function runAudit() {
     { name: "PII-Safe Inference Proxy Suite", script: "scripts/pii_safe_inference_proxy_test.mjs" },
     { name: "Runaway Execution Watchdog Suite", script: "scripts/runaway_execution_watchdog_test.mjs" },
     { name: "Support Class Engine Suite", script: "scripts/support_class_engine_test.mjs" },
+    { name: "Shadow Routing Comparator Suite", script: "scripts/shadow_routing_comparator_test.mjs" },
   ];
 
   let execFailed = false;

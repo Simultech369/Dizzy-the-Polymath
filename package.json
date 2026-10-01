@@ -86,6 +86,7 @@
         "test:pii-proxy": "node ./scripts/pii_safe_inference_proxy_test.mjs",
         "test:runaway-watchdog": "node ./scripts/runaway_execution_watchdog_test.mjs",
         "test:support-class": "node ./scripts/support_class_engine_test.mjs",
+        "test:shadow-routing": "node ./scripts/shadow_routing_comparator_test.mjs",
         "test:memory-wiki": "node ./scripts/memory_wiki_adapter_test.mjs",
         "test:job-board-tension": "node ./scripts/job_board_and_tension_map_test.mjs",
         "test:job-board-scanner": "node ./scripts/job_board_scanner_test.mjs",
