@@ -121,6 +121,7 @@ async function runAudit() {
     "lib/trajectory_replay_debugger.mjs",
     "lib/cost_kill_switch.mjs",
     "lib/inter_agent_sanitization_proxy.mjs",
+    "lib/pii_safe_inference_proxy.mjs",
     "lib/runaway_execution_watchdog.mjs",
     "lib/support_class_engine.mjs",
     "lib/memory_wiki_adapter.mjs",
@@ -265,6 +266,7 @@ async function runAudit() {
     "scripts/trajectory_replay_debugger_test.mjs",
     "scripts/cost_kill_switch_test.mjs",
     "scripts/inter_agent_sanitization_proxy_test.mjs",
+    "scripts/pii_safe_inference_proxy_test.mjs",
     "scripts/runaway_execution_watchdog_test.mjs",
     "scripts/support_class_engine_test.mjs",
   ];
@@ -418,6 +420,7 @@ async function runAudit() {
     { name: "Trajectory Replay Debugger Suite", script: "scripts/trajectory_replay_debugger_test.mjs" },
     { name: "Cost Kill-Switch Suite", script: "scripts/cost_kill_switch_test.mjs" },
     { name: "Inter-Agent Sanitization Proxy Suite", script: "scripts/inter_agent_sanitization_proxy_test.mjs" },
+    { name: "PII-Safe Inference Proxy Suite", script: "scripts/pii_safe_inference_proxy_test.mjs" },
     { name: "Runaway Execution Watchdog Suite", script: "scripts/runaway_execution_watchdog_test.mjs" },
     { name: "Support Class Engine Suite", script: "scripts/support_class_engine_test.mjs" },
   ];
