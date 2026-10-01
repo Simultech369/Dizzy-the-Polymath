@@ -14,6 +14,9 @@ import {
   validateConsistencyTransition,
   evaluateCircuitBreaker,
   createConsistencyClaim,
+  createConsistencyExportVoucher,
+  verifyConsistencyExportVoucher,
+  CONSISTENCY_EXPORT_VOUCHER_SCHEMA,
 } from "../lib/consistency_boundary.mjs";
 
 import {
@@ -168,6 +171,51 @@ assert.equal(contractReceipt.promotion_authority, true);
 assert.match(contractReceipt.evidence_digest, /^[a-f0-9]{64}$/);
 console.log(`✓ Trajectory contract receipt bound with ${contractReceipt.consistency_badge} (${contractReceipt.evidence_digest.slice(0, 16)}...)`);
 
+// 6. Consistency Export Vouchers & Offline Verification
+console.log("\nTest 6: Consistency Export Vouchers & Offline Verification...");
+const sampleExportPayload = {
+  exporter: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  claims: [{ id: "c1", amount_wei: "500000" }],
+  merkle_root: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+};
+
+// A. Synthetic Rehearsal Voucher
+const synthVoucher = createConsistencyExportVoucher({
+  consistencyClass: CONSISTENCY_CLASSES.SYNTHETIC_REHEARSAL,
+  exporterAddress: sampleExportPayload.exporter,
+  exportPayload: sampleExportPayload,
+  summary: { total_claims: 1 },
+});
+assert.equal(synthVoucher.schema_version, CONSISTENCY_EXPORT_VOUCHER_SCHEMA);
+assert.equal(synthVoucher.badge, "[SYNTHETIC_REHEARSAL]");
+assert.equal(synthVoucher.fiduciary_authority, false);
+assert.equal(synthVoucher.promotion_authority, false);
+assert.match(synthVoucher.public_truth_disclaimer, /Zero fiduciary authority/);
+assert.equal(verifyConsistencyExportVoucher(synthVoucher, sampleExportPayload), true);
+
+// B. Global Consensus Finalized Voucher
+const finalizedVoucher = createConsistencyExportVoucher({
+  consistencyClass: CONSISTENCY_CLASSES.GLOBAL_CONSENSUS_FINALIZED,
+  exporterAddress: sampleExportPayload.exporter,
+  exportPayload: sampleExportPayload,
+  summary: { total_claims: 1 },
+});
+assert.equal(finalizedVoucher.badge, "[GLOBAL_CONSENSUS_FINALIZED]");
+assert.equal(finalizedVoucher.fiduciary_authority, true);
+assert.equal(finalizedVoucher.promotion_authority, true);
+assert.equal(verifyConsistencyExportVoucher(finalizedVoucher, sampleExportPayload), true);
+
+// C. Tamper detection on payload mismatch
+const modifiedPayload = { ...sampleExportPayload, claims: [] };
+assert.equal(verifyConsistencyExportVoucher(finalizedVoucher, modifiedPayload), false, "Voucher must reject modified payload");
+
+// D. Tamper detection on voucher property
+const tamperedVoucher = { ...finalizedVoucher, consistency_class: CONSISTENCY_CLASSES.SYNTHETIC_REHEARSAL };
+assert.equal(verifyConsistencyExportVoucher(tamperedVoucher, sampleExportPayload), false, "Tampered voucher properties must fail");
+
+console.log("✓ Consistency export vouchers sealed with cryptographic offline verification.");
+
 console.log("\n==================================================");
 console.log("   ALL CONSISTENCY BOUNDARY TESTS PASSED!        ");
 console.log("==================================================");
+
