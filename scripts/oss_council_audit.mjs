@@ -271,6 +271,7 @@ async function runAudit() {
     "scripts/runaway_execution_watchdog_test.mjs",
     "scripts/support_class_engine_test.mjs",
     "scripts/shadow_routing_comparator_test.mjs",
+    "scripts/dispatch_grounding_integration_test.mjs",
   ];
 
   let syntaxFailed = false;

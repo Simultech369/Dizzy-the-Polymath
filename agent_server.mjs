@@ -455,10 +455,15 @@ function buildRuntimeContext(req) {
 function normalizeRuntimeContextFromBody(value, options = {}) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const rawKey = String(source.conversation_key ?? "").trim();
-  if (!rawKey) return {};
-  if (options.requireDashboardConversationKey && !isDashboardConversationKey(rawKey)) return {};
+  const result = {};
+  if (source.provenance_enabled !== undefined) {
+    result.provenance_enabled = Boolean(source.provenance_enabled);
+  }
+  if (!rawKey) return result;
+  if (options.requireDashboardConversationKey && !isDashboardConversationKey(rawKey)) return result;
   const conversationKey = normalizeIdentifier(source.conversation_key, "");
-  return conversationKey ? { conversation_key: conversationKey } : {};
+  if (conversationKey) result.conversation_key = conversationKey;
+  return result;
 }
 
 function isDashboardConversationKey(value) {
@@ -717,6 +722,10 @@ function buildIncomingMessage(body, req, defaults = {}) {
     ),
     meta: normalizeMeta(body?.meta ?? defaults.meta ?? {}),
     ...(hasSelection ? { selection } : {}),
+    provenance_requested: Boolean(body?.provenance_requested ?? defaults.provenance_requested),
+    provenance_enabled: Boolean(body?.provenance_enabled ?? defaults.provenance_enabled),
+    ...(body?.request_mode ? { request_mode: String(body.request_mode) } : {}),
+    ...(Array.isArray(body?.citations) ? { citations: body.citations } : {}),
     runtime_context: {
       ...buildRuntimeContext(req),
       ...normalizeRuntimeContextFromBody(body?.runtime_context, {
