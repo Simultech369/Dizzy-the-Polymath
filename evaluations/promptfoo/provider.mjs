@@ -32,10 +32,10 @@ const MOCK_SNAPSHOT = {
   ]
 };
 
-export default async function callApi(prompt, context) {
+export async function callApi(prompt, context = {}) {
   try {
-    const trustZone = context.vars.trust_zone || "private_self";
-    const budgetBytes = Number(context.vars.budget_bytes) || 50000;
+    const trustZone = context?.vars?.trust_zone || "private_self";
+    const budgetBytes = Number(context?.vars?.budget_bytes) || 50000;
     
     const output = assembleContext({
       trust_zone: trustZone,
@@ -47,5 +47,19 @@ export default async function callApi(prompt, context) {
     return { output: output.packed_context || "NO_CONTEXT" };
   } catch (err) {
     return { error: String(err) };
+  }
+}
+
+export default class ContextAssemblerProvider {
+  constructor(options = {}) {
+    this.options = options;
+  }
+
+  id() {
+    return "context-assembler";
+  }
+
+  async callApi(prompt, context) {
+    return callApi(prompt, context);
   }
 }
