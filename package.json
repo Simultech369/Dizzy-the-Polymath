@@ -128,7 +128,7 @@
         "eval:anti-slop-prose": "node ./scripts/anti_slop_prose_fixture_check.mjs",
         "eval:anti-slop-visual": "node ./scripts/anti_slop_visual_fixture_check.mjs",
         "maintain": "node ./scripts/maintain.mjs",
-        "eval:context-assembler": "cd evaluations/promptfoo && npx promptfoo eval"
+        "eval:context-assembler": "cd evaluations/promptfoo && npx --yes promptfoo@0.123.0 eval"
     },
     "keywords": [
         "assistant",
@@ -147,7 +147,6 @@
         "cheerio": "^1.2.0",
         "ethers": "^6.16.0",
         "express": "^5.2.1",
-        "promptfoo": "^0.123.0",
         "redis": "^5.11.0"
     }
 }
