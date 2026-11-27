@@ -138,7 +138,7 @@ try {
   const dashHtml = await fetch(`http://127.0.0.1:${port}/dashboard`, {
     headers: { ...AUTH_HEADERS, "Cookie": sessionCookie },
   }).then((r) => r.text());
-  await must(dashHtml.includes("Drift & Memory Dashboard"), "dashboard html missing title");
+  await must(dashHtml.includes("Dizzy Local Operator Dashboard"), "dashboard html missing title");
 
   const dashData = await fetch(`http://127.0.0.1:${port}/api/dashboard-data`, {
     headers: { ...AUTH_HEADERS, "Cookie": sessionCookie },
