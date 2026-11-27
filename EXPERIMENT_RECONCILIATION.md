@@ -108,6 +108,7 @@ Evidence still lacking:
 | Dependency/API drift gate | Integrated on `experiments` | CI and maintenance require structured impact classification and evidence | `external_contract`, `runtime_dependency` | `dependency-evidence/2026-06-17-dependency-api-drift-gate.md` |
 | Runtime recovery and review-tool hardening | Integrated on `experiments` | Atomic queue side effects, request-bound SQLite idempotency, runtime matrices, and provider upload boundaries | `runtime_dependency`, `external_contract` | `dependency-evidence/2026-06-20-runtime-recovery-review-hardening.md` |
 | Lockfile vulnerability upgrades | Integrated on `experiments` | Resolved 5 npm audit advisories for path-to-regexp, qs, undici, ws, and ethers; Node floor 20.18.1 engine requirement | `lockfile` | `dependency-evidence/2026-06-20-lockfile-vulnerability-upgrades.md` |
+| Phase 4 Pass #1: `promptfoo` subtraction & runtime audit gate | Ready for `main` promotion | Removed non-runtime `promptfoo` from root `dependencies` (`1004 -> 106` lockfile packages), upgraded `proxy-addr`, `body-parser`, `qs`, and `undici` to `0` vulnerabilities, bumped CI actions to `@v6`, and made `npm audit --omit=dev --audit-level=high` blocking | `lockfile`, `runtime_dependency` | `dependency-evidence/2026-11-27-phase4-promptfoo-subtraction-and-audit-gate.md` |
 
 
 

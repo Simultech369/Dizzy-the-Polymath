@@ -16,27 +16,27 @@ jobs:
 
     steps:
       - name: Checkout Dizzy-the-Polymath
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: Dizzy-the-Polymath
           fetch-depth: 0
 
       - name: Checkout Sibling CouncilEngine (for cross-repo contract)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         continue-on-error: true
         with:
           repository: Simultech369/CouncilEngine
           path: CouncilEngine
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: Dizzy-the-Polymath/package-lock.json
 
       - name: Setup Python (for offline CouncilEngine contract)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -103,12 +103,12 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -123,7 +123,7 @@ jobs:
         run: |
           npm run check:skills
           npm run check:dependencies
-          npm audit --omit=dev --audit-level=critical || echo "::warning::Review npm audit advisories before hosted Phase 4 promotion"
+          npm audit --omit=dev --audit-level=high
 
   attack-suite-advisory:
     name: Optional Automated Attack & Multi-Turn Jailbreak Job
@@ -132,10 +132,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
