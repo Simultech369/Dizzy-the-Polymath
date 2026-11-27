@@ -4,243 +4,176 @@
 
 <img src="dizzylogofull.png" alt="Dizzy Studio logo" width="420">
 
-**Local-first assistant runtime for bounded memory, trust zones, and accountable continuity.**
+**Local-first control plane for routing, bounded memory rules, tool guardrails, receipts, and user-facing channels.**
 
-*Dizzy does not train or fine-tune models; it is the control plane around them: context, tools, memory, routing, receipts, and verification.*
+*Dizzy does not train or fine-tune models; it is the router and control plane around them.*
 
 </div>
 
-**Current public-view status:** this repository is ready for serious collaborator review from this checkout, not a hosted production launch. The local runtime, dashboard source/API guard, receipt inspection path, memory/wiki layer, and council audit are documented below with explicit boundaries.
+## System Roles (Read First)
 
-Public and dashboard wording follows [Public Truth Language](docs/public_truth_language.md): say what is verified, what is rehearsal, what is local, and what remains operator-mediated.
+- **Dizzy (`Dizzy-the-Polymath`) = Local Control Plane**: Owns request routing, trust-zone memory rules, sandboxed tool execution, PII masking before hosted calls, hash-linked audit receipts, Operator Inbox, and user-facing channels.
+- **CouncilEngine (`Simultech369/CouncilEngine`) = Offline Verification Helper**: Runs deterministic code/AST/policy checks, verification task routing, and human-approved promotion gates. CouncilEngine is **not** a second chat brain or consumer product.
+- **Pharmacy / PBM (`Pharmacy-Fiduciary-Commons`) = Optional Domain**: Healthcare/PBM auditing is one domain workload that uses Dizzy and CouncilEngine primitives, **not** the whole product.
 
-`/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work (see **Hosted Production And Public A2A Horizon** in [`NEXT.md`](NEXT.md)).
+**Current public-view status:** this repository is ready for serious collaborator review from this checkout, not a hosted production launch. Public and dashboard wording follows [Public Truth Language](docs/public_truth_language.md): say what is verified, what is rehearsal, what is local, and what remains operator-mediated.
 
-Start with [QUICKSTART.md](QUICKSTART.md) to run the local API. Use [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md) to prove the core MVP loop: local seat selection, dispatch, receipt inspection, and deterministic verification.
+`/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof (with optional local Ed25519 trust-store verification). It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. Start with [QUICKSTART.md](QUICKSTART.md) or [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md). For background orientation, see [Worldview and Governance Direction](docs/worldview_and_governance_direction.md).
 
-### Repository Structure and Authority
+---
 
-| Layer | Path / Files | Authority Status |
-| --- | --- | --- |
-| **Runtime** | `agent_server.mjs`, `worker.mjs`, `lib/` | Active, tested execution layer |
-| **Experimental** | `lib/sqlite_operational_store.mjs`, `lib/structural_query_cache.mjs` | Retained as local sidecars, reversible and non-authoritative |
-| **Doctrine** | `CONSTITUTION.md`, `PROMPT_CORE.md`, `identity/` | High authority, governs prompt packs and boundaries |
-| **Prototypes** | `core/prototypes/` | Reference only, non-authoritative cross-language sketches |
+## Quick Start (Windows and Mac/Linux)
 
-### Why This Exists
+Node.js 20.18.1+ is required. Redis and external model API keys are optional for local verification.
 
-Most agent frameworks prioritize infinite autonomy over accountability. Dizzy prioritizes **governance, receipts, and verifiable memory boundaries**. It exists to test a more accountable agentic loop without surrendering control, leaking private context across trust zones, or relying on unverified LLM actions.
+### Mac / Linux (Bash + `curl`)
 
-### Who It's For
-
-- **Operators & Researchers** who need a local-first, memory-bound assistant they can deeply audit.
-- **System Builders** looking for a reference implementation of a verifiable AI control plane (Council routing, A2A cryptography, trajectory ledgers).
-- **Not for:** Those looking for a one-click SaaS chatbot or an unbounded autonomous scraper.
-
-The repo is transparent without turning every working note into doctrine: the runtime is small and bounded; the surrounding documents show how its judgment loop, memory rules, and public/private trust boundaries are being refined.
-
-## What Runs Today
-
-| Surface | Current evidence / check |
-| --- | --- |
-| Local HTTP runtime | `/health`, `/prompt`, `/governance`, plus opt-in `/memory/graph` |
-| SSE execution streaming | `POST /agent/execute/stream` with scoped execute-token auth, bounded backpressure, provider abort propagation, and hash-only stream receipts (`npm run test:streaming-response`) |
-| Guided Trust Cockpit Dashboard | Served locally at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`; W-0105 source/API guard verifies neutral startup states, route wiring, and auth/session behavior. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. |
-| Model Catalog & Evidence Ladder | Cataloged local/open-weight seats, hosted advisory routes, and quarantined candidates with route specifications in [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md). Dashboard execution exposes only implemented combinations returned by `/api/operator/router-divisions`. |
-| Prompt governance & Anti-Slop | Scoped prompt loading, byte budgets, and rule-based prose/sycophancy plus visual-surface scanners (`lib/anti_slop_scanner.mjs`, `lib/visual_slop_scanner.mjs`) |
-| Cognitive Memory Engine | 5-stage memory lifecycle (`Capture`, `Consolidate`, `Retrieve`, `Reconcile`, `Decay`) that compiles durable preferences and project lessons into transparent wiki state, with consolidation and wiki pages partitioned by trust zone and sensitivity (`lib/cognitive_memory_engine.mjs`, `npm run test:cognitive-memory`; examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
-| LLM-Wiki Storage Adapter | Path-confined Markdown wiki I/O adapter with frontmatter injection protection; kept separate from cognitive policy/math by design (`lib/memory_wiki_adapter.mjs`, `npm run test:memory-wiki`; boundary examples in [`docs/memory_wiki_examples.md`](docs/memory_wiki_examples.md)) |
-| Bounded memory & Quarantined Bridging | Trust-zone scoped retrieval with opt-in cross-session concept bridging (`runtime/quarantine/`) |
-| Bounded Scenario Forking & Time-Travel | Ephemeral trajectory simulation and Euclidean divergence analysis (`lib/scenario_simulator.mjs`) |
-| Robust Friction Telemetry | Median Absolute Deviation (MAD) $3\sigma$ anomaly detector and active policy containment |
-| Deterministic Lifecycle Hooks | SessionStart/Stop ingress receipts and PreToolUse/PostToolUse tool-runner receipts (`lib/lifecycle_hooks.mjs`) |
-| Structural Query Cache | Local dashboard query cache with trust-zone, retention, prompt/config, source-signature, and partition-hash receipts (`lib/structural_query_cache.mjs`) |
-| StateM Runbook FSM | Local four-phase `plan -> execute <-> verify -> handoff` bridge with verification barriers (`lib/statem_runbook_bridge.mjs`) |
-| Cryptographic A2A Mailbox Queue | Local sealed handoff/message queue for agent coordination. It can require Ed25519/HMAC signed envelopes (`dizzy.a2a_signed_envelope.v1`), issues leased dispatch receipts (`dizzy.a2a_dispatch_receipt.v1`), and records lease-token ACK receipts; this is not signed Council response proof or durable cross-process delivery (`lib/a2a_mailbox_bridge.mjs`) |
-| Signed A2A HTTP Ingress Boundary | Local `/api/a2a/incoming` route guarded by `DIZZY_A2A_SECRET` (HMAC SHA-256) or `DIZZY_A2A_TRUST_STORE` (Ed25519 asymmetric signatures), algorithm pinning, timestamp freshness, nonce replay rejection, schema validation, and prompt-marker sanitization. This is boundary proof, not ecosystem interoperability proof (`lib/a2a_boundary_guard.mjs`, `npm run test:a2a-boundary`). |
-| Council Bridge Operator Status | Authenticated local operator status route that reports Council bridge components, current mailbox counts, and open promotion blockers without claiming a continuous mailbox-to-sidecar worker or public interoperability (`/api/operator/council-bridge-status`, [`docs/council_bridge_quickstart.md`](docs/council_bridge_quickstart.md), `npm run test:operator-telemetry`) |
-| Node/Python Council Bridge Contract | Schema and fixture gate for quarantined sidecar rehearsals; separates bridge payload integrity from bounty-task integrity, wires ingress scanner opportunities to sidecar bridge rehearsal (`scripts/job_board_scanner.mjs --bridge-rehearsal`), keeps sidecar responses rehearsal-only, and rejects live-execution claims without verified sandbox/egress proof (`docs/node_python_council_bridge_contract.md`, `docs/sidecar_sandbox_and_egress_boundary.md`, `npm run test:node-python-bridge-contract`, `npm run test:job-board-scanner`) |
-| Council Subcommittee Router | 6-role rotating committee scheduler and dialectical tension consensus engine (`lib/council_subcommittee_router.mjs`) |
-| OSS Council Audit Suite | 3-layer deterministic verification engine. Exact syntax-target and execution-suite counts are receipt facts from the current `npm run check:council` run, not timeless README claims. |
-
-## Quick Start
-
-For the shortest proof of the thesis, use [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md). The section below is the basic server setup path.
-
-### 1. Install Dependencies
-
-Node.js 20.18.1+ is required.
-
-```powershell
+```bash
+# 1. Install dependencies
 npm install
+
+# 2. Launch the local control-plane API (binds to 127.0.0.1:3000)
+DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars" npm start
 ```
 
-### 2. Launch the Runtime
+In a second terminal, query local endpoints with `curl`:
 
-Start the local API:
+```bash
+export DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
 
-```powershell
-npm start
+# Check runtime, model, mailbox, and disk health
+curl -s http://127.0.0.1:3000/health | jq .
+
+# Fetch active prompt bundle metadata
+curl -s http://127.0.0.1:3000/prompt | jq .
+
+# Inspect authenticated Operator Inbox (approvals, blockers, spend stops)
+curl -s -H "Authorization: Bearer $DIZZY_AUTH_TOKEN" \
+  http://127.0.0.1:3000/api/operator/inbox | jq .
 ```
 
-This launches the agent server locally on `http://127.0.0.1:3000`.
+To enable the local Operator Dashboard (`http://localhost:3000/dashboard`):
 
-To serve the Guided Trust Cockpit dashboard, start the server with the dashboard flag:
+```bash
+DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars" npm start
+```
+
+### Windows (PowerShell)
 
 ```powershell
+# 1. Install dependencies
+npm install
+
+# 2. Launch with opt-in dashboard enabled
+$env:DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
 $env:DIZZY_DASHBOARD_ENABLED="1"
 npm start
 ```
 
-Then open `http://localhost:3000/dashboard`.
-
-### 3. Inspect Local Endpoints
-
-In another terminal window:
+In another PowerShell window:
 
 ```powershell
+$env:DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
+$headers = @{ Authorization = "Bearer $env:DIZZY_AUTH_TOKEN" }
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt
+Invoke-RestMethod -Uri "http://127.0.0.1:3000/api/operator/inbox" -Headers $headers
 ```
 
-### 4. Run the Full Verification Suite
+---
 
-Verify total system integrity across the full local audit surface:
+## Memory Architecture: Stages, Trust Zones, and Tests
 
-```powershell
-# Run the complete 3-layer OSS Model Council Audit Engine
-npm run check:council
+Dizzy enforces bounded, expiring memory rather than ambient infinite retention.
 
-# Run individual verification suites
-npm test
-npm run test:frontier-simulation
-npm run test:anti-slop
-npm run test:provider-matrix
-npm run test:dashboard-safety
-npm run test:dashboard-public-surface
-npm run test:structural-query-cache
-npm run test:statem-runbook
-npm run test:a2a-mailbox
-npm run test:operator-telemetry
-npm run test:node-python-bridge-contract
-npm run test:cognitive-memory
-npm run test:memory-wiki
-npm run test:job-board-scanner
-npm run check:pattern-provenance
-```
+### 1. Five Memory Stages + Explicit Deletion
+Implemented in `lib/cognitive_memory_engine.mjs`, `lib/memory_hygiene_scanner.mjs`, and `lib/memory_wiki_adapter.mjs` (see [Memory Wiki Examples](docs/memory_wiki_examples.md)):
 
-## OSS Model Council
+1. **Capture**: Checks `lib/capture_eligibility.mjs` and `lib/durable_write_policy.mjs`, scans for poisoned instructions or raw secrets, and assigns an explicit `trust_zone` and `sensitivity_tier` (`public_safe`, `normal`, `do_not_export`).
+2. **Consolidate**: Deduplicates and merges records strictly inside `canonical_key + trust_zone + sensitivity_tier` so private notes never collapse into public records.
+3. **Retrieve**: Enforces trust-zone allowlists; unrecognized zones fail closed with an `invalid_trust_zone` receipt.
+4. **Reconcile**: Resolves conflicting facts deterministically by confidence, reinforcement, and governance invariants.
+5. **Decay & Delete**: Applies time-based decay and memory-pressure eviction to low-importance entries while emitting hash-backed eviction/deletion receipts (`dizzy.cognitive_memory_eviction_receipt.v1`).
 
-Dizzy is not a generic chatbot wrapper. It is a local-first control plane with deterministic checks, bounded model routing, and review receipts. The OSS Model Council is the staging gate used to test routing, memory, receipts, anti-slop checks, and adversarial failure cases before promotion.
+### 2. Trust Zones and Multi-Turn Context Reuse
 
-Dizzy prioritizes local and open-weight model seats. Hosted proprietary models may be configured as bounded advisory routes, but they do not define the OSS council baseline.
+| Trust Zone | Default Continuity & Reuse Rule | Durable Memory | Hosted Model Egress |
+| :--- | :--- | :--- | :--- |
+| `private_self` | Reuses local conversation history; starts clean on zone downgrade or policy drift | Allowed (`do_not_export` supported) | Cloud routes blocked by local isolation policy |
+| `trusted_collaborator` | Scoped continuity; starts clean if trust zone or prompt policy changes | Selective, audited writes | PII masked via `lib/pii_safe_inference_proxy.mjs` |
+| `outside_contact` | Starts clean (fresh context) by default | Disabled by default | PII masked; private-zone leaks blocked |
+| `paid_public` | Ephemeral clean start by default; scoped client continuity only when explicitly enabled (7-day inactivity expiry) | Disabled | PII masked; strict egress DLP |
 
-The council separates model availability into explicit trust zones, deterministic qualification gates, and review roles:
+### 3. Where Memory Tests Live
+- Lifecycle, zone isolation, and consolidation: `scripts/cognitive_memory_engine_test.mjs` (`npm run test:cognitive-memory`)
+- Path-jailed Markdown wiki storage: `scripts/memory_wiki_adapter_test.mjs` (`npm run test:memory-wiki`)
+- Poisoned/secret stored-content scanner & keep/delete receipts: `scripts/memory_hygiene_scanner_test.mjs` (`npm run test:memory-hygiene`)
+- Frontmatter & line-budget validation: `scripts/memory_validate.mjs` (`npm run check:memory`)
+- Cross-client continuity & graph filtering: `scripts/safety_checks.mjs` (`npm test`)
 
-```
-                Local repo snapshot and changed files
-                                |
-          +---------------------+---------------------+
-          |                                           |
-          v                                           v
-  Adversarial reviewers                       Qualified reviewer seats
-  - edge-case tests                           - syntax and AST checks
-  - safety failures                           - grounded bug review
-  - injection attempts                        - policy coherence
-          |                                           |
-          +---------------------+---------------------+
-                                |
-                                v
-                  Deterministic local verification
-                  - tests
-                  - receipts
-                  - governance checks
-                  - promotion gate
-```
+---
 
-### Qualification & Integration
+## Major Rules and Proof Commands
 
-Before a model is treated as review-usable, it must prove its reliability:
-- **4-Gate Qualification Ladder**: Every model candidate moves through $G_1\ (\text{JSON Strictness}) \rightarrow G_2\ (\text{Benign Control}) \rightarrow G_3\ (\text{Grounded Bug Detection}) \rightarrow G_4\ (\text{Sealed Receipt})$ before promotion to active voting pools.
+Every core governance rule is backed by a deterministic local test command:
 
-As a local-first system, Dizzy also acts as a secure orchestrator for other tools in your environment:
-- **Ecosystem Integration Posture**: Dizzy is designed to interoperate with local-first tools and council sidecars. A local signed HTTP ingress boundary now exists; public interoperability still requires a real cross-runtime peer handshake with signed request/response receipts before it is claimed.
-- **External Gateway Posture**: Dizzy can integrate model gateways and provider routers as adapter surfaces, but provider reach is not verification authority. See [`docs/external_gateway_posture.md`](docs/external_gateway_posture.md).
-- **Complete Catalog**: See [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) for cataloged model seats, hosted advisory routes, quarantined candidates, tier mappings, and route boundaries. Catalog membership is not execution proof; dashboard-callable combinations are the server-returned executable options.
+| Major Rule / Invariant | Primary Modules | Verification Command |
+| :--- | :--- | :--- |
+| Explicit workflow states, crash-safe HITL resume, illegal-jump rejection | `lib/workflow_state_machines.mjs`, `lib/hitl_approval_gateway.mjs` | `npm run test:workflow-states` |
+| Loopback auth, rate limits, proxy IP mistrust, symlink & HTTP bounds | `agent_server.mjs`, `lib/ingress_gateway.mjs` | `npm test` |
+| Unified hash-linked audit ledger & debug replay | `lib/unified_audit_ledger.mjs`, `lib/receipt_trace_viewer.mjs` | `npm run test:audit-ledger` |
+| Tool sandbox zone allowlists, traversal block, input/output PII scrub | `lib/tool_guardrails_middleware.mjs`, `lib/tools.mjs` | `npm run test:tool-guardrails` |
+| Signed A2A ingress (HMAC/Ed25519) + mailbox injection/PII sanitization | `lib/a2a_boundary_guard.mjs`, `lib/a2a_mailbox_bridge.mjs`, `lib/inter_agent_sanitization_proxy.mjs` | `npm run test:a2a-boundary && npm run test:a2a-mailbox` |
+| Source-grounded answers, missing-evidence flags, spoof/poison detection | `lib/citation_grounding_verifier.mjs`, `lib/support_class_engine.mjs` | `npm run test:citation-grounding && npm run test:dispatch-grounding` |
+| Memory zone/sensitivity partitioning, keep/delete receipts, poison scan | `lib/cognitive_memory_engine.mjs`, `lib/memory_hygiene_scanner.mjs` | `npm run test:cognitive-memory && npm run test:memory-hygiene` |
+| PII placeholder masking before hosted models + private-zone DLP block | `lib/pii_safe_inference_proxy.mjs`, `lib/dispatch.mjs` | `npm run test:pii-proxy` |
+| Zone-keyed cache TTLs & memory-pressure eviction | `lib/structural_query_cache.mjs`, `lib/daemon_hygiene.mjs` | `npm run test:structural-query-cache && npm run test:daemon-hygiene` |
+| Structured external event triggers (cheap code filter first + subscriptions) | `lib/event_trigger_router.mjs` | `npm run test:event-triggers` |
+| Work-type routing (math/logic -> T0 deterministic/Council; NL -> LLM) | `lib/routing_policy.mjs`, `lib/dispatch.mjs` | `npm run test:routing-policy && npm run test:work-type-routing` |
+| SSE streaming states, ITL stall detection, bounded backpressure | `lib/sse_stream.mjs` | `npm run test:streaming-response` |
+| Dizzy <-> CouncilEngine shared approval states & verification bridge | `lib/node_python_council_bridge_contract.mjs`, `CouncilEngine/human_approval.py` | `npm run test:node-python-bridge-contract && npm run test:dizzy-council-contract` |
+| Multi-turn jailbreak, tool fuzzing, chaos, and malicious skill/dep checks | `scripts/fuzzing_and_injection_tests.mjs`, `scripts/multi_turn_jailbreak_eval.mjs` | `npm run test:attack-suite && npm run check:skills` |
+| Full 3-layer OSS Council syntax, governance, and execution gate | `scripts/oss_council_audit.mjs` | `npm run check:council` |
 
-For Telegram, model backends, Redis, workers, and optional marketplace surfaces, see [`RUNBOOK.md`](RUNBOOK.md).
+---
 
-For a guided map of the repo, see [`REPO_GUIDE.md`](REPO_GUIDE.md).
+## What Works Today vs. Future Ideas
 
-## What This Is
+### Conversation vs. Internal Debug Session
+- **User / Operator Conversation Surface**: Operators and users interact with clean conversation threads, clear degraded/offline status messages, and a single **Operator Inbox** (`/api/operator/inbox` and Dashboard Inbox tab) grouping pending human approvals, active blockers, spend stops, and open questions.
+- **Internal Debug Session (Inspect / Replay)**: Raw tool call payloads, multi-hop routing attempts, StateM checkpoints, and hash-linked audit chains are **never** dumped as the main chat UI; they live under dedicated Inspect/Replay endpoints (`/api/operator/audit-replay`) and the Receipt Trail inspector.
 
-- A local-first runtime for a continuity-aware assistant
-- A doctrine + runtime repo where the constitutional layer is explicit
-- A system with trust zones, retention boundaries, and operator-mediated public surfaces
-- A working codebase with health, prompt, governance, memory, queue, and tool infrastructure
+### What Runs Today (Local Checkout)
 
-## What This Is Not
+| Surface | Status & Boundary |
+| :--- | :--- |
+| Local HTTP Control Plane | `/health` (models, mailbox, disk, cold seats), `/prompt`, `/governance`, `/dispatch/incoming`, `/agent/execute/stream`, `/api/events/trigger`, `/api/operator/inbox` |
+| Guided Trust Cockpit Dashboard | Opt-in at `http://localhost:3000/dashboard` only when `DIZZY_DASHBOARD_ENABLED=1` is set before `npm start`. Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. |
+| Capability & Work-Type Router | Routes math/logic/invariants to deterministic T0 handlers or offline Council checks; routes natural language across bounded tiers with ordered fallback (`stronger -> weaker -> local -> cache`) and spend caps (`lib/cost_kill_switch.mjs`). See **External Gateway Posture** in [`docs/external_gateway_posture.md`](docs/external_gateway_posture.md): external routers provide reach, never verification authority. |
+| Experimental Sidecars | `lib/sqlite_operational_store.mjs` and `lib/structural_query_cache.mjs` are retained as reversible local Experimental sidecars, non-authoritative over canonical state. |
+| Offline CouncilEngine Bridge | Schema-validated Node/Python rehearsal bridge, verification job router, and shared HITL approval state contract (`waiting_for_approval`, `approved`, `rejected`). |
 
-- A finished commercial product
-- A turnkey hosted service
-- A general claim that the political-economic conditions described in the docs already exist
-- A public ontology-performance project
+### Future Ideas (Not Claimed Today)
+- **Hosted multi-tenant SaaS launch (Phase 4)**: Public TLS termination, external OAuth/SSO, multi-tenant database RLS, and public SLA monitoring are future work, not active claims.
+- **Public cross-runtime A2A federation**: Signed cross-network peer discovery and distributed replay caches remain future work (see [`NEXT.md`](NEXT.md)).
+- **Distributed multi-machine agent clusters (Phase 5)**: Multi-daemon fleet orchestration and autonomous extension installation are out of current scope.
 
-The public or paid layer is currently a constrained projection of the core system and remains operator-mediated.
+---
 
-## Current Status
+## Repository Map (Important Files and Docs)
 
-- Local-first runtime works
-- Governance and prompt-pack architecture are implemented
-- Paid/public mode defaults to ephemeral continuity unless explicitly enabled per client/task
-- Automatic markdown retrieval is scoped to trusted doctrine docs plus `memory/`
-- Marketplace/public endpoints are informational and informal, not a mature storefront contract
+| Category | Path | Role |
+| :--- | :--- | :--- |
+| **Control-Plane Entrypoints** | `agent_server.mjs`, `worker.mjs`, `lib/dispatch.mjs` | HTTP API, SSE streaming, background worker, and message/work-type dispatch |
+| **Workflows & HITL** | `lib/workflow_state_machines.mjs`, `lib/hitl_approval_gateway.mjs`, `lib/statem_runbook_bridge.mjs` | Explicit workflow FSMs, crash-resumable HITL checkpoints, and 4-phase StateM runbooks |
+| **Routing, Cost & Watchdog** | `lib/routing_policy.mjs`, `lib/model_router.mjs`, `lib/cost_kill_switch.mjs`, `lib/runaway_execution_watchdog.mjs` | Tiered capability routing, spend caps/alerts, and non-progressing loop containment |
+| **Safety, PII & Grounding** | `lib/tool_guardrails_middleware.mjs`, `lib/pii_safe_inference_proxy.mjs`, `lib/inter_agent_sanitization_proxy.mjs`, `lib/citation_grounding_verifier.mjs` | Tool sandboxing, hosted-call PII masking, A2A sanitization, and source-grounded verification |
+| **Memory & Audit Ledger** | `lib/cognitive_memory_engine.mjs`, `lib/memory_wiki_adapter.mjs`, `lib/memory_hygiene_scanner.mjs`, `lib/unified_audit_ledger.mjs` | Zone-partitioned memory lifecycle, poison scanner, and unified hash-linked audit log |
+| **Operator UI** | `dashboard/index.html`, `dashboard/dashboard.js`, `lib/dashboard.mjs` | Calm local dashboard centered on Operator Inbox, status, budgets, and inspectable receipts |
+| **Architecture & Threat Docs** | [`DESIGN.md`](DESIGN.md), [`docs/threat_model.md`](docs/threat_model.md), [`docs/workflows_and_state_machines.md`](docs/workflows_and_state_machines.md), [`REPO_GUIDE.md`](REPO_GUIDE.md), [`RUNBOOK.md`](RUNBOOK.md), [`MODEL_INVENTORY.md`](MODEL_INVENTORY.md) | Canonical design state, unified 6-surface threat model, workflow catalog, runbook, and model roster |
+| **Planning & Governance** | [`NEXT.md`](NEXT.md), [`CONSTITUTION.md`](CONSTITUTION.md), [`PROMPT_CORE.md`](PROMPT_CORE.md), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Completed/open work ledger, behavioral core, and clean-room license provenance |
 
-## Repo Map
-
-| File | Role |
-| --- | --- |
-| [`DESIGN.md`](DESIGN.md) | Human canonical source of truth |
-| [`INTERACTION_NORMS.md`](INTERACTION_NORMS.md) | Plain-language interaction and governance summary |
-| [`PROMPT_CORE.md`](PROMPT_CORE.md) | Live behavioral core |
-| [`PROMPT_PACKS.md`](PROMPT_PACKS.md) | Prompt-pack model |
-| [`RUNBOOK.md`](RUNBOOK.md) | Local setup and operational notes |
-| [`REPO_GUIDE.md`](REPO_GUIDE.md) | Guided map for first-time readers and maintainers |
-| [`FILE_ROLES.md`](FILE_ROLES.md) | Root-file authority and role map |
-| [`MECHANISMS.md`](MECHANISMS.md) | Reusable design mechanisms in the repo |
-| [`CHOKEPOINTS.md`](CHOKEPOINTS.md) | Self-inspection map for dependency, capture, and exit risks |
-| [`OPERATING_LOOP.md`](OPERATING_LOOP.md) | Daily operator loop for turning work into durable value |
-| [`OPERATIONS.md`](OPERATIONS.md) | Runtime execution overlay |
-| [`MECHANISM_SIEVE.md`](MECHANISM_SIEVE.md) | Worksheet for converting values into mechanisms |
-| [`PORTABILITY.md`](PORTABILITY.md) | Export, deletion, and trust-zone boundaries for continuity records |
-| [`OPERATING_SURFACE.md`](OPERATING_SURFACE.md) | Optional lightweight outward-facing surface |
-| [`upgrades/`](upgrades/) | Planning lane, review trail, and candidate improvements; not runtime doctrine |
-
-## Trust Zones And Retention
-
-Dizzy uses trust zones as real runtime boundaries:
-
-| Zone | Default continuity posture |
-| --- | --- |
-| `private_self` | Retained continuity and durable memory allowed |
-| `trusted_collaborator` | Selective continuity, narrower disclosure |
-| `outside_contact` | Fresh-context reasoning by default |
-| `paid_public` | Ephemeral by default; continuity only when explicitly enabled per client/task |
-
-Retention is intentional and local-first, not ambient.
-
-## Safety Posture
-
-- Loopback bind by default
-- Operator-control routes require `DIZZY_AUTH_TOKEN` by default, including direct local dispatch, agent execution, and continuity export/delete/prune
-- Remote mutations disabled by default
-- Self-modification disabled by default
-- Explicit external-tool invocation only
-- Auto-retrieval scoped to trusted doctrine and memory surfaces
-
-## Political-Economic Direction
-
-The repo carries a political-economic direction centered on anti-extraction, capability, and bounded governance. That direction should be read as orientation for construction, not as a claim that current conditions have already achieved it.
+---
 
 ## Status Vocabulary
 
@@ -253,44 +186,9 @@ The repo carries a political-economic direction centered on anti-extraction, cap
 
 ## Production Readiness Checklist
 
-This is the minimum bar before any hosted or client-facing surface should be treated as production-ready.
+This is the minimum bar before any hosted or client-facing surface should be treated as production-ready. The integrated gate lives in [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md) and [`EXTERNAL_SURFACE_REVIEW.md`](EXTERNAL_SURFACE_REVIEW.md), checked by:
 
-The integrated project gate lives in [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md) and is checked by:
-
-```powershell
+```bash
 npm run check:production
 npm run check:dependencies
 ```
-
-Use [`EXTERNAL_SURFACE_REVIEW.md`](EXTERNAL_SURFACE_REVIEW.md) before adding any public form, auth provider, edge provider, hosted database, or client-facing storage.
-
-| Area | Requirement |
-| --- | --- |
-| Minified front end | Production build uses minified assets, no exposed secrets, no public source maps unless intentionally gated, and no environment variables shipped into client bundles unless safe for public use |
-| Database | Row-level security is enabled where supported, every authenticated read/write path is scoped to the current user or tenant, and service-role credentials never touch the browser |
-| Version control | Main branch is protected, releases are tagged, secrets are excluded from git history, and deploys come from reviewed commits |
-| APIs | Auth, input validation, schema checks, CORS policy, request size limits, structured errors, and explicit public/private route boundaries are in place |
-| Hosting and deployment | Deploy target uses HTTPS, least-privilege environment variables, rollback path, health checks, and separate development/staging/production configuration |
-| External intake and providers | Public forms, auth providers, hosted databases, edge providers, and storage providers are scoped adapters with documented purpose, collected fields, destination, retention, deletion/export path, logging posture, and secret boundary |
-| Rate limiting | Public, auth, and expensive routes have per-IP or per-user limits; abuse limits fail closed without leaking private state |
-| Caching | Static assets are cacheable, sensitive responses are not cached publicly, and cache invalidation is explicit for user-specific data |
-| Scaling | Runtime has documented resource assumptions, queue/backpressure behavior, horizontal-scaling constraints, and failure modes for Redis/database/provider outages |
-| Dependency/API drift | Dependency, lockfile, runtime, provider, and external API contract changes are classified before promotion; provider keys stay in environment variables, not CLI args |
-| Error tracking | Server and client errors are captured with environment, release, and request context, while secrets and private user content are scrubbed |
-| Accessibility / ADA | Public UI targets WCAG 2.2 AA; legal/procurement-sensitive surfaces verify at least WCAG 2.1 AA, with keyboard navigation, semantic HTML, labels, focus states, contrast, alt text, reduced-motion support, and screen-reader checks |
-
-## Launch Proof To Capture
-
-- Screenshot or GIF of the production build running
-- `/health` response from the deployed target
-- Passing test output from the release commit
-- Accessibility scan results plus one manual keyboard/screen-reader pass
-- Rate-limit behavior shown on one public route
-- Error-tracking dashboard receiving a test event
-- External intake/provider data-flow map if any form, auth provider, edge provider, hosted database, or client-facing storage is added
-- Database RLS policy notes or migration references
-- Deployment rollback command or provider rollback path
-
-## Notes
-
-This repository is intentionally legible about what is implemented, what is operator-mediated, and what remains provisional. If a public surface overclaims maturity, correct the claim rather than decorating it.

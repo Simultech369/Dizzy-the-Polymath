@@ -1,19 +1,30 @@
 # QUICKSTART.md - Try Dizzy Locally
 
-Dizzy is a local-first operator console and control-plane prototype for bounded memory, trust zones, receipts, and agentic work. This guide shows what can be checked locally today.
+Dizzy is a local-first router and control plane for bounded memory, trust zones, tool guardrails, receipts, and user/operator channels. CouncilEngine (`Simultech369/CouncilEngine`) acts as its offline verification helper.
 
-It does not claim a hosted production product, public A2A interoperability, or finished commercial application.
+Dizzy is not a hosted production service, public A2A network, or finished commercial SaaS application.
 
-For the shortest end-to-end proof of the thesis, see [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md): local/open-weight seat selection, dispatch, receipt inspection, and deterministic verification.
+For the shortest end-to-end proof of the thesis, see [Dizzy Thesis In 15 Minutes](docs/thesis_in_15_minutes.md).
 
 ## Before You Start
 
-- Node.js 20.18.1 or newer is recommended.
-- PowerShell examples assume Windows.
-- Redis and external model keys are optional for this walkthrough.
-- The dashboard is opt-in. `npm start` starts the API; set `DIZZY_DASHBOARD_ENABLED=1` before start to serve `/dashboard`.
+- Node.js 20.18.1 or newer is required (tested on Node 20 and Node 22).
+- Redis and external model API keys are optional for local verification.
+- The dashboard is opt-in: `npm start` starts the API only; set `DIZZY_DASHBOARD_ENABLED=1` before start to serve `/dashboard`.
+
+---
 
 ## 1. Install
+
+### Mac / Linux (Bash)
+
+```bash
+git clone https://github.com/Simultech369/Dizzy-the-Polymath.git
+cd Dizzy-the-Polymath
+npm install
+```
+
+### Windows (PowerShell)
 
 ```powershell
 git clone https://github.com/Simultech369/Dizzy-the-Polymath.git
@@ -21,63 +32,96 @@ Set-Location -LiteralPath ".\Dizzy-the-Polymath"
 npm install
 ```
 
-## 2. Start The Local API
+---
 
-```powershell
+## 2. Start The Local Control Plane
+
+### Mac / Linux (Bash)
+
+```bash
+export DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
 npm start
 ```
 
-Expected shape:
+### Windows (PowerShell)
+
+```powershell
+$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+npm start
+```
+
+Expected startup output:
 
 ```text
 Dizzy agent server listening on http://127.0.0.1:3000
 [health] http://127.0.0.1:3000/health
 ```
 
-Exact ports and timestamps may vary with your environment.
+---
 
-## 3. Check The API
+## 3. Check The API (`curl` and PowerShell)
 
-In another PowerShell window:
+### Mac / Linux (`curl`)
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:3000/health
-Invoke-RestMethod http://127.0.0.1:3000/prompt
+```bash
+export DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+
+# Public local health check (models, mailbox, disk, cold-seat posture)
+curl -s http://127.0.0.1:3000/health | jq .
+
+# Prompt bundle summary
+curl -s http://127.0.0.1:3000/prompt | jq .
+
+# Operator Inbox (approvals, blockers, spend stops)
+curl -s -H "Authorization: Bearer $DIZZY_AUTH_TOKEN" \
+  http://127.0.0.1:3000/api/operator/inbox | jq .
 ```
 
-The health endpoint should return `ok`. The prompt endpoint returns the local prompt bundle served by the runtime.
+### Windows (PowerShell)
 
-## 4. Start The Dashboard
+```powershell
+$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+$headers = @{ Authorization = "Bearer $env:DIZZY_AUTH_TOKEN" }
+Invoke-RestMethod http://127.0.0.1:3000/health
+Invoke-RestMethod http://127.0.0.1:3000/prompt
+Invoke-RestMethod -Uri "http://127.0.0.1:3000/api/operator/inbox" -Headers $headers
+```
 
-Stop the previous server if needed, then start with the dashboard flag:
+---
+
+## 4. Start The Opt-In Operator Dashboard
+
+Stop the previous server if running, then set `DIZZY_DASHBOARD_ENABLED=1` before `npm start`:
+
+### Mac / Linux (Bash)
+
+```bash
+DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars" npm start
+```
+
+### Windows (PowerShell)
 
 ```powershell
 $env:DIZZY_DASHBOARD_ENABLED="1"
+$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
 npm start
 ```
 
-Open:
+Open `http://localhost:3000/dashboard` (or `http://localhost:3000/dashboard/login` when `DIZZY_AUTH_TOKEN` is set; never place tokens in URLs or `localStorage`).
 
-```text
-http://localhost:3000/dashboard
+---
+
+## 5. Inspect The Latest Council Audit Receipt
+
+### Mac / Linux (Bash)
+
+```bash
+jq '{verdict, timestamp, syntax_targets: (.layers.syntax.details | length), execution_suites: (.layers.execution.details | length)}' \
+  reviews/oss_council_verdict_latest.json
+sha256sum reviews/oss_council_verdict_latest.json
 ```
 
-If `DIZZY_AUTH_TOKEN` is set, use:
-
-```text
-http://localhost:3000/dashboard/login
-```
-
-Enter the token there. Do not put tokens in URLs or browser storage.
-
-## 5. Inspect The Latest Receipt
-
-```powershell
-Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
-Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
-```
-
-Read these fields from your current local receipt:
+### Windows (PowerShell)
 
 ```powershell
 $receipt = Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertFrom-Json
@@ -88,42 +132,27 @@ $receipt = Get-Content -Raw .\reviews\oss_council_verdict_latest.json | ConvertF
 Get-FileHash .\reviews\oss_council_verdict_latest.json -Algorithm SHA256
 ```
 
-Receipts are local evidence, not a promise about every future machine. Rerunning the council audit writes a fresh timestamp and hash.
+---
 
 ## 6. Verify The Local Surface
 
-```powershell
-npm run check:council
-npm run test:dashboard-public-surface
-npm run test:dashboard-safety
+```bash
 npm test
-```
-
-Useful focused checks:
-
-```powershell
+npm run test:workflow-states
 npm run check:docs
 npm run check:next
 npm run check:production
+npm run test:dashboard-public-surface
+npm run test:dashboard-safety
+npm run check:council
 ```
 
-`npm run check:staging-boundary` is an internal staging-deck guard. In public
-checkouts it passes only when the private triage ledger is absent and the tree is
-clean, or when an internal triage ledger is present and every dirty tracked file
-has an explicit disposition.
+---
 
 ## 7. What Is Not Claimed
 
 - Dizzy is not a hosted production service.
 - `/api/a2a/incoming` is a single-runtime, shared-secret signed JSON ingress proof. It does not prove external peer identity, signed responses, distributed replay protection, or cross-runtime interoperability. The local signed A2A ingress boundary is verified by deterministic tests; public interoperability remains future work.
-- The Python Council Engine remains a quarantined proving sidecar, not production authority for this repo.
-- Redis, external providers, and model backends can be offline; the dashboard should show unavailable or unverified states instead of pretending they are healthy.
-- Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved. Source, API, and route guards passed.
-
-## Reading Path
-
-1. `README.md` explains what Dizzy is and what runs today.
-2. `RUNBOOK.md` shows operational commands and local recovery steps.
-3. `NEXT.md` separates completed work from remaining work.
-4. `PR_W0068_DESCRIPTION.md` summarizes the staging branch for review.
-5. `reviews/oss_council_verdict_latest.json` is the latest local machine receipt.
+- CouncilEngine remains an offline verification helper, not consumer chat authority.
+- Redis, external providers, and model backends can be offline; the runtime and dashboard report degraded or unavailable states explicitly rather than faking health.
+- Operator captured the W-0106 walkthrough screenshots offline. No repository path or PR attachment is recorded in this checkout, so this is operator-observed evidence rather than a repository-verifiable launch artifact. W-0106 is operationally resolved.
