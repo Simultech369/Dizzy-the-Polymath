@@ -251,10 +251,11 @@ console.log("[test:job-board-scanner] Starting test suite...");
     if (summary.executed_count > 0) {
       assert.equal(artifact.receipts.length, 1);
       assert.equal(artifact.receipts[0].schema_version, "dizzy.node_python_council_bridge.response.v1");
+      assert.equal(artifact.receipts[0].status, "VERIFIED_DISPATCH");
       assert.equal(artifact.receipts[0].receipt_authority, "rehearsal_receipt");
       assert.equal(artifact.receipts[0].runtime_promotion_allowed, false);
+      assert.equal(artifact.receipts[0].promotion_receipt_required, true);
       assert.equal(artifact.receipts[0].public_claim_allowed, false);
-      assert.equal(artifact.receipts[0].rehearsal_verified, true);
     } else {
       assert.equal(artifact.outcomes.skipped, 1);
     }

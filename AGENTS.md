@@ -231,3 +231,14 @@ Be present, not pervasive.
 Be helpful, not constant.
 
 Durability > activity.
+
+---
+
+## Standing Rules for Coding Agents
+
+1. **Architecture Roles**: Dizzy is the local control plane (routing, memory rules, tools, receipts, user-facing channels). CouncilEngine is the offline verification helper (checks code/policy and promotion gates), never a second consumer chat brain.
+2. **Explicit State Machines**: Every multi-step workflow must have named states, explicit allowed transitions, clear next steps, crash-resumable state when crossing boundaries, and tests proving illegal jumps fail. See [docs/workflows_and_state_machines.md](docs/workflows_and_state_machines.md) and `lib/workflow_state_machines.mjs`.
+3. **Never Weaken Safety**: Do not weaken trust zones, receipts, tool sandboxes, agent message signing, or Council promotion rules. Validate all inputs that change state. Prefer fail-closed and human approval (HITL) over silent automation.
+4. **Extend Existing Patterns**: Extend existing Dizzy and CouncilEngine modules before introducing new dependencies or frameworks. Every important state-changing action must leave a hash-backed auditable receipt.
+5. **UI Quality Bar**: No double-submit; no blank first screen; no raw stack traces or raw JSON dumped to end users; settings survive updates; show success only after verification genuinely passes; no hardcoded white-only or decorative gradient layouts; announce status changes (`aria-live`); keep one main list for runs/receipts and an Operator Inbox for approvals/blockers/spend stops; never freeze the whole UI or replace all content with a bare spinner; resume saved state on launch; show clear degraded/offline and empty states.
+

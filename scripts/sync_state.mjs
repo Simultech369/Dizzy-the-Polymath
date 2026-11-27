@@ -68,8 +68,10 @@ function main() {
   }
 
   const designText = readText(DESIGN_PATH);
-  const designHash = sha256Hex(designText);
-  const extracted = extractStateJsonFromDesign(designText);
+  const normalizedDesignText = designText.replace(/\r\n/g, "\n");
+  const designHashLf = sha256Hex(normalizedDesignText);
+  const designHashCrlf = sha256Hex(normalizedDesignText.replace(/\n/g, "\r\n"));
+  const extracted = extractStateJsonFromDesign(normalizedDesignText);
   if (!extracted) {
     console.error("Missing STATE_JSON block in DESIGN.md (<!-- STATE_JSON:BEGIN --> ... <!-- STATE_JSON:END -->).");
     process.exit(2);
@@ -88,7 +90,7 @@ function main() {
     updated_at: new Date().toISOString(),
     canonical_source: "DESIGN.md",
     derived_from: {
-      design_md_sha256: designHash,
+      design_md_sha256: designHashLf,
     },
   };
 
@@ -107,9 +109,13 @@ function main() {
       process.exit(1);
     }
 
-    const want = stableStringify(normalizeForCompare(out));
+    const wantLf = stableStringify(normalizeForCompare(out));
+    const wantCrlf = stableStringify(normalizeForCompare({
+      ...out,
+      derived_from: { design_md_sha256: designHashCrlf },
+    }));
     const have = stableStringify(normalizeForCompare(existingJson));
-    if (want !== have) {
+    if (have !== wantLf && have !== wantCrlf) {
       console.error("STATE_SYNC_OUT_OF_DATE state.json does not match DESIGN.md");
       process.exit(1);
     }

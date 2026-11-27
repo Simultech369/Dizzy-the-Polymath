@@ -241,6 +241,15 @@
       border-color: var(--cyan);
     }
 
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
     .btn-secondary {
       background: rgba(255, 255, 255, 0.04);
       color: var(--text-main);
@@ -943,7 +952,7 @@
           Dizzy Operational Surface
           <span class="badge badge-primary" title="Dynamic Router Isolated in Local Trust Zone"><span class="status-dot"></span>DYNAMIC ROUTER</span>
         </div>
-        <div class="title-sub">Local Trust Zone &bull; Epistemic Memory &bull; Subprocess Verification</div>
+        <div class="title-sub">Local Control Plane &bull; Approvals &amp; Budgets &bull; Offline Council Verification</div>
       </div>
     </div>
     <div class="header-actions">
@@ -961,6 +970,8 @@
     </div>
   </header>
 
+  <div id="operator-live-announcer" class="sr-only" role="status" aria-live="polite"></div>
+
   <main class="grid" aria-label="Dizzy dashboard workspace">
     <!-- Sidebar: Configured Instruction Sources -->
     <div class="card">
@@ -972,9 +983,20 @@
         Prompt and policy sources reported by the local API. Per-request routing and capability evidence appears in response receipts. A complete Current Run Contract is not yet implemented.
       </div>
       <ul class="prompt-list" id="prompt-sources-list">
-        <!-- Rendered dynamically -->
+        <li class="prompt-item">
+          <span class="prompt-path">Loading local instruction sources...</span>
+          <span class="badge badge-amber">pending</span>
+        </li>
       </ul>
       <details class="raw-json" style="margin-top: 1rem;">
+        <summary>Plain-English Quick Guide</summary>
+        <div style="color: var(--text-muted); font-size: 0.84rem; line-height: 1.45; margin-top: 0.55rem;">
+          <strong>Dizzy</strong> routes your requests, enforces privacy zones, and logs receipts.<br>
+          <strong>Inbox &amp; Budgets</strong> shows anything paused for your approval, why a task is blocked, and live spending caps.<br>
+          <strong>Council</strong> runs offline code and evidence checks before changes are promoted.
+        </div>
+      </details>
+      <details class="raw-json" style="margin-top: 0.65rem;">
         <summary>Privacy Note</summary>
         <div style="color: var(--text-muted); font-size: 0.84rem; line-height: 1.45; margin-top: 0.55rem;">
           This browser view and the local server have separate histories. The server retains chat history and routing receipts; clearing this view or logging out does not delete them. Requests go to the configured model endpoint. Context permissions depend on the effective trust zone.
@@ -991,16 +1013,20 @@
     <!-- Main Content Area -->
     <div class="card">
       <div class="tab-container" role="tablist" aria-label="Dashboard sections">
-        <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-chat" data-tab-target="tab-chat">Interactive Chat</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-memory" data-tab-target="tab-memory">Memory Index</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-search" data-tab-target="tab-search">Retrieval Check</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-console" data-tab-target="tab-console">Console</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-governance" data-tab-target="tab-governance">Council</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-receipts" data-tab-target="tab-receipts">Receipt Trail</button>
+        <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-chat" title="Chat with Dizzy and view per-reply receipts" data-tab-target="tab-chat">Interactive Chat</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-inbox" title="Approvals, why blocked, spending caps, health, and audit replay" data-tab-target="tab-inbox">Inbox &amp; Budgets <span class="badge badge-amber" id="inbox-pending-badge" style="margin-left: 0.35rem; font-size: 0.68rem;">0</span></button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-governance" title="Offline Council verification and advisory code/evidence review" data-tab-target="tab-governance">Council</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-receipts" title="Unified list of runs, model routes, latency, and receipts" data-tab-target="tab-receipts">Receipt Trail</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-memory" title="Saved local markdown notes and freshness scores" data-tab-target="tab-memory">Memory Index</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-search" title="Preview which saved notes match a search query" data-tab-target="tab-search">Retrieval Check</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-console" title="Test client-scoped continuity and deletion receipts" data-tab-target="tab-console">Console</button>
       </div>
 
       <!-- Tab 0: Interactive Chat Surface -->
       <div id="tab-chat" class="tab-content active" role="tabpanel" aria-label="Interactive Chat">
+        <div style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          <strong>What this is:</strong> Your direct conversation with Dizzy. Expand <em>Capability Evidence</em> under any reply to verify which model ran and what data was allowed. Full tool/audit logs stay tucked under <strong>Inbox &amp; Budgets</strong> and <strong>Receipt Trail</strong>.
+        </div>
         <div class="chat-container">
           <div class="chat-header">
             <div class="chat-title">
@@ -1068,6 +1094,81 @@
             <button id="chat-send-btn" class="btn" type="button">
               <span>Send</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Inbox: Operator Inbox, Budgets, Health & Inspect/Replay -->
+      <div id="tab-inbox" class="tab-content" role="tabpanel" aria-label="Inbox and Budgets" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            <strong>Operator Center:</strong> One calm place for approvals waiting on you, why any run is blocked, live spending limits, and step-by-step audit replay.
+          </div>
+          <button class="btn btn-secondary btn-small" id="btn-refresh-inbox" type="button">Refresh Inbox &amp; Status</button>
+        </div>
+
+        <div class="governance-grid">
+          <div class="console-panel" style="grid-column: 1 / -1;">
+            <div class="card-title" style="margin-bottom: 0.75rem;">
+              <span>Needs Your Attention (Approvals &amp; Why Blocked)</span>
+            </div>
+            <div id="operator-inbox-list" class="card-list" aria-live="polite">
+              <div class="summary-card">
+                <div class="summary-title">Checking operator inbox...</div>
+                <div class="summary-lines">
+                  <div>Loading pending human approvals, blockers, and spend alerts from the local control plane.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="console-panel">
+            <div class="card-title" style="margin-bottom: 0.75rem;">
+              <span>Spending Caps &amp; Budget Guard</span>
+              <span class="badge badge-primary" id="budget-status-badge">Awaiting telemetry</span>
+            </div>
+            <div class="field-stack">
+              <div class="metric-row">
+                <span class="metric-label">Rolling Hourly Spend:</span>
+                <div class="progress-wrap">
+                  <div class="bar-container" style="width: 110px; height: 10px;">
+                    <div id="budget-hourly-bar" class="bar-fill" style="width: 0%; background: var(--emerald);"></div>
+                  </div>
+                  <span id="budget-hourly-val" class="metric-value">Awaiting telemetry</span>
+                </div>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Session Cap Status:</span>
+                <span id="budget-session-val" class="metric-value">Awaiting telemetry</span>
+              </div>
+              <div>
+                <button class="btn btn-secondary btn-small" id="btn-reset-budget" type="button">Reset Spend Guard</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="console-panel">
+            <div class="card-title" style="margin-bottom: 0.75rem;">
+              <span>Runtime Health &amp; Fallback Order</span>
+            </div>
+            <div id="health-subsystems-summary" class="summary-lines">
+              <div>Awaiting subsystem health check (models, mailbox, disk, and fallback order)...</div>
+            </div>
+          </div>
+
+          <div class="console-panel" style="grid-column: 1 / -1;">
+            <h3>Inspect / Replay Debug Session</h3>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Inspect the tamper-evident hash chain for a specific run or correlation ID without cluttering the main chat window.
+            </div>
+            <div class="search-container" style="margin-bottom: 0.85rem;">
+              <label class="sr-only" for="audit-replay-input">Correlation or Run ID</label>
+              <input type="text" id="audit-replay-input" class="search-input" placeholder="Enter correlation_id or checkpoint_id (or leave blank to verify recent chain)...">
+              <button class="btn btn-secondary" id="btn-run-audit-replay" type="button">Inspect Chain</button>
+            </div>
+            <div id="audit-replay-results" class="trace-stack" style="min-height: 80px;">
+              <div style="color: var(--text-muted); font-size: 0.85rem;">Enter a correlation ID above to replay its audit events.</div>
+            </div>
           </div>
         </div>
       </div>

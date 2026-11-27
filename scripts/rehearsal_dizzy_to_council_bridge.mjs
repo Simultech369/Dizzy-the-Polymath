@@ -13,12 +13,16 @@ import {
   NODE_PYTHON_BRIDGE_RESPONSE_SCHEMA,
 } from "../lib/node_python_council_bridge_contract.mjs";
 
-const DEFAULT_COUNCIL_ENGINE_DIR = process.env.USERPROFILE
-  ? path.join(process.env.USERPROFILE, ".gemini", "antigravity", "scratch", "council_engine")
-  : path.resolve("../scratch/council_engine");
+const SIBLING_COUNCIL_REPO = path.resolve("../CouncilEngine");
+const DEFAULT_COUNCIL_ENGINE_DIR = fs.existsSync(path.join(SIBLING_COUNCIL_REPO, "bridge_rehearsal_runner.py"))
+  ? SIBLING_COUNCIL_REPO
+  : (process.env.USERPROFILE
+    ? path.join(process.env.USERPROFILE, ".gemini", "antigravity", "scratch", "council_engine")
+    : path.resolve("../scratch/council_engine"));
 const COUNCIL_ENGINE_DIR = process.env.COUNCIL_ENGINE_DIR || DEFAULT_COUNCIL_ENGINE_DIR;
-const INPUT_ENVELOPE_PATH = path.join(COUNCIL_ENGINE_DIR, "inputs", "bridge_rehearsal_payload.json");
-const OUTPUT_RECEIPT_PATH = path.join(COUNCIL_ENGINE_DIR, "outputs", "bridge_rehearsal_receipt.json");
+const REHEARSAL_SCRATCH_DIR = path.resolve("artifacts/bridge_rehearsal");
+const INPUT_ENVELOPE_PATH = path.join(REHEARSAL_SCRATCH_DIR, "inputs", "bridge_rehearsal_payload.json");
+const OUTPUT_RECEIPT_PATH = path.join(REHEARSAL_SCRATCH_DIR, "outputs", "bridge_rehearsal_receipt.json");
 const REVIEWS_RECEIPT_PATH = path.resolve("reviews/bounty_bridge_rehearsal_latest.json");
 
 console.log("=== Autonomous Bounty Bridge End-to-End Rehearsal ===");

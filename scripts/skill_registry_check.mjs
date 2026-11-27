@@ -1,4 +1,5 @@
 import { discoverLocalSkills } from "../lib/skill_registry.mjs";
+import { runSupplyChainSecurityAudit } from "../lib/supply_chain_guard.mjs";
 import fs from "fs";
 import path from "path";
 
@@ -6,6 +7,15 @@ const registry = discoverLocalSkills();
 if (registry.issues.length) {
   console.error("SKILL_REGISTRY_INVALID");
   for (const issue of registry.issues) console.error(`- ${issue}`);
+  process.exit(1);
+}
+
+const supplyAudit = runSupplyChainSecurityAudit(process.cwd());
+if (!supplyAudit.ok) {
+  console.error("SKILL_OR_DEPENDENCY_SUPPLY_CHAIN_INVALID");
+  for (const finding of supplyAudit.findings) {
+    console.error(`- [${finding.severity}] ${finding.target}: ${finding.rule_id}`);
+  }
   process.exit(1);
 }
 

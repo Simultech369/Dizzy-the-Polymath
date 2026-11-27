@@ -62,6 +62,11 @@ const REQUIRED_HARNESSES = Object.freeze([
     label: "Trajectory Regression Gate Suite",
     command: [process.execPath, ["scripts/trajectory_regression_gate_test.mjs"]],
   },
+  {
+    id: "automated-attack-suite",
+    label: "Multi-Turn Jailbreak, Fuzzing & Supply-Chain Gate",
+    command: [process.execPath, ["scripts/automated_attack_suite.mjs"]],
+  },
 ]);
 
 function normalizeRepoPath(value = "") {
