@@ -29,9 +29,9 @@
       "description": "Streaming latency tracking and frame health verification",
       "steps": [
         { "actor": "user", "content": "Stream response for operator telemetry inquiry.", "status": "ok" },
-        { "actor": "agent", "tool": "sse_stream:StreamingLatencyTracker", "status": "success", "result": "Latency tracker started." },
+        { "actor": "agent", "tool": "sse_stream:StreamingLatencyTracker", "status": "success", "result": "Latency tracker started in open -> streaming state." },
         { "actor": "agent", "tool": "sse_stream:recordFrame", "status": "success", "result": "12 frames delivered, max_itl_ms=85, avg_itl_ms=42, stalls=0." },
-        { "actor": "agent", "tool": "sse_stream:buildStreamReceipt", "status": "success", "result": "Receipt generated with healthy stream latency metrics." },
+        { "actor": "agent", "tool": "sse_stream:buildStreamReceipt", "status": "success", "result": "Receipt generated with completed stream state." },
         { "actor": "agent", "content": "Telemetry delivered cleanly with full stream receipt.", "status": "success" }
       ],
       "outcome": "success"
@@ -58,6 +58,52 @@
         { "actor": "agent", "tool": "review_model_runner:executeReviewBatch", "status": "success", "result": "All 6 review positions collected." },
         { "actor": "agent", "tool": "council_subcommittee:evaluateFindings", "status": "success", "result": "Quorum met (6/6), tension index 0.18, COUNCIL_PASSED." },
         { "actor": "agent", "content": "Council audit passed with verified subcommittee consensus.", "status": "success" }
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "golden_hitl_approval_crash_resume",
+      "description": "Explicit human-approval state progression with crash-safe checkpoint resume",
+      "steps": [
+        { "actor": "user", "content": "Promote verified Council candidate after operator review.", "status": "ok" },
+        { "actor": "agent", "tool": "hitl_gateway:startRun", "status": "success", "result": "Run entered running state and persisted progress snapshot." },
+        { "actor": "agent", "tool": "hitl_gateway:requestApproval", "status": "success", "result": "Transitioned running -> waiting_for_approval with signed resume_token." },
+        { "actor": "agent", "tool": "hitl_gateway:resolveCheckpoint", "status": "success", "result": "Operator approved; state transitioned waiting_for_approval -> approved." },
+        { "actor": "agent", "tool": "hitl_gateway:resumeCheckpoint", "status": "success", "result": "Restored saved step snapshot and transitioned approved -> resumed." },
+        { "actor": "agent", "content": "Promotion resumed cleanly from saved checkpoint with hash-chained audit receipt.", "status": "success" }
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "golden_pii_masked_hosted_inference",
+      "description": "Bijective PII placeholder masking prior to hosted model call and local rehydration",
+      "steps": [
+        { "actor": "user", "content": "Draft status reply for collaborator.", "status": "ok" },
+        { "actor": "agent", "tool": "pii_proxy:inspectPrivateZoneEgress", "status": "success", "result": "Verified trusted_collaborator egress clean of restricted private-tier secrets." },
+        { "actor": "agent", "tool": "pii_proxy:maskPrompt", "status": "success", "result": "Replaced sensitive entities with deterministic surrogate placeholders." },
+        { "actor": "agent", "tool": "pii_proxy:unmaskResponse", "status": "success", "result": "Restored local surrogates and sealed dizzy.pii_inference_proxy_receipt.v1." },
+        { "actor": "agent", "content": "Delivered collaborator reply with zero raw PII sent to hosted provider.", "status": "success" }
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "golden_event_trigger_subscription_fastpath",
+      "description": "Structured external event passes cheap code filters and routes to subscribed task owner",
+      "steps": [
+        { "actor": "user", "content": "Process incoming CI completion event for owned PR task.", "status": "ok" },
+        { "actor": "agent", "tool": "event_trigger:codeFilter", "status": "success", "result": "Verified allowlisted source, byte cap, dedup, and sanitized payload ($0 LLM spend)." },
+        { "actor": "agent", "tool": "event_trigger:matchSubscription", "status": "success", "result": "Matched active task subscription in same trust zone; full re-route skipped." },
+        { "actor": "agent", "content": "Event routed directly to owning worker with sealed trigger receipt.", "status": "success" }
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "golden_deterministic_work_type_math",
+      "description": "Arithmetic and invariant logic queries execute deterministically at T0 without LLM",
+      "steps": [
+        { "actor": "user", "content": "Calculate 15% of 4800.", "status": "ok" },
+        { "actor": "agent", "tool": "work_type_router:classifyAndRouteWorkType", "status": "success", "result": "Classified as deterministic_math at tier T0 with 0 thinking tokens." },
+        { "actor": "agent", "content": "720", "status": "success" }
       ],
       "outcome": "success"
     }
