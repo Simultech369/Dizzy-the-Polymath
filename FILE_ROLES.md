@@ -48,6 +48,7 @@ If this map conflicts with `DESIGN.md`, `DESIGN.md` wins.
 
 ## Planning Maps And Handoff Packets
 
+- `ROADMAP_CORE.md`
 - `context-tree.json`
 - `EXPERIMENT_RECONCILIATION.md`
 - `BOUNTY_SCOUT_HANDOFF_2026-09-02.md`

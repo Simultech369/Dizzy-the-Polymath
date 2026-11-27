@@ -36,17 +36,19 @@ npm install
 
 ## 2. Start The Local Control Plane
 
+`DIZZY_AUTH_TOKEN` is your local HTTP/dashboard operator bearer secret (generate any 32+ char string, e.g. `openssl rand -hex 24`); Telegram BotFather tokens use `TELEGRAM_BOT_TOKEN` separately in `.env` (see `.env.example`).
+
 ### Mac / Linux (Bash)
 
 ```bash
-export DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+export DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 npm start
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+$env:DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 npm start
 ```
 
@@ -64,7 +66,7 @@ Dizzy agent server listening on http://127.0.0.1:3000
 ### Mac / Linux (`curl`)
 
 ```bash
-export DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+export DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 
 # Public local health check (models, mailbox, disk, cold-seat posture)
 curl -s http://127.0.0.1:3000/health | jq .
@@ -80,7 +82,7 @@ curl -s -H "Authorization: Bearer $DIZZY_AUTH_TOKEN" \
 ### Windows (PowerShell)
 
 ```powershell
-$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+$env:DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 $headers = @{ Authorization = "Bearer $env:DIZZY_AUTH_TOKEN" }
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt
@@ -96,14 +98,14 @@ Stop the previous server if running, then set `DIZZY_DASHBOARD_ENABLED=1` before
 ### Mac / Linux (Bash)
 
 ```bash
-DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars" npm start
+DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>" npm start
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
 $env:DIZZY_DASHBOARD_ENABLED="1"
-$env:DIZZY_AUTH_TOKEN="replace-with-local-operator-token-32-chars"
+$env:DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 npm start
 ```
 

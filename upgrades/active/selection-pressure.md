@@ -3,8 +3,8 @@ id: U-selection-pressure
 status: active
 tier: 2
 owner_surface: CHOKEPOINTS.md
-last_reviewed: 2026-09-06
-next_action: Use before adding layers to decide what can be simplified, deferred, or removed.
+last_reviewed: 2026-11-26
+next_action: Apply Capability Chokepoint Pass before scoping Phase 4 hosted surfaces or new dependencies.
 ---
 
 # Selection Pressure

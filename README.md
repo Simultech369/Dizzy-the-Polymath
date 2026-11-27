@@ -33,13 +33,13 @@ Node.js 20.18.1+ is required. Redis and external model API keys are optional for
 npm install
 
 # 2. Launch the local control-plane API (binds to 127.0.0.1:3000)
-DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars" npm start
+DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>" npm start
 ```
 
 In a second terminal, query local endpoints with `curl`:
 
 ```bash
-export DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
+export DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 
 # Check runtime, model, mailbox, and disk health
 curl -s http://127.0.0.1:3000/health | jq .
@@ -55,7 +55,7 @@ curl -s -H "Authorization: Bearer $DIZZY_AUTH_TOKEN" \
 To enable the local Operator Dashboard (`http://localhost:3000/dashboard`):
 
 ```bash
-DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars" npm start
+DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>" npm start
 ```
 
 ### Windows (PowerShell)
@@ -65,7 +65,7 @@ DIZZY_DASHBOARD_ENABLED=1 DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32
 npm install
 
 # 2. Launch with opt-in dashboard enabled
-$env:DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
+$env:DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 $env:DIZZY_DASHBOARD_ENABLED="1"
 npm start
 ```
@@ -73,7 +73,7 @@ npm start
 In another PowerShell window:
 
 ```powershell
-$env:DIZZY_AUTH_TOKEN="local-dev-operator-token-at-least-32-chars"
+$env:DIZZY_AUTH_TOKEN="<your-32-char-local-operator-token>"
 $headers = @{ Authorization = "Bearer $env:DIZZY_AUTH_TOKEN" }
 Invoke-RestMethod http://127.0.0.1:3000/health
 Invoke-RestMethod http://127.0.0.1:3000/prompt

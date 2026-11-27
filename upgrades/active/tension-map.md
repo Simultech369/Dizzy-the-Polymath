@@ -1,10 +1,10 @@
 ---
 id: U-tension-map
-status: active
+status: integrated
 tier: 2
 owner_surface: DESIGN.md
-last_reviewed: 2026-09-06
-next_action: Use to decide which contradictions deserve runtime implementation or explicit deferral.
+last_reviewed: 2026-11-26
+next_action: Integrated across lib/dispatch.mjs, lib/context_assembler.mjs, lib/client_continuity.mjs, lib/operator_inbox.mjs, and /api/operator/tension-map; revisit for Phase 4 hosted tensions.
 ---
 
 # Tension Map
