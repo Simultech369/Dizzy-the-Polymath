@@ -272,6 +272,25 @@ async function runAudit() {
     "scripts/support_class_engine_test.mjs",
     "scripts/shadow_routing_comparator_test.mjs",
     "scripts/dispatch_grounding_integration_test.mjs",
+    "lib/workflow_state_machines.mjs",
+    "lib/unified_audit_ledger.mjs",
+    "lib/memory_hygiene_scanner.mjs",
+    "lib/event_trigger_router.mjs",
+    "lib/operator_inbox.mjs",
+    "lib/work_type_router.mjs",
+    "lib/supply_chain_guard.mjs",
+    "lib/ops_hardening.mjs",
+    "scripts/workflow_state_machines_test.mjs",
+    "scripts/unified_audit_ledger_test.mjs",
+    "scripts/memory_hygiene_scanner_test.mjs",
+    "scripts/event_trigger_router_test.mjs",
+    "scripts/work_type_and_fallback_test.mjs",
+    "scripts/dizzy_council_approval_contract_test.mjs",
+    "scripts/automated_attack_suite.mjs",
+    "scripts/checkpoint_restore_resume_test.mjs",
+    "scripts/ops_hardening_and_backup_test.mjs",
+    "scripts/memory_leak_load_test.mjs",
+    "scripts/secret_scan_check.mjs",
   ];
 
   let syntaxFailed = false;
@@ -427,6 +446,17 @@ async function runAudit() {
     { name: "Runaway Execution Watchdog Suite", script: "scripts/runaway_execution_watchdog_test.mjs" },
     { name: "Support Class Engine Suite", script: "scripts/support_class_engine_test.mjs" },
     { name: "Shadow Routing Comparator Suite", script: "scripts/shadow_routing_comparator_test.mjs" },
+    { name: "Explicit Workflow State Machines Suite", script: "scripts/workflow_state_machines_test.mjs" },
+    { name: "Unified Audit Ledger Suite", script: "scripts/unified_audit_ledger_test.mjs" },
+    { name: "Memory Hygiene & Grounding Poison Suite", script: "scripts/memory_hygiene_scanner_test.mjs" },
+    { name: "External Event Trigger & Subscription Suite", script: "scripts/event_trigger_router_test.mjs" },
+    { name: "Work-Type Router & Fallback Cascade Suite", script: "scripts/work_type_and_fallback_test.mjs" },
+    { name: "Dizzy <-> CouncilEngine Contract Suite", script: "scripts/dizzy_council_approval_contract_test.mjs" },
+    { name: "Automated Attack & Supply-Chain Suite", script: "scripts/automated_attack_suite.mjs" },
+    { name: "Checkpoint Restore & Snapshot Failover Suite", script: "scripts/checkpoint_restore_resume_test.mjs" },
+    { name: "Ops Hardening, Backup/Restore & Key Rotation Suite", script: "scripts/ops_hardening_and_backup_test.mjs" },
+    { name: "Memory-Leak & Bounded Retention Load Suite", script: "scripts/memory_leak_load_test.mjs" },
+    { name: "Deterministic Repository Secret Scan", script: "scripts/secret_scan_check.mjs" },
   ];
 
   let execFailed = false;

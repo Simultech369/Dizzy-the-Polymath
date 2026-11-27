@@ -1998,8 +1998,352 @@ function routingPolicySummaryHtml(policy) {
   `;
 }
 
+const UI_PREFS_STORAGE_KEY = "dizzy_ui_prefs_v1";
+
+function announceOperatorStatus(message) {
+  const el = document.getElementById("operator-live-announcer");
+  if (el && message) {
+    el.textContent = String(message);
+  }
+}
+
+function readUiPrefs() {
+  try {
+    const raw = localStorage.getItem(UI_PREFS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveUiPref(key, value) {
+  try {
+    const current = readUiPrefs();
+    current[key] = value;
+    localStorage.setItem(UI_PREFS_STORAGE_KEY, JSON.stringify(current));
+  } catch {
+    // Ignore storage write errors in restricted browser contexts.
+  }
+}
+
+async function loadOperatorInboxAndBudgets() {
+  const refreshBtn = document.getElementById("btn-refresh-inbox");
+  const inboxList = document.getElementById("operator-inbox-list");
+  const pendingBadge = document.getElementById("inbox-pending-badge");
+  const budgetBadge = document.getElementById("budget-status-badge");
+  const hourlyBar = document.getElementById("budget-hourly-bar");
+  const hourlyVal = document.getElementById("budget-hourly-val");
+  const sessionVal = document.getElementById("budget-session-val");
+  const healthSummary = document.getElementById("health-subsystems-summary");
+  const watchdogInd = document.getElementById("chat-watchdog-indicator");
+  const costInd = document.getElementById("chat-cost-indicator");
+
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.setAttribute("aria-busy", "true");
+    refreshBtn.textContent = "Refreshing...";
+  }
+
+  try {
+    const [inboxRes, budgetRes, healthRes] = await Promise.all([
+      fetchJson("/api/operator/inbox"),
+      fetchJson("/api/operator/budget-status"),
+      fetchJson("/health"),
+    ]);
+
+    const inbox = inboxRes?.inbox || {};
+    const items = Array.isArray(inbox.items) ? inbox.items : [];
+    const totalAttention = Number(inbox.counts?.total ?? items.length);
+
+    if (pendingBadge) {
+      pendingBadge.textContent = String(totalAttention);
+      pendingBadge.className = `badge ${totalAttention > 0 ? "badge-rose" : "badge-emerald"}`;
+    }
+
+    if (inboxList) {
+      if (!items.length) {
+        inboxList.innerHTML = summaryCard({
+          title: "Nothing here yet",
+          tone: "success",
+          lines: [
+            "No human approvals, spend stops, watchdog alerts, or promotion blockers are waiting on you right now.",
+          ],
+        });
+      } else {
+        inboxList.innerHTML = items.map((item) => {
+          const kind = String(item.category || item.kind || "notice");
+          const sevBadge = item.severity === "critical" || item.severity === "high" ? "badge-rose" : "badge-amber";
+          const canApprove = Boolean(item.resume_token && item.workflow_state === "waiting_for_approval");
+          return `
+            <div class="doc-item">
+              <div class="doc-header">
+                <span class="doc-path">${escapeHtml(item.title || kind)}</span>
+                <span class="badge ${sevBadge}">${escapeHtml(kind)}</span>
+              </div>
+              <div style="color: var(--text-main); font-size: 0.88rem; margin-bottom: 0.5rem;">
+                ${escapeHtml(item.summary || item.why_blocked || "Action requires operator review.")}
+              </div>
+              ${item.why_blocked ? `<div style="font-size: 0.8rem; color: var(--amber); margin-bottom: 0.5rem;">Why blocked: ${escapeHtml(item.why_blocked)}</div>` : ""}
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                ${canApprove ? `
+                  <button class="btn btn-success btn-small" type="button" data-inbox-approve="${escapeHtml(item.resume_token)}">Approve</button>
+                  <button class="btn btn-danger btn-small" type="button" data-inbox-reject="${escapeHtml(item.resume_token)}">Reject</button>
+                ` : ""}
+                ${item.correlation_id ? `
+                  <button class="btn btn-secondary btn-small" type="button" data-inbox-replay="${escapeHtml(item.correlation_id)}">Inspect Chain</button>
+                ` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    const budget = budgetRes?.budget || {};
+    const hourlyUsd = Number(budget.rolling_hourly_usd || 0);
+    const hourlyCap = Number(budget.limits?.max_cost_per_hour_usd || 2.0);
+    const hourlyPct = Math.min(100, Math.round((hourlyUsd / Math.max(hourlyCap, 0.01)) * 100));
+    const isTripped = budget.state === "TRIPPED";
+    const isWarn = Boolean(budget.soft_cap_warning);
+
+    if (budgetBadge) {
+      budgetBadge.textContent = isTripped ? "Spend Stopped" : isWarn ? "Near Cap (80%+)" : "Within Cap";
+      budgetBadge.className = `badge ${isTripped ? "badge-rose" : isWarn ? "badge-amber" : "badge-emerald"}`;
+    }
+    if (hourlyBar) {
+      hourlyBar.style.width = `${hourlyPct}%`;
+      hourlyBar.style.background = isTripped ? "var(--rose)" : isWarn ? "var(--amber)" : "var(--emerald)";
+    }
+    if (hourlyVal) {
+      hourlyVal.textContent = `$${hourlyUsd.toFixed(4)} / $${hourlyCap.toFixed(2)} (${hourlyPct}%)`;
+    }
+    if (sessionVal) {
+      const sessUsd = Number(budget.session_spend_usd || 0);
+      const sessCap = Number(budget.limits?.max_cost_per_session_usd || 0.5);
+      sessionVal.textContent = `$${sessUsd.toFixed(4)} / $${sessCap.toFixed(2)} session cap`;
+    }
+    if (costInd) {
+      costInd.textContent = isTripped ? "Cost Guard: Halted" : `Cost Guard: $${hourlyUsd.toFixed(2)}/$${hourlyCap.toFixed(2)}h`;
+      costInd.className = `badge ${isTripped ? "badge-rose" : "badge-purple"}`;
+    }
+
+    if (healthSummary) {
+      const diskFreeGb = healthRes?.disk?.free_bytes
+        ? `${(Number(healthRes.disk.free_bytes) / (1024 ** 3)).toFixed(1)} GB free`
+        : "unknown";
+      const coldSeats = Array.isArray(healthRes?.models?.cold_models) && healthRes.models.cold_models.length
+        ? healthRes.models.cold_models.map((c) => `${c.seat} (${c.state})`).join(", ")
+        : "none";
+      const fallbackOrder = Array.isArray(healthRes?.models?.fallback_order)
+        ? healthRes.models.fallback_order.join(" -> ")
+        : "stronger -> weaker -> local -> cache";
+      const mailboxLine = `Mailbox: ${healthRes?.mailbox?.queued_count ?? 0} queued, ${healthRes?.mailbox?.dead_letter_count ?? 0} dead-letter`;
+      healthSummary.innerHTML = [
+        `<div><strong>Service:</strong> ${escapeHtml(healthRes?.ok ? "Healthy" : "Degraded")} (${escapeHtml(diskFreeGb)})</div>`,
+        `<div><strong>Cold seats:</strong> ${escapeHtml(coldSeats)}</div>`,
+        `<div><strong>Fallback order when APIs fail:</strong> <code>${escapeHtml(fallbackOrder)}</code></div>`,
+        `<div><strong>${escapeHtml(mailboxLine)}</strong></div>`,
+      ].join("");
+    }
+    if (watchdogInd) {
+      const pressure = healthRes?.daemon_hygiene?.pressure_level || "normal";
+      watchdogInd.textContent = `Watchdog: Active (${pressure})`;
+    }
+  } catch (error) {
+    if (inboxList) {
+      inboxList.innerHTML = summaryCard({
+        title: "Provider or local API unavailable",
+        tone: "danger",
+        lines: [
+          `Could not reach local operator endpoints (${formatFetchError(error)}). Existing settings and drafts remain preserved.`,
+        ],
+      });
+    }
+    if (budgetBadge) {
+      budgetBadge.textContent = "Degraded";
+      budgetBadge.className = "badge badge-rose";
+    }
+    announceOperatorStatus("Operator inbox degraded: local API unavailable.");
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.removeAttribute("aria-busy");
+      refreshBtn.textContent = "Refresh Inbox & Status";
+    }
+  }
+}
+
+async function resolveOperatorInboxAction(action, resumeToken, button) {
+  if (!resumeToken) return;
+  setButtonBusy(button, action === "approve" ? "Approving..." : "Rejecting...");
+  try {
+    await fetchJson("/api/operator/inbox/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        resume_token: resumeToken,
+        approver_id: "operator_dashboard",
+      }),
+    });
+    announceOperatorStatus(`Checkpoint ${action === "approve" ? "approved" : "rejected"} and recorded.`);
+    await loadOperatorInboxAndBudgets();
+  } catch (err) {
+    resetButton(button);
+    announceOperatorStatus(`Inbox action failed: ${formatFetchError(err)}`);
+  }
+}
+
+async function runAuditReplay(explicitCorrelationId = null) {
+  const input = document.getElementById("audit-replay-input");
+  const resultsEl = document.getElementById("audit-replay-results");
+  const btn = document.getElementById("btn-run-audit-replay");
+  if (!resultsEl) return;
+
+  const correlationId = explicitCorrelationId !== null
+    ? String(explicitCorrelationId).trim()
+    : String(input?.value || "").trim();
+  if (input && explicitCorrelationId !== null) {
+    input.value = correlationId;
+  }
+
+  setButtonBusy(btn, "Inspecting...");
+  try {
+    const querySuffix = correlationId ? `?correlation_id=${encodeURIComponent(correlationId)}` : "";
+    const data = await fetchJson(`/api/operator/audit-replay${querySuffix}`);
+    const replay = data?.replay || {};
+    const events = Array.isArray(replay.events) ? replay.events : [];
+    const chainOk = replay.chain_integrity?.ok !== false;
+
+    if (!events.length) {
+      resultsEl.innerHTML = summaryCard({
+        title: "Nothing recorded for that ID yet",
+        lines: [
+          correlationId
+            ? `No audit events matched correlation ID '${correlationId}'.`
+            : "No events recorded in the unified audit ledger yet.",
+          `Ledger hash-chain integrity: ${chainOk ? "VERIFIED" : "BROKEN"}`,
+        ],
+      });
+    } else {
+      resultsEl.innerHTML = `
+        ${summaryCard({
+          title: `Audit Replay (${events.length} step${events.length === 1 ? "" : "s"})`,
+          tone: chainOk ? "success" : "danger",
+          facts: [
+            { label: "Chain Integrity", value: chainOk ? "Verified SHA-256 links" : "Integrity mismatch" },
+            { label: "Correlation", value: correlationId || "all recent" },
+          ],
+          lines: events.slice(-10).map((ev) => `[#${ev.seq}] ${ev.surface} / ${ev.event_type}: ${ev.summary || ev.status}`),
+        })}
+        ${rawDetails("Inspect raw hash-linked entries", events, false)}
+      `;
+    }
+    announceOperatorStatus(`Audit replay loaded ${events.length} events.`);
+  } catch (err) {
+    resultsEl.innerHTML = summaryCard({
+      title: "Replay unavailable",
+      tone: "danger",
+      lines: [formatFetchError(err)],
+    });
+  } finally {
+    resetButton(btn);
+  }
+}
+
+function initOperatorCenterControls() {
+  const prefs = readUiPrefs();
+  const devCheckbox = document.getElementById("dev-mode-checkbox");
+  if (devCheckbox && prefs.devMode === true) {
+    devCheckbox.checked = true;
+    document.body.classList.remove("dev-mode-off");
+  }
+  if (devCheckbox) {
+    devCheckbox.addEventListener("change", () => {
+      saveUiPref("devMode", devCheckbox.checked);
+      announceOperatorStatus(devCheckbox.checked ? "Developer details enabled." : "Developer details hidden.");
+    });
+  }
+
+  document.querySelectorAll("[data-tab-target]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tabTarget;
+      saveUiPref("activeTab", target);
+      announceOperatorStatus(`Switched to ${tab.textContent.trim()} section.`);
+      if (target === "tab-inbox") {
+        loadOperatorInboxAndBudgets();
+      }
+    });
+  });
+
+  if (prefs.activeTab && document.getElementById(prefs.activeTab)) {
+    switchTab(prefs.activeTab);
+  }
+
+  const refreshInboxBtn = document.getElementById("btn-refresh-inbox");
+  if (refreshInboxBtn) {
+    refreshInboxBtn.addEventListener("click", () => loadOperatorInboxAndBudgets());
+  }
+
+  const resetBudgetBtn = document.getElementById("btn-reset-budget");
+  if (resetBudgetBtn) {
+    resetBudgetBtn.addEventListener("click", async () => {
+      setButtonBusy(resetBudgetBtn, "Resetting...");
+      try {
+        await fetchJson("/api/operator/budget-reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        flashButtonDone(resetBudgetBtn, "Reset Verified");
+        announceOperatorStatus("Spending guard reset verified.");
+        await loadOperatorInboxAndBudgets();
+      } catch (err) {
+        resetButton(resetBudgetBtn);
+        announceOperatorStatus(`Budget reset failed: ${formatFetchError(err)}`);
+      }
+    });
+  }
+
+  const replayBtn = document.getElementById("btn-run-audit-replay");
+  if (replayBtn) {
+    replayBtn.addEventListener("click", () => runAuditReplay());
+  }
+  const replayInput = document.getElementById("audit-replay-input");
+  if (replayInput) {
+    replayInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") runAuditReplay();
+    });
+  }
+
+  const inboxList = document.getElementById("operator-inbox-list");
+  if (inboxList) {
+    inboxList.addEventListener("click", (ev) => {
+      const approveBtn = ev.target.closest("[data-inbox-approve]");
+      if (approveBtn) {
+        resolveOperatorInboxAction("approve", approveBtn.dataset.inboxApprove, approveBtn);
+        return;
+      }
+      const rejectBtn = ev.target.closest("[data-inbox-reject]");
+      if (rejectBtn) {
+        resolveOperatorInboxAction("reject", rejectBtn.dataset.inboxReject, rejectBtn);
+        return;
+      }
+      const replayTarget = ev.target.closest("[data-inbox-replay]");
+      if (replayTarget) {
+        runAuditReplay(replayTarget.dataset.inboxReplay);
+      }
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initChatSurface();
+  initOperatorCenterControls();
   loadReceiptsTelemetry();
+  loadOperatorInboxAndBudgets();
 });
 initChatSurface();
+

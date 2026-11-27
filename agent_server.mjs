@@ -53,6 +53,12 @@ import {
   CONSISTENCY_CLASSES,
   CONSISTENCY_BADGES,
 } from "./lib/consistency_boundary.mjs";
+import { HitlApprovalGateway } from "./lib/hitl_approval_gateway.mjs";
+import { CostKillSwitch } from "./lib/cost_kill_switch.mjs";
+import { RunawayExecutionWatchdog } from "./lib/runaway_execution_watchdog.mjs";
+import { UnifiedAuditLedger } from "./lib/unified_audit_ledger.mjs";
+import { EventTriggerRouter } from "./lib/event_trigger_router.mjs";
+import { OperatorInboxStore } from "./lib/operator_inbox.mjs";
 
 export { pruneExpiredRateLimitBuckets };
 
@@ -165,6 +171,16 @@ function isDashboardRoute(pathname) {
     || pathname === "/api/operator/council-bridge-status"
     || pathname === "/api/operator/trajectory-diagnostics"
     || pathname === "/api/operator/local-review"
+    || pathname === "/api/operator/daemon-hygiene"
+    || pathname === "/api/operator/daemon-hygiene/prune"
+    || pathname === "/api/operator/inbox"
+    || pathname === "/api/operator/inbox/resolve"
+    || pathname === "/api/operator/audit-replay"
+    || pathname === "/api/operator/budget-status"
+    || pathname === "/api/operator/budget-reset"
+    || pathname === "/api/operator/subscriptions"
+    || pathname === "/api/operator/watchdog-check"
+    || pathname === "/api/events/trigger"
     || pathname === "/api/a2a/mailbox/stats"
     || pathname === "/api/a2a/mailbox/dequeue"
     || pathname === "/api/a2a/mailbox/ack";
@@ -689,7 +705,7 @@ function persistMissingExecuteTranscript({ conversationKey, beforeRows, brief, o
 }
 
 function randomSuffix() {
-  return Math.random().toString(36).slice(2, 8);
+  return crypto.randomBytes(4).toString("hex");
 }
 
 function normalizeMeta(value) {
@@ -1051,9 +1067,62 @@ export async function createRuntime(opts = {}) {
 
   await initRedis();
 
+  const unifiedAuditLedger = new UnifiedAuditLedger({
+    ledgerPath: opts.auditLedgerPath || process.env.DIZZY_UNIFIED_AUDIT_LEDGER_PATH || "runtime/audit/unified_audit_ledger.jsonl",
+  });
+  const hitlApprovalGateway = new HitlApprovalGateway({
+    ledgerDir: opts.hitlLedgerDir || process.env.DIZZY_HITL_LEDGER_DIR || "runtime/hitl",
+    secret: opts.hitlSecret || process.env.HITL_GATEWAY_SECRET || (authToken.length >= 16 ? authToken : undefined),
+  });
+  const costKillSwitch = new CostKillSwitch({
+    maxCostPerRequestUsd: opts.maxCostPerRequestUsd,
+    maxCostPerSessionUsd: opts.maxCostPerSessionUsd,
+    maxCostPerHourUsd: opts.maxCostPerHourUsd,
+  });
+  const runawayWatchdog = new RunawayExecutionWatchdog({
+    hitlGateway: hitlApprovalGateway,
+    escalateToHitl: true,
+  });
+  const watchdogAlerts = [];
+  const eventTriggerRouter = new EventTriggerRouter();
+  const operatorInbox = new OperatorInboxStore();
+
+  // Hoist A2A mailbox queue so /health can inspect live queue/lease/DLQ counts
+  const a2aSecret = String(opts.a2aSecret ?? process.env.DIZZY_A2A_SECRET ?? "").trim();
+  const a2aTrustStore = opts.a2aTrustStore || (process.env.DIZZY_A2A_TRUST_STORE ? Ed25519TrustStore.fromEnv() : null);
+  const a2aSecretValidation = a2aSecret ? validateA2ASecret(a2aSecret) : { ok: false, reason: "DIZZY_A2A_SECRET is required" };
+  const hasA2AAuth = a2aSecretValidation.ok || (a2aTrustStore && a2aTrustStore.size() > 0);
+  const a2aMailboxQueue = new A2AMailboxQueue({
+    requireSignature: opts.a2aRequireSignature ?? parseBool(process.env.DIZZY_A2A_REQUIRE_SIGNATURE, true),
+    trustStore: a2aTrustStore,
+    secretKey: a2aSecretValidation.ok ? a2aSecret : null,
+    allowedAlgorithms: opts.a2aAllowedAlgorithms,
+  });
+
   app.get("/health", async (req, res) => {
+    const diskHealth = (() => {
+      try {
+        const stat = fs.statfsSync(process.cwd());
+        const freeBytes = Number(stat.bavail) * Number(stat.bsize);
+        const totalBytes = Number(stat.blocks) * Number(stat.bsize);
+        return {
+          status: freeBytes > 64 * 1024 * 1024 ? "healthy" : "low_disk",
+          free_bytes: freeBytes,
+          total_bytes: totalBytes,
+        };
+      } catch {
+        return { status: "unknown", free_bytes: null, total_bytes: null };
+      }
+    })();
+
+    const mailboxStats = a2aMailboxQueue.getStats();
+    const configuredBackend = String(process.env.DIZZY_BACKEND || "local").trim().toLowerCase();
+    const ollamaConfigured = Boolean(process.env.OLLAMA_BASE_URL || configuredBackend === "local");
+    const geminiConfigured = Boolean(process.env.GEMINI_API_KEY);
+    const openaiConfigured = Boolean(process.env.OPENAI_COMPAT_API_KEY || process.env.OPENAI_COMPAT_BASE_URL);
+
     const out = {
-      ok: true,
+      ok: diskHealth.status !== "low_disk",
       service: "dizzy-agent-server",
       port,
       bind_host: bindHost,
@@ -1074,6 +1143,31 @@ export async function createRuntime(opts = {}) {
         configured: Boolean(redisUrl),
         ready: redisReady,
         prefix: queuePrefix,
+      },
+      models: {
+        configured_backend: configuredBackend,
+        local_ollama_configured: ollamaConfigured,
+        hosted_gemini_configured: geminiConfigured,
+        hosted_openai_compat_configured: openaiConfigured,
+        cold_models: [
+          ...(ollamaConfigured ? [{ seat: String(process.env.OLLAMA_MODEL || "gemma3:4b"), state: "cold_until_probed" }] : []),
+        ],
+        fallback_order: ["stronger", "weaker", "local", "cache"],
+      },
+      mailbox: {
+        status: mailboxStats.dead_letter_count > 0 ? "degraded_dead_letters" : "healthy",
+        queued_count: mailboxStats.queued_count,
+        leased_count: mailboxStats.leased_count,
+        dead_letter_count: mailboxStats.dead_letter_count,
+        require_signature: mailboxStats.require_signature,
+      },
+      disk: diskHealth,
+      approvals: {
+        waiting_for_approval: hitlApprovalGateway.listPending().length,
+      },
+      budget: {
+        state: costKillSwitch.state,
+        rolling_hourly_usd: costKillSwitch.getBudgetTelemetry().rolling_hourly_usd,
       },
       safety: {
         warnings: safetyDiagnostics.warnings,
@@ -1872,18 +1966,7 @@ export async function createRuntime(opts = {}) {
     return { jobId: result, deduplicated: false };
   }
 
-  // External A2A boundary proof (W-0108 / W-0118). The route stays fail-closed until a dedicated secret or Ed25519 trust store is configured.
-  const a2aSecret = String(opts.a2aSecret ?? process.env.DIZZY_A2A_SECRET ?? "").trim();
-  const a2aTrustStore = opts.a2aTrustStore || (process.env.DIZZY_A2A_TRUST_STORE ? Ed25519TrustStore.fromEnv() : null);
-  const a2aSecretValidation = a2aSecret ? validateA2ASecret(a2aSecret) : { ok: false, reason: "DIZZY_A2A_SECRET is required" };
-  const hasA2AAuth = a2aSecretValidation.ok || (a2aTrustStore && a2aTrustStore.size() > 0);
-
-  const a2aMailboxQueue = new A2AMailboxQueue({
-    requireSignature: opts.a2aRequireSignature ?? parseBool(process.env.DIZZY_A2A_REQUIRE_SIGNATURE, true),
-    trustStore: a2aTrustStore,
-    secretKey: a2aSecretValidation.ok ? a2aSecret : null,
-    allowedAlgorithms: opts.a2aAllowedAlgorithms,
-  });
+  // External A2A boundary proof (W-0108 / W-0118). Uses hoisted a2aMailboxQueue & trust-store policy.
   const a2aIngressHandlers = hasA2AAuth
     ? [
         a2aBoundaryGuard({
@@ -1909,8 +1992,22 @@ export async function createRuntime(opts = {}) {
 
       try {
         const receipt = a2aMailboxQueue.enqueue(req.body);
+        unifiedAuditLedger.append({
+          surface: "a2a_mailbox",
+          eventType: "A2A_ENVELOPE_ENQUEUED",
+          correlationId: receipt.message_id,
+          status: receipt.sanitization_status || "ENQUEUED",
+          summary: `Enqueued signed A2A message from '${receipt.sender_id}' to '${receipt.recipient_id}'`,
+          receiptSha256: receipt.sanitization_receipt_sha256 || null,
+        });
         return res.json({ ok: true, receipt });
       } catch (err) {
+        unifiedAuditLedger.append({
+          surface: "a2a_mailbox",
+          eventType: "A2A_ENVELOPE_BLOCKED",
+          status: "blocked",
+          summary: String(err?.message || "A2A message rejected"),
+        });
         return res.status(400).json({ ok: false, error: err.message });
       }
     } catch (e) {
@@ -1967,6 +2064,243 @@ export async function createRuntime(opts = {}) {
     } catch (err) {
       next(err);
     }
+  });
+
+  // Unified Operator Inbox (approvals, blockers, spend stops, questions in ONE calm view)
+  app.get("/api/operator/inbox", operatorDashboardReadAuthGuard, (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const mStats = a2aMailboxQueue.getStats();
+    const bridgeStatus = buildCouncilBridgeStatus({
+      mailboxStats: mStats,
+      a2aAuthConfigured: hasA2AAuth,
+    });
+    const inbox = operatorInbox.buildInboxSnapshot({
+      hitlGateway: hitlApprovalGateway,
+      costKillSwitch,
+      watchdogAlerts,
+      deadLetterCount: mStats.dead_letter_count,
+      councilBridgeStatus: bridgeStatus,
+    });
+    res.json({ ok: true, inbox });
+  });
+
+  app.post("/api/operator/inbox/resolve", operatorDashboardMutationAuthGuard, (req, res) => {
+    try {
+      const action = String(req.body?.action || "").trim().toLowerCase();
+      if (action === "request_approval") {
+        const created = hitlApprovalGateway.createCheckpoint({
+          actionType: String(req.body?.action_type || "operator_gated_action"),
+          actionPayload: req.body?.action_payload || {},
+          context: req.body?.context || {},
+        });
+        unifiedAuditLedger.append({
+          surface: "hitl_approval",
+          eventType: "CHECKPOINT_CREATED",
+          correlationId: created.checkpoint.checkpoint_id,
+          workflowState: created.checkpoint.workflow_state,
+          status: "waiting_for_approval",
+          summary: `Created HITL checkpoint for '${created.checkpoint.action_type}'`,
+          receiptSha256: created.receipt.receipt_sha256,
+        });
+        return res.json({ ok: true, result: created });
+      }
+
+      if (action === "approve" || action === "reject") {
+        const resolved = hitlApprovalGateway.resolveCheckpoint({
+          resumeToken: String(req.body?.resume_token || ""),
+          action: action.toUpperCase(),
+          approverId: String(req.body?.approver_id || "operator_dashboard"),
+          reason: req.body?.reason || null,
+        });
+        unifiedAuditLedger.append({
+          surface: "hitl_approval",
+          eventType: action === "approve" ? "CHECKPOINT_APPROVED" : "CHECKPOINT_REJECTED",
+          correlationId: resolved.run_id || resolved.checkpoint_id,
+          workflowState: resolved.workflow_state,
+          status: resolved.workflow_state,
+          summary: `Operator ${resolved.workflow_state} checkpoint '${resolved.checkpoint_id}'`,
+          receiptSha256: resolved.resolution_receipt.resolution_sha256,
+        });
+        return res.json({ ok: true, result: resolved });
+      }
+
+      if (action === "resume") {
+        const resumed = hitlApprovalGateway.resumeCheckpoint({
+          resumeToken: String(req.body?.resume_token || ""),
+          runId: req.body?.run_id || null,
+          actorId: String(req.body?.actor_id || "operator_dashboard"),
+        });
+        unifiedAuditLedger.append({
+          surface: "hitl_approval",
+          eventType: "CHECKPOINT_RESUMED",
+          correlationId: resumed.run_id || resumed.checkpoint_id,
+          workflowState: resumed.workflow_state,
+          status: "resumed",
+          summary: `Resumed approved checkpoint '${resumed.checkpoint_id}'`,
+        });
+        return res.json({ ok: true, result: resumed });
+      }
+
+      if (action === "answer_question") {
+        const answered = operatorInbox.answerQuestion({
+          questionId: req.body?.question_id,
+          answer: req.body?.answer,
+          actorId: req.body?.actor_id || "operator_dashboard",
+        });
+        return res.json({ ok: true, result: answered });
+      }
+
+      return res.status(400).json({
+        ok: false,
+        code: "INVALID_INBOX_ACTION",
+        error: "Unsupported inbox action. Expected approve, reject, resume, request_approval, or answer_question.",
+      });
+    } catch (err) {
+      const status = err?.code === "ILLEGAL_STATE_TRANSITION" ? 409 : 400;
+      return res.status(status).json({
+        ok: false,
+        code: err?.code || "INBOX_RESOLUTION_FAILED",
+        error: String(err?.message || "Failed to resolve inbox item"),
+      });
+    }
+  });
+
+  // Inspect / Replay Debug Session endpoint (kept separate from main conversation UI)
+  app.get("/api/operator/audit-replay", operatorDashboardReadAuthGuard, (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const correlationId = String(req.query?.correlation_id || "").trim();
+    const replay = unifiedAuditLedger.replayCorrelation(correlationId);
+    res.json({ ok: true, replay });
+  });
+
+  // Spending Caps & Alerts
+  app.get("/api/operator/budget-status", operatorDashboardReadAuthGuard, (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const sessionId = String(req.query?.session_id || "default_session").trim();
+    res.json({ ok: true, budget: costKillSwitch.getBudgetTelemetry({ sessionId }) });
+  });
+
+  app.post("/api/operator/budget-reset", operatorDashboardMutationAuthGuard, (req, res) => {
+    try {
+      const receipt = costKillSwitch.reset({
+        authorizationKey: authToken && authToken.length >= 16 ? authToken : "local_loopback_operator_auth_key",
+        sessionId: req.body?.session_id || null,
+      });
+      unifiedAuditLedger.append({
+        surface: "cost_guard",
+        eventType: "COST_KILL_SWITCH_RESET",
+        status: "reset",
+        summary: "Operator reset Cost Kill-Switch",
+        receiptSha256: receipt.receipt_sha256,
+      });
+      res.json({ ok: true, receipt });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: String(err?.message || "Failed to reset budget guard") });
+    }
+  });
+
+  // Task / Thread Subscriptions & Structured External Event Triggers
+  app.get("/api/operator/subscriptions", operatorDashboardReadAuthGuard, (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ ok: true, subscriptions: eventTriggerRouter.listSubscriptions() });
+  });
+
+  app.post("/api/operator/subscriptions", operatorDashboardMutationAuthGuard, (req, res) => {
+    try {
+      const sub = eventTriggerRouter.subscribeTask({
+        taskId: req.body?.task_id,
+        threadId: req.body?.thread_id,
+        workerId: req.body?.worker_id,
+        trustZone: req.body?.trust_zone || "private_self",
+        allowedSources: req.body?.allowed_sources || null,
+        ttlMs: req.body?.ttl_ms || null,
+      });
+      res.json({ ok: true, subscription: sub });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: String(err?.message || "Invalid subscription request") });
+    }
+  });
+
+  app.post("/api/events/trigger", operatorControlAuthGuard, async (req, res) => {
+    try {
+      const outcome = await eventTriggerRouter.ingestEvent(req.body || {});
+      unifiedAuditLedger.append({
+        surface: "event_trigger",
+        eventType: outcome.accepted ? "EXTERNAL_EVENT_ACCEPTED" : "EXTERNAL_EVENT_DROPPED",
+        correlationId: String(req.body?.task_id || req.body?.thread_id || req.body?.event_id || ""),
+        trustZone: String(req.body?.trust_zone || "outside_contact"),
+        workflowState: outcome.workflow_state,
+        status: outcome.workflow_state,
+        summary: outcome.accepted
+          ? `Event '${req.body?.event_type}' routed (${outcome.workflow_state})`
+          : `Event dropped by deterministic code filter: ${outcome.drop_reason}`,
+        receiptSha256: outcome.receipt.receipt_sha256,
+      });
+      res.json({ ok: true, outcome });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: String(err?.message || "Event trigger failed") });
+    }
+  });
+
+  // Watchdog Progress & Seat Health Check
+  app.post("/api/operator/watchdog-check", operatorDashboardMutationAuthGuard, (req, res) => {
+    const seatHealth = req.body?.seat_health;
+    if (seatHealth && typeof seatHealth === "object" && seatHealth.healthy === false) {
+      const seatId = normalizeIdentifier(seatHealth.seat_id || "unknown_seat", "unknown_seat");
+      const reasonMsg = normalizeFreeText(seatHealth.reason || `Unhealthy seat '${seatId}' detected`, 240);
+      const alertId = `wd_seat_${Date.now()}`;
+      watchdogAlerts.push({
+        alert_id: alertId,
+        state: "UNHEALTHY_SEAT_ESCALATED",
+        reason_code: "UNHEALTHY_SEAT",
+        message: reasonMsg,
+        correlation_id: `seat_${seatId}`,
+        timestamp: new Date().toISOString(),
+      });
+      const entry = unifiedAuditLedger.append({
+        surface: "watchdog",
+        eventType: "WATCHDOG_UNHEALTHY_SEAT",
+        correlationId: `seat_${seatId}`,
+        status: "UNHEALTHY_SEAT_ESCALATED",
+        summary: reasonMsg,
+      });
+      return res.json({
+        ok: true,
+        watchdog: {
+          ok: false,
+          status: "UNHEALTHY_SEAT_ESCALATED",
+          seat_id: seatId,
+          error: reasonMsg,
+          audit_entry_hash: entry.entry_hash,
+        },
+      });
+    }
+
+    const stepOutcome = runawayWatchdog.recordStep({
+      tool: String(req.body?.tool || "unknown_tool"),
+      args: req.body?.args || {},
+      stateDelta: req.body?.state_delta || null,
+      summary: String(req.body?.summary || ""),
+    });
+    if (!stepOutcome.ok) {
+      watchdogAlerts.push({
+        alert_id: `wd_${Date.now()}`,
+        state: stepOutcome.status,
+        reason_code: runawayWatchdog.tripReason || "spin_detected",
+        message: stepOutcome.error || "Watchdog halted non-progressing loop",
+        correlation_id: runawayWatchdog.sessionId,
+        timestamp: new Date().toISOString(),
+      });
+      unifiedAuditLedger.append({
+        surface: "watchdog",
+        eventType: "WATCHDOG_HALT_OR_ESCALATION",
+        correlationId: runawayWatchdog.sessionId,
+        status: stepOutcome.status,
+        summary: stepOutcome.error || "Watchdog halted execution",
+        receiptSha256: stepOutcome.receipt?.evidence_sha256 || null,
+      });
+    }
+    return res.json({ ok: true, watchdog: stepOutcome });
   });
 
   app.post("/api/a2a/mailbox/dequeue", operatorControlAuthGuard, (req, res) => {
@@ -2549,6 +2883,14 @@ export async function createRuntime(opts = {}) {
     const errMsg = String(err?.message ?? err).slice(0, 500);
     const redacted = redactTextPayload(errMsg);
     console.error(`[Server Error] ${redacted}`);
+    const kind = routeNotFoundKind(req.path);
+    const accept = String(req.headers?.accept || "");
+    if (!["api", "agent", "dispatch", "asset"].includes(kind) && accept.includes("text/html")) {
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(500).type("text/html").send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dizzy Service Unavailable</title></head>
+<body style="background:#06080d;color:#f8fafc;font-family:system-ui,sans-serif;padding:2rem;"><main><h1>Local runtime error</h1><p>Dizzy encountered a local operational error and halted this request safely.</p><p>No raw stack details are exposed on this surface. Return to <a href="/dashboard" style="color:#45f3ff;">/dashboard</a> or inspect local logs.</p></main></body></html>`);
+    }
     return res.status(500).json({ ok: false, error: "Internal server error" });
   });
 

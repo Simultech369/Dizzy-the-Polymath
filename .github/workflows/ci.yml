@@ -1,4 +1,7 @@
-name: Clawd Deterministic CI Gate
+name: Dizzy Control-Plane CI Pipeline
+
+permissions:
+  contents: read
 
 on:
   push:
@@ -7,9 +10,96 @@ on:
     branches: [ main ]
 
 jobs:
-  verify:
-    name: Council Verification Gate
+  pipeline:
+    name: Ordered Control-Plane & Council Pipeline
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dizzy-the-Polymath
+        uses: actions/checkout@v4
+        with:
+          path: Dizzy-the-Polymath
+          fetch-depth: 0
+
+      - name: Checkout Sibling CouncilEngine (for cross-repo contract)
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: Simultech369/CouncilEngine
+          path: CouncilEngine
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: "npm"
+          cache-dependency-path: Dizzy-the-Polymath/package-lock.json
+
+      - name: Setup Python (for offline CouncilEngine contract)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 1. Install Dependencies
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm ci
+          python3 -m pip install --quiet pydantic pynacl requests || true
+
+      - name: 2. Unit, Workflow State Machine & Smoke Tests
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm run smoke
+          npm test
+          npm run test:workflow-states
+
+      - name: 3. Tool Sandbox & Guardrail Safety
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm run test:tool-guardrails
+          npm run test:pii-proxy
+          npm run test:work-type-routing
+
+      - name: 4. Agent Messaging (Signed A2A, Mailbox & Event Triggers)
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm run test:a2a-boundary
+          npm run test:a2a-mailbox
+          npm run test:inter-agent-proxy
+          npm run test:event-triggers
+
+      - name: 5. Bounded Memory, Hygiene & Grounding
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm run check:memory
+          npm run test:cognitive-memory
+          npm run test:memory-wiki
+          npm run test:memory-hygiene
+          npm run test:citation-grounding
+
+      - name: 6. Trajectory Regression & Checkpoint Restore/Resume
+        working-directory: Dizzy-the-Polymath
+        run: |
+          npm run test:checkpoint-restore
+          npm run test:statem-runbook
+          npm run check:eval-gate
+
+      - name: 7. OSS Council 3-Layer Verification Gate
+        working-directory: Dizzy-the-Polymath
+        run: npm run check:council
+
+      - name: 8. Dizzy <-> CouncilEngine Shared Contract
+        working-directory: Dizzy-the-Polymath
+        env:
+          COUNCIL_ENGINE_DIR: ${{ github.workspace }}/CouncilEngine
+        run: |
+          npm run test:node-python-bridge-contract
+          npm run test:dizzy-council-contract
+
+  pr-security-scans:
+    name: PR Dependency Vulnerability & Secret Scans
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - name: Checkout Repository
@@ -24,16 +114,34 @@ jobs:
           cache: "npm"
 
       - name: Install Dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Secret Scan
+        run: npm run check:secrets
+
+      - name: Skill & Dependency Supply-Chain Malicious Package Scan
+        run: |
+          npm run check:skills
+          npm run check:dependencies
+          npm audit --omit=dev --audit-level=critical || echo "::warning::Review npm audit advisories before hosted Phase 4 promotion"
+
+  attack-suite-advisory:
+    name: Optional Automated Attack & Multi-Turn Jailbreak Job
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: "npm"
+
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Run Deterministic Safety & Fuzzing Tests
-        run: npm test
-
-      - name: Run Maintenance Suite
-        run: npm run maintain
-
-      - name: Run Eval Gate Promotion Policy
-        run: npm run check:eval-gate
-
-      - name: Run OSS Council 3-Layer Audit
-        run: npm run check:council
+      - name: Run Multi-Turn Jailbreak, Fuzzing & Chaos Suite (Strict Council Rules Preserved)
+        run: node ./scripts/automated_attack_suite.mjs --max-asr 0.00
